@@ -4,6 +4,7 @@ import { authMiddleware } from '@/server/auth/middleware'
 import { authRoutes } from '@/server/routes/auth'
 import { meRoutes } from '@/server/routes/me'
 import { onboardingRoutes } from '@/server/routes/onboarding'
+import { providerRoutes } from '@/server/routes/providers'
 
 export type AppVariables = {
   session: { id: string; userId: string; token: string }
@@ -28,5 +29,6 @@ app.get('/api/health', (c) => {
 app.route('/api/auth', authRoutes)
 app.route('/api/me', meRoutes)
 app.route('/api/onboarding', onboardingRoutes)
+app.route('/api/providers', providerRoutes)
 
 export { app }
