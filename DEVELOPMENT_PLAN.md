@@ -179,10 +179,10 @@ Communication temps réel du serveur vers le client.
 
 Gestion des Kins : création, édition, suppression, avatar.
 
-- [ ] **7.1** Créer les routes :
+- [x] **7.1** Créer les routes :
   - `src/server/routes/kins.ts` — `GET /api/kins`, `GET /api/kins/:id`, `POST /api/kins`, `PATCH /api/kins/:id`, `DELETE /api/kins/:id`, `POST /api/kins/:id/avatar`
-- [ ] **7.2** Logique de création du workspace du Kin (`{dataDir}/workspaces/{kinId}/`)
-- [ ] **7.3** Gestion des avatars (upload, génération automatique si provider image disponible, prompt personnalisé)
+- [x] **7.2** Logique de création du workspace du Kin (`{dataDir}/workspaces/{kinId}/`)
+- [x] **7.3** Gestion des avatars (upload, génération automatique si provider image disponible, prompt personnalisé)
 - [ ] **7.4** Frontend : créer le hook `src/client/hooks/useKins.ts`
 - [ ] **7.5** Frontend : créer `src/client/components/kin/KinCreateModal.tsx`
 - [ ] **7.6** Frontend : créer `src/client/components/kin/KinCard.tsx`
