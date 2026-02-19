@@ -135,16 +135,16 @@ Définition complète du schéma Drizzle et création de la base SQLite.
 
 Gestion des providers et abstraction des capacités.
 
-- [ ] **4.1** Créer `src/server/providers/types.ts` — interfaces `ProviderConfig`, `LLMCapability`, `EmbeddingCapability`, `ImageCapability`
-- [ ] **4.2** Créer `src/server/providers/index.ts` — registry des providers, résolution par capacité
-- [ ] **4.3** Implémenter `src/server/providers/anthropic.ts` (LLM via Vercel AI SDK)
-- [ ] **4.4** Implémenter `src/server/providers/openai.ts` (LLM + Embedding + Image via Vercel AI SDK)
-- [ ] **4.5** Implémenter `src/server/providers/gemini.ts` (LLM + Image via Vercel AI SDK)
-- [ ] **4.6** Implémenter `src/server/providers/voyage.ts` (Embedding via Vercel AI SDK)
-- [ ] **4.7** Créer `src/server/services/embeddings.ts` — service d'embedding (résolution du provider, génération de vecteurs)
-- [ ] **4.8** Créer les routes :
+- [x] **4.1** Créer `src/server/providers/types.ts` — interfaces `ProviderConfig`, `LLMCapability`, `EmbeddingCapability`, `ImageCapability`
+- [x] **4.2** Créer `src/server/providers/index.ts` — registry des providers, résolution par capacité
+- [x] **4.3** Implémenter `src/server/providers/anthropic.ts` (LLM via Vercel AI SDK)
+- [x] **4.4** Implémenter `src/server/providers/openai.ts` (LLM + Embedding + Image via Vercel AI SDK)
+- [x] **4.5** Implémenter `src/server/providers/gemini.ts` (LLM + Image via Vercel AI SDK)
+- [x] **4.6** Implémenter `src/server/providers/voyage.ts` (Embedding via Vercel AI SDK)
+- [x] **4.7** Créer `src/server/services/embeddings.ts` — service d'embedding (résolution du provider, génération de vecteurs)
+- [x] **4.8** Créer les routes :
   - `src/server/routes/providers.ts` — `GET /api/providers`, `POST /api/providers`, `PATCH /api/providers/:id`, `DELETE /api/providers/:id`, `POST /api/providers/:id/test`, `GET /api/providers/models`
-- [ ] **4.9** Implémenter le chiffrement des configs provider (`config_encrypted`) avec la clé `ENCRYPTION_KEY`
+- [x] **4.9** Implémenter le chiffrement des configs provider (`config_encrypted`) avec la clé `ENCRYPTION_KEY`
 
 **Critère de validation** : on peut créer un provider (ex: OpenAI), tester la connexion, et lister les modèles disponibles via l'API.
 
@@ -154,9 +154,9 @@ Gestion des providers et abstraction des capacités.
 
 Infrastructure transversale utilisée par toutes les couches suivantes.
 
-- [ ] **5.1** Créer `src/server/services/events.ts` — event bus in-memory (`emit`, `on`, `off`)
-- [ ] **5.2** Créer `src/server/hooks/types.ts` — types des hooks (`HookContext`, `HookHandler`)
-- [ ] **5.3** Créer `src/server/hooks/index.ts` — registry des hooks + exécution chainée (`beforeChat`, `afterChat`, `beforeToolCall`, `afterToolCall`, `beforeCompacting`, `afterCompacting`, `onTaskSpawn`, `onCronTrigger`)
+- [x] **5.1** Créer `src/server/services/events.ts` — event bus in-memory (`emit`, `on`, `off`)
+- [x] **5.2** Créer `src/server/hooks/types.ts` — types des hooks (`HookContext`, `HookHandler`)
+- [x] **5.3** Créer `src/server/hooks/index.ts` — registry des hooks + exécution chainée (`beforeChat`, `afterChat`, `beforeToolCall`, `afterToolCall`, `beforeCompacting`, `afterCompacting`, `onTaskSpawn`, `onCronTrigger`)
 
 **Critère de validation** : on peut émettre un événement et le recevoir dans un listener. Les hooks peuvent être enregistrés et exécutés.
 
@@ -166,10 +166,10 @@ Infrastructure transversale utilisée par toutes les couches suivantes.
 
 Communication temps réel du serveur vers le client.
 
-- [ ] **6.1** Créer `src/server/sse/types.ts` — types des événements SSE (`chat:token`, `chat:done`, `chat:message`, `task:status`, `task:done`, `cron:triggered`, `queue:update`, `kin:error`)
-- [ ] **6.2** Créer `src/server/sse/index.ts` — gestionnaire SSE (gestion des connexions, broadcast par kinId, cleanup)
-- [ ] **6.3** Créer `src/server/routes/sse.ts` — `GET /api/sse` (connexion SSE globale, une par client)
-- [ ] **6.4** Frontend : créer `src/client/hooks/useSSE.ts` — connexion SSE persistante, dispatch des événements par kinId, reconnexion automatique
+- [x] **6.1** Créer `src/server/sse/types.ts` — types des événements SSE (`chat:token`, `chat:done`, `chat:message`, `task:status`, `task:done`, `cron:triggered`, `queue:update`, `kin:error`)
+- [x] **6.2** Créer `src/server/sse/index.ts` — gestionnaire SSE (gestion des connexions, broadcast par kinId, cleanup)
+- [x] **6.3** Créer `src/server/routes/sse.ts` — `GET /api/sse` (connexion SSE globale, une par client)
+- [x] **6.4** Frontend : créer `src/client/hooks/useSSE.ts` — connexion SSE persistante, dispatch des événements par kinId, reconnexion automatique
 
 **Critère de validation** : le frontend se connecte en SSE et reçoit un événement de test envoyé depuis le backend.
 
