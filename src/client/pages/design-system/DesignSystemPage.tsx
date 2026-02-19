@@ -194,9 +194,11 @@ export function DesignSystemPage() {
             </div>
 
             <SubSection title="Glass & Glow">
-              <div className="relative overflow-hidden rounded-2xl gradient-mesh p-8">
-                <div className="aurora-orb aurora-orb-purple size-40 top-0 left-0" />
-                <div className="aurora-orb aurora-orb-pink size-32 bottom-0 right-0" style={{ animationDelay: '-2s' }} />
+              <div className="relative rounded-2xl gradient-mesh py-14 px-8">
+                {/* Aurora orbs — overflow visible so blur bleeds out naturally */}
+                <div className="aurora-orb aurora-orb-purple size-56 -top-16 -left-16" />
+                <div className="aurora-orb aurora-orb-pink size-48 -bottom-12 -right-12" style={{ animationDelay: '-3s' }} />
+                <div className="aurora-orb aurora-orb-peach size-36 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ animationDelay: '-5s' }} />
 
                 <div className="relative grid gap-5 sm:grid-cols-3">
                   <div className="glass rounded-xl p-5 text-center">
@@ -216,7 +218,7 @@ export function DesignSystemPage() {
                   </div>
                 </div>
 
-                <div className="relative mt-6 flex items-center justify-center gap-4 flex-wrap">
+                <div className="relative mt-8 flex items-center justify-center gap-4 flex-wrap">
                   <span className="glow-primary gradient-primary rounded-full px-5 py-2 text-sm font-medium text-white">
                     Glow Primary
                   </span>
