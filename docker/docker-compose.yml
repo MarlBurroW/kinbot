@@ -1,0 +1,14 @@
+services:
+  kinbot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=3000
+      - KINBOT_DATA_DIR=/app/data
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    restart: unless-stopped

@@ -10,19 +10,19 @@ Ce document sert de feuille de route pour le développement de KinBot. Chaque ph
 
 Mise en place du monorepo, de la toolchain, et des fichiers de configuration.
 
-- [ ] **0.1** Initialiser le projet avec `bun init`
-- [ ] **0.2** Configurer `package.json` avec les scripts (`dev`, `build`, `start`, `db:migrate`, `db:push`)
-- [ ] **0.3** Configurer `tsconfig.json` (strict, paths aliases `@/server/*`, `@/client/*`, `@/shared/*`)
-- [ ] **0.4** Installer et configurer Vite (`vite.config.ts`) avec proxy API vers le backend en dev
-- [ ] **0.5** Installer et configurer Tailwind CSS (`tailwind.config.ts`) avec design tokens
-- [ ] **0.6** Installer et configurer shadcn/ui (`components.json`) — ajouter les composants de base (Button, Input, Card, Dialog, etc.)
-- [ ] **0.7** Installer et configurer Drizzle (`drizzle.config.ts`) pour SQLite via `bun:sqlite`
-- [ ] **0.8** Créer l'arborescence de dossiers conforme à `structure.md`
-- [ ] **0.9** Créer `src/shared/types.ts` et `src/shared/constants.ts` avec les types et constantes partagés
-- [ ] **0.10** Créer `src/server/config.ts` avec la configuration centralisée (tel que décrit dans `config.md`)
-- [ ] **0.11** Configurer le Docker (`docker/Dockerfile`, `docker/docker-compose.yml`)
-- [ ] **0.12** Installer i18next + react-i18next, créer `src/client/locales/en.json` et `fr.json` (squelettes vides)
-- [ ] **0.13** Créer `src/client/styles/globals.css` avec les design tokens (palette, typographie, spacing) et le dark mode
+- [x] **0.1** Initialiser le projet avec `bun init`
+- [x] **0.2** Configurer `package.json` avec les scripts (`dev`, `build`, `start`, `db:migrate`, `db:push`)
+- [x] **0.3** Configurer `tsconfig.json` (strict, paths aliases `@/server/*`, `@/client/*`, `@/shared/*`)
+- [x] **0.4** Installer et configurer Vite (`vite.config.ts`) avec proxy API vers le backend en dev
+- [x] **0.5** Installer et configurer Tailwind CSS (`tailwind.config.ts`) avec design tokens
+- [x] **0.6** Installer et configurer shadcn/ui (`components.json`) — ajouter les composants de base (Button, Input, Card, Dialog, etc.)
+- [x] **0.7** Installer et configurer Drizzle (`drizzle.config.ts`) pour SQLite via `bun:sqlite`
+- [x] **0.8** Créer l'arborescence de dossiers conforme à `structure.md`
+- [x] **0.9** Créer `src/shared/types.ts` et `src/shared/constants.ts` avec les types et constantes partagés
+- [x] **0.10** Créer `src/server/config.ts` avec la configuration centralisée (tel que décrit dans `config.md`)
+- [x] **0.11** Configurer le Docker (`docker/Dockerfile`, `docker/docker-compose.yml`)
+- [x] **0.12** Installer i18next + react-i18next, créer `src/client/locales/en.json` et `fr.json` (squelettes vides)
+- [x] **0.13** Créer `src/client/styles/globals.css` avec les design tokens (palette, typographie, spacing) et le dark mode
 
 **Critère de validation** : `bun run dev` démarre le frontend (Vite) et le backend (Hono) sans erreur. La page par défaut s'affiche.
 
