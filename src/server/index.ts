@@ -1,16 +1,13 @@
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/bun'
 import { config } from '@/server/config'
+import { app } from '@/server/app'
+import { initVirtualTables } from '@/server/db/index'
 
-const app = new Hono()
+// Initialize FTS5 and sqlite-vec virtual tables
+initVirtualTables()
 
-app.use('*', cors())
-
-// API health check
-app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', timestamp: Date.now() })
-})
+// Serve uploaded files
+app.use('/api/uploads/*', serveStatic({ root: config.upload.dir, rewriteRequestPath: (path) => path.replace('/api/uploads', '') }))
 
 // In production, serve static files from Vite build
 if (process.env.NODE_ENV === 'production') {

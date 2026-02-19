@@ -9,8 +9,8 @@ import { fromNodeHeaders } from 'better-auth/node'
 export async function authMiddleware(c: Context, next: Next) {
   const path = c.req.path
 
-  // Skip auth for Better Auth routes and onboarding
-  if (path.startsWith('/api/auth/') || path.startsWith('/api/onboarding')) {
+  // Skip auth for Better Auth routes, onboarding, and health check
+  if (path.startsWith('/api/auth/') || path.startsWith('/api/onboarding') || path === '/api/health') {
     return next()
   }
 
