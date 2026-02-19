@@ -255,22 +255,22 @@ body {
   -webkit-backdrop-filter: blur(16px) saturate(1.6);
 }
 
-/* Aurora mesh — for hero/feature sections */
+/* Aurora mesh — for hero/feature sections (fixed-size ellipses to avoid vertical crush) */
 .gradient-mesh {
   background:
-    radial-gradient(ellipse 45% 35% at 15% 25%, oklch(0.52 0.24 300 / 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 55% 15%, oklch(0.62 0.26 340 / 0.10) 0%, transparent 70%),
-    radial-gradient(ellipse 35% 35% at 85% 40%, oklch(0.72 0.16 15 / 0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 25% at 40% 85%, oklch(0.62 0.26 340 / 0.06) 0%, transparent 70%),
+    radial-gradient(600px 400px at 15% 25%, oklch(0.52 0.24 300 / 0.12) 0%, transparent 70%),
+    radial-gradient(500px 350px at 55% 15%, oklch(0.62 0.26 340 / 0.10) 0%, transparent 70%),
+    radial-gradient(450px 400px at 85% 40%, oklch(0.72 0.16 15 / 0.08) 0%, transparent 70%),
+    radial-gradient(500px 300px at 40% 85%, oklch(0.62 0.26 340 / 0.06) 0%, transparent 70%),
     var(--color-background);
 }
 
 .dark .gradient-mesh {
   background:
-    radial-gradient(ellipse 45% 35% at 15% 25%, oklch(0.52 0.24 300 / 0.16) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 55% 15%, oklch(0.62 0.26 340 / 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 35% 35% at 85% 40%, oklch(0.72 0.16 15 / 0.09) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 25% at 40% 85%, oklch(0.62 0.26 340 / 0.07) 0%, transparent 70%),
+    radial-gradient(600px 400px at 15% 25%, oklch(0.52 0.24 300 / 0.16) 0%, transparent 70%),
+    radial-gradient(500px 350px at 55% 15%, oklch(0.62 0.26 340 / 0.12) 0%, transparent 70%),
+    radial-gradient(450px 400px at 85% 40%, oklch(0.72 0.16 15 / 0.09) 0%, transparent 70%),
+    radial-gradient(500px 300px at 40% 85%, oklch(0.62 0.26 340 / 0.07) 0%, transparent 70%),
     var(--color-background);
 }
 
