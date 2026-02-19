@@ -216,9 +216,9 @@ Layout global de l'application : sidebar + panel de chat.
 
 Orchestration LLM, queue de messages, construction du prompt, streaming.
 
-- [ ] **9.1** Créer `src/server/services/queue.ts` — queue FIFO par Kin (enqueue, dequeue, priorité user > auto, poll)
-- [ ] **9.2** Créer `src/server/services/prompt-builder.ts` — construction du prompt système conforme à `prompt-system.md` (blocs 1-8)
-- [ ] **9.3** Créer `src/server/services/kin-engine.ts` — orchestration LLM :
+- [x] **9.1** Créer `src/server/services/queue.ts` — queue FIFO par Kin (enqueue, dequeue, priorité user > auto, poll)
+- [x] **9.2** Créer `src/server/services/prompt-builder.ts` — construction du prompt système conforme à `prompt-system.md` (blocs 1-8)
+- [x] **9.3** Créer `src/server/services/kin-engine.ts` — orchestration LLM :
   - Récupération du message de la queue
   - Construction du contexte (prompt système + compacting summary + messages récents)
   - Appel LLM via Vercel AI SDK avec streaming
@@ -226,15 +226,15 @@ Orchestration LLM, queue de messages, construction du prompt, streaming.
   - Sauvegarde du message assistant en DB
   - Émission d'événements sur l'event bus
   - Exécution des hooks `beforeChat` / `afterChat`
-- [ ] **9.4** Créer la route messages :
+- [x] **9.4** Créer la route messages :
   - `src/server/routes/messages.ts` — `POST /api/kins/:id/messages` (enqueue + réponse 202), `GET /api/kins/:id/messages` (historique paginé)
-- [ ] **9.5** Intégrer le worker de queue : boucle de traitement qui poll les queues de tous les Kins actifs
+- [x] **9.5** Intégrer le worker de queue : boucle de traitement qui poll les queues de tous les Kins actifs
 - [ ] **9.6** Frontend : créer `src/client/hooks/useChat.ts` — wrapper autour du Vercel AI SDK (gestion du streaming SSE, optimistic updates)
 - [ ] **9.7** Frontend : créer `src/client/components/chat/ChatPanel.tsx` — affichage des messages + streaming
 - [ ] **9.8** Frontend : créer `src/client/components/chat/MessageBubble.tsx` — bulle de message avec distinction visuelle par source (user, kin, task, cron)
 - [ ] **9.9** Frontend : créer `src/client/components/chat/MessageInput.tsx` — input avec envoi de message + upload de fichiers
 - [ ] **9.10** Frontend : créer `src/client/components/chat/TypingIndicator.tsx`
-- [ ] **9.11** Émettre `queue:update` en SSE à chaque changement de la queue (taille, isProcessing)
+- [x] **9.11** Émettre `queue:update` en SSE à chaque changement de la queue (taille, isProcessing)
 
 **Critère de validation** : on peut envoyer un message à un Kin et recevoir une réponse streamée en temps réel. Le message est sauvegardé en DB et visible dans l'historique.
 
