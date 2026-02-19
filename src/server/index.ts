@@ -2,9 +2,13 @@ import { serveStatic } from 'hono/bun'
 import { config } from '@/server/config'
 import { app } from '@/server/app'
 import { initVirtualTables } from '@/server/db/index'
+import { startQueueWorker } from '@/server/services/kin-engine'
 
 // Initialize FTS5 and sqlite-vec virtual tables
 initVirtualTables()
+
+// Start the queue worker
+startQueueWorker()
 
 // Serve uploaded files
 app.use('/api/uploads/*', serveStatic({ root: config.upload.dir, rewriteRequestPath: (path) => path.replace('/api/uploads', '') }))
