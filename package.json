@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "latest",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -33,6 +34,7 @@
     "@tailwindcss/vite": "^4.2.0",
     "ai": "^6.0.91",
     "better-auth": "^1.4.18",
+    "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
     "croner": "^10.0.1",
     "drizzle-orm": "^0.45.1",
