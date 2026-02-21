@@ -1,9 +1,12 @@
 import { embed } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { db } from '@/server/db/index'
+import { createLogger } from '@/server/logger'
 import { providers } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { decrypt } from '@/server/services/encryption'
+
+const log = createLogger('embeddings')
 
 /**
  * Generate embeddings for a text string using the configured embedding provider.
@@ -11,6 +14,7 @@ import { decrypt } from '@/server/services/encryption'
 export async function generateEmbedding(text: string): Promise<number[]> {
   const provider = await findEmbeddingProvider()
   if (!provider) {
+    log.warn('No embedding provider configured')
     throw new Error('No embedding provider configured')
   }
 

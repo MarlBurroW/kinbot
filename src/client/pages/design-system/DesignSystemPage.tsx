@@ -24,6 +24,7 @@ import {
   Star,
   Heart,
   ChevronDown,
+  ChevronRight,
   PanelRight,
   ExternalLink,
   BarChart3,
@@ -44,8 +45,26 @@ import {
   BellRing,
   Shapes,
   Ruler,
+  Terminal,
+  SlidersHorizontal,
+  ToggleRight,
+  Navigation,
+  Home,
+  FileText,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  ShieldCheck,
+  Rocket,
+  MousePointer,
+  Play,
+  Crown,
 } from 'lucide-react'
 
+import { cn } from '@/client/lib/utils'
 import { Button } from '@/client/components/ui/button'
 import { Input } from '@/client/components/ui/input'
 import { Textarea } from '@/client/components/ui/textarea'
@@ -78,6 +97,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/client/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/client/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs'
 import {
   DropdownMenu,
@@ -99,8 +129,10 @@ import { Progress } from '@/client/components/ui/progress'
 import { ScrollArea } from '@/client/components/ui/scroll-area'
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -116,6 +148,26 @@ import {
   CollapsibleTrigger,
 } from '@/client/components/ui/collapsible'
 import { Toaster } from '@/client/components/ui/sonner'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/client/components/ui/breadcrumb'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/client/components/ui/command'
+import { Slider } from '@/client/components/ui/slider'
+import { Toggle } from '@/client/components/ui/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@/client/components/ui/toggle-group'
 
 /* ─── Nav sections ────────────────────────────────────────── */
 
@@ -125,6 +177,8 @@ const NAV_SECTIONS = [
   { id: 'typography', label: 'Typography', icon: Type },
   { id: 'buttons', label: 'Buttons', icon: MousePointerClick },
   { id: 'inputs', label: 'Inputs', icon: TextCursorInput },
+  { id: 'slider', label: 'Slider', icon: SlidersHorizontal },
+  { id: 'toggle', label: 'Toggle', icon: ToggleRight },
   { id: 'cards', label: 'Cards', icon: LayoutGrid },
   { id: 'badges', label: 'Badges', icon: Tag },
   { id: 'alerts', label: 'Alerts', icon: ShieldAlert },
@@ -132,12 +186,15 @@ const NAV_SECTIONS = [
   { id: 'dialog', label: 'Dialog', icon: Layers },
   { id: 'sheet', label: 'Sheet', icon: PanelRight },
   { id: 'popover', label: 'Popover', icon: MessageCircle },
+  { id: 'command', label: 'Command', icon: Terminal },
+  { id: 'breadcrumb', label: 'Breadcrumb', icon: Navigation },
   { id: 'tabs-dropdown', label: 'Tabs & Dropdown', icon: ChevronsUpDown },
   { id: 'progress', label: 'Progress', icon: Activity },
   { id: 'scroll-area', label: 'Scroll Area', icon: ScrollText },
   { id: 'collapsible', label: 'Collapsible', icon: ChevronsUpDown },
   { id: 'toast', label: 'Toast', icon: BellRing },
   { id: 'avatars', label: 'Avatars', icon: User },
+  { id: 'animations', label: 'Animations', icon: Play },
   { id: 'kinbot-patterns', label: 'KinBot Patterns', icon: Shapes },
   { id: 'loading-states', label: 'Loading States', icon: Loader2 },
   { id: 'spacing', label: 'Spacing & Layout', icon: Ruler },
@@ -179,6 +236,7 @@ function ColorSwatch({ name, className }: { name: string; className: string }) {
 
 export function DesignSystemPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogSuccessOpen, setDialogSuccessOpen] = useState(false)
   const [progressVal, setProgressVal] = useState(42)
   const [collapsibleOpen, setCollapsibleOpen] = useState(false)
   const { palette, palettes } = usePalette()
@@ -198,7 +256,7 @@ export function DesignSystemPage() {
               </div>
               <div>
                 <h1 className="text-lg font-bold gradient-primary-text">KinBot Design System</h1>
-                <p className="text-[10px] text-muted-foreground">{currentPalette?.name ?? 'Aurora'} &mdash; 24 components &middot; {NAV_SECTIONS.length} sections</p>
+                <p className="text-[10px] text-muted-foreground">{currentPalette?.name ?? 'Aurora'} &mdash; 32 components &middot; {NAV_SECTIONS.length} sections</p>
               </div>
             </div>
             <PaletteSwitcher />
@@ -207,9 +265,9 @@ export function DesignSystemPage() {
 
         {/* ─── HERO ─────────────────────────────────────────── */}
         <div className="relative overflow-hidden border-b">
-          <div className="aurora-orb aurora-orb-purple size-72 -top-20 -left-20" />
-          <div className="aurora-orb aurora-orb-pink size-60 top-10 right-10" style={{ animationDelay: '-3s' }} />
-          <div className="aurora-orb aurora-orb-peach size-48 bottom-0 left-1/3" style={{ animationDelay: '-5s' }} />
+          <div className="theme-orb theme-orb-1 size-72 -top-20 -left-20" />
+          <div className="theme-orb theme-orb-2 size-60 top-10 right-10" style={{ animationDelay: '-3s' }} />
+          <div className="theme-orb theme-orb-3 size-48 bottom-0 left-1/3" style={{ animationDelay: '-5s' }} />
 
           <div className="relative mx-auto max-w-7xl px-6 py-16 text-center">
             <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-sm font-medium text-primary mb-4">
@@ -259,33 +317,112 @@ export function DesignSystemPage() {
             {/* ─── SURFACES ──────────────────────────────────── */}
             <Section id="surfaces" title="Surfaces & Backgrounds">
               <p className="text-sm text-muted-foreground max-w-2xl">
-                Every surface carries the aurora &mdash; purple, pink, and peach undertones shift
+                Every surface carries the theme palette &mdash; color undertones shift
                 across backgrounds, cards, sidebars, and panels. Nothing is flat.
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {([
-                  { cls: 'surface-base', name: 'surface-base', desc: 'Multi-point aurora wash' },
-                  { cls: 'surface-card', name: 'surface-card', desc: 'Iridescent diagonal tint' },
-                  { cls: 'surface-sidebar', name: 'surface-sidebar', desc: 'Vertical aurora sweep' },
-                  { cls: 'surface-chat', name: 'surface-chat', desc: 'Top aurora glow' },
-                  { cls: 'surface-header', name: 'surface-header', desc: 'Gradient strip + blur' },
-                  { cls: 'gradient-mesh', name: 'gradient-mesh', desc: 'Full aurora mesh' },
-                ] as const).map((s) => (
-                  <div key={s.name} className="overflow-hidden rounded-xl border">
-                    <div className={`${s.cls} p-5 h-28 flex flex-col justify-end`}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{s.name}</p>
-                      <p className="text-sm mt-0.5">{s.desc}</p>
+                {/* surface-base — page background simulation */}
+                <div className="overflow-hidden rounded-xl border">
+                  <div className="surface-base p-5 h-36 flex flex-col justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 rounded-full bg-primary/40" />
+                      <div className="h-2 w-16 rounded bg-primary/10" />
+                      <div className="h-2 w-10 rounded bg-primary/10 ml-auto" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">surface-base</p>
+                      <p className="text-sm mt-0.5">Multi-point gradient wash</p>
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* surface-card — card with content preview */}
+                <div className="overflow-hidden rounded-xl border">
+                  <div className="surface-card p-5 h-36 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="h-2.5 w-24 rounded bg-primary/15" />
+                      <div className="h-2 w-full rounded bg-muted" />
+                      <div className="h-2 w-3/4 rounded bg-muted" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">surface-card</p>
+                      <p className="text-sm mt-0.5">Iridescent diagonal tint</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* surface-sidebar — sidebar layout */}
+                <div className="overflow-hidden rounded-xl border">
+                  <div className="surface-sidebar p-5 h-36 flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      {['Dashboard', 'Kins', 'Settings'].map((l) => (
+                        <div key={l} className="flex items-center gap-2">
+                          <div className="size-3 rounded bg-primary/15" />
+                          <div className="h-2 w-14 rounded bg-muted-foreground/15" />
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">surface-sidebar</p>
+                      <p className="text-sm mt-0.5">Vertical gradient sweep</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* surface-chat — chat layout */}
+                <div className="overflow-hidden rounded-xl border">
+                  <div className="surface-chat p-5 h-36 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex justify-end"><div className="h-5 w-28 rounded-full bg-primary/15" /></div>
+                      <div className="flex"><div className="h-5 w-36 rounded-full bg-muted" /></div>
+                      <div className="flex justify-end"><div className="h-5 w-20 rounded-full bg-primary/15" /></div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">surface-chat</p>
+                      <p className="text-sm mt-0.5">Top accent glow</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* surface-header — header bar */}
+                <div className="overflow-hidden rounded-xl border">
+                  <div className="surface-header p-5 h-36 flex flex-col justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="size-6 rounded-md gradient-primary" />
+                      <div className="h-2.5 w-20 rounded bg-primary/15" />
+                      <div className="ml-auto flex gap-1.5">
+                        <div className="size-5 rounded-full bg-muted" />
+                        <div className="size-5 rounded-full bg-muted" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">surface-header</p>
+                      <p className="text-sm mt-0.5">Gradient strip + blur</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* gradient-mesh — hero section */}
+                <div className="overflow-hidden rounded-xl border">
+                  <div className="gradient-mesh p-5 h-36 flex flex-col justify-between">
+                    <div className="text-center pt-2">
+                      <div className="h-4 w-32 mx-auto rounded bg-primary/15" />
+                      <div className="h-2 w-20 mx-auto rounded bg-muted mt-2" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">gradient-mesh</p>
+                      <p className="text-sm mt-0.5">Full gradient mesh</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <SubSection title="Glass & Glow">
                 <div className="relative rounded-2xl gradient-mesh py-14 px-8">
-                  <div className="aurora-orb aurora-orb-purple size-56 -top-16 -left-16" />
-                  <div className="aurora-orb aurora-orb-pink size-48 -bottom-12 -right-12" style={{ animationDelay: '-3s' }} />
-                  <div className="aurora-orb aurora-orb-peach size-36 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ animationDelay: '-5s' }} />
+                  <div className="theme-orb theme-orb-1 size-56 -top-16 -left-16" />
+                  <div className="theme-orb theme-orb-2 size-48 -bottom-12 -right-12" style={{ animationDelay: '-3s' }} />
+                  <div className="theme-orb theme-orb-3 size-36 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ animationDelay: '-5s' }} />
 
                   <div className="relative grid gap-5 sm:grid-cols-3">
                     <div className="glass rounded-xl p-5 text-center">
@@ -352,7 +489,7 @@ export function DesignSystemPage() {
                     <div className="flex flex-wrap gap-3">
                       <div className="flex flex-col items-center gap-2">
                         <div className="h-16 w-32 rounded-xl shadow-md gradient-primary" />
-                        <span className="text-xs font-medium">Aurora</span>
+                        <span className="text-xs font-medium">Primary</span>
                       </div>
                       <div className="flex flex-col items-center gap-2">
                         <div className="h-16 w-32 rounded-xl shadow-md gradient-primary-hover" />
@@ -421,19 +558,22 @@ export function DesignSystemPage() {
                   <Button variant="link">Link</Button>
                 </div>
               </SubSection>
-              <SubSection title="Aurora Buttons">
+              <SubSection title="Gradient Buttons">
                 <div className="flex flex-wrap items-center gap-3">
-                  <Button className="gradient-primary border-0 text-white shadow-lg glow-primary">
-                    <Sparkles className="size-4" /> Aurora CTA
+                  <Button className="gradient-primary border-0 text-white shadow-lg glow-primary btn-shine">
+                    <Sparkles className="size-4" /> Gradient CTA
                   </Button>
-                  <Button className="gradient-primary-hover border-0 text-white shadow-md">
+                  <Button className="gradient-primary-hover border-0 text-white shadow-md btn-magnetic">
                     <Wand2 className="size-4" /> Animated
                   </Button>
-                  <Button variant="outline" className="gradient-border gradient-border-animated">
+                  <Button variant="outline" className="gradient-border gradient-border-animated btn-press">
                     Gradient Border
                   </Button>
-                  <Button variant="outline" className="glass">
+                  <Button variant="outline" className="glass btn-press">
                     <Star className="size-4" /> Glass Button
+                  </Button>
+                  <Button variant="outline" className="gradient-border-spin btn-ripple">
+                    <Crown className="size-4" /> Spinning Border
                   </Button>
                 </div>
               </SubSection>
@@ -507,15 +647,84 @@ export function DesignSystemPage() {
               </div>
             </Section>
 
+            {/* ─── SLIDER ─────────────────────────────────────── */}
+            <Section id="slider" title="Slider">
+              <div className="max-w-lg space-y-6">
+                <SubSection title="Default">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Temperature</Label>
+                      <Slider defaultValue={[70]} max={100} step={1} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Range</Label>
+                      <Slider defaultValue={[25, 75]} max={100} step={1} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Disabled</Label>
+                      <Slider defaultValue={[50]} max={100} step={1} disabled />
+                    </div>
+                  </div>
+                </SubSection>
+                <SubSection title="Gradient Variant">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Creativity</Label>
+                      <Slider defaultValue={[65]} max={100} step={1} variant="gradient" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Token Range</Label>
+                      <Slider defaultValue={[20, 80]} max={100} step={1} variant="gradient" />
+                    </div>
+                  </div>
+                </SubSection>
+                <SubSection title="Steps">
+                  <div className="space-y-2">
+                    <Label>Step: 25</Label>
+                    <Slider defaultValue={[50]} max={100} step={25} />
+                  </div>
+                </SubSection>
+              </div>
+            </Section>
+
+            {/* ─── TOGGLE ────────────────────────────────────── */}
+            <Section id="toggle" title="Toggle & Toggle Group">
+              <div className="space-y-6">
+                <SubSection title="Single Toggle">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Toggle aria-label="Toggle bold"><Bold className="size-4" /></Toggle>
+                    <Toggle aria-label="Toggle italic"><Italic className="size-4" /></Toggle>
+                    <Toggle aria-label="Toggle underline"><Underline className="size-4" /></Toggle>
+                    <Toggle aria-label="Toggle bold" variant="outline"><Bold className="size-4" /></Toggle>
+                    <Toggle aria-label="Disabled" disabled><Bold className="size-4" /></Toggle>
+                  </div>
+                </SubSection>
+                <SubSection title="Toggle Group (single)">
+                  <ToggleGroup type="single" defaultValue="left">
+                    <ToggleGroupItem value="left" aria-label="Left"><AlignLeft className="size-4" /></ToggleGroupItem>
+                    <ToggleGroupItem value="center" aria-label="Center"><AlignCenter className="size-4" /></ToggleGroupItem>
+                    <ToggleGroupItem value="right" aria-label="Right"><AlignRight className="size-4" /></ToggleGroupItem>
+                  </ToggleGroup>
+                </SubSection>
+                <SubSection title="Toggle Group (multiple)">
+                  <ToggleGroup type="multiple" defaultValue={['bold', 'italic']}>
+                    <ToggleGroupItem value="bold" aria-label="Bold"><Bold className="size-4" /></ToggleGroupItem>
+                    <ToggleGroupItem value="italic" aria-label="Italic"><Italic className="size-4" /></ToggleGroupItem>
+                    <ToggleGroupItem value="underline" aria-label="Underline"><Underline className="size-4" /></ToggleGroupItem>
+                  </ToggleGroup>
+                </SubSection>
+              </div>
+            </Section>
+
             {/* ─── CARDS ───────────────────────────────────────── */}
             <Section id="cards" title="Cards">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="surface-card">
                   <CardHeader>
-                    <CardTitle>Aurora Card</CardTitle>
+                    <CardTitle>Themed Card</CardTitle>
                     <CardDescription>Iridescent surface tint.</CardDescription>
                   </CardHeader>
-                  <CardContent><p className="text-sm text-muted-foreground">Purple &rarr; pink &rarr; peach diagonal wash.</p></CardContent>
+                  <CardContent><p className="text-sm text-muted-foreground">Gradient diagonal wash from palette colors.</p></CardContent>
                 </Card>
 
                 <Card className="surface-card">
@@ -538,7 +747,7 @@ export function DesignSystemPage() {
                 <Card className="gradient-border gradient-border-animated overflow-hidden surface-card">
                   <CardHeader>
                     <CardTitle className="gradient-primary-text">Animated Border</CardTitle>
-                    <CardDescription>Shifting aurora outline.</CardDescription>
+                    <CardDescription>Shifting gradient outline.</CardDescription>
                   </CardHeader>
                   <CardContent><p className="text-sm text-muted-foreground">Eye-catching accent card.</p></CardContent>
                 </Card>
@@ -565,7 +774,7 @@ export function DesignSystemPage() {
                 <Badge className="bg-warning text-warning-foreground">Warning</Badge>
                 <Badge className="bg-info text-info-foreground">Info</Badge>
                 <Badge className="gradient-primary text-white border-0">
-                  <Sparkles className="size-3" /> Aurora
+                  <Sparkles className="size-3" /> Gradient
                 </Badge>
               </div>
               <div className="flex flex-wrap items-center gap-3 mt-3">
@@ -626,75 +835,213 @@ export function DesignSystemPage() {
 
             {/* ─── DIALOG ──────────────────────────────────────── */}
             <Section id="dialog" title="Dialog / Modal">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gradient-primary border-0 text-white glow-primary">
-                    <Plus className="size-4" /> Create a Kin
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="glass-strong">
-                  <DialogHeader>
-                    <DialogTitle className="gradient-primary-text">Create a new Kin</DialogTitle>
-                    <DialogDescription>Give your AI assistant a name and personality.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2"><Label>Name</Label><Input placeholder="e.g. Chef Cuisinier" /></div>
-                    <div className="space-y-2"><Label>Role</Label><Input placeholder="e.g. Expert gastronomique" /></div>
-                    <div className="space-y-2">
-                      <Label>Model</Label>
-                      <Select><SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="claude">Claude Sonnet 4</SelectItem>
-                          <SelectItem value="gpt4">GPT-4o</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                    <Button className="gradient-primary border-0 text-white" onClick={() => setDialogOpen(false)}>
-                      <Wand2 className="size-4" /> Create
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                Modal dialogs for focused interactions. Glass overlay, animated entrance, multiple styles.
+              </p>
+
+              <SubSection title="Form Dialog (Glass)">
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gradient-primary border-0 text-white glow-primary btn-magnetic">
+                      <Plus className="size-4" /> Create a Kin
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="surface-card dark:glass-strong">
+                    <DialogHeader>
+                      <DialogTitle className="gradient-primary-text">Create a new Kin</DialogTitle>
+                      <DialogDescription>Give your AI assistant a name and personality.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2"><Label>Name</Label><Input placeholder="e.g. Chef Cuisinier" /></div>
+                      <div className="space-y-2"><Label>Role</Label><Input placeholder="e.g. Expert gastronomique" /></div>
+                      <div className="space-y-2">
+                        <Label>Model</Label>
+                        <Select><SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="claude">Claude Sonnet 4</SelectItem>
+                            <SelectItem value="gpt4">GPT-4o</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                      <Button className="gradient-primary border-0 text-white btn-shine" onClick={() => setDialogOpen(false)}>
+                        <Wand2 className="size-4" /> Create
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </SubSection>
+
+              <SubSection title="Success Dialog">
+                <Dialog open={dialogSuccessOpen} onOpenChange={setDialogSuccessOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="btn-press"><CheckCircle className="size-4" /> Success Dialog</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md text-center">
+                    <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-success/10 mb-2">
+                      <CheckCircle className="size-8 text-success" />
+                    </div>
+                    <DialogHeader className="sm:text-center">
+                      <DialogTitle>Kin Created Successfully!</DialogTitle>
+                      <DialogDescription>
+                        Your new Kin "Financial Advisor" is ready. You can start chatting now.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="sm:justify-center pt-2">
+                      <Button className="gradient-primary border-0 text-white btn-shine" onClick={() => setDialogSuccessOpen(false)}>
+                        <Sparkles className="size-4" /> Start Chatting
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </SubSection>
+
+              <SubSection title="Alert Dialog (Destructive)">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="btn-press"><Trash2 className="size-4" /> Delete Kin</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <div className="mx-auto sm:mx-0 flex size-12 items-center justify-center rounded-full bg-destructive/10 mb-1">
+                        <AlertTriangle className="size-6 text-destructive" />
+                      </div>
+                      <AlertDialogTitle>Delete "Financial Advisor"?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. All memories, conversations, and settings associated with this Kin will be permanently deleted.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction variant="destructive">
+                        <Trash2 className="size-4" /> Delete Permanently
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </SubSection>
+
+              <SubSection title="Compact Dialog">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="btn-press"><ShieldCheck className="size-4" /> Confirm Action</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent size="sm">
+                    <AlertDialogHeader className="text-center">
+                      <AlertDialogTitle>Enable Auto-Compact?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Messages will be automatically summarized when token limits are reached.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Not now</AlertDialogCancel>
+                      <AlertDialogAction className="gradient-primary border-0 text-white">Enable</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </SubSection>
             </Section>
 
             {/* ─── SHEET ───────────────────────────────────────── */}
             <Section id="sheet" title="Sheet / Drawer">
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                Slide-in panels from any edge. Great for settings, navigation, and detail views.
+              </p>
               <div className="flex flex-wrap gap-3">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline"><PanelRight className="size-4" /> Right Sheet</Button>
+                    <Button variant="outline" className="btn-press"><PanelRight className="size-4" /> Right Sheet</Button>
                   </SheetTrigger>
                   <SheetContent>
                     <SheetHeader>
                       <SheetTitle className="gradient-primary-text">Kin Settings</SheetTitle>
                       <SheetDescription>Configure your Kin's behavior and appearance.</SheetDescription>
                     </SheetHeader>
-                    <div className="space-y-4 p-4">
+                    <div className="space-y-4 p-4 flex-1">
                       <div className="space-y-2"><Label>Display Name</Label><Input defaultValue="Financial Advisor" /></div>
                       <div className="space-y-2"><Label>System Prompt</Label><Textarea rows={4} defaultValue="You are a helpful financial advisor..." /></div>
                       <div className="flex items-center gap-2"><Switch defaultChecked /><Label>Auto-compact messages</Label></div>
                       <div className="flex items-center gap-2"><Switch /><Label>Allow tool execution</Label></div>
-                      <Button className="w-full gradient-primary border-0 text-white">Save Changes</Button>
                     </div>
+                    <SheetFooter>
+                      <SheetClose asChild><Button variant="outline">Cancel</Button></SheetClose>
+                      <Button className="gradient-primary border-0 text-white btn-shine">Save Changes</Button>
+                    </SheetFooter>
                   </SheetContent>
                 </Sheet>
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline"><PanelLeftClose className="size-4" /> Left Sheet</Button>
+                    <Button variant="outline" className="btn-press"><PanelLeftClose className="size-4" /> Left Sheet</Button>
                   </SheetTrigger>
                   <SheetContent side="left">
                     <SheetHeader>
                       <SheetTitle>Navigation</SheetTitle>
                       <SheetDescription>Mobile sidebar example.</SheetDescription>
                     </SheetHeader>
-                    <div className="space-y-2 p-4">
-                      {['Dashboard', 'Kins', 'Memories', 'Settings'].map((item) => (
-                        <div key={item} className="rounded-lg px-3 py-2 text-sm hover:bg-accent/50 cursor-pointer transition-colors">
-                          {item}
+                    <div className="space-y-1 p-4">
+                      {[
+                        { label: 'Dashboard', icon: BarChart3, active: true },
+                        { label: 'Kins', icon: Bot, active: false },
+                        { label: 'Memories', icon: Sparkles, active: false },
+                        { label: 'Settings', icon: Settings, active: false },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm cursor-pointer transition-colors',
+                            item.active ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/50'
+                          )}
+                        >
+                          <item.icon className="size-4" />
+                          {item.label}
                         </div>
+                      ))}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="btn-press"><ChevronDown className="size-4 rotate-180" /> Top Sheet</Button>
+                  </SheetTrigger>
+                  <SheetContent side="top">
+                    <SheetHeader className="text-center">
+                      <SheetTitle className="gradient-primary-text">Quick Actions</SheetTitle>
+                      <SheetDescription>Jump to common tasks.</SheetDescription>
+                    </SheetHeader>
+                    <div className="flex flex-wrap justify-center gap-3 p-4">
+                      <Button variant="outline" size="sm" className="btn-press"><Plus className="size-4" /> New Kin</Button>
+                      <Button variant="outline" size="sm" className="btn-press"><Search className="size-4" /> Search</Button>
+                      <Button variant="outline" size="sm" className="btn-press"><Settings className="size-4" /> Settings</Button>
+                      <Button variant="outline" size="sm" className="btn-press"><Bell className="size-4" /> Notifications</Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="btn-press"><ChevronDown className="size-4" /> Bottom Sheet</Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="rounded-t-2xl">
+                    <SheetHeader className="text-center">
+                      <SheetTitle>Share Conversation</SheetTitle>
+                      <SheetDescription>Choose how to share this conversation.</SheetDescription>
+                    </SheetHeader>
+                    <div className="grid grid-cols-3 gap-3 p-4 max-w-sm mx-auto">
+                      {[
+                        { label: 'Copy Link', icon: Copy },
+                        { label: 'Export', icon: ExternalLink },
+                        { label: 'Delete', icon: Trash2 },
+                      ].map((action) => (
+                        <button
+                          key={action.label}
+                          className="flex flex-col items-center gap-2 rounded-xl p-4 hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex size-10 items-center justify-center rounded-full bg-secondary">
+                            <action.icon className="size-5 text-secondary-foreground" />
+                          </div>
+                          <span className="text-xs font-medium">{action.label}</span>
+                        </button>
                       ))}
                     </div>
                   </SheetContent>
@@ -805,43 +1152,157 @@ export function DesignSystemPage() {
               </div>
             </Section>
 
+            {/* ─── COMMAND ─────────────────────────────────────── */}
+            <Section id="command" title="Command Palette">
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                Search, navigate, and execute actions quickly. Used for Cmd+K search and navigation.
+              </p>
+              <div className="max-w-lg">
+                <Command className="rounded-xl border shadow-md">
+                  <CommandInput placeholder="Search kins, memories, settings..." />
+                  <CommandList>
+                    <CommandEmpty>No results found.</CommandEmpty>
+                    <CommandGroup heading="Kins">
+                      <CommandItem>
+                        <Bot className="mr-2 size-4" /> Financial Advisor
+                      </CommandItem>
+                      <CommandItem>
+                        <Bot className="mr-2 size-4" /> Coding Assistant
+                      </CommandItem>
+                      <CommandItem>
+                        <Bot className="mr-2 size-4" /> Research Agent
+                      </CommandItem>
+                    </CommandGroup>
+                    <CommandSeparator />
+                    <CommandGroup heading="Navigation">
+                      <CommandItem>
+                        <Settings className="mr-2 size-4" /> Settings
+                      </CommandItem>
+                      <CommandItem>
+                        <User className="mr-2 size-4" /> My Account
+                      </CommandItem>
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            </Section>
+
+            {/* ─── BREADCRUMB ─────────────────────────────────── */}
+            <Section id="breadcrumb" title="Breadcrumb">
+              <div className="space-y-4">
+                <SubSection title="Default">
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="#"><Home className="size-4" /></BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="#">Settings</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>Providers</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </SubSection>
+                <SubSection title="With icons">
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="#" className="flex items-center gap-1.5"><Home className="size-3.5" /> Home</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator>
+                        <ChevronRight className="size-3.5" />
+                      </BreadcrumbSeparator>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="#" className="flex items-center gap-1.5"><Bot className="size-3.5" /> Kins</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator>
+                        <ChevronRight className="size-3.5" />
+                      </BreadcrumbSeparator>
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="flex items-center gap-1.5"><FileText className="size-3.5" /> Financial Advisor</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </SubSection>
+              </div>
+            </Section>
+
             {/* ─── PROGRESS ────────────────────────────────────── */}
             <Section id="progress" title="Progress">
               <div className="max-w-lg space-y-6">
-                <SubSection title="Default">
+                <SubSection title="Interactive">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span>Token usage</span>
                         <span className="text-muted-foreground">{progressVal}%</span>
                       </div>
-                      <Progress value={progressVal} />
+                      <Progress value={progressVal} variant="gradient" className="h-2.5" />
                     </div>
                     <div className="flex gap-2">
-                      <Button size="xs" variant="outline" onClick={() => setProgressVal(Math.max(0, progressVal - 10))}>-10</Button>
-                      <Button size="xs" variant="outline" onClick={() => setProgressVal(Math.min(100, progressVal + 10))}>+10</Button>
-                      <Button size="xs" variant="outline" onClick={() => setProgressVal(100)}>Full</Button>
-                      <Button size="xs" variant="outline" onClick={() => setProgressVal(0)}>Reset</Button>
+                      <Button size="xs" variant="outline" className="btn-press" onClick={() => setProgressVal(Math.max(0, progressVal - 10))}>-10</Button>
+                      <Button size="xs" variant="outline" className="btn-press" onClick={() => setProgressVal(Math.min(100, progressVal + 10))}>+10</Button>
+                      <Button size="xs" variant="outline" className="btn-press" onClick={() => setProgressVal(100)}>Full</Button>
+                      <Button size="xs" variant="outline" className="btn-press" onClick={() => setProgressVal(0)}>Reset</Button>
                     </div>
                   </div>
                 </SubSection>
-                <SubSection title="Sizes & Colors">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Default (h-2)</span>
+                <SubSection title="Variants">
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Default</span>
                       <Progress value={65} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Gradient</span>
+                      <Progress value={72} variant="gradient" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Glow</span>
+                      <Progress value={58} variant="glow" className="h-2.5" />
+                    </div>
+                  </div>
+                </SubSection>
+                <SubSection title="Active (Animated)">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    A shimmer sweeps through the filled area to indicate ongoing activity.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Default + active</span>
+                      <Progress value={60} active />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Gradient + active</span>
+                      <Progress value={45} variant="gradient" className="h-2.5" active />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Glow + active</span>
+                      <Progress value={72} variant="glow" className="h-3" active />
+                    </div>
+                  </div>
+                </SubSection>
+                <SubSection title="Sizes">
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
                       <span className="text-xs text-muted-foreground">Thin (h-1)</span>
-                      <Progress value={80} className="h-1" />
+                      <Progress value={80} variant="gradient" className="h-1" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Default (h-2)</span>
+                      <Progress value={65} variant="gradient" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">Medium (h-2.5)</span>
+                      <Progress value={45} variant="gradient" className="h-2.5" />
+                    </div>
+                    <div className="space-y-1.5">
                       <span className="text-xs text-muted-foreground">Thick (h-3)</span>
-                      <Progress value={45} className="h-3" />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Aurora gradient</span>
-                      <Progress value={72} className="h-2.5 [&>[data-slot=progress-indicator]]:gradient-primary" />
+                      <Progress value={72} variant="glow" className="h-3" />
                     </div>
                   </div>
                 </SubSection>
@@ -952,30 +1413,86 @@ export function DesignSystemPage() {
             {/* ─── TOAST ───────────────────────────────────────── */}
             <Section id="toast" title="Toast Notifications">
               <p className="text-sm text-muted-foreground max-w-2xl">
-                Powered by Sonner. Click buttons to trigger toasts.
+                Styled toasts with semantic colors, glass blur, and smooth animations. Powered by Sonner.
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" onClick={() => toast('Default notification', { description: 'Something happened.' })}>
-                  Default
-                </Button>
-                <Button variant="outline" onClick={() => toast.success('Kin created', { description: 'Financial Advisor is ready.' })}>
-                  <CheckCircle className="size-4 text-success" /> Success
-                </Button>
-                <Button variant="outline" onClick={() => toast.error('Connection failed', { description: 'Check your API key.' })}>
-                  <AlertCircle className="size-4 text-destructive" /> Error
-                </Button>
-                <Button variant="outline" onClick={() => toast.warning('Token limit near', { description: 'Compacting will trigger soon.' })}>
-                  <AlertTriangle className="size-4 text-warning" /> Warning
-                </Button>
-                <Button variant="outline" onClick={() => toast.info('Tip', { description: 'Use @mention to invoke other Kins.' })}>
-                  <Info className="size-4 text-info" /> Info
-                </Button>
-                <Button variant="outline" onClick={() => toast.loading('Processing...', { description: 'Analyzing your data.' })}>
-                  <Loader2 className="size-4 animate-spin" /> Loading
-                </Button>
-                <Button variant="outline" onClick={() => toast('Action required', { action: { label: 'Undo', onClick: () => toast.success('Undone!') }, description: 'Kin was deleted.' })}>
-                  With Action
-                </Button>
+
+              <div className="grid gap-8 sm:grid-cols-2">
+                <SubSection title="Semantic Types">
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => toast('Default notification', { description: 'Something happened in the system.' })}>
+                      Default
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.success('Kin created', { description: 'Financial Advisor is ready to chat.' })}>
+                      <CheckCircle className="size-4 text-success" /> Success
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.error('Connection failed', { description: 'Check your API key and try again.' })}>
+                      <AlertCircle className="size-4 text-destructive" /> Error
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.warning('Token limit near', { description: 'Compacting will trigger soon.' })}>
+                      <AlertTriangle className="size-4 text-warning" /> Warning
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.info('Pro tip', { description: 'Use @mention to invoke other Kins in conversation.' })}>
+                      <Info className="size-4 text-info" /> Info
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.loading('Processing...', { description: 'Analyzing your data.' })}>
+                      <Loader2 className="size-4 animate-spin" /> Loading
+                    </Button>
+                  </div>
+                </SubSection>
+
+                <SubSection title="With Actions">
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => toast('Kin deleted', { description: 'Financial Advisor has been removed.', action: { label: 'Undo', onClick: () => toast.success('Restored!', { description: 'Kin has been restored.' }) } })}>
+                      Action Button
+                    </Button>
+                    <Button variant="outline" onClick={() => toast('Session exported', { description: 'conversation-2024.json saved.', cancel: { label: 'Dismiss', onClick: () => {} } })}>
+                      Cancel Button
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.success('Memory saved', { description: '3 new memories extracted.', action: { label: 'View', onClick: () => toast.info('Opening memories...') }, cancel: { label: 'Dismiss', onClick: () => {} } })}>
+                      Both Buttons
+                    </Button>
+                  </div>
+                </SubSection>
+
+                <SubSection title="Promise (Async)">
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => {
+                      toast.promise(
+                        new Promise<{ name: string }>((resolve) => setTimeout(() => resolve({ name: 'Financial Advisor' }), 2000)),
+                        {
+                          loading: 'Creating Kin...',
+                          success: (data) => `${data.name} is ready!`,
+                          error: 'Failed to create Kin',
+                        }
+                      )
+                    }}>
+                      <Loader2 className="size-4" /> Promise Toast
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      toast.promise(
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500)),
+                        {
+                          loading: 'Connecting to provider...',
+                          success: 'Connected!',
+                          error: 'Connection timed out',
+                        }
+                      )
+                    }}>
+                      <AlertCircle className="size-4" /> Promise (Fail)
+                    </Button>
+                  </div>
+                </SubSection>
+
+                <SubSection title="Rich Content">
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => toast('Scheduled job completed', { description: 'Daily report generated at 09:00 AM. 3 Kins participated, 12 tasks executed.', duration: 6000 })}>
+                      Long Description
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.success('Memory extracted', { description: 'User prefers dark mode with Aurora palette. Saved to long-term memory.', duration: 5000 })}>
+                      <Star className="size-4 text-warning" /> Rich Success
+                    </Button>
+                  </div>
+                </SubSection>
               </div>
             </Section>
 
@@ -1012,6 +1529,159 @@ export function DesignSystemPage() {
                   </div>
                 </SubSection>
               </div>
+            </Section>
+
+            {/* ─── ANIMATIONS ─────────────────────────────────── */}
+            <Section id="animations" title="Animations & Effects">
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                Micro-interactions, hover effects, and fancy animations. All respect <code className="text-xs bg-muted px-1.5 py-0.5 rounded">prefers-reduced-motion</code>.
+              </p>
+
+              <SubSection title="Button Effects">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <Button className="gradient-primary border-0 text-white btn-shine">
+                      <Sparkles className="size-4" /> Shine Sweep
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">.btn-shine</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Button className="gradient-primary border-0 text-white btn-magnetic">
+                      <Rocket className="size-4" /> Magnetic
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">.btn-magnetic</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Button variant="outline" className="btn-press">
+                      <MousePointer className="size-4" /> Press
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">.btn-press</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Button className="gradient-primary border-0 text-white btn-ripple">
+                      <Zap className="size-4" /> Ripple
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">.btn-ripple</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Button variant="outline" className="btn-jelly">
+                      <Star className="size-4" /> Jelly
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">.btn-jelly</span>
+                  </div>
+                </div>
+              </SubSection>
+
+              <SubSection title="Glow & Border Effects">
+                <div className="flex flex-wrap items-center gap-5">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex size-20 items-center justify-center rounded-xl border bg-card pulse-glow">
+                      <Crown className="size-8 text-primary" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.pulse-glow</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex size-20 items-center justify-center rounded-xl bg-card hover-glow cursor-pointer">
+                      <Sparkles className="size-8 text-primary" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.hover-glow</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex size-20 items-center justify-center rounded-xl bg-card gradient-border gradient-border-animated">
+                      <Wand2 className="size-8 text-primary" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.gradient-border-animated</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex size-20 items-center justify-center rounded-xl bg-card gradient-border-spin">
+                      <Star className="size-8 text-primary" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.gradient-border-spin</span>
+                  </div>
+                </div>
+              </SubSection>
+
+              <SubSection title="Text Effects">
+                <div className="space-y-3">
+                  <h3 className="text-3xl font-bold text-shimmer">Shimmer Gradient Text</h3>
+                  <h3 className="text-3xl font-bold gradient-primary-text">Static Gradient Text</h3>
+                </div>
+              </SubSection>
+
+              <SubSection title="Motion">
+                <div className="flex flex-wrap items-end gap-6">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex size-16 items-center justify-center rounded-xl bg-card border animate-levitate">
+                      <Bot className="size-6 text-primary" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.animate-levitate</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex size-16 items-center justify-center rounded-xl bg-card border animate-fade-in-up">
+                      <Zap className="size-6 text-primary" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.animate-fade-in-up</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex size-16 items-center justify-center rounded-xl bg-card border animate-scale-in">
+                      <Heart className="size-6 text-primary" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.animate-scale-in</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-1.5 rounded-xl bg-card border px-4 py-3">
+                      <span className="size-2 rounded-full bg-primary animate-typing-dot" />
+                      <span className="size-2 rounded-full bg-primary animate-typing-dot delay-1" />
+                      <span className="size-2 rounded-full bg-primary animate-typing-dot delay-2" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">.animate-typing-dot</span>
+                  </div>
+                </div>
+              </SubSection>
+
+              <SubSection title="Card Interactions">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Card className="card-hover cursor-pointer surface-card">
+                    <CardContent className="p-5 text-center">
+                      <Zap className="mx-auto size-8 text-primary mb-2" />
+                      <p className="text-sm font-medium">Hover Lift</p>
+                      <p className="text-xs text-muted-foreground mt-1">.card-hover</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="hover-glow cursor-pointer surface-card transition-all">
+                    <CardContent className="p-5 text-center">
+                      <Sparkles className="mx-auto size-8 text-primary mb-2" />
+                      <p className="text-sm font-medium">Glow on Hover</p>
+                      <p className="text-xs text-muted-foreground mt-1">.hover-glow</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="gradient-border-spin overflow-hidden surface-card">
+                    <CardContent className="p-5 text-center">
+                      <Star className="mx-auto size-8 text-primary mb-2" />
+                      <p className="text-sm font-medium">Spinning Border</p>
+                      <p className="text-xs text-muted-foreground mt-1">.gradient-border-spin</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </SubSection>
+
+              <SubSection title="Skeleton Shimmer">
+                <div className="max-w-sm space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="skeleton size-10 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="skeleton h-4 w-3/4 rounded" />
+                      <div className="skeleton h-3 w-1/2 rounded" />
+                    </div>
+                  </div>
+                  <div className="skeleton h-32 w-full rounded-xl" />
+                  <div className="space-y-2">
+                    <div className="skeleton h-3 w-full rounded" />
+                    <div className="skeleton h-3 w-5/6 rounded" />
+                    <div className="skeleton h-3 w-2/3 rounded" />
+                  </div>
+                </div>
+              </SubSection>
             </Section>
 
             {/* ─── KINBOT PATTERNS ──────────────────────────────── */}
@@ -1252,7 +1922,7 @@ export function DesignSystemPage() {
             {/* ─── FOOTER ──────────────────────────────────────── */}
             <div className="border-t pt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                <span className="gradient-primary-text font-bold">KinBot</span> &mdash; Aurora Design System &middot; 24 components &middot; Dev only.
+                <span className="gradient-primary-text font-bold">KinBot</span> &mdash; {currentPalette?.name ?? 'Aurora'} Design System &middot; 32 components &middot; Dev only.
               </p>
             </div>
           </main>

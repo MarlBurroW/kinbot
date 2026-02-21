@@ -9,7 +9,9 @@ import {
   testProviderConnection,
   listModelsForProvider,
 } from '@/server/providers/index'
+import { createLogger } from '@/server/logger'
 
+const log = createLogger('routes:providers')
 const providerRoutes = new Hono()
 
 // GET /api/providers — list all providers
@@ -25,6 +27,31 @@ providerRoutes.get('/', async (c) => {
       isValid: p.isValid,
       createdAt: p.createdAt,
     })),
+  })
+})
+
+// GET /api/providers/capabilities — check which capabilities are available
+providerRoutes.get('/capabilities', async (c) => {
+  const allProviders = await db.select().from(providers).all()
+  const available = new Set<string>()
+
+  for (const p of allProviders) {
+    if (!p.isValid) continue
+    try {
+      const caps = JSON.parse(p.capabilities) as string[]
+      caps.forEach((cap) => available.add(cap))
+    } catch {
+      // Skip
+    }
+  }
+
+  return c.json({
+    capabilities: {
+      llm: available.has('llm'),
+      embedding: available.has('embedding'),
+      image: available.has('image'),
+      search: available.has('search'),
+    },
   })
 })
 
@@ -57,6 +84,8 @@ providerRoutes.post('/', async (c) => {
     createdAt: new Date(),
     updatedAt: new Date(),
   })
+
+  log.info({ providerId: id, name, type, capabilities, isValid: testResult.valid }, 'Provider created')
 
   return c.json(
     {
@@ -147,7 +176,25 @@ providerRoutes.delete('/:id', async (c) => {
   }
 
   await db.delete(providers).where(eq(providers.id, id))
+  log.info({ providerId: id, name: existing.name, type: existing.type }, 'Provider deleted')
   return c.json({ success: true })
+})
+
+// POST /api/providers/test — test connection without saving
+providerRoutes.post('/test', async (c) => {
+  const body = await c.req.json()
+  const { type, config: providerConfig } = body as {
+    type: string
+    config: { apiKey: string; baseUrl?: string }
+  }
+
+  const result = await testProviderConnection(type, providerConfig)
+
+  return c.json({
+    valid: result.valid,
+    capabilities: result.capabilities,
+    error: result.error,
+  })
 })
 
 // POST /api/providers/:id/test — test provider connection
@@ -202,8 +249,8 @@ providerRoutes.get('/models', async (c) => {
           capability: model.capability,
         })
       }
-    } catch {
-      // Skip providers that fail
+    } catch (err) {
+      log.error({ providerId: p.id, name: p.name, type: p.type, err }, 'Failed to list models for provider')
     }
   }
 

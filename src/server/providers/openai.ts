@@ -1,15 +1,45 @@
-import { createOpenAI } from '@ai-sdk/openai'
 import type { ProviderConfig, ProviderDefinition, ProviderModel } from '@/server/providers/types'
+import { createLogger } from '@/server/logger'
 
-const OPENAI_MODELS: ProviderModel[] = [
-  { id: 'gpt-4o', name: 'GPT-4o', capability: 'llm' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', capability: 'llm' },
-  { id: 'gpt-4.1', name: 'GPT-4.1', capability: 'llm' },
-  { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', capability: 'llm' },
-  { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', capability: 'llm' },
-  { id: 'text-embedding-3-small', name: 'Text Embedding 3 Small', capability: 'embedding' },
-  { id: 'text-embedding-3-large', name: 'Text Embedding 3 Large', capability: 'embedding' },
-]
+const log = createLogger('provider:openai')
+
+interface OpenAIModel {
+  id: string
+  object: string
+  owned_by: string
+}
+
+interface OpenAIModelsResponse {
+  data: OpenAIModel[]
+}
+
+function classifyModel(id: string): 'llm' | 'embedding' | 'image' | null {
+  if (id.startsWith('ft:')) return null
+  if (id.includes('embedding')) return 'embedding'
+  if (id.startsWith('dall-e') || id.startsWith('gpt-image')) return 'image'
+  if (
+    id.startsWith('gpt-') ||
+    id.startsWith('chatgpt-') ||
+    /^o[1-9]/.test(id)
+  ) return 'llm'
+  return null
+}
+
+async function fetchOpenAIModels(config: ProviderConfig): Promise<OpenAIModel[]> {
+  const baseUrl = config.baseUrl ?? 'https://api.openai.com/v1'
+  const response = await fetch(`${baseUrl}/models`, {
+    headers: {
+      'Authorization': `Bearer ${config.apiKey}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.status}`)
+  }
+
+  const data = (await response.json()) as OpenAIModelsResponse
+  return data.data
+}
 
 export const openaiProvider: ProviderDefinition = {
   type: 'openai',
@@ -17,20 +47,33 @@ export const openaiProvider: ProviderDefinition = {
 
   async testConnection(config: ProviderConfig) {
     try {
-      const openai = createOpenAI({ apiKey: config.apiKey, baseURL: config.baseUrl })
-      const model = openai('gpt-4o-mini')
-      const { text } = await (await import('ai')).generateText({
-        model,
-        prompt: 'Say "ok"',
-        maxTokens: 5,
-      })
-      return { valid: !!text }
+      const models = await fetchOpenAIModels(config)
+      const valid = models.length > 0
+      log.info({ valid, modelCount: models.length }, 'Connection test completed')
+      return { valid }
     } catch (error) {
-      return { valid: false, error: error instanceof Error ? error.message : 'Connection failed' }
+      const message = error instanceof Error ? error.message : 'Connection failed'
+      log.error({ err: error }, 'Connection test failed')
+      return { valid: false, error: message }
     }
   },
 
-  async listModels() {
-    return OPENAI_MODELS
+  async listModels(config: ProviderConfig) {
+    try {
+      const apiModels = await fetchOpenAIModels(config)
+      const models = apiModels
+        .map((m): ProviderModel | null => {
+          const capability = classifyModel(m.id)
+          if (!capability) return null
+          return { id: m.id, name: m.id, capability }
+        })
+        .filter((m): m is ProviderModel => m !== null)
+        .sort((a, b) => a.id.localeCompare(b.id))
+      log.debug({ count: models.length }, 'Models listed')
+      return models
+    } catch (error) {
+      log.error({ err: error }, 'Failed to list models')
+      return []
+    }
   },
 }

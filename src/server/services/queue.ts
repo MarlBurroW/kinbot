@@ -1,9 +1,12 @@
 import { eq, and, desc, asc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db } from '@/server/db/index'
+import { createLogger } from '@/server/logger'
 import { queueItems } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { sseManager } from '@/server/sse/index'
+
+const log = createLogger('queue')
 
 export interface EnqueueParams {
   kinId: string
@@ -54,6 +57,8 @@ export async function enqueueMessage(params: EnqueueParams) {
     kinId: params.kinId,
     data: { kinId: params.kinId, queueSize: queuePosition, isProcessing: false },
   })
+
+  log.debug({ kinId: params.kinId, itemId: id, messageType: params.messageType, sourceType: params.sourceType, queuePosition }, 'Message enqueued')
 
   return { id, queuePosition }
 }

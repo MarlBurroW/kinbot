@@ -47,14 +47,7 @@ let cachedKey: CryptoKey | null = null
 async function getKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey
 
-  let keyHex = config.encryptionKey
-  if (!keyHex) {
-    // Auto-generate key for development
-    const randomBytes = crypto.getRandomValues(new Uint8Array(32))
-    keyHex = Array.from(randomBytes).map((b) => b.toString(16).padStart(2, '0')).join('')
-    console.warn('ENCRYPTION_KEY not set — using auto-generated key. Set ENCRYPTION_KEY env var for production.')
-  }
-
+  const keyHex = config.encryptionKey
   const keyBytes = Uint8Array.from(
     (keyHex.match(/.{2}/g) ?? []).map((byte: string) => parseInt(byte, 16)),
   )

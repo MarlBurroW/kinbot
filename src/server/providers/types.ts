@@ -15,5 +15,5 @@ export interface ProviderDefinition {
 export interface ProviderModel {
   id: string
   name: string
-  capability: 'llm' | 'embedding'
+  capability: 'llm' | 'embedding' | 'image'
 }

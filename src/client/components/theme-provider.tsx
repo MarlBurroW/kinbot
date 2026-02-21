@@ -43,6 +43,24 @@ export const PALETTES: PaletteInfo[] = [
     description: 'Neutral elegance',
     colors: ['oklch(0.35 0 0)', 'oklch(0.55 0 0)', 'oklch(0.75 0 0)'],
   },
+  {
+    id: 'sakura',
+    name: 'Sakura',
+    description: 'Rose \u2192 Blush \u2192 Petal',
+    colors: ['oklch(0.62 0.20 350)', 'oklch(0.72 0.14 10)', 'oklch(0.82 0.08 30)'],
+  },
+  {
+    id: 'neon',
+    name: 'Neon',
+    description: 'Cyan \u2192 Magenta \u2192 Yellow',
+    colors: ['oklch(0.70 0.20 195)', 'oklch(0.60 0.26 320)', 'oklch(0.85 0.18 95)'],
+  },
+  {
+    id: 'lavender',
+    name: 'Lavender',
+    description: 'Violet \u2192 Periwinkle \u2192 Mauve',
+    colors: ['oklch(0.55 0.18 280)', 'oklch(0.62 0.14 265)', 'oklch(0.72 0.10 310)'],
+  },
 ]
 
 interface PaletteContextValue {

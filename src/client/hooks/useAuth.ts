@@ -10,6 +10,7 @@ interface UserProfile {
   language: 'en' | 'fr'
   role: 'admin' | 'member'
   avatarUrl: string | null
+  kinOrder: string | null
 }
 
 interface AuthState {

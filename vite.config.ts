@@ -16,6 +16,17 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      '/api/sse': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        // SSE: disable proxy response buffering so events stream through immediately
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['cache-control'] = 'no-cache'
+            proxyRes.headers['x-accel-buffering'] = 'no'
+          })
+        },
+      },
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,

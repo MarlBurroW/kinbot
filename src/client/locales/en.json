@@ -6,6 +6,235 @@
     "delete": "Delete",
     "confirm": "Confirm",
     "back": "Back",
-    "next": "Next"
+    "next": "Next",
+    "or": "or",
+    "required": "Required",
+    "optional": "Optional",
+    "error": "Error",
+    "success": "Success",
+    "add": "Add",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search...",
+    "noResults": "No results found",
+    "create": "Create"
+  },
+  "login": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to your KinBot workspace",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "error": "Invalid email or password",
+    "noAccount": "First time here?",
+    "startOnboarding": "Set up your workspace"
+  },
+  "onboarding": {
+    "title": "Welcome to KinBot",
+    "subtitle": "Let's set up your workspace",
+    "step": "Step {{current}} of {{total}}",
+    "identity": {
+      "title": "Your identity",
+      "subtitle": "Tell us about yourself",
+      "avatar": "Profile photo",
+      "avatarHint": "Click to upload or drag & drop",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "pseudonym": "Pseudonym",
+      "pseudonymHint": "How your Kins will address you",
+      "password": "Password",
+      "passwordConfirm": "Confirm password",
+      "passwordMismatch": "Passwords do not match",
+      "submit": "Continue"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "subtitle": "Customize your experience",
+      "language": "Language",
+      "theme": "Color theme",
+      "themeHint": "You can change this anytime in settings",
+      "themeMode": "Appearance",
+      "themeModeLight": "Light",
+      "themeModeDark": "Dark",
+      "themeModeSystem": "System"
+    },
+    "providers": {
+      "title": "AI Providers",
+      "subtitle": "Configure at least one AI provider to power your Kins",
+      "addProvider": "Add a provider",
+      "addProviderHint": "Test the connection before adding",
+      "test": "Test connection",
+      "add": "Add provider",
+      "cap_llm": "LLM",
+      "cap_embedding": "Embedding",
+      "cap_image": "Image",
+      "cap_search": "Web Search",
+      "type": "Provider type",
+      "name": "Display name",
+      "namePlaceholder": "My {{type}} account",
+      "apiKey": "API Key",
+      "baseUrl": "Base URL",
+      "baseUrlHint": "Leave empty for default",
+      "apiKeyEditHint": "Leave empty to keep current",
+      "credentialsPath": "Credentials file",
+      "credentialsPathHint": "Auto-detected — override only if needed",
+      "testing": "Testing connection...",
+      "testSuccess": "Connection successful",
+      "testFailed": "Connection failed",
+      "capabilities": "Capabilities",
+      "required": "Required capabilities",
+      "requiredHint": "You need at least LLM and Embedding capabilities to continue",
+      "llmRequired": "LLM",
+      "embeddingRequired": "Embedding",
+      "imageOptional": "Image (optional)",
+      "covered": "Covered",
+      "missing": "Missing",
+      "finish": "Finish setup",
+      "cannotFinish": "Configure providers to cover LLM and Embedding capabilities"
+    },
+    "searchProviders": {
+      "title": "Search Providers",
+      "subtitle": "Enable web search for your Kins (optional)",
+      "addProvider": "Add a search provider",
+      "skip": "Skip for now",
+      "finish": "Finish setup"
+    }
+  },
+  "sidebar": {
+    "kins": {
+      "title": "Kins",
+      "empty": "No Kins yet",
+      "create": "New Kin"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "empty": "No active tasks"
+    },
+    "account": "My account",
+    "settings": "Settings",
+    "logout": "Sign out"
+  },
+  "kin": {
+    "edit": {
+      "title": "Edit Kin",
+      "slug": "Slug (URL identifier)",
+      "slugHelp": "Lowercase letters, numbers, and hyphens. Used in URLs and inter-Kin communication."
+    },
+    "create": {
+      "title": "Create a new Kin",
+      "name": "Name",
+      "namePlaceholder": "e.g. Chef, Finance advisor...",
+      "role": "Role",
+      "rolePlaceholder": "e.g. Nutrition expert",
+      "character": "Character",
+      "characterPlaceholder": "Describe the personality and tone...",
+      "expertise": "Expertise",
+      "expertisePlaceholder": "Describe the knowledge and objectives...",
+      "model": "AI Model",
+      "modelPlaceholder": "Select a model",
+      "avatar": "Avatar",
+      "avatarMode": "Avatar source",
+      "avatarUpload": "Upload file",
+      "avatarGenerate": "Auto-generate",
+      "avatarPrompt": "Custom prompt",
+      "avatarPromptPlaceholder": "Describe the avatar you want...",
+      "avatarGenerating": "Generating avatar...",
+      "avatarNoImageProvider": "No image provider configured",
+      "submit": "Create Kin"
+    },
+    "settings": {
+      "title": "Kin settings",
+      "save": "Save changes",
+      "delete": "Delete this Kin",
+      "deleteConfirm": "Are you sure? This will permanently delete this Kin and all its data.",
+      "deleteAction": "Delete permanently"
+    },
+    "defaults": {
+      "character": "You are a friendly, thoughtful, and versatile assistant. You communicate clearly and adapt your tone to the context — casual when appropriate, precise when needed.\n\nYou are patient, curious, and genuinely enjoy helping. When you don't know something, you say so honestly. You ask clarifying questions when the request is ambiguous.\n\nYou keep your responses concise unless the user explicitly asks for detail.",
+      "expertise": "You have broad general knowledge and can help with a wide range of topics:\n- Writing, editing, and summarizing text\n- Research, analysis, and problem-solving\n- Brainstorming and creative tasks\n- Explaining complex concepts simply\n- Planning and organizing\n\nYou adapt your level of detail and technicality based on what the user needs."
+    },
+    "avatar": {
+      "title": "Choose avatar",
+      "upload": "Upload",
+      "auto": "Auto",
+      "prompt": "Prompt",
+      "autoDescription": "The Kin generates its own portrait based on its identity. Its name, role, and personality all influence the result — make sure they're filled in first.",
+      "promptPlaceholder": "Describe the avatar you want...",
+      "generate": "Generate",
+      "regenerate": "Regenerate",
+      "confirm": "Use this avatar",
+      "generating": "Generating...",
+      "noImageProvider": "No image provider configured. Add one in Settings.",
+      "createFirst": "Save the Kin first to enable generation.",
+      "uploadHint": "Click to select or drag & drop an image",
+      "imageModel": "Image model"
+    },
+    "queue": "{{count}} in queue",
+    "processing": "Processing...",
+    "modelUnavailable": "Model unavailable",
+    "modelUnavailableHint": "This Kin's model is no longer available. Update the model in Kin settings or add the provider back.",
+    "modelUnavailableInput": "Cannot send messages — this Kin's model is unavailable"
+  },
+  "chat": {
+    "placeholder": "Send a message...",
+    "send": "Send",
+    "stop": "Stop generating",
+    "selectKin": "Select a Kin to start chatting",
+    "empty": "No messages yet. Say hello!",
+    "streaming": "Thinking...",
+    "contextUsage": "Context: ~{{tokens}} / {{max}} tokens ({{percent}}%)"
+  },
+  "settings": {
+    "title": "Settings",
+    "providers": {
+      "title": "AI Providers",
+      "description": "Manage your AI provider connections",
+      "empty": "No providers configured",
+      "add": "Add provider",
+      "edit": "Edit provider",
+      "editHint": "Update name or API credentials",
+      "saved": "Provider updated",
+      "delete": "Delete provider",
+      "deleteConfirm": "Are you sure you want to delete this provider?",
+      "test": "Test connection",
+      "valid": "Connected",
+      "invalid": "Connection failed",
+      "added": "Provider added successfully",
+      "deleted": "Provider deleted"
+    },
+    "searchProviders": {
+      "title": "Search",
+      "description": "Manage web search provider connections",
+      "empty": "No search providers configured",
+      "add": "Add search provider"
+    },
+    "mcp": {
+      "title": "MCP Servers",
+      "description": "Manage Model Context Protocol servers"
+    },
+    "vault": {
+      "title": "Vault",
+      "description": "Manage encrypted secrets"
+    }
+  },
+  "modelPicker": {
+    "placeholder": "Select a model",
+    "search": "Search models...",
+    "noResults": "No models found",
+    "all": "All"
+  },
+  "account": {
+    "title": "My account",
+    "subtitle": "Manage your profile",
+    "avatar": "Profile photo",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "pseudonym": "Pseudonym",
+    "language": "Language",
+    "save": "Save changes",
+    "saved": "Profile updated"
   }
 }

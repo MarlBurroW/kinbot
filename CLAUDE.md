@@ -72,6 +72,26 @@ All API routes return JSON. Errors follow this format:
 - Middleware on all `/api/*` routes except `/api/auth/*` and `/api/onboarding/*`
 - First user created during onboarding gets `admin` role
 
+### Design system (Phase 0.5)
+
+**Before building any frontend page or component**, read and follow the existing design system:
+
+| Reference | What it provides |
+|---|---|
+| `src/client/pages/design-system/DesignSystemPage.tsx` | Live showcase of every component, variant, animation, and pattern — **this is the source of truth for how UI should look and behave** |
+| `src/client/styles/globals.css` | All design tokens (colors, radii, spacing), palette overrides, utility classes (`glass-strong`, `gradient-primary`, `gradient-border`, `btn-shine`, etc.), and keyframe animations |
+| `src/client/components/ui/` | shadcn/ui components — always use these instead of creating custom ones. Many have custom `variant` props (e.g. `Progress`, `Slider`, `Button`) |
+| `src/client/components/theme-provider.tsx` | Palette system (`usePalette()`) and theme mode (`useTheme()`) — 8 palettes: aurora, ocean, forest, sunset, monochrome, sakura, neon, lavender |
+
+**Rules:**
+
+1. **Reuse existing components** — never recreate what already exists in `components/ui/`. Check the showcase page first.
+2. **Use design tokens** — never hardcode colors. Use CSS variables (`var(--color-*)`) or Tailwind classes (`text-primary`, `bg-muted`, `border-border`, etc.).
+3. **Support all palettes** — UI must look correct across all 8 palettes in both light and dark modes. Use semantic token names, not palette-specific values.
+4. **Use existing utility classes** — for glass effects (`glass-strong`, `glass-subtle`), gradients (`gradient-primary`, `gradient-border`, `gradient-border-spin`), surfaces (`surface-card`, `surface-section`), and animations (`btn-shine`, `btn-magnetic`, `pulse-glow`, `animate-levitate`, etc.).
+5. **WCAG AA contrast** — all text must meet 4.5:1 contrast ratio. Use `muted-foreground` for secondary text, never raw opacity.
+6. **Consistent spacing and radii** — follow the existing token scale. Don't invent custom values.
+
 ## Architecture principles
 
 - **Queue per Kin**: each Kin has a FIFO queue. One message processed at a time. User messages have priority over automated ones.

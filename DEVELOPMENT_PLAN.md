@@ -120,12 +120,13 @@ Définition complète du schéma Drizzle et création de la base SQLite.
 
 ## Phase 3 — Onboarding
 
-- [ ] **3.1** Frontend : créer `src/client/pages/onboarding/OnboardingPage.tsx` — wizard avec navigation entre étapes
-- [ ] **3.2** Frontend : créer `src/client/pages/onboarding/StepIdentity.tsx` — formulaire (photo, prénom, nom, email, pseudonyme, langue, mot de passe)
-- [ ] **3.3** Frontend : créer `src/client/pages/onboarding/StepProviders.tsx` — configuration des providers avec test de connexion en temps réel
-- [ ] **3.4** Backend : logique de validation de l'onboarding (vérifier que les capacités `llm` et `embedding` sont couvertes)
-- [ ] **3.5** Backend : créer le premier `user_profiles` avec rôle `admin` à l'issue de l'onboarding
-- [ ] **3.6** Après onboarding réussi, redirection vers l'interface principale avec ouverture automatique de la modale de création du premier Kin
+- [x] **3.1** Frontend : créer `src/client/pages/onboarding/OnboardingPage.tsx` — wizard avec navigation entre étapes
+- [x] **3.2** Frontend : créer `src/client/pages/onboarding/StepIdentity.tsx` — formulaire (photo, prénom, nom, email, pseudonyme, langue, mot de passe)
+- [x] **3.3** Frontend : créer `src/client/pages/onboarding/StepProviders.tsx` — configuration des AI providers avec test de connexion en temps réel
+- [x] **3.3b** Frontend : créer `src/client/pages/onboarding/StepSearchProviders.tsx` — configuration des search providers (step optionnel, même UX que StepProviders)
+- [x] **3.4** Backend : logique de validation de l'onboarding (vérifier que les capacités `llm` et `embedding` sont couvertes)
+- [x] **3.5** Backend : créer le premier `user_profiles` avec rôle `admin` à l'issue de l'onboarding
+- [x] **3.6** Après onboarding réussi, redirection vers l'interface principale avec ouverture automatique de la modale de création du premier Kin
 
 **Critère de validation** : un utilisateur neuf arrive sur le wizard, configure son profil et au moins un provider, et atterrit sur l'interface principale.
 
@@ -141,7 +142,9 @@ Gestion des providers et abstraction des capacités.
 - [x] **4.4** Implémenter `src/server/providers/openai.ts` (LLM + Embedding + Image via Vercel AI SDK)
 - [x] **4.5** Implémenter `src/server/providers/gemini.ts` (LLM + Image via Vercel AI SDK)
 - [x] **4.6** Implémenter `src/server/providers/voyage.ts` (Embedding via Vercel AI SDK)
+- [x] **4.6b** Implémenter `src/server/providers/brave-search.ts` (Search — Brave Web Search API)
 - [x] **4.7** Créer `src/server/services/embeddings.ts` — service d'embedding (résolution du provider, génération de vecteurs)
+- [x] **4.7b** Créer `src/server/services/search.ts` — service de recherche web (résolution du provider search, exécution des requêtes)
 - [x] **4.8** Créer les routes :
   - `src/server/routes/providers.ts` — `GET /api/providers`, `POST /api/providers`, `PATCH /api/providers/:id`, `DELETE /api/providers/:id`, `POST /api/providers/:id/test`, `GET /api/providers/models`
 - [x] **4.9** Implémenter le chiffrement des configs provider (`config_encrypted`) avec la clé `ENCRYPTION_KEY`
@@ -183,10 +186,10 @@ Gestion des Kins : création, édition, suppression, avatar.
   - `src/server/routes/kins.ts` — `GET /api/kins`, `GET /api/kins/:id`, `POST /api/kins`, `PATCH /api/kins/:id`, `DELETE /api/kins/:id`, `POST /api/kins/:id/avatar`
 - [x] **7.2** Logique de création du workspace du Kin (`{dataDir}/workspaces/{kinId}/`)
 - [x] **7.3** Gestion des avatars (upload, génération automatique si provider image disponible, prompt personnalisé)
-- [ ] **7.4** Frontend : créer le hook `src/client/hooks/useKins.ts`
-- [ ] **7.5** Frontend : créer `src/client/components/kin/KinCreateModal.tsx`
-- [ ] **7.6** Frontend : créer `src/client/components/kin/KinCard.tsx`
-- [ ] **7.7** Frontend : créer `src/client/components/kin/KinSettingsModal.tsx`
+- [x] **7.4** Frontend : créer le hook `src/client/hooks/useKins.ts`
+- [x] **7.5** Frontend : créer `src/client/components/kin/KinCreateModal.tsx`
+- [x] **7.6** Frontend : créer `src/client/components/kin/KinCard.tsx`
+- [x] **7.7** Frontend : créer `src/client/components/kin/KinSettingsModal.tsx`
 
 **Critère de validation** : on peut créer, modifier et supprimer un Kin via l'interface. Le workspace est créé sur le disque.
 
@@ -196,17 +199,17 @@ Gestion des Kins : création, édition, suppression, avatar.
 
 Layout global de l'application : sidebar + panel de chat.
 
-- [ ] **8.1** Frontend : créer `src/client/components/sidebar/Sidebar.tsx` — layout avec sections Kins, Tâches, liens vers Mon compte et Settings
-- [ ] **8.2** Frontend : créer `src/client/components/sidebar/KinList.tsx` — liste des Kins avec badges (queue, statut)
-- [ ] **8.3** Frontend : créer `src/client/components/sidebar/TaskList.tsx` — liste des tâches en cours
-- [ ] **8.4** Frontend : créer `src/client/pages/chat/ChatPage.tsx` — layout sidebar + panel principal
-- [ ] **8.5** Frontend : créer `src/client/components/common/Avatar.tsx` et `src/client/components/common/Badge.tsx`
-- [ ] **8.6** Frontend : créer les pages settings :
+- [x] **8.1** Frontend : créer `src/client/components/sidebar/AppSidebar.tsx` — layout avec sections Kins, Tâches, liens vers Mon compte et Settings
+- [x] **8.2** Frontend : créer `src/client/components/sidebar/KinList.tsx` — liste des Kins avec badges (queue, statut)
+- [x] **8.3** Frontend : créer `src/client/components/sidebar/TaskList.tsx` — liste des tâches en cours
+- [x] **8.4** Frontend : créer `src/client/pages/chat/ChatPage.tsx` — layout sidebar + panel principal
+- [x] **8.5** Utilisation des composants Avatar et Badge existants de shadcn/ui
+- [x] **8.6** Frontend : créer les pages settings :
   - `src/client/pages/settings/SettingsPage.tsx`
-  - `src/client/pages/settings/ProvidersSettings.tsx`
-  - `src/client/pages/settings/McpSettings.tsx`
-  - `src/client/pages/settings/VaultSettings.tsx`
-- [ ] **8.7** Frontend : créer `src/client/pages/account/AccountPage.tsx`
+  - `src/client/pages/settings/ProvidersSettings.tsx` (AI providers)
+  - [x] `src/client/pages/settings/SearchProvidersSettings.tsx` (search providers — même pattern que ProvidersSettings, composants partagés)
+  - McpSettings et VaultSettings en stub dans les tabs
+- [x] **8.7** Frontend : créer `src/client/pages/account/AccountPage.tsx`
 
 **Critère de validation** : le layout complet est visible. On peut naviguer entre les Kins dans la sidebar et accéder aux pages settings/compte.
 
@@ -229,11 +232,11 @@ Orchestration LLM, queue de messages, construction du prompt, streaming.
 - [x] **9.4** Créer la route messages :
   - `src/server/routes/messages.ts` — `POST /api/kins/:id/messages` (enqueue + réponse 202), `GET /api/kins/:id/messages` (historique paginé)
 - [x] **9.5** Intégrer le worker de queue : boucle de traitement qui poll les queues de tous les Kins actifs
-- [ ] **9.6** Frontend : créer `src/client/hooks/useChat.ts` — wrapper autour du Vercel AI SDK (gestion du streaming SSE, optimistic updates)
-- [ ] **9.7** Frontend : créer `src/client/components/chat/ChatPanel.tsx` — affichage des messages + streaming
-- [ ] **9.8** Frontend : créer `src/client/components/chat/MessageBubble.tsx` — bulle de message avec distinction visuelle par source (user, kin, task, cron)
-- [ ] **9.9** Frontend : créer `src/client/components/chat/MessageInput.tsx` — input avec envoi de message + upload de fichiers
-- [ ] **9.10** Frontend : créer `src/client/components/chat/TypingIndicator.tsx`
+- [x] **9.6** Frontend : créer `src/client/hooks/useChat.ts` — gestion du streaming SSE, optimistic updates
+- [x] **9.7** Frontend : créer `src/client/components/chat/ChatPanel.tsx` — affichage des messages + streaming
+- [x] **9.8** Frontend : créer `src/client/components/chat/MessageBubble.tsx` — bulle de message avec distinction visuelle par source (user, kin, task, cron)
+- [x] **9.9** Frontend : créer `src/client/components/chat/MessageInput.tsx` — input avec envoi de message
+- [x] **9.10** Frontend : créer `src/client/components/chat/TypingIndicator.tsx`
 - [x] **9.11** Émettre `queue:update` en SSE à chaque changement de la queue (taille, isProcessing)
 
 **Critère de validation** : on peut envoyer un message à un Kin et recevoir une réponse streamée en temps réel. Le message est sauvegardé en DB et visible dans l'historique.
@@ -244,12 +247,13 @@ Orchestration LLM, queue de messages, construction du prompt, streaming.
 
 Intégration du tool calling Vercel AI SDK et outils fondamentaux.
 
-- [ ] **10.1** Créer `src/server/tools/types.ts` — types `ToolDefinition`, `ToolResult`
-- [ ] **10.2** Créer `src/server/tools/index.ts` — registry de tous les outils, résolution par contexte (main agent vs sub-Kin)
-- [ ] **10.3** Intégrer le tool calling dans `kin-engine.ts` — passage des tools au LLM, exécution des appels, boucle outil-réponse
-- [ ] **10.4** Implémenter les hooks `beforeToolCall` / `afterToolCall`
+- [x] **10.1** Créer `src/server/tools/types.ts` — types `ToolDefinition`, `ToolResult`
+- [x] **10.2** Créer `src/server/tools/index.ts` — registry de tous les outils, résolution par contexte (main agent vs sub-Kin)
+- [x] **10.3** Intégrer le tool calling dans `kin-engine.ts` — passage des tools au LLM, exécution des appels, boucle outil-réponse
+- [x] **10.4** Implémenter les hooks `beforeToolCall` / `afterToolCall`
+- [x] **10.5** Créer `src/server/tools/search-tools.ts` — `web_search(query, count?, freshness?)` (via search provider, conditionné à la présence d'un provider avec capacité `search`)
 
-**Critère de validation** : le Kin peut appeler un outil natif et utiliser le résultat dans sa réponse.
+**Critère de validation** : le Kin peut appeler un outil natif et utiliser le résultat dans sa réponse. Si un search provider est configuré, le Kin peut rechercher sur le web.
 
 ---
 
@@ -257,9 +261,9 @@ Intégration du tool calling Vercel AI SDK et outils fondamentaux.
 
 Registre de contacts par Kin.
 
-- [ ] **11.1** Créer `src/server/services/contacts.ts` — CRUD contacts, injection du résumé compact dans le prompt
-- [ ] **11.2** Créer `src/server/tools/contact-tools.ts` — `get_contact`, `search_contacts`, `create_contact`, `update_contact`
-- [ ] **11.3** Intégrer l'injection du bloc [4] (contacts) dans `prompt-builder.ts`
+- [x] **11.1** Créer `src/server/services/contacts.ts` — CRUD contacts, injection du résumé compact dans le prompt
+- [x] **11.2** Créer `src/server/tools/contact-tools.ts` — `get_contact`, `search_contacts`, `create_contact`, `update_contact`
+- [x] **11.3** Intégrer l'injection du bloc [4] (contacts) dans `prompt-builder.ts`
 
 **Critère de validation** : le Kin peut créer et consulter des contacts via ses outils. Le résumé compact apparaît dans le prompt système.
 
@@ -269,10 +273,10 @@ Registre de contacts par Kin.
 
 Pipeline d'extraction, recall, memorize, recherche hybride.
 
-- [ ] **12.1** Créer `src/server/services/memory.ts` — CRUD mémoires, génération d'embeddings, recherche hybride (sqlite-vec KNN + FTS5 rank fusion)
-- [ ] **12.2** Créer `src/server/tools/memory-tools.ts` — `recall`, `memorize`, `update_memory`, `forget`, `list_memories`
-- [ ] **12.3** Intégrer l'injection du bloc [5] (mémoires pertinentes) dans `prompt-builder.ts` — recherche sémantique à partir du message entrant
-- [ ] **12.4** Créer `src/server/tools/history-tools.ts` — `search_history` (recherche hybride sur les messages)
+- [x] **12.1** Créer `src/server/services/memory.ts` — CRUD mémoires, génération d'embeddings, recherche hybride (sqlite-vec KNN + FTS5 rank fusion)
+- [x] **12.2** Créer `src/server/tools/memory-tools.ts` — `recall`, `memorize`, `update_memory`, `forget`, `list_memories`
+- [x] **12.3** Intégrer l'injection du bloc [5] (mémoires pertinentes) dans `prompt-builder.ts` — recherche sémantique à partir du message entrant
+- [x] **12.4** Créer `src/server/tools/history-tools.ts` — `search_history` (recherche hybride sur les messages)
 
 **Critère de validation** : le Kin peut mémoriser et rappeler des informations. La recherche hybride retourne des résultats pertinents. Les mémoires sont injectées dans le prompt.
 
@@ -282,18 +286,18 @@ Pipeline d'extraction, recall, memorize, recherche hybride.
 
 Résumé automatique des sessions et extraction de mémoires.
 
-- [ ] **13.1** Créer `src/server/services/compacting.ts` conforme à `compacting.md` :
+- [x] **13.1** Créer `src/server/services/compacting.ts` conforme à `compacting.md` :
   - Évaluation du seuil (messages + tokens)
   - Sélection des messages à compacter (exclusion `redact_pending`)
   - Appel LLM pour générer le résumé
   - Sauvegarde du snapshot (activer/désactiver)
   - Nettoyage des anciens snapshots
   - Déclenchement du pipeline d'extraction de mémoires
-- [ ] **13.2** Intégrer l'injection du bloc [9] (compacted summary) dans la construction des messages du contexte
-- [ ] **13.3** Déclencher le compacting après chaque tour LLM dans `kin-engine.ts`
-- [ ] **13.4** Créer les routes compacting :
+- [x] **13.2** Intégrer l'injection du bloc [9] (compacted summary) dans la construction des messages du contexte
+- [x] **13.3** Déclencher le compacting après chaque tour LLM dans `kin-engine.ts`
+- [x] **13.4** Créer les routes compacting :
   - Routes dans `src/server/routes/kins.ts` : `POST /api/kins/:id/compacting/purge`, `GET /api/kins/:id/compacting/snapshots`, `POST /api/kins/:id/compacting/rollback`
-- [ ] **13.5** Créer les routes memories (gestion via UI) :
+- [x] **13.5** Créer les routes memories (gestion via UI) :
   - `GET /api/kins/:id/memories`, `DELETE /api/kins/:id/memories/:memoryId`
 
 **Critère de validation** : après ~50 messages, le compacting se déclenche automatiquement. Le résumé apparaît en contexte. Les mémoires sont extraites. La purge et le rollback fonctionnent.
@@ -304,11 +308,11 @@ Résumé automatique des sessions et extraction de mémoires.
 
 Gestion des secrets chiffrés et caviardage.
 
-- [ ] **14.1** Créer `src/server/services/vault.ts` — CRUD secrets, chiffrement/déchiffrement AES-256-GCM, `redact_message`
-- [ ] **14.2** Créer `src/server/tools/vault-tools.ts` — `get_secret`, `redact_message`
-- [ ] **14.3** Créer les routes :
+- [x] **14.1** Créer `src/server/services/vault.ts` — CRUD secrets, chiffrement/déchiffrement AES-256-GCM, `redact_message`
+- [x] **14.2** Créer `src/server/tools/vault-tools.ts` — `get_secret`, `redact_message`
+- [x] **14.3** Créer les routes :
   - `src/server/routes/vault.ts` — `GET /api/vault`, `POST /api/vault`, `PATCH /api/vault/:id`, `DELETE /api/vault/:id`
-- [ ] **14.4** Implémenter la priorité du caviardage sur le compacting (bloquer le compacting si `redact_pending = 1`)
+- [x] **14.4** Implémenter la priorité du caviardage sur le compacting (bloquer le compacting si `redact_pending = 1`)
 
 **Critère de validation** : on peut créer un secret, le Kin peut le lire via `get_secret`, et le caviardage fonctionne (le message est masqué et bloque le compacting).
 
@@ -318,18 +322,18 @@ Gestion des secrets chiffrés et caviardage.
 
 Spawning, cycle de vie, request_input, résolution.
 
-- [ ] **15.1** Créer `src/server/services/tasks.ts` — cycle de vie complet :
+- [x] **15.1** Créer `src/server/services/tasks.ts` — cycle de vie complet :
   - Spawn (clone de soi-même ou d'un autre Kin)
   - Modes `await` et `async`
   - Gestion de la profondeur (`depth`, max configurable)
   - Résolution : `completed`, `failed`, `cancelled`
   - Restitution dans la session parente (via queue pour `await`, informatif pour `async`)
-- [ ] **15.2** Créer `src/server/tools/task-tools.ts` — outils parent : `spawn_self`, `spawn_kin`, `respond_to_task`, `cancel_task`, `list_tasks`
-- [ ] **15.3** Créer `src/server/tools/subtask-tools.ts` — outils sous-Kin : `report_to_parent`, `update_task_status`, `request_input` (max 3 appels)
-- [ ] **15.4** Adapter `kin-engine.ts` pour exécuter un sous-Kin (prompt adapté, outils limités, contexte de tâche)
-- [ ] **15.5** Créer les routes :
+- [x] **15.2** Créer `src/server/tools/task-tools.ts` — outils parent : `spawn_self`, `spawn_kin`, `respond_to_task`, `cancel_task`, `list_tasks`
+- [x] **15.3** Créer `src/server/tools/subtask-tools.ts` — outils sous-Kin : `report_to_parent`, `update_task_status`, `request_input` (max 3 appels)
+- [x] **15.4** Adapter `kin-engine.ts` pour exécuter un sous-Kin (prompt adapté, outils limités, contexte de tâche)
+- [x] **15.5** Créer les routes :
   - `src/server/routes/tasks.ts` — `GET /api/tasks`, `GET /api/tasks/:id`, `POST /api/tasks/:id/cancel`
-- [ ] **15.6** Émettre les événements SSE : `task:status`, `task:done`
+- [x] **15.6** Émettre les événements SSE : `task:status`, `task:done`
 - [ ] **15.7** Frontend : mettre à jour `TaskList.tsx` dans la sidebar avec les tâches en cours et leur statut
 
 **Critère de validation** : un Kin peut spawner un sous-Kin, le sous-Kin exécute sa tâche, le résultat revient dans la session parente. Le mode `await` et `async` fonctionnent. `request_input` est limité à 3.
@@ -340,10 +344,10 @@ Spawning, cycle de vie, request_input, résolution.
 
 Messagerie directe entre Kins avec garde-fous.
 
-- [ ] **16.1** Créer `src/server/services/inter-kin.ts` — `send_message`, `reply`, corrélation request_id, rate limiting, compteur de profondeur
-- [ ] **16.2** Créer `src/server/tools/inter-kin-tools.ts` — `send_message`, `reply`, `list_kins`
-- [ ] **16.3** Intégrer les messages inter-Kins dans la queue FIFO (type `kin_request`, `kin_inform`, `kin_reply`)
-- [ ] **16.4** Garantir que les `reply` sont toujours de type `inform` (pas de ping-pong)
+- [x] **16.1** Créer `src/server/services/inter-kin.ts` — `send_message`, `reply`, corrélation request_id, rate limiting, compteur de profondeur
+- [x] **16.2** Créer `src/server/tools/inter-kin-tools.ts` — `send_message`, `reply`, `list_kins`
+- [x] **16.3** Intégrer les messages inter-Kins dans la queue FIFO (type `kin_request`, `kin_inform`, `kin_reply`)
+- [x] **16.4** Garantir que les `reply` sont toujours de type `inform` (pas de ping-pong)
 
 **Critère de validation** : un Kin peut envoyer un `request` à un autre Kin, celui-ci répond via `reply`, et la réponse est corrélée au request original. Le rate limiting bloque les abus.
 
@@ -353,13 +357,13 @@ Messagerie directe entre Kins avec garde-fous.
 
 Scheduler in-process avec croner.
 
-- [ ] **17.1** Créer `src/server/services/crons.ts` — scheduler croner, spawn de sous-Kin à chaque déclenchement, respect des limites (`maxActive`, `maxConcurrentExecutions`)
-- [ ] **17.2** Créer `src/server/tools/cron-tools.ts` — `create_cron`, `update_cron`, `delete_cron`, `list_crons`
-- [ ] **17.3** Créer les routes :
+- [x] **17.1** Créer `src/server/services/crons.ts` — scheduler croner, spawn de sous-Kin à chaque déclenchement, respect des limites (`maxActive`, `maxConcurrentExecutions`)
+- [x] **17.2** Créer `src/server/tools/cron-tools.ts` — `create_cron`, `update_cron`, `delete_cron`, `list_crons`
+- [x] **17.3** Créer les routes :
   - `src/server/routes/crons.ts` — `GET /api/crons`, `POST /api/crons`, `PATCH /api/crons/:id`, `DELETE /api/crons/:id`, `POST /api/crons/:id/approve`
-- [ ] **17.4** Logique d'approbation : un cron créé par un Kin nécessite une validation utilisateur (`requires_approval`)
-- [ ] **17.5** Restitution du résultat : déposé dans la session comme message informatif (pas de tour LLM)
-- [ ] **17.6** Émettre l'événement SSE `cron:triggered`
+- [x] **17.4** Logique d'approbation : un cron créé par un Kin nécessite une validation utilisateur (`requires_approval`)
+- [x] **17.5** Restitution du résultat : déposé dans la session comme message informatif (pas de tour LLM)
+- [x] **17.6** Émettre l'événement SSE `cron:triggered`
 
 **Critère de validation** : un cron s'exécute à l'heure prévue, spawn un sous-Kin, et le résultat apparaît dans le chat. Un cron créé par un Kin attend l'approbation.
 
@@ -369,10 +373,10 @@ Scheduler in-process avec croner.
 
 Gestion des serveurs MCP et exposition des outils aux Kins.
 
-- [ ] **18.1** Créer les routes :
+- [x] **18.1** Créer les routes :
   - `src/server/routes/mcp-servers.ts` — `GET /api/mcp-servers`, `POST /api/mcp-servers`, `DELETE /api/mcp-servers/:id`
-- [ ] **18.2** Implémenter le lancement des processus MCP, la découverte des outils exposés, et leur injection dans le tool calling du Kin
-- [ ] **18.3** Gérer la liaison Kin ↔ MCP servers (table `kin_mcp_servers`)
+- [x] **18.2** Implémenter le lancement des processus MCP, la découverte des outils exposés, et leur injection dans le tool calling du Kin
+- [x] **18.3** Gérer la liaison Kin ↔ MCP servers (table `kin_mcp_servers`)
 
 **Critère de validation** : on peut configurer un serveur MCP, l'assigner à un Kin, et le Kin peut utiliser les outils exposés par le serveur.
 
@@ -382,9 +386,9 @@ Gestion des serveurs MCP et exposition des outils aux Kins.
 
 Permettre aux Kins de créer et gérer leurs propres outils.
 
-- [ ] **19.1** Créer `src/server/tools/custom-tool-tools.ts` — `register_tool`, `run_custom_tool`, `list_custom_tools`
-- [ ] **19.2** Implémenter l'exécution confinée au workspace du Kin (validation du path)
-- [ ] **19.3** Injecter les outils custom dans les tool definitions du Kin
+- [x] **19.1** Créer `src/server/tools/custom-tool-tools.ts` — `register_tool`, `run_custom_tool`, `list_custom_tools`
+- [x] **19.2** Implémenter l'exécution confinée au workspace du Kin (validation du path)
+- [x] **19.3** Injecter les outils custom dans les tool definitions du Kin
 
 **Critère de validation** : un Kin peut créer un script dans son workspace, l'enregistrer comme outil, et l'exécuter via `run_custom_tool`.
 
@@ -392,10 +396,10 @@ Permettre aux Kins de créer et gérer leurs propres outils.
 
 ## Phase 20 — Upload de fichiers
 
-- [ ] **20.1** Créer `src/server/services/files.ts` — upload, stockage local, référencement en DB
-- [ ] **20.2** Créer les routes :
+- [x] **20.1** Créer `src/server/services/files.ts` — upload, stockage local, référencement en DB
+- [x] **20.2** Créer les routes :
   - `src/server/routes/files.ts` — `POST /api/files/upload`
-- [ ] **20.3** Intégrer les fichiers dans les messages (référencement dans la table `files`, inclusion dans le contexte LLM)
+- [x] **20.3** Intégrer les fichiers dans les messages (référencement dans la table `files`, inclusion dans le contexte LLM)
 - [ ] **20.4** Frontend : intégrer l'upload dans `MessageInput.tsx` (drag & drop, bouton d'ajout)
 
 **Critère de validation** : un utilisateur peut envoyer un fichier avec son message. Le fichier est stocké et visible dans l'historique.
@@ -404,8 +408,8 @@ Permettre aux Kins de créer et gérer leurs propres outils.
 
 ## Phase 21 — Génération d'images
 
-- [ ] **21.1** Créer `src/server/tools/image-tools.ts` — `generate_image` (via provider image)
-- [ ] **21.2** Conditionner la disponibilité de l'outil à la présence d'un provider avec capacité `image`
+- [x] **21.1** Créer `src/server/tools/image-tools.ts` — `generate_image` (via provider image)
+- [x] **21.2** Conditionner la disponibilité de l'outil à la présence d'un provider avec capacité `image`
 
 **Critère de validation** : si un provider image est configuré, le Kin peut générer des images. Sinon, l'outil n'est pas disponible.
 
@@ -413,9 +417,9 @@ Permettre aux Kins de créer et gérer leurs propres outils.
 
 ## Phase 22 — Internationalisation
 
-- [ ] **22.1** Compléter `src/client/locales/en.json` et `fr.json` avec toutes les clés de l'interface
-- [ ] **22.2** Configurer `src/client/lib/i18n.ts` — détection de la langue à partir de `user_profiles.language`
-- [ ] **22.3** Remplacer tous les textes en dur dans les composants React par des appels `t('key')`
+- [x] **22.1** Compléter `src/client/locales/en.json` et `fr.json` avec toutes les clés de l'interface
+- [x] **22.2** Configurer `src/client/lib/i18n.ts` — détection de la langue à partir de `user_profiles.language`
+- [x] **22.3** Remplacer tous les textes en dur dans les composants React par des appels `t('key')`
 
 **Critère de validation** : l'interface affiche correctement en français et en anglais selon la préférence utilisateur. Le changement de langue est immédiat.
 
@@ -423,9 +427,9 @@ Permettre aux Kins de créer et gérer leurs propres outils.
 
 ## Phase 23 — Dark mode
 
-- [ ] **23.1** Implémenter le thème sombre dans `globals.css` (custom properties CSS)
-- [ ] **23.2** S'assurer que tous les composants shadcn/ui et custom respectent les variables de thème
-- [ ] **23.3** Ajouter un toggle dark mode (ou suivre la préférence système)
+- [x] **23.1** Implémenter le thème sombre dans `globals.css` (custom properties CSS)
+- [x] **23.2** S'assurer que tous les composants shadcn/ui et custom respectent les variables de thème
+- [x] **23.3** Ajouter un toggle dark mode (ou suivre la préférence système)
 
 **Critère de validation** : le dark mode fonctionne sur toute l'interface avec des tons sombres chauds.
 
@@ -433,14 +437,14 @@ Permettre aux Kins de créer et gérer leurs propres outils.
 
 ## Phase 24 — Polissage et tests
 
-- [ ] **24.1** Gestion des erreurs LLM : retry sur rate limit, messages d'erreur dans le chat, warning dans la sidebar
-- [ ] **24.2** Limites de concurrence : vérifier `tasks.maxConcurrent` et `crons.maxConcurrentExecutions`
-- [ ] **24.3** Vérifier que la suppression d'un provider bloquée si c'est le dernier couvrant une capacité requise (`PROVIDER_REQUIRED`)
-- [ ] **24.4** Vérifier les garde-fous inter-Kins (rate limiting, profondeur max)
-- [ ] **24.5** Vérifier que la profondeur de spawning est respectée
-- [ ] **24.6** Responsive : s'assurer que la sidebar est utilisable sur tablette
-- [ ] **24.7** Performance : vérifier que le compacting et les embeddings ne bloquent pas le thread principal
-- [ ] **24.8** Sécurité : auditer les routes (injection SQL via Drizzle, XSS dans les messages, path traversal dans les workspaces)
+- [x] **24.1** Gestion des erreurs LLM : retry sur rate limit, messages d'erreur dans le chat, warning dans la sidebar
+- [x] **24.2** Limites de concurrence : vérifier `tasks.maxConcurrent` et `crons.maxConcurrentExecutions`
+- [x] **24.3** Vérifier que la suppression d'un provider bloquée si c'est le dernier couvrant une capacité requise (`PROVIDER_REQUIRED`)
+- [x] **24.4** Vérifier les garde-fous inter-Kins (rate limiting, profondeur max)
+- [x] **24.5** Vérifier que la profondeur de spawning est respectée
+- [x] **24.6** Responsive : s'assurer que la sidebar est utilisable sur tablette
+- [x] **24.7** Performance : vérifier que le compacting et les embeddings ne bloquent pas le thread principal
+- [x] **24.8** Sécurité : auditer les routes (injection SQL via Drizzle, XSS dans les messages, path traversal dans les workspaces)
 
 **Critère de validation** : l'application est stable, les cas limites sont gérés, les performances sont acceptables.
 
@@ -448,11 +452,11 @@ Permettre aux Kins de créer et gérer leurs propres outils.
 
 ## Phase 25 — Docker et déploiement
 
-- [ ] **25.1** Finaliser le `Dockerfile` (build multi-stage : Vite build + Bun runtime)
-- [ ] **25.2** Finaliser le `docker-compose.yml` (volume pour `data/`, env vars)
-- [ ] **25.3** Tester le déploiement complet via `docker run`
-- [ ] **25.4** Vérifier que les extensions SQLite (sqlite-vec, FTS5) fonctionnent dans le conteneur
-- [ ] **25.5** Générer automatiquement `ENCRYPTION_KEY` si absente au premier lancement
+- [x] **25.1** Finaliser le `Dockerfile` (build multi-stage : Vite build + Bun runtime)
+- [x] **25.2** Finaliser le `docker-compose.yml` (volume pour `data/`, env vars)
+- [x] **25.3** Tester le déploiement complet via `docker run`
+- [x] **25.4** Vérifier que les extensions SQLite (sqlite-vec, FTS5) fonctionnent dans le conteneur
+- [x] **25.5** Générer automatiquement `ENCRYPTION_KEY` si absente au premier lancement
 
 **Critère de validation** : `docker run -v ./data:/app/data -p 3000:3000 kinbot` lance l'application complète, fonctionnelle et persistante.
 
@@ -486,7 +490,8 @@ Phase 0 (Init)
                                             ├── Phase 18 (MCP)
                                             ├── Phase 19 (Custom tools)
                                             ├── Phase 20 (Files)
-                                            └── Phase 21 (Images)
+                                            ├── Phase 21 (Images)
+                                            └── (Search tools — Phase 10.5, requires Phase 4.6b)
 Phase 22 (i18n) — peut commencer dès Phase 8
 Phase 23 (Dark mode) — déjà couvert par Phase 0.5 (tokens + toggle), compléter si besoin
 Phase 24 (Polish) — après toutes les phases fonctionnelles

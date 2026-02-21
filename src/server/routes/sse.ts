@@ -38,7 +38,7 @@ sseRoutes.get('/', (c) => {
       }).catch(() => {
         clearInterval(pingInterval)
       })
-    }, 30000)
+    }, 15000)
 
     // Wait for disconnect
     stream.onAbort(() => {

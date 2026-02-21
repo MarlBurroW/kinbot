@@ -1,9 +1,13 @@
 import { Database } from 'bun:sqlite'
 import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { config } from '@/server/config'
+import { createLogger } from '@/server/logger'
 import * as schema from '@/server/db/schema'
+import { generateSlug, ensureUniqueSlug } from '@/server/utils/slug'
 import { mkdirSync, existsSync } from 'fs'
 import { dirname } from 'path'
+
+const log = createLogger('database')
 
 // Ensure data directory exists
 const dbDir = dirname(config.db.path)
@@ -12,11 +16,21 @@ if (!existsSync(dbDir)) {
 }
 
 const sqlite = new Database(config.db.path)
+log.info({ path: config.db.path }, 'SQLite database opened')
 
 // Enable WAL mode for better concurrency
 sqlite.run('PRAGMA journal_mode = WAL')
 sqlite.run('PRAGMA foreign_keys = ON')
 sqlite.run('PRAGMA busy_timeout = 5000')
+log.debug('WAL mode enabled, foreign keys on, busy timeout 5000ms')
+
+// Load sqlite-vec extension for vector search
+try {
+  const { getLoadablePath } = require('sqlite-vec')
+  sqlite.loadExtension(getLoadablePath())
+} catch {
+  log.warn('sqlite-vec extension not available — vector search will be disabled')
+}
 
 export const db = drizzle(sqlite, { schema })
 export { sqlite }
@@ -99,9 +113,36 @@ export function initVirtualTables() {
       )
     `)
   } catch {
-    console.warn(
-      'sqlite-vec extension not available. Vector search will be disabled. ' +
-      'Install sqlite-vec for full memory search capabilities.'
-    )
+    log.warn('sqlite-vec: virtual table creation failed — vector search disabled')
   }
+
+  // Backfill slugs for existing kins that don't have one
+  backfillSlugs()
+}
+
+/**
+ * Generate slugs for any kins that have a NULL slug.
+ * Called once at startup after schema is applied.
+ */
+function backfillSlugs() {
+  const kinsWithoutSlug = sqlite.query<{ id: string; name: string }, []>(
+    'SELECT id, name FROM kins WHERE slug IS NULL'
+  ).all()
+
+  if (kinsWithoutSlug.length === 0) return
+
+  const existingSlugs = new Set(
+    sqlite.query<{ slug: string }, []>(
+      'SELECT slug FROM kins WHERE slug IS NOT NULL'
+    ).all().map((r) => r.slug)
+  )
+
+  for (const kin of kinsWithoutSlug) {
+    const baseSlug = generateSlug(kin.name)
+    const slug = ensureUniqueSlug(baseSlug || 'kin', existingSlugs)
+    existingSlugs.add(slug)
+    sqlite.run('UPDATE kins SET slug = ? WHERE id = ?', [slug, kin.id])
+  }
+
+  log.info({ count: kinsWithoutSlug.length }, 'Backfilled slugs for existing kins')
 }

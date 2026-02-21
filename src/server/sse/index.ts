@@ -1,4 +1,7 @@
 import type { SSEEvent } from '@/server/sse/types'
+import { createLogger } from '@/server/logger'
+
+const log = createLogger('sse')
 
 type SSEWriter = {
   write: (data: string) => void
@@ -14,6 +17,7 @@ class SSEManager {
    */
   addConnection(connectionId: string, writer: SSEWriter): void {
     this.connections.set(connectionId, writer)
+    log.info({ connectionId, userId: writer.userId, total: this.connections.size }, 'SSE connection opened')
   }
 
   /**
@@ -21,6 +25,7 @@ class SSEManager {
    */
   removeConnection(connectionId: string): void {
     this.connections.delete(connectionId)
+    log.info({ connectionId, total: this.connections.size }, 'SSE connection closed')
   }
 
   /**
@@ -74,8 +79,7 @@ class SSEManager {
 }
 
 function formatSSE(event: SSEEvent): string {
-  const data = JSON.stringify({ type: event.type, kinId: event.kinId, ...event.data })
-  return `event: ${event.type}\ndata: ${data}\n\n`
+  return JSON.stringify({ type: event.type, kinId: event.kinId, ...event.data })
 }
 
 export const sseManager = new SSEManager()

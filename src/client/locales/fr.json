@@ -6,6 +6,235 @@
     "delete": "Supprimer",
     "confirm": "Confirmer",
     "back": "Retour",
-    "next": "Suivant"
+    "next": "Suivant",
+    "or": "ou",
+    "required": "Requis",
+    "optional": "Optionnel",
+    "error": "Erreur",
+    "success": "Succès",
+    "add": "Ajouter",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "search": "Rechercher...",
+    "noResults": "Aucun résultat",
+    "create": "Créer"
+  },
+  "login": {
+    "title": "Bon retour",
+    "subtitle": "Connectez-vous à votre espace KinBot",
+    "email": "Email",
+    "emailPlaceholder": "vous@exemple.com",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "submitting": "Connexion...",
+    "error": "Email ou mot de passe invalide",
+    "noAccount": "Première visite ?",
+    "startOnboarding": "Configurer votre espace"
+  },
+  "onboarding": {
+    "title": "Bienvenue sur KinBot",
+    "subtitle": "Configurons votre espace",
+    "step": "Étape {{current}} sur {{total}}",
+    "identity": {
+      "title": "Votre identité",
+      "subtitle": "Parlez-nous de vous",
+      "avatar": "Photo de profil",
+      "avatarHint": "Cliquez pour télécharger ou glissez-déposez",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "email": "Email",
+      "pseudonym": "Pseudonyme",
+      "pseudonymHint": "Comment vos Kins s'adresseront à vous",
+      "password": "Mot de passe",
+      "passwordConfirm": "Confirmer le mot de passe",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "submit": "Continuer"
+    },
+    "preferences": {
+      "title": "Préférences",
+      "subtitle": "Personnalisez votre expérience",
+      "language": "Langue",
+      "theme": "Thème de couleur",
+      "themeHint": "Modifiable à tout moment dans les paramètres",
+      "themeMode": "Apparence",
+      "themeModeLight": "Clair",
+      "themeModeDark": "Sombre",
+      "themeModeSystem": "Système"
+    },
+    "providers": {
+      "title": "Fournisseurs IA",
+      "subtitle": "Configurez au moins un fournisseur IA pour alimenter vos Kins",
+      "addProvider": "Ajouter un fournisseur",
+      "addProviderHint": "Testez la connexion avant d'ajouter",
+      "test": "Tester la connexion",
+      "add": "Ajouter",
+      "cap_llm": "LLM",
+      "cap_embedding": "Embedding",
+      "cap_image": "Image",
+      "cap_search": "Recherche web",
+      "type": "Type de fournisseur",
+      "name": "Nom d'affichage",
+      "namePlaceholder": "Mon compte {{type}}",
+      "apiKey": "Clé API",
+      "baseUrl": "URL de base",
+      "baseUrlHint": "Laisser vide pour la valeur par défaut",
+      "apiKeyEditHint": "Laisser vide pour conserver l'actuelle",
+      "credentialsPath": "Fichier de credentials",
+      "credentialsPathHint": "Auto-détecté — ne remplir que si nécessaire",
+      "testing": "Test de connexion...",
+      "testSuccess": "Connexion réussie",
+      "testFailed": "Échec de la connexion",
+      "capabilities": "Capacités",
+      "required": "Capacités requises",
+      "requiredHint": "Vous devez couvrir les capacités LLM et Embedding pour continuer",
+      "llmRequired": "LLM",
+      "embeddingRequired": "Embedding",
+      "imageOptional": "Image (optionnel)",
+      "covered": "Couvert",
+      "missing": "Manquant",
+      "finish": "Terminer la configuration",
+      "cannotFinish": "Configurez des fournisseurs couvrant les capacités LLM et Embedding"
+    },
+    "searchProviders": {
+      "title": "Fournisseurs de recherche",
+      "subtitle": "Activez la recherche web pour vos Kins (optionnel)",
+      "addProvider": "Ajouter un fournisseur de recherche",
+      "skip": "Passer cette étape",
+      "finish": "Terminer la configuration"
+    }
+  },
+  "sidebar": {
+    "kins": {
+      "title": "Kins",
+      "empty": "Aucun Kin",
+      "create": "Nouveau Kin"
+    },
+    "tasks": {
+      "title": "Tâches",
+      "empty": "Aucune tâche active"
+    },
+    "account": "Mon compte",
+    "settings": "Paramètres",
+    "logout": "Se déconnecter"
+  },
+  "kin": {
+    "edit": {
+      "title": "Modifier le Kin",
+      "slug": "Slug (identifiant URL)",
+      "slugHelp": "Lettres minuscules, chiffres et tirets. Utilisé dans les URLs et la communication inter-Kin."
+    },
+    "create": {
+      "title": "Créer un nouveau Kin",
+      "name": "Nom",
+      "namePlaceholder": "ex. Chef, Conseiller financier...",
+      "role": "Rôle",
+      "rolePlaceholder": "ex. Expert en nutrition",
+      "character": "Caractère",
+      "characterPlaceholder": "Décrivez la personnalité et le ton...",
+      "expertise": "Expertise",
+      "expertisePlaceholder": "Décrivez les connaissances et objectifs...",
+      "model": "Modèle IA",
+      "modelPlaceholder": "Sélectionnez un modèle",
+      "avatar": "Avatar",
+      "avatarMode": "Source de l'avatar",
+      "avatarUpload": "Importer un fichier",
+      "avatarGenerate": "Génération automatique",
+      "avatarPrompt": "Prompt personnalisé",
+      "avatarPromptPlaceholder": "Décrivez l'avatar souhaité...",
+      "avatarGenerating": "Génération de l'avatar...",
+      "avatarNoImageProvider": "Aucun fournisseur d'image configuré",
+      "submit": "Créer le Kin"
+    },
+    "settings": {
+      "title": "Paramètres du Kin",
+      "save": "Enregistrer",
+      "delete": "Supprimer ce Kin",
+      "deleteConfirm": "Êtes-vous sûr ? Cela supprimera définitivement ce Kin et toutes ses données.",
+      "deleteAction": "Supprimer définitivement"
+    },
+    "defaults": {
+      "character": "Tu es un assistant amical, réfléchi et polyvalent. Tu communiques clairement et tu adaptes ton ton au contexte — décontracté quand c'est approprié, précis quand c'est nécessaire.\n\nTu es patient, curieux et tu prends plaisir à aider. Quand tu ne sais pas quelque chose, tu le dis honnêtement. Tu poses des questions de clarification quand la demande est ambiguë.\n\nTu gardes tes réponses concises sauf si l'utilisateur demande explicitement plus de détails.",
+      "expertise": "Tu as des connaissances générales étendues et tu peux aider sur un large éventail de sujets :\n- Rédaction, édition et synthèse de texte\n- Recherche, analyse et résolution de problèmes\n- Brainstorming et tâches créatives\n- Explication de concepts complexes de manière simple\n- Planification et organisation\n\nTu adaptes ton niveau de détail et de technicité en fonction des besoins de l'utilisateur."
+    },
+    "avatar": {
+      "title": "Choisir l'avatar",
+      "upload": "Importer",
+      "auto": "Auto",
+      "prompt": "Prompt",
+      "autoDescription": "Le Kin génère son propre portrait à partir de son identité. Son nom, son rôle et sa personnalité influencent le résultat — assurez-vous de les remplir d'abord.",
+      "promptPlaceholder": "Décrivez l'avatar souhaité...",
+      "generate": "Générer",
+      "regenerate": "Régénérer",
+      "confirm": "Utiliser cet avatar",
+      "generating": "Génération...",
+      "noImageProvider": "Aucun fournisseur d'image configuré. Ajoutez-en un dans les Paramètres.",
+      "createFirst": "Enregistrez le Kin d'abord pour activer la génération.",
+      "uploadHint": "Cliquez pour sélectionner ou glissez-déposez une image",
+      "imageModel": "Modèle d'image"
+    },
+    "queue": "{{count}} en file",
+    "processing": "En cours...",
+    "modelUnavailable": "Modèle indisponible",
+    "modelUnavailableHint": "Le modèle de ce Kin n'est plus disponible. Modifiez le modèle dans les paramètres du Kin ou réajoutez le fournisseur.",
+    "modelUnavailableInput": "Envoi impossible — le modèle de ce Kin est indisponible"
+  },
+  "chat": {
+    "placeholder": "Envoyer un message...",
+    "send": "Envoyer",
+    "stop": "Arrêter la génération",
+    "selectKin": "Sélectionnez un Kin pour commencer",
+    "empty": "Aucun message. Dites bonjour !",
+    "streaming": "Réflexion...",
+    "contextUsage": "Contexte : ~{{tokens}} / {{max}} tokens ({{percent}} %)"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "providers": {
+      "title": "Fournisseurs IA",
+      "description": "Gérez vos connexions aux fournisseurs IA",
+      "empty": "Aucun fournisseur configuré",
+      "add": "Ajouter un fournisseur",
+      "edit": "Modifier le fournisseur",
+      "editHint": "Modifiez le nom ou les identifiants API",
+      "saved": "Fournisseur mis à jour",
+      "delete": "Supprimer le fournisseur",
+      "deleteConfirm": "Voulez-vous vraiment supprimer ce fournisseur ?",
+      "test": "Tester la connexion",
+      "valid": "Connecté",
+      "invalid": "Connexion échouée",
+      "added": "Fournisseur ajouté avec succès",
+      "deleted": "Fournisseur supprimé"
+    },
+    "searchProviders": {
+      "title": "Recherche",
+      "description": "Gérez vos connexions aux fournisseurs de recherche web",
+      "empty": "Aucun fournisseur de recherche configuré",
+      "add": "Ajouter un fournisseur de recherche"
+    },
+    "mcp": {
+      "title": "Serveurs MCP",
+      "description": "Gérez les serveurs Model Context Protocol"
+    },
+    "vault": {
+      "title": "Coffre-fort",
+      "description": "Gérez les secrets chiffrés"
+    }
+  },
+  "modelPicker": {
+    "placeholder": "Sélectionnez un modèle",
+    "search": "Rechercher un modèle...",
+    "noResults": "Aucun modèle trouvé",
+    "all": "Tous"
+  },
+  "account": {
+    "title": "Mon compte",
+    "subtitle": "Gérez votre profil",
+    "avatar": "Photo de profil",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "pseudonym": "Pseudonyme",
+    "language": "Langue",
+    "save": "Enregistrer",
+    "saved": "Profil mis à jour"
   }
 }

@@ -1,4 +1,7 @@
 import type { HookName, HookHandler, HookContext } from '@/server/hooks/types'
+import { createLogger } from '@/server/logger'
+
+const log = createLogger('hooks')
 
 class HookRegistry {
   private hooks = new Map<HookName, HookHandler[]>()
@@ -30,6 +33,7 @@ class HookRegistry {
   async execute(name: HookName, context: HookContext): Promise<HookContext> {
     const handlers = this.hooks.get(name)
     if (!handlers || handlers.length === 0) return context
+    log.debug({ hookName: name, handlerCount: handlers.length }, 'Executing hook')
 
     let currentContext = context
 

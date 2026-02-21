@@ -4,6 +4,7 @@ interface ContactSummary {
   id: string
   name: string
   type: string
+  linkedKinSlug?: string | null
 }
 
 interface Memory {
@@ -12,15 +13,23 @@ interface Memory {
   subject: string | null
 }
 
+interface KinDirectoryEntry {
+  slug: string | null
+  name: string
+  role: string
+}
+
 interface PromptParams {
   kin: {
     name: string
+    slug: string | null
     role: string
     character: string
     expertise: string
   }
   contacts: ContactSummary[]
   relevantMemories: Memory[]
+  kinDirectory: KinDirectoryEntry[]
   isSubKin: boolean
   taskDescription?: string
   userLanguage: 'fr' | 'en'
@@ -52,8 +61,9 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- If you cannot accomplish the task, set your status to "failed" with an explanation.`,
     )
   } else {
-    // [1] Identity
-    blocks.push(`You are ${params.kin.name}, ${params.kin.role}.`)
+    // [1] Identity (with slug)
+    const slugSuffix = params.kin.slug ? ` (slug: ${params.kin.slug})` : ''
+    blocks.push(`You are ${params.kin.name}${slugSuffix}, ${params.kin.role}.`)
 
     // [2] Character
     if (params.kin.character) {
@@ -69,12 +79,29 @@ export function buildSystemPrompt(params: PromptParams): string {
   // [4] Contacts (compact summary)
   if (params.contacts.length > 0) {
     const contactLines = params.contacts
-      .map((c) => `- ${c.name} (id: ${c.id}, ${c.type})`)
+      .map((c) => {
+        if (c.type === 'kin' && c.linkedKinSlug) {
+          return `- ${c.name} (slug: ${c.linkedKinSlug}, ${c.type})`
+        }
+        return `- ${c.name} (id: ${c.id}, ${c.type})`
+      })
       .join('\n')
     blocks.push(
       `## Known contacts\n\n` +
       `You know the following people and Kins. Use the get_contact(id) tool to ` +
       `retrieve a contact's details when relevant.\n\n${contactLines}`,
+    )
+  }
+
+  // [4.5] Kin directory (main agent only)
+  if (!params.isSubKin && params.kinDirectory.length > 0) {
+    const directoryLines = params.kinDirectory
+      .map((k) => `- ${k.name} (slug: ${k.slug}) — ${k.role}`)
+      .join('\n')
+    blocks.push(
+      `## Kin directory\n\n` +
+      `These are the other Kins on the platform. Use their slug with send_message(slug, ...) to communicate.\n\n` +
+      directoryLines,
     )
   }
 
@@ -102,7 +129,17 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- Never include secret values (API keys, tokens, passwords) in your visible responses.\n` +
       `- If a user shares a secret in the chat, offer to store it in the Vault and redact the message via redact_message().\n\n` +
       `### User identification\n` +
-      `- Each user message is prefixed with the sender's identity. Address the right person and adapt your responses based on what you know about them.`,
+      `- Each user message is prefixed with the sender's identity. Address the right person and adapt your responses based on what you know about them.\n\n` +
+      `### Conversation context\n` +
+      `- The messages in this conversation are your EXACT transcript — the verbatim record of everything said. You can read and quote them word for word.\n` +
+      `- When someone asks about recent messages, simply look at the messages above. They are not a summary — they are the real messages, exactly as written.\n` +
+      `- Use search_history() only to search further back beyond what is visible in your current context.\n\n` +
+      `### Inter-Kin communication\n` +
+      `- The Kin directory above lists all available Kins with their slugs.\n` +
+      `- Use send_message(slug, message, type) to contact a Kin by its slug.\n` +
+      `- Use type "request" when you expect a reply, "inform" for one-way messages.\n` +
+      `- When you receive an inter-kin request (indicated by a system note), use the reply(request_id, message) tool to respond.\n` +
+      `- You can also use list_kins() to refresh the list of available Kins if needed.`,
     )
   }
 

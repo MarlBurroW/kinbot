@@ -46,6 +46,25 @@ Providers supportés au lancement :
 - Si un seul provider couvre les deux (ex: OpenAI), un seul suffit. Sinon, l'utilisateur doit en configurer plusieurs (ex: Anthropic pour `llm` + Voyage AI pour `embedding`)
 - La capacité `image` est optionnelle — si aucun provider configuré ne la supporte, les fonctionnalités de génération d'image (avatar auto-généré, etc.) seront indisponibles. L'utilisateur pourra ajouter un provider avec cette capacité plus tard dans les Settings
 
+### Ecran 3 - Search Providers (optionnel)
+
+Cet écran permet de configurer un ou plusieurs **search providers** — des services de recherche web que les Kins pourront utiliser pour accéder a des informations en temps réel. Ce step est **optionnel** : l'utilisateur peut le passer et configurer ses search providers plus tard dans les Settings.
+
+Le fonctionnement est identique aux AI providers : configuration unique (type + API Key), test de connexion, et le système détecte la capacité `search`.
+
+Search providers supportés au lancement :
+
+| Provider | Authentification | Capacités |
+|---|---|---|
+| **Brave Search** | API Key (brave.com/search/api) | `search` |
+
+> **Note** : d'autres search providers pourront être ajoutés ultérieurement (SearXNG, Tavily, etc.) en implémentant la même interface.
+
+**Validation a l'écran 3** :
+- L'écran valide la connectivité avec chaque search provider configuré
+- Aucune condition minimale — le step est optionnel. Un bouton "Passer" permet de continuer sans configurer de search provider
+- Si aucun search provider n'est configuré, les outils de recherche web des Kins ne seront pas disponibles
+
 ---
 
 ## 2. Interface principale
@@ -107,7 +126,8 @@ Permet de modifier les informations personnelles :
 
 ### Settings
 
-- Gestion des providers (ajout / modification / suppression)
+- Gestion des AI providers (ajout / modification / suppression)
+- Gestion des search providers (ajout / modification / suppression)
 - Gestion des serveurs MCP
 - Gestion du **Vault** (voir section ci-dessous)
 
@@ -681,7 +701,7 @@ Un même provider (ex: OpenAI) peut offrir plusieurs capacités (LLM, embeddings
 interface ProviderConfig {
   id: string
   name: string
-  type: 'anthropic' | 'openai' | 'gemini' | string
+  type: 'anthropic' | 'openai' | 'gemini' | 'brave-search' | string
   config: Record<string, unknown>  // API key, base URL, etc.
 
   // Validation
@@ -689,13 +709,15 @@ interface ProviderConfig {
   testConnection(): Promise<boolean>
 
   // Capacités exposées par ce provider
-  capabilities: ProviderCapability[]  // ['llm', 'embedding', 'image']
+  capabilities: ProviderCapability[]  // ['llm', 'embedding', 'image', 'search']
 }
 
-type ProviderCapability = 'llm' | 'embedding' | 'image'
+type ProviderCapability = 'llm' | 'embedding' | 'image' | 'search'
 ```
 
 A partir d'un `ProviderConfig`, le système instancie les interfaces de capacité correspondantes. L'utilisateur configure un provider **une seule fois** (ex: "OpenAI" avec sa clé API), et la plateforme détecte automatiquement les capacités disponibles ou l'utilisateur les active manuellement.
+
+#### AI Providers
 
 | Provider | Capacités |
 |---|---|
@@ -703,6 +725,12 @@ A partir d'un `ProviderConfig`, le système instancie les interfaces de capacit�
 | **OpenAI** | `llm`, `embedding`, `image` |
 | **Gemini** | `llm`, `image` |
 | **Voyage AI** | `embedding` |
+
+#### Search Providers
+
+| Provider | Capacités |
+|---|---|
+| **Brave Search** | `search` |
 
 #### LLM Capability
 
@@ -739,7 +767,29 @@ interface ImageCapability {
 }
 ```
 
-Quand un Kin a besoin d'un appel LLM, le système résout quel `ProviderConfig` utiliser a partir du modèle configuré sur le Kin. Quand le pipeline de mémoire a besoin d'embeddings, il utilise le `ProviderConfig` qui expose la capacité `embedding`. Même logique pour la génération d'images.
+#### Search Capability
+
+```typescript
+interface SearchCapability {
+  // Recherche web
+  search(params: SearchParams): Promise<SearchResult[]>
+}
+
+interface SearchParams {
+  query: string
+  count?: number     // nombre de résultats (défaut: 5)
+  freshness?: string // filtre de fraîcheur (ex: "day", "week", "month")
+}
+
+interface SearchResult {
+  title: string
+  url: string
+  description: string
+  age?: string
+}
+```
+
+Quand un Kin a besoin d'un appel LLM, le système résout quel `ProviderConfig` utiliser a partir du modèle configuré sur le Kin. Quand le pipeline de mémoire a besoin d'embeddings, il utilise le `ProviderConfig` qui expose la capacité `embedding`. Même logique pour la génération d'images et la recherche web.
 
 Ces interfaces permettent d'ajouter de nouveaux providers (Mistral, Groq, local/Ollama...) sans modifier le code existant.
 

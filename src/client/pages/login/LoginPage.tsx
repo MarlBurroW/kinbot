@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Input } from '@/client/components/ui/input'
+import { Button } from '@/client/components/ui/button'
+import { Label } from '@/client/components/ui/label'
+import { Alert, AlertDescription } from '@/client/components/ui/alert'
+import { AlertCircle, Loader2 } from 'lucide-react'
 
 interface LoginPageProps {
   onLogin: (email: string, password: string) => Promise<void>
@@ -20,66 +25,85 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       await onLogin(email, password)
     } catch {
-      setError('Invalid email or password')
+      setError(t('login.error'))
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border border-border bg-card p-8 shadow-md">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-primary">KinBot</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Sign in to your account
-          </p>
-        </div>
+    <div className="surface-base flex min-h-screen items-center justify-center px-4">
+      {/* Decorative orbs */}
+      <div className="theme-orb theme-orb-1 fixed left-1/4 top-1/4 h-64 w-64 aurora-drift" />
+      <div className="theme-orb theme-orb-2 fixed right-1/4 bottom-1/4 h-48 w-48 aurora-drift delay-3" />
+      <div className="theme-orb theme-orb-3 fixed left-1/2 top-2/3 h-56 w-56 aurora-drift delay-5" />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
+      <div className="relative z-10 w-full max-w-md animate-fade-in-up">
+        {/* Glass card */}
+        <div className="glass-strong rounded-2xl p-8 shadow-lg">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <h1 className="gradient-primary-text text-3xl font-bold tracking-tight">
+              KinBot
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t('login.subtitle')}
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <Alert variant="destructive" className="animate-scale-in">
+                <AlertCircle className="size-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2 animate-fade-in-up delay-1">
+              <Label htmlFor="email">{t('login.email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder={t('login.emailPlaceholder')}
+                autoComplete="email"
+              />
             </div>
-          )}
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="you@example.com"
-            />
-          </div>
+            <div className="space-y-2 animate-fade-in-up delay-2">
+              <Label htmlFor="password">{t('login.password')}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
-              {t('common.password', 'Password')}
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            {isLoading ? t('common.loading') : 'Sign in'}
-          </button>
-        </form>
+            <div className="animate-fade-in-up delay-3 pt-1">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="btn-shine w-full"
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {t('login.submitting')}
+                  </>
+                ) : (
+                  t('login.submit')
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

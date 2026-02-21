@@ -4,11 +4,15 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     volumes:
-      - ./data:/app/data
+      - kinbot-data:/app/data
     environment:
       - PORT=3000
       - KINBOT_DATA_DIR=/app/data
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     restart: unless-stopped
+
+volumes:
+  kinbot-data:

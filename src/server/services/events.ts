@@ -1,3 +1,7 @@
+import { createLogger } from '@/server/logger'
+
+const log = createLogger('events')
+
 type EventHandler = (event: KinBotEvent) => void | Promise<void>
 
 export interface KinBotEvent {
@@ -18,11 +22,11 @@ class EventBus {
         const result = handler(event)
         if (result instanceof Promise) {
           result.catch((err) => {
-            console.error(`Event handler error for ${event.type}:`, err)
+            log.error({ eventType: event.type, err }, 'Event handler error')
           })
         }
       } catch (err) {
-        console.error(`Event handler error for ${event.type}:`, err)
+        log.error({ eventType: event.type, err }, 'Event handler error')
       }
     }
   }

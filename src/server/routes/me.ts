@@ -2,7 +2,9 @@ import { Hono } from 'hono'
 import { eq } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { userProfiles, user } from '@/server/db/schema'
+import { createLogger } from '@/server/logger'
 
+const log = createLogger('routes:me')
 const meRoutes = new Hono()
 
 // GET /api/me — get current user profile
@@ -19,6 +21,7 @@ meRoutes.get('/', async (c) => {
       language: userProfiles.language,
       role: userProfiles.role,
       avatarUrl: user.image,
+      kinOrder: userProfiles.kinOrder,
     })
     .from(user)
     .leftJoin(userProfiles, eq(user.id, userProfiles.userId))
@@ -45,6 +48,7 @@ meRoutes.patch('/', async (c) => {
   if (body.lastName !== undefined) updates.lastName = body.lastName
   if (body.pseudonym !== undefined) updates.pseudonym = body.pseudonym
   if (body.language !== undefined) updates.language = body.language
+  if (body.kinOrder !== undefined) updates.kinOrder = body.kinOrder
 
   if (Object.keys(updates).length > 0) {
     await db
@@ -69,6 +73,8 @@ meRoutes.patch('/', async (c) => {
     }
   }
 
+  log.debug({ userId: sessionUser.id, updatedFields: Object.keys(updates) }, 'Profile updated')
+
   // Return updated profile
   const updated = await db
     .select({
@@ -80,6 +86,7 @@ meRoutes.patch('/', async (c) => {
       language: userProfiles.language,
       role: userProfiles.role,
       avatarUrl: user.image,
+      kinOrder: userProfiles.kinOrder,
     })
     .from(user)
     .leftJoin(userProfiles, eq(user.id, userProfiles.userId))

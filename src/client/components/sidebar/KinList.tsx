@@ -1,0 +1,109 @@
+import { useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { SortableKinCard } from '@/client/components/kin/SortableKinCard'
+import {
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+} from '@/client/components/ui/sidebar'
+import { Plus } from 'lucide-react'
+
+interface KinSummary {
+  id: string
+  slug: string
+  name: string
+  role: string
+  avatarUrl: string | null
+}
+
+interface KinListProps {
+  kins: KinSummary[]
+  selectedKinSlug: string | null
+  unavailableKinIds: Set<string>
+  kinQueueState: Map<string, { isProcessing: boolean; queueSize: number }>
+  onSelectKin: (slug: string) => void
+  onCreateKin: () => void
+  onEditKin: (id: string) => void
+  onReorderKins: (newOrder: string[]) => void
+}
+
+export function KinList({ kins, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onReorderKins }: KinListProps) {
+  const { t } = useTranslation()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = kins.findIndex((k) => k.id === active.id)
+    const newIndex = kins.findIndex((k) => k.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const newKins = [...kins]
+    const [moved] = newKins.splice(oldIndex, 1)
+    newKins.splice(newIndex, 0, moved)
+    onReorderKins(newKins.map((k) => k.id))
+  }, [kins, onReorderKins])
+
+  const kinIds = kins.map((k) => k.id)
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{t('sidebar.kins.title')}</SidebarGroupLabel>
+      <SidebarGroupAction onClick={onCreateKin} title={t('sidebar.kins.create')}>
+        <Plus className="size-4" />
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        {kins.length === 0 ? (
+          <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+            {t('sidebar.kins.empty')}
+          </p>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={kinIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1.5 px-1">
+                {kins.map((kin) => {
+                  const queueState = kinQueueState.get(kin.id)
+                  return (
+                    <SortableKinCard
+                      key={kin.id}
+                      id={kin.id}
+                      name={kin.name}
+                      role={kin.role}
+                      avatarUrl={kin.avatarUrl}
+                      isSelected={selectedKinSlug === kin.slug}
+                      isProcessing={queueState?.isProcessing}
+                      queueSize={queueState?.queueSize}
+                      modelUnavailable={unavailableKinIds.has(kin.id)}
+                      onClick={() => onSelectKin(kin.slug)}
+                      onEdit={() => onEditKin(kin.id)}
+                    />
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
