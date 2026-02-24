@@ -72,19 +72,43 @@ detect_os() {
   fi
 }
 
+# ─── Install a system package (sudo only for this) ───────────────────────────
+install_pkg() {
+  local pkg="$1"
+  info "Installing $pkg..."
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get install -y "$pkg" -q
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y "$pkg" -q
+  elif command -v yum &>/dev/null; then
+    sudo yum install -y "$pkg" -q
+  elif command -v brew &>/dev/null; then
+    brew install "$pkg"
+  else
+    error "$pkg is required but could not be installed automatically. Please install it manually."
+  fi
+  success "$pkg installed"
+}
+
 # ─── Check prerequisites ─────────────────────────────────────────────────────
 check_prerequisites() {
   header "Checking prerequisites..."
 
   if ! command -v git &>/dev/null; then
-    error "git is required but not installed. Run: apt install git  (or brew install git)"
+    install_pkg git
   fi
   success "git $(git --version | awk '{print $3}')"
 
   if ! command -v curl &>/dev/null; then
-    error "curl is required but not installed."
+    install_pkg curl
   fi
   success "curl found"
+
+  # unzip is required by the Bun installer
+  if ! command -v unzip &>/dev/null; then
+    install_pkg unzip
+  fi
+  success "unzip found"
 }
 
 # ─── Install Bun ─────────────────────────────────────────────────────────────
