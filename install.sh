@@ -4,11 +4,22 @@
 # Or:    KINBOT_PORT=8080 bash install.sh
 set -euo pipefail
 
+# ─── Root detection ──────────────────────────────────────────────────────────
+IS_ROOT=false
+[ "$(id -u)" -eq 0 ] && IS_ROOT=true
+
 # ─── Configurable via env vars ───────────────────────────────────────────────
-KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
-KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+# Defaults differ based on whether we're root or not
+if [ "$IS_ROOT" = true ]; then
+  KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+  KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  KINBOT_USER="${KINBOT_USER:-kinbot}"
+else
+  KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+  KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+fi
+
 KINBOT_PORT="${KINBOT_PORT:-3000}"
-KINBOT_USER="${KINBOT_USER:-kinbot}"
 KINBOT_REPO="MarlBurroW/kinbot"
 KINBOT_BRANCH="${KINBOT_BRANCH:-main}"
 
@@ -54,51 +65,38 @@ detect_os() {
       ;;
   esac
 
-  success "Detected OS: $OS ($DISTRO, $ARCH)"
+  if [ "$IS_ROOT" = true ]; then
+    success "Detected OS: $OS ($DISTRO, $ARCH) — running as root (system install)"
+  else
+    success "Detected OS: $OS ($DISTRO, $ARCH) — running as $USER (user install)"
+  fi
 }
 
 # ─── Check prerequisites ─────────────────────────────────────────────────────
 check_prerequisites() {
   header "Checking prerequisites..."
 
-  # Root check (Linux only)
-  if [ "$OS" = "Linux" ] && [ "$(id -u)" -ne 0 ]; then
-    error "This script must be run as root on Linux. Use: sudo bash install.sh"
-  fi
-
-  # git
   if ! command -v git &>/dev/null; then
-    error "git is required but not installed. Install it first (e.g. apt install git / brew install git)"
+    error "git is required but not installed. Run: apt install git  (or brew install git)"
   fi
-  success "git found: $(git --version | head -1)"
+  success "git $(git --version | awk '{print $3}')"
 
-  # curl
   if ! command -v curl &>/dev/null; then
     error "curl is required but not installed."
   fi
   success "curl found"
-
-  # Disk space (require at least 500 MB)
-  if command -v df &>/dev/null; then
-    AVAILABLE_KB=$(df -k /opt 2>/dev/null | awk 'NR==2 {print $4}' || echo "0")
-    if [ "$AVAILABLE_KB" -lt 512000 ] 2>/dev/null; then
-      warn "Less than 500 MB available. KinBot may not install correctly."
-    fi
-  fi
 }
 
 # ─── Install Bun ─────────────────────────────────────────────────────────────
 ensure_bun() {
   header "Checking Bun runtime..."
 
-  # Set up Bun paths
   BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
   export BUN_INSTALL
   export PATH="$BUN_INSTALL/bin:$PATH"
 
   if command -v bun &>/dev/null; then
-    BUN_VERSION="$(bun --version)"
-    success "Bun found: v$BUN_VERSION"
+    success "Bun v$(bun --version)"
     return 0
   fi
 
@@ -106,10 +104,8 @@ ensure_bun() {
   curl -fsSL https://bun.sh/install | bash
   export PATH="$BUN_INSTALL/bin:$PATH"
 
-  if ! command -v bun &>/dev/null; then
-    error "Bun installation failed. Install manually: https://bun.sh"
-  fi
-  success "Bun installed: v$(bun --version)"
+  command -v bun &>/dev/null || error "Bun installation failed. Install manually: https://bun.sh"
+  success "Bun v$(bun --version) installed"
 }
 
 # ─── Clone or update ─────────────────────────────────────────────────────────
@@ -121,13 +117,13 @@ install_or_update() {
     git -C "$KINBOT_DIR" fetch origin
     git -C "$KINBOT_DIR" checkout "$KINBOT_BRANCH"
     git -C "$KINBOT_DIR" pull origin "$KINBOT_BRANCH"
-    success "Updated to latest version"
+    success "Updated to latest"
     IS_UPDATE=true
   else
     info "Cloning KinBot to $KINBOT_DIR..."
     mkdir -p "$(dirname "$KINBOT_DIR")"
     git clone "https://github.com/$KINBOT_REPO.git" "$KINBOT_DIR" --branch "$KINBOT_BRANCH" --depth 1
-    success "Repository cloned"
+    success "Cloned"
     IS_UPDATE=false
   fi
 }
@@ -137,11 +133,7 @@ build_kinbot() {
   header "Installing dependencies and building..."
 
   cd "$KINBOT_DIR"
-
-  info "Installing dependencies..."
   bun install --frozen-lockfile
-
-  info "Building frontend..."
   bun run build
 
   success "Build complete"
@@ -158,57 +150,46 @@ setup_database() {
   DB_PATH="$KINBOT_DATA_DIR/kinbot.db" \
     bun run db:migrate
 
-  success "Database migrations applied"
+  success "Migrations applied"
 }
 
-# ─── System user (Linux) ─────────────────────────────────────────────────────
-create_system_user() {
-  if [ "$OS" != "Linux" ]; then return; fi
+# ─── System user + ownership (root only) ─────────────────────────────────────
+setup_system_user() {
+  [ "$IS_ROOT" != true ] && return
 
-  if id "$KINBOT_USER" &>/dev/null; then
+  if ! id "$KINBOT_USER" &>/dev/null; then
+    info "Creating system user '$KINBOT_USER'..."
+    useradd \
+      --system \
+      --home-dir "$KINBOT_DIR" \
+      --shell /usr/sbin/nologin \
+      --comment "KinBot service account" \
+      "$KINBOT_USER"
+    success "User '$KINBOT_USER' created"
+  else
     success "User '$KINBOT_USER' already exists"
-    return
   fi
-
-  info "Creating system user '$KINBOT_USER'..."
-  useradd \
-    --system \
-    --home-dir "$KINBOT_DIR" \
-    --shell /usr/sbin/nologin \
-    --comment "KinBot service account" \
-    "$KINBOT_USER"
-  success "User '$KINBOT_USER' created"
-}
-
-# ─── File ownership ──────────────────────────────────────────────────────────
-set_ownership() {
-  if [ "$OS" != "Linux" ]; then return; fi
 
   chown -R "$KINBOT_USER:$KINBOT_USER" "$KINBOT_DIR" "$KINBOT_DATA_DIR"
   success "Permissions set"
 }
 
-# ─── Resolve Bun binary path ─────────────────────────────────────────────────
+# ─── Resolve Bun path ────────────────────────────────────────────────────────
 resolve_bun_path() {
   BUN_BIN="$(command -v bun)"
 
-  # On Linux, symlink to a stable system path so systemd can find it
-  if [ "$OS" = "Linux" ] && [ "$BUN_BIN" != "/usr/local/bin/bun" ]; then
-    if [ -f "$BUN_BIN" ]; then
-      ln -sf "$BUN_BIN" /usr/local/bin/bun
-      BUN_BIN="/usr/local/bin/bun"
-      success "Bun symlinked to /usr/local/bin/bun"
-    fi
+  # Root install: symlink to /usr/local/bin so the system service can find it
+  if [ "$IS_ROOT" = true ] && [ "$BUN_BIN" != "/usr/local/bin/bun" ]; then
+    ln -sf "$BUN_BIN" /usr/local/bin/bun
+    BUN_BIN="/usr/local/bin/bun"
+    success "Bun symlinked to /usr/local/bin/bun"
   fi
 }
 
-# ─── Service: systemd (Linux) ────────────────────────────────────────────────
-create_systemd_service() {
-  header "Creating systemd service..."
-
+# ─── Service: systemd system (root) ──────────────────────────────────────────
+create_systemd_system_service() {
   UNIT_FILE="/etc/systemd/system/kinbot.service"
 
-  # Stop existing service before update
   if [ "$IS_UPDATE" = true ] && systemctl is-active --quiet kinbot 2>/dev/null; then
     info "Stopping existing service..."
     systemctl stop kinbot
@@ -244,21 +225,60 @@ UNIT
   systemctl daemon-reload
   systemctl enable kinbot
   systemctl start kinbot
-  success "systemd service enabled and started"
+  success "systemd system service started"
+}
+
+# ─── Service: systemd user (non-root) ────────────────────────────────────────
+create_systemd_user_service() {
+  UNIT_DIR="$HOME/.config/systemd/user"
+  UNIT_FILE="$UNIT_DIR/kinbot.service"
+
+  mkdir -p "$UNIT_DIR"
+
+  if [ "$IS_UPDATE" = true ] && systemctl --user is-active --quiet kinbot 2>/dev/null; then
+    info "Stopping existing service..."
+    systemctl --user stop kinbot
+  fi
+
+  cat > "$UNIT_FILE" << UNIT
+[Unit]
+Description=KinBot — AI Agent Platform
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$KINBOT_DIR
+ExecStart=$BUN_BIN src/server/index.ts
+Environment=NODE_ENV=production
+Environment=PORT=$KINBOT_PORT
+Environment=HOST=0.0.0.0
+Environment=KINBOT_DATA_DIR=$KINBOT_DATA_DIR
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+UNIT
+
+  systemctl --user daemon-reload
+  systemctl --user enable kinbot
+  systemctl --user start kinbot
+
+  # Enable lingering so the service starts at boot without login
+  loginctl enable-linger "$USER" 2>/dev/null || \
+    warn "Could not enable lingering (service won't auto-start on boot without login). Run: sudo loginctl enable-linger $USER"
+
+  success "systemd user service started"
 }
 
 # ─── Service: launchd (macOS) ────────────────────────────────────────────────
 create_launchd_service() {
-  header "Creating launchd service..."
-
   PLIST_DIR="$HOME/Library/LaunchAgents"
   PLIST_PATH="$PLIST_DIR/io.kinbot.server.plist"
   LOG_DIR="$HOME/Library/Logs/kinbot"
-  BUN_BIN="$(command -v bun)"
 
   mkdir -p "$PLIST_DIR" "$LOG_DIR"
 
-  # Unload existing plist if present
   if [ -f "$PLIST_PATH" ]; then
     launchctl unload "$PLIST_PATH" 2>/dev/null || true
   fi
@@ -310,16 +330,19 @@ PLIST
 
 # ─── Create service (dispatch) ───────────────────────────────────────────────
 create_service() {
-  if [ "$INIT_SYSTEM" = "systemd" ]; then
-    create_systemd_service
-  else
+  header "Creating service..."
+
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
     create_launchd_service
+  elif [ "$IS_ROOT" = true ]; then
+    create_systemd_system_service
+  else
+    create_systemd_user_service
   fi
 }
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
 print_summary() {
-  # Resolve local IP
   if [ "$OS" = "Linux" ]; then
     LOCAL_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")"
   else
@@ -344,10 +367,17 @@ print_summary() {
   echo ""
 
   if [ "$INIT_SYSTEM" = "systemd" ]; then
-    echo -e "  ${BOLD}Service commands:${NC}"
-    echo -e "    sudo systemctl status kinbot"
-    echo -e "    sudo systemctl restart kinbot"
-    echo -e "    sudo journalctl -u kinbot -f"
+    if [ "$IS_ROOT" = true ]; then
+      echo -e "  ${BOLD}Service commands:${NC}"
+      echo -e "    sudo systemctl status kinbot"
+      echo -e "    sudo systemctl restart kinbot"
+      echo -e "    sudo journalctl -u kinbot -f"
+    else
+      echo -e "  ${BOLD}Service commands:${NC}"
+      echo -e "    systemctl --user status kinbot"
+      echo -e "    systemctl --user restart kinbot"
+      echo -e "    journalctl --user -u kinbot -f"
+    fi
   else
     echo -e "  ${BOLD}Service commands:${NC}"
     echo -e "    launchctl list | grep kinbot"
@@ -372,8 +402,7 @@ main() {
   install_or_update
   build_kinbot
   setup_database
-  create_system_user
-  set_ownership
+  setup_system_user
   resolve_bun_path
   create_service
   print_summary
