@@ -1,8 +1,8 @@
-import { streamText, stepCountIs, type ModelMessage } from 'ai'
+import { streamText, stepCountIs, type ModelMessage, type UserContent } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { eq, and, isNull, asc, desc } from 'drizzle-orm'
+import { eq, and, isNull, ne, asc, desc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
@@ -31,14 +31,28 @@ import { resolveCustomTools } from '@/server/services/custom-tools'
 import type { KinToolConfig } from '@/shared/types'
 import { listAvailableKins } from '@/server/services/inter-kin'
 import { listContactsForPrompt } from '@/server/services/contacts'
+import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
+import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel } from '@/server/services/channels'
+import { getGlobalPrompt } from '@/server/services/app-settings'
+import { channelAdapters } from '@/server/channels/index'
+import type { ChannelPlatform } from '@/shared/types'
 
 const log = createLogger('kin-engine')
 
 // In-memory lock to prevent overlapping setInterval ticks from double-processing
 const kinLocks = new Set<string>()
 
+// Quick session locks — separate from main to allow parallel processing
+const quickLocks = new Set<string>()
+
+// In-memory lock to prevent queue processing while compacting is running
+const compactingKins = new Set<string>()
+
 // AbortController registry — one per actively-streaming Kin
 const activeAbortControllers = new Map<string, AbortController>()
+
+// AbortController registry for quick sessions — keyed by sessionId
+const quickAbortControllers = new Map<string, AbortController>()
 
 /**
  * Abort the active LLM stream for a Kin, if any.
@@ -52,22 +66,35 @@ export function abortKinStream(kinId: string): boolean {
 }
 
 /**
+ * Abort the active LLM stream for a quick session, if any.
+ * Returns true if a stream was aborted, false if none was active.
+ */
+export function abortQuickSessionStream(sessionId: string): boolean {
+  const controller = quickAbortControllers.get(sessionId)
+  if (!controller) return false
+  controller.abort()
+  return true
+}
+
+/**
  * Process the next message in a Kin's queue.
  * Returns true if a message was processed, false if the queue was empty.
  */
 export async function processNextMessage(kinId: string): Promise<boolean> {
   // In-memory lock — prevents overlapping ticks from racing
   if (kinLocks.has(kinId)) return false
+  // Don't process while compacting is running
+  if (compactingKins.has(kinId)) return false
   kinLocks.add(kinId)
 
   // Hoisted so the finally block can guarantee cleanup
   let queueItem: Awaited<ReturnType<typeof dequeueMessage>> = null
 
   try {
-    // Don't process if already processing (DB-level check)
-    if (await isKinProcessing(kinId)) return false
+    // Don't process if already processing (DB-level check, main slot only)
+    if (await isKinProcessing(kinId, 'main')) return false
 
-    queueItem = await dequeueMessage(kinId)
+    queueItem = await dequeueMessage(kinId, 'main')
     if (!queueItem) return false
 
     log.info({ kinId, queueItemId: queueItem.id, messageType: queueItem.messageType, sourceType: queueItem.sourceType }, 'Processing message')
@@ -103,6 +130,11 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       createdAt: new Date(),
     })
 
+    // Link uploaded files to the actual message (fileIds come through the queue sideband)
+    if (queueItem.fileIds && queueItem.fileIds.length > 0) {
+      await linkFilesToMessage(queueItem.fileIds, userMessageId)
+    }
+
     // Get user language
     let userLanguage: 'fr' | 'en' = 'fr'
     if (queueItem.sourceType === 'user' && queueItem.sourceId) {
@@ -135,7 +167,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }))
 
     // Retrieve relevant memories via hybrid search (semantic + FTS5)
-    let relevantMemories: Array<{ category: string; content: string; subject: string | null }> = []
+    let relevantMemories: Array<{ id: string; category: string; content: string; subject: string | null }> = []
     try {
       relevantMemories = await getRelevantMemories(kinId, queueItem.content)
     } catch {
@@ -145,6 +177,12 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     // Resolve MCP tool summaries for system prompt injection
     const mcpToolsSummary = await getMCPToolsSummary(kinId)
 
+    // Fetch active channels for prompt context
+    const activeChannelRows = await getActiveChannelsForKin(kinId)
+    const activeChannels = activeChannelRows.map((ch) => ({ platform: ch.platform, name: ch.name }))
+
+    const globalPrompt = await getGlobalPrompt()
+
     const systemPrompt = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: contactsWithSlug,
@@ -152,6 +190,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       kinDirectory,
       mcpTools: mcpToolsSummary,
       isSubKin: false,
+      activeChannels: activeChannels.length > 0 ? activeChannels : undefined,
+      globalPrompt,
       userLanguage,
     })
 
@@ -159,7 +199,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const messageHistory = await buildMessageHistory(kinId)
 
     // Resolve LLM model
-    const model = await resolveLLMModel(kin.model)
+    const model = await resolveLLMModel(kin.model, kin.providerId)
     if (!model) {
       log.warn({ kinId, modelId: kin.model }, 'No LLM provider available')
       sseManager.sendToKin(kinId, {
@@ -167,6 +207,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         kinId,
         data: { error: 'No LLM provider available for this model' },
       })
+      import('@/server/services/notifications').then(({ createNotification }) =>
+        createNotification({ type: 'kin:error', title: 'Kin error', body: 'No LLM provider available for this model', kinId, relatedId: kinId, relatedType: 'kin' }),
+      ).catch(() => {})
       return true
     }
 
@@ -181,10 +224,19 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       isSubKin: false,
     })
 
-    // Filter disabled native tools
+    // Filter disabled native tools (deny-list)
     if (toolConfig?.disabledNativeTools?.length) {
       for (const name of toolConfig.disabledNativeTools) {
         delete nativeTools[name]
+      }
+    }
+
+    // Filter out defaultDisabled tools not explicitly opted-in
+    const allRegistered = toolRegistry.list()
+    const optInSet = new Set(toolConfig?.enabledOptInTools ?? [])
+    for (const reg of allRegistered) {
+      if (reg.defaultDisabled && !optInSet.has(reg.name)) {
+        delete nativeTools[reg.name]
       }
     }
 
@@ -201,6 +253,21 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     const hasTools = Object.keys(tools).length > 0
     log.debug({ kinId, toolCount: Object.keys(tools).length, modelId: kin.model }, 'Starting LLM stream')
+
+    // Send typing indicator on the channel when LLM processing starts (fire-and-forget)
+    if (queueItem.sourceType === 'channel') {
+      const meta = getChannelQueueMeta(queueItem.id)
+      if (meta) {
+        const ch = await getChannel(meta.channelId)
+        if (ch) {
+          const chAdapter = channelAdapters.get(ch.platform as ChannelPlatform)
+          if (chAdapter?.sendTypingIndicator) {
+            const chCfg = JSON.parse(ch.platformConfig) as Record<string, unknown>
+            chAdapter.sendTypingIndicator(ch.id, chCfg, meta.platformChatId).catch(() => {})
+          }
+        }
+      }
+    }
 
     // Call LLM with streaming (+ tool calling loop if tools are available)
     const assistantMessageId = uuid()
@@ -317,6 +384,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         sourceType: 'kin',
         sourceId: kinId,
         toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+        metadata: relevantMemories.length > 0
+          ? JSON.stringify({ injectedMemories: relevantMemories })
+          : null,
         createdAt: new Date(),
       })
     }
@@ -346,15 +416,32 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         data: { kinId, messageId: assistantMessageId },
         timestamp: Date.now(),
       })
+
+      // Channel response delivery (fire-and-forget)
+      if (queueItem.sourceType === 'channel' && fullContent) {
+        const channelMeta = popChannelQueueMeta(queueItem.id)
+        if (channelMeta) {
+          deliverChannelResponse(channelMeta, assistantMessageId, fullContent).catch((err) => {
+            log.error({ kinId, channelId: channelMeta.channelId, err }, 'Channel response delivery failed')
+          })
+        }
+      }
     }
 
     await markQueueItemDone(queueItem.id)
 
     if (!wasAborted) {
-      // Trigger compacting if thresholds are exceeded (non-blocking)
-      maybeCompact(kinId).catch((err) =>
-        log.error({ kinId, err }, 'Post-turn compacting error'),
-      )
+      // Trigger compacting if thresholds are exceeded (non-blocking, with lock)
+      ;(async () => {
+        compactingKins.add(kinId)
+        try {
+          await maybeCompact(kinId)
+        } catch (err) {
+          log.error({ kinId, err }, 'Post-turn compacting error')
+        } finally {
+          compactingKins.delete(kinId)
+        }
+      })()
     }
 
     // Emit queue update
@@ -410,6 +497,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       kinId,
       data: { error: displayError },
     })
+    import('@/server/services/notifications').then(({ createNotification }) =>
+      createNotification({ type: 'kin:error', title: 'Kin error', body: displayError, kinId, relatedId: kinId, relatedType: 'kin' }),
+    ).catch(() => {})
 
     // Emit queue update to clear processing state on error
     sseManager.sendToKin(kinId, {
@@ -428,6 +518,335 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       )
     }
     kinLocks.delete(kinId)
+  }
+}
+
+// ─── Quick Session Tools Exclusion List ───────────────────────────────────
+
+const QUICK_SESSION_EXCLUDED_TOOLS = new Set([
+  // Spawning / Tasks
+  'spawn_self', 'spawn_kin', 'respond_to_task', 'cancel_task', 'list_tasks',
+  'report_to_parent', 'update_task_status', 'request_input',
+  // Inter-Kin
+  'send_message', 'reply', 'list_kins',
+  // Crons
+  'create_cron', 'update_cron', 'delete_cron', 'list_crons', 'get_cron_journal',
+  // MCP management
+  'add_mcp_server', 'update_mcp_server', 'remove_mcp_server', 'list_mcp_servers',
+  // Custom tools management
+  'register_tool', 'list_custom_tools',
+  // Kin management
+  'create_kin', 'update_kin', 'delete_kin', 'get_kin_details',
+  // Webhooks
+  'create_webhook', 'update_webhook', 'delete_webhook', 'list_webhooks',
+  // Channels (proactive messaging not available in quick sessions)
+  'send_channel_message', 'list_channel_conversations',
+  // Platform
+  'get_platform_logs',
+  // Memory WRITE (read-only in quick sessions)
+  'memorize', 'update_memory', 'forget',
+])
+
+/**
+ * Process the next quick session message for a Kin.
+ * Runs in a separate slot from the main session (parallel processing).
+ */
+export async function processQuickMessage(kinId: string): Promise<boolean> {
+  if (quickLocks.has(kinId)) return false
+  quickLocks.add(kinId)
+
+  let queueItem: Awaited<ReturnType<typeof dequeueMessage>> = null
+
+  try {
+    if (await isKinProcessing(kinId, 'quick')) return false
+
+    queueItem = await dequeueMessage(kinId, 'quick')
+    if (!queueItem) return false
+    if (!queueItem.sessionId) return false // Safety: should always have sessionId
+
+    const sessionId = queueItem.sessionId
+    log.info({ kinId, sessionId, queueItemId: queueItem.id }, 'Processing quick session message')
+
+    const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
+    if (!kin) return false
+
+    // Save the incoming user message to DB (with sessionId)
+    const userMessageId = uuid()
+    await db.insert(messages).values({
+      id: userMessageId,
+      kinId,
+      sessionId,
+      role: 'user',
+      content: queueItem.content,
+      sourceType: queueItem.sourceType,
+      sourceId: queueItem.sourceId,
+      createdAt: new Date(),
+    })
+
+    // Link uploaded files if any
+    if (queueItem.fileIds && queueItem.fileIds.length > 0) {
+      await linkFilesToMessage(queueItem.fileIds, userMessageId)
+    }
+
+    // Get user language
+    let userLanguage: 'fr' | 'en' = 'fr'
+    if (queueItem.sourceType === 'user' && queueItem.sourceId) {
+      const profile = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, queueItem.sourceId))
+        .get()
+      if (profile) userLanguage = profile.language as 'fr' | 'en'
+    }
+
+    // Retrieve relevant memories (read-only) via hybrid search
+    let relevantMemories: Array<{ id: string; category: string; content: string; subject: string | null }> = []
+    try {
+      relevantMemories = await getRelevantMemories(kinId, queueItem.content)
+    } catch {
+      // Non-fatal
+    }
+
+    // Build quick session system prompt (minimal — no contacts, no kin directory, no hidden instructions)
+    const globalPrompt = await getGlobalPrompt()
+
+    const systemPrompt = buildSystemPrompt({
+      kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
+      contacts: [],
+      relevantMemories,
+      kinDirectory: [],
+      isSubKin: false,
+      isQuickSession: true,
+      globalPrompt,
+      userLanguage,
+    })
+
+    // Build quick session message history (only messages from this session, no compacting)
+    const sessionMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.sessionId, sessionId))
+      .orderBy(asc(messages.createdAt))
+      .all()
+
+    const messageHistory: ModelMessage[] = []
+    for (const msg of sessionMessages) {
+      if (msg.role === 'user') {
+        messageHistory.push({ role: 'user', content: msg.content ?? '' })
+      } else if (msg.role === 'assistant') {
+        let toolCalls: Array<{ id: string; name: string; args: unknown; result?: unknown }> | null = null
+        if (msg.toolCalls) {
+          try { toolCalls = JSON.parse(msg.toolCalls as string) } catch { toolCalls = null }
+        }
+        if (toolCalls && toolCalls.length > 0) {
+          const assistantContent: Array<
+            | { type: 'text'; text: string }
+            | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+          > = []
+          if (msg.content) assistantContent.push({ type: 'text', text: msg.content })
+          for (const tc of toolCalls) {
+            assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
+          }
+          messageHistory.push({ role: 'assistant', content: assistantContent })
+          messageHistory.push({
+            role: 'tool' as const,
+            content: toolCalls.map((tc) => ({
+              type: 'tool-result' as const,
+              toolCallId: tc.id,
+              toolName: tc.name,
+              output: { type: 'json' as const, value: (tc.result ?? null) as import('ai').JSONValue },
+            })),
+          })
+        } else {
+          messageHistory.push({ role: 'assistant', content: msg.content ?? '' })
+        }
+      }
+    }
+
+    // Resolve LLM model
+    const model = await resolveLLMModel(kin.model, kin.providerId)
+    if (!model) {
+      log.warn({ kinId, sessionId, modelId: kin.model }, 'No LLM provider available for quick session')
+      sseManager.sendToKin(kinId, {
+        type: 'kin:error',
+        kinId,
+        data: { error: 'No LLM provider available for this model', sessionId },
+      })
+      import('@/server/services/notifications').then(({ createNotification }) =>
+        createNotification({ type: 'kin:error', title: 'Kin error', body: 'No LLM provider available for this model', kinId, relatedId: kinId, relatedType: 'kin' }),
+      ).catch(() => {})
+      return true
+    }
+
+    // Resolve tools (with exclusion list for quick sessions)
+    const toolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
+    const nativeTools = toolRegistry.resolve({ kinId, userId: queueItem.sourceId ?? undefined, isSubKin: false })
+
+    // Apply Kin-level deny-list
+    if (toolConfig?.disabledNativeTools?.length) {
+      for (const name of toolConfig.disabledNativeTools) delete nativeTools[name]
+    }
+    // Filter out defaultDisabled tools not explicitly opted-in
+    const allRegistered = toolRegistry.list()
+    const optInSet = new Set(toolConfig?.enabledOptInTools ?? [])
+    for (const reg of allRegistered) {
+      if (reg.defaultDisabled && !optInSet.has(reg.name)) delete nativeTools[reg.name]
+    }
+    // Apply quick session exclusion list
+    for (const name of QUICK_SESSION_EXCLUDED_TOOLS) delete nativeTools[name]
+
+    const tools = { ...nativeTools }
+    const hasTools = Object.keys(tools).length > 0
+
+    // Stream LLM response
+    const assistantMessageId = uuid()
+    let fullContent = ''
+    const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
+
+    const abortController = new AbortController()
+    quickAbortControllers.set(sessionId, abortController)
+
+    const result = streamText({
+      model,
+      system: systemPrompt,
+      messages: messageHistory,
+      tools: hasTools ? tools : undefined,
+      stopWhen: hasTools ? stepCountIs(config.tools.maxSteps) : undefined,
+      abortSignal: abortController.signal,
+    })
+
+    let wasAborted = false
+    try {
+      for await (const part of result.fullStream) {
+        switch (part.type) {
+          case 'text-delta': {
+            fullContent += part.text
+            sseManager.sendToKin(kinId, {
+              type: 'chat:token',
+              kinId,
+              data: { messageId: assistantMessageId, token: part.text, sessionId },
+            })
+            break
+          }
+          case 'tool-call-streaming-start': {
+            sseManager.sendToKin(kinId, {
+              type: 'chat:tool-call-start',
+              kinId,
+              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, contentOffset: fullContent.length, sessionId },
+            })
+            break
+          }
+          case 'tool-call': {
+            const contentOffset = fullContent.length
+            toolCallsLog.push({ id: part.toolCallId, name: part.toolName, args: part.input, offset: contentOffset })
+            sseManager.sendToKin(kinId, {
+              type: 'chat:tool-call',
+              kinId,
+              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, args: part.input, contentOffset, sessionId },
+            })
+            break
+          }
+          case 'tool-result': {
+            const logged = toolCallsLog.find((tc) => tc.id === part.toolCallId)
+            if (logged) logged.result = part.output
+            sseManager.sendToKin(kinId, {
+              type: 'chat:tool-result',
+              kinId,
+              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, result: part.output, sessionId },
+            })
+            break
+          }
+          default:
+            break
+        }
+      }
+    } catch (streamError) {
+      if (abortController.signal.aborted) {
+        wasAborted = true
+      } else {
+        throw streamError
+      }
+    } finally {
+      quickAbortControllers.delete(sessionId)
+    }
+
+    // Save assistant message (with sessionId)
+    if (fullContent || toolCallsLog.length > 0 || wasAborted) {
+      await db.insert(messages).values({
+        id: assistantMessageId,
+        kinId,
+        sessionId,
+        role: 'assistant',
+        content: fullContent || '',
+        sourceType: 'kin',
+        sourceId: kinId,
+        toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+        metadata: relevantMemories.length > 0 ? JSON.stringify({ injectedMemories: relevantMemories }) : null,
+        createdAt: new Date(),
+      })
+    }
+
+    // Emit chat:done (with sessionId)
+    sseManager.sendToKin(kinId, {
+      type: 'chat:done',
+      kinId,
+      data: { messageId: assistantMessageId, content: fullContent, sessionId },
+    })
+
+    // No compacting, no memory extraction for quick sessions
+
+    await markQueueItemDone(queueItem.id)
+
+    return true
+  } catch (error) {
+    quickAbortControllers.delete(queueItem?.sessionId ?? '')
+
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    log.error({ kinId, sessionId: queueItem?.sessionId, error: errorMsg }, 'Quick session engine error')
+
+    const isRateLimit =
+      errorMsg.toLowerCase().includes('rate limit') ||
+      errorMsg.includes('429') ||
+      errorMsg.toLowerCase().includes('too many requests')
+    const displayError = isRateLimit
+      ? 'Rate limit reached — please wait a moment and try again.'
+      : errorMsg
+
+    // Send error as system message in the quick session
+    if (queueItem?.sessionId) {
+      const errorMessageId = uuid()
+      await db.insert(messages).values({
+        id: errorMessageId,
+        kinId,
+        sessionId: queueItem.sessionId,
+        role: 'assistant',
+        content: `⚠️ ${displayError}`,
+        sourceType: 'system',
+        createdAt: new Date(),
+      })
+
+      sseManager.sendToKin(kinId, {
+        type: 'chat:message',
+        kinId,
+        data: {
+          id: errorMessageId,
+          role: 'assistant',
+          content: `⚠️ ${displayError}`,
+          sourceType: 'system',
+          sessionId: queueItem.sessionId,
+          createdAt: Date.now(),
+        },
+      })
+    }
+
+    return true
+  } finally {
+    if (queueItem) {
+      await markQueueItemDone(queueItem.id).catch((err) =>
+        log.error({ kinId, err }, 'Failed to mark quick session queue item done in finally'),
+      )
+    }
+    quickLocks.delete(kinId)
   }
 }
 
@@ -456,11 +875,11 @@ async function buildMessageHistory(kinId: string): Promise<ModelMessage[]> {
     })
   }
 
-  // [10] Recent messages (main session only, not task messages)
+  // [10] Recent messages (main session only, not task or quick session messages)
   const recentMessages = await db
     .select()
     .from(messages)
-    .where(and(eq(messages.kinId, kinId), isNull(messages.taskId)))
+    .where(and(eq(messages.kinId, kinId), isNull(messages.taskId), isNull(messages.sessionId), ne(messages.sourceType, 'compacting')))
     .orderBy(desc(messages.createdAt))
     .limit(50) // Get last 50 messages
     .all()
@@ -495,28 +914,73 @@ async function buildMessageHistory(kinId: string): Promise<ModelMessage[]> {
     if (kin?.name) kinNameMap.set(kid, kin.name)
   }
 
+  // Fetch files for all user messages in one pass
+  const userMessageIds = filteredMessages.filter((m) => m.role === 'user').map((m) => m.id)
+  const filesByMessageId = new Map<string, Array<{ mimeType: string; storedPath: string; originalName: string }>>()
+  for (const msgId of userMessageIds) {
+    const msgFiles = await getFilesForMessage(msgId)
+    if (msgFiles.length > 0) filesByMessageId.set(msgId, msgFiles)
+  }
+
   for (const msg of filteredMessages) {
     if (msg.role === 'user') {
-      let content = msg.content ?? ''
+      let textContent = msg.content ?? ''
       // Prefix user messages with pseudonym so the LLM knows who's speaking
       if (msg.sourceType === 'user' && msg.sourceId) {
         const pseudo = pseudonymMap.get(msg.sourceId)
-        if (pseudo) content = `[${pseudo}] ${content}`
+        if (pseudo) textContent = `[${pseudo}] ${textContent}`
       }
       // Inter-kin messages: prefix the content with context instead of a separate system message
       if (msg.sourceType === 'kin' && msg.sourceId) {
         const kinName = kinNameMap.get(msg.sourceId) ?? 'Unknown Kin'
         if (msg.inReplyTo) {
-          content = `[Reply from Kin "${kinName}"]\n${content}`
+          textContent = `[Reply from Kin "${kinName}"]\n${textContent}`
         } else {
           let prefix = `[Message from Kin "${kinName}"]`
           if (msg.requestId) {
             prefix += ` (Inter-kin request — reply with request_id="${msg.requestId}")`
           }
-          content = `${prefix}\n${content}`
+          textContent = `${prefix}\n${textContent}`
         }
       }
-      history.push({ role: 'user', content })
+
+      // Check for attached files (images become multimodal parts)
+      const msgFiles = filesByMessageId.get(msg.id)
+      if (msgFiles && msgFiles.length > 0) {
+        const contentParts: UserContent & unknown[] = []
+
+        if (textContent) {
+          contentParts.push({ type: 'text' as const, text: textContent })
+        }
+
+        for (const f of msgFiles) {
+          try {
+            const fileBuffer = await Bun.file(f.storedPath).arrayBuffer()
+            if (f.mimeType.startsWith('image/')) {
+              contentParts.push({
+                type: 'image' as const,
+                image: new Uint8Array(fileBuffer),
+                mimeType: f.mimeType,
+              })
+            } else {
+              // Non-image files: mention them as text context
+              contentParts.push({
+                type: 'text' as const,
+                text: `[Attached file: ${f.originalName} (${f.mimeType})]`,
+              })
+            }
+          } catch {
+            contentParts.push({
+              type: 'text' as const,
+              text: `[Attached file: ${f.originalName} — could not read]`,
+            })
+          }
+        }
+
+        history.push({ role: 'user', content: contentParts as UserContent })
+      } else {
+        history.push({ role: 'user', content: textContent })
+      }
     } else if (msg.role === 'assistant') {
       // Parse tool calls from the JSON column
       let toolCalls: Array<{ id: string; name: string; args: unknown; result?: unknown }> | null = null
@@ -590,81 +1054,107 @@ function getProviderTypeForModel(modelId: string): string | null {
 }
 
 /**
- * Resolve a model string (e.g. "claude-sonnet-4-20250514") to a Vercel AI SDK model.
+ * Try to instantiate a Vercel AI SDK model from a specific provider.
+ * Returns the model instance on success, or null if this provider can't serve the model.
  */
-export async function resolveLLMModel(modelId: string) {
+async function tryCreateModel(
+  provider: typeof providers.$inferSelect,
+  modelId: string,
+  expectedType: string | null,
+) {
+  if (!provider.isValid) return null
+
+  try {
+    const capabilities = JSON.parse(provider.capabilities) as string[]
+    if (!capabilities.includes('llm')) return null
+
+    const providerFamily = provider.type === 'anthropic-oauth' ? 'anthropic' : provider.type
+    if (expectedType && providerFamily !== expectedType) return null
+
+    const providerConfig = JSON.parse(await decrypt(provider.configEncrypted)) as {
+      apiKey: string
+      baseUrl?: string
+    }
+
+    if (provider.type === 'anthropic') {
+      const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+      return anthropic(modelId)
+    } else if (provider.type === 'anthropic-oauth') {
+      const accessToken = await getOAuthAccessToken(providerConfig.apiKey || undefined)
+      const anthropic = createAnthropic({
+        apiKey: 'oauth', // placeholder — overridden by custom fetch below
+        headers: OAUTH_HEADERS,
+        fetch: async (url, init) => {
+          const headers = new Headers(init?.headers)
+          headers.delete('x-api-key')
+          headers.set('authorization', `Bearer ${accessToken}`)
+
+          // Inject the magic system block required by the OAuth endpoint
+          if (init?.body && typeof init.body === 'string') {
+            try {
+              const body = JSON.parse(init.body)
+              if (body.system !== undefined) {
+                if (typeof body.system === 'string') {
+                  body.system = [
+                    REQUIRED_SYSTEM_BLOCK,
+                    { type: 'text', text: body.system, cache_control: { type: 'ephemeral' } },
+                  ]
+                } else if (Array.isArray(body.system)) {
+                  body.system = [
+                    REQUIRED_SYSTEM_BLOCK,
+                    ...body.system.map((block: Record<string, unknown>) => ({
+                      ...block,
+                      cache_control: { type: 'ephemeral' },
+                    })),
+                  ]
+                }
+                init = { ...init, body: JSON.stringify(body) }
+              }
+            } catch {
+              // Not JSON, pass through
+            }
+          }
+
+          return globalThis.fetch(url, { ...init, headers })
+        },
+      })
+      return anthropic(modelId)
+    } else if (provider.type === 'openai') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+      return openai(modelId)
+    } else if (provider.type === 'gemini') {
+      const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+      return google(modelId)
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+/**
+ * Resolve a model string (e.g. "claude-sonnet-4-20250514") to a Vercel AI SDK model.
+ * If preferredProviderId is set, that provider is tried first before falling back to first-match.
+ */
+export async function resolveLLMModel(modelId: string, preferredProviderId?: string | null) {
   const allProviders = await db.select().from(providers).all()
   const expectedType = getProviderTypeForModel(modelId)
 
-  for (const provider of allProviders) {
-    if (!provider.isValid) continue
-
-    try {
-      const capabilities = JSON.parse(provider.capabilities) as string[]
-      if (!capabilities.includes('llm')) continue
-
-      // Skip providers that don't match the model's expected type
-      const providerFamily = provider.type === 'anthropic-oauth' ? 'anthropic' : provider.type
-      if (expectedType && providerFamily !== expectedType) continue
-
-      const providerConfig = JSON.parse(await decrypt(provider.configEncrypted)) as {
-        apiKey: string
-        baseUrl?: string
-      }
-
-      if (provider.type === 'anthropic') {
-        const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-        return anthropic(modelId)
-      } else if (provider.type === 'anthropic-oauth') {
-        const accessToken = await getOAuthAccessToken(providerConfig.apiKey || undefined)
-        const anthropic = createAnthropic({
-          apiKey: 'oauth', // placeholder — overridden by custom fetch below
-          headers: OAUTH_HEADERS,
-          fetch: async (url, init) => {
-            const headers = new Headers(init?.headers)
-            headers.delete('x-api-key')
-            headers.set('authorization', `Bearer ${accessToken}`)
-
-            // Inject the magic system block required by the OAuth endpoint
-            if (init?.body && typeof init.body === 'string') {
-              try {
-                const body = JSON.parse(init.body)
-                if (body.system !== undefined) {
-                  if (typeof body.system === 'string') {
-                    body.system = [
-                      REQUIRED_SYSTEM_BLOCK,
-                      { type: 'text', text: body.system, cache_control: { type: 'ephemeral' } },
-                    ]
-                  } else if (Array.isArray(body.system)) {
-                    body.system = [
-                      REQUIRED_SYSTEM_BLOCK,
-                      ...body.system.map((block: Record<string, unknown>) => ({
-                        ...block,
-                        cache_control: { type: 'ephemeral' },
-                      })),
-                    ]
-                  }
-                  init = { ...init, body: JSON.stringify(body) }
-                }
-              } catch {
-                // Not JSON, pass through
-              }
-            }
-
-            return globalThis.fetch(url, { ...init, headers })
-          },
-        })
-        return anthropic(modelId)
-      } else if (provider.type === 'openai') {
-        const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-        return openai(modelId)
-      } else if (provider.type === 'gemini') {
-        const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-        return google(modelId)
-      }
-    } catch {
-      continue
+  // If a preferred provider is specified, try it first
+  if (preferredProviderId) {
+    const preferred = allProviders.find((p) => p.id === preferredProviderId)
+    if (preferred) {
+      const result = await tryCreateModel(preferred, modelId, expectedType)
+      if (result) return result
     }
+  }
+
+  // Fallback: first-match (skip the preferred one since we already tried it)
+  for (const provider of allProviders) {
+    if (preferredProviderId && provider.id === preferredProviderId) continue
+    const result = await tryCreateModel(provider, modelId, expectedType)
+    if (result) return result
   }
 
   return null
@@ -688,8 +1178,10 @@ export function startQueueWorker() {
     const allKins = await db.select({ id: kins.id }).from(kins).all()
 
     for (const kin of allKins) {
-      // Process one message per Kin per tick
+      // Slot 1: Main session — one message per Kin per tick
       await processNextMessage(kin.id)
+      // Slot 2: Quick sessions — independent parallel slot
+      await processQuickMessage(kin.id)
     }
   }, config.queue.pollIntervalMs)
 

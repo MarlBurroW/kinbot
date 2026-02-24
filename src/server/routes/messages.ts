@@ -4,7 +4,7 @@ import { db } from '@/server/db/index'
 import { messages, kins } from '@/server/db/schema'
 import { enqueueMessage } from '@/server/services/queue'
 import { abortKinStream } from '@/server/services/kin-engine'
-import { linkFilesToMessage, getFilesForMessages, serializeFile } from '@/server/services/files'
+import { getFilesForMessages, serializeFile } from '@/server/services/files'
 import { resolveKinId } from '@/server/services/kin-resolver'
 import { createLogger } from '@/server/logger'
 
@@ -21,26 +21,24 @@ messageRoutes.post('/', async (c) => {
   const user = c.get('user') as { id: string; name: string }
   const body = await c.req.json()
   const { content, fileIds } = body as { content: string; fileIds?: string[] }
+  const hasFiles = fileIds && fileIds.length > 0
 
-  if (!content?.trim()) {
-    return c.json({ error: { code: 'EMPTY_MESSAGE', message: 'Message content is required' } }, 400)
+  if (!content?.trim() && !hasFiles) {
+    return c.json({ error: { code: 'EMPTY_MESSAGE', message: 'Message content or files required' } }, 400)
   }
 
   // Enqueue the message (clean content — pseudonym prefix is added by kin-engine for LLM context)
+  // fileIds are passed through the queue and linked to the actual message in kin-engine
   const { id, queuePosition } = await enqueueMessage({
     kinId,
     messageType: 'user',
-    content,
+    content: content ?? '',
     sourceType: 'user',
     sourceId: user.id,
+    fileIds: hasFiles ? fileIds : undefined,
   })
 
-  log.debug({ kinId, messageId: id, contentLength: content.length }, 'Message enqueued')
-
-  // Link uploaded files to this message
-  if (fileIds && fileIds.length > 0) {
-    await linkFilesToMessage(fileIds, id)
-  }
+  log.debug({ kinId, messageId: id, contentLength: content.length, fileCount: fileIds?.length ?? 0 }, 'Message enqueued')
 
   return c.json({ messageId: id, queuePosition }, 202)
 })
@@ -63,9 +61,10 @@ messageRoutes.get('/', async (c) => {
         ? and(
             eq(messages.kinId, kinId),
             isNull(messages.taskId),
+            isNull(messages.sessionId),
             lt(messages.id, before),
           )
-        : and(eq(messages.kinId, kinId), isNull(messages.taskId)),
+        : and(eq(messages.kinId, kinId), isNull(messages.taskId), isNull(messages.sessionId)),
     )
     .orderBy(desc(messages.createdAt))
     .limit(limit + 1) // +1 to check hasMore
@@ -120,6 +119,8 @@ messageRoutes.get('/', async (c) => {
         isRedacted: m.isRedacted,
         toolCalls: m.toolCalls ? JSON.parse(m.toolCalls as string) : null,
         resolvedTaskId: meta?.resolvedTaskId ?? null,
+        injectedMemories: meta?.injectedMemories ?? null,
+        memoriesExtracted: meta?.memoriesExtracted ?? null,
         files: (fileMap.get(m.id) ?? []).map(serializeFile),
         createdAt: m.createdAt,
       }

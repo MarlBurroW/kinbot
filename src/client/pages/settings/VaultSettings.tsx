@@ -21,6 +21,7 @@ export function VaultSettings() {
   const { t } = useTranslation()
   const [secrets, setSecrets] = useState<VaultSecretData[]>([])
   const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
+  const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
   const [modalOpen, setModalOpen] = useState(false)
   const [editingSecret, setEditingSecret] = useState<VaultSecretData | null>(null)
   const [deletingSecret, setDeletingSecret] = useState<VaultSecretData | null>(null)
@@ -41,8 +42,9 @@ export function VaultSettings() {
 
   const fetchKinNames = async () => {
     try {
-      const data = await api.get<{ kins: { id: string; name: string }[] }>('/kins')
+      const data = await api.get<{ kins: { id: string; name: string; avatarUrl: string | null }[] }>('/kins')
       setKinNames(new Map(data.kins.map((k) => [k.id, k.name])))
+      setKinAvatars(new Map(data.kins.map((k) => [k.id, k.avatarUrl])))
     } catch {
       // Ignore
     }
@@ -96,6 +98,7 @@ export function VaultSettings() {
           key={secret.id}
           secret={secret}
           kinName={secret.createdByKinId ? kinNames.get(secret.createdByKinId) : undefined}
+          kinAvatarUrl={secret.createdByKinId ? kinAvatars.get(secret.createdByKinId) : undefined}
           onEdit={() => openEdit(secret)}
           onDelete={() => setDeletingSecret(secret)}
         />

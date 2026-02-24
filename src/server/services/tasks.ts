@@ -12,6 +12,7 @@ import { resolveMCPTools } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
 import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
+import { getGlobalPrompt } from '@/server/services/app-settings'
 import type { TaskStatus, TaskMode, KinToolConfig } from '@/shared/types'
 
 const log = createLogger('tasks')
@@ -174,6 +175,8 @@ async function executeSubKin(taskId: string) {
       : undefined
 
     // Build sub-Kin system prompt
+    const globalPrompt = await getGlobalPrompt()
+
     const systemPrompt = buildSystemPrompt({
       kin: {
         name: kinIdentity.name,
@@ -188,12 +191,14 @@ async function executeSubKin(taskId: string) {
       isSubKin: true,
       taskDescription: task.description,
       previousCronRuns,
+      globalPrompt,
       userLanguage: 'en',
     })
 
-    // Resolve model
+    // Resolve model — only use Kin's provider preference when using the Kin's own model
     const modelId = task.model ?? kinIdentity.model
-    const model = await resolveLLMModel(modelId)
+    const preferredProvider = task.model ? null : kinIdentity.providerId
+    const model = await resolveLLMModel(modelId, preferredProvider)
     if (!model) {
       throw new Error('No LLM provider available')
     }
@@ -210,10 +215,19 @@ async function executeSubKin(taskId: string) {
       isSubKin: false,
     })
 
-    // Filter disabled native tools per Kin config
+    // Filter disabled native tools per Kin config (deny-list)
     if (kinToolConfig?.disabledNativeTools?.length) {
       for (const name of kinToolConfig.disabledNativeTools) {
         delete nativeTools[name]
+      }
+    }
+
+    // Filter out defaultDisabled tools not explicitly opted-in
+    const allRegistered = toolRegistry.list()
+    const optInSet = new Set(kinToolConfig?.enabledOptInTools ?? [])
+    for (const reg of allRegistered) {
+      if (reg.defaultDisabled && !optInSet.has(reg.name)) {
+        delete nativeTools[reg.name]
       }
     }
 
@@ -225,6 +239,7 @@ async function executeSubKin(taskId: string) {
       'create_cron', 'update_cron', 'delete_cron', 'list_crons',
       'add_mcp_server', 'update_mcp_server', 'remove_mcp_server', 'list_mcp_servers',
       'register_tool', 'list_custom_tools',
+      'create_kin', 'update_kin', 'delete_kin', 'get_kin_details',
     ]
     for (const name of SUB_KIN_EXCLUDED_TOOLS) {
       delete nativeTools[name]
@@ -278,6 +293,7 @@ async function executeSubKin(taskId: string) {
     const assistantMessageId = uuid()
     let fullContent = ''
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
+    let streamError: Error | null = null
 
     const result = streamText({
       model,
@@ -287,56 +303,109 @@ async function executeSubKin(taskId: string) {
       stopWhen: hasTools ? stepCountIs(config.tools.maxSteps) : undefined,
     })
 
-    for await (const part of result.fullStream) {
-      switch (part.type) {
-        case 'text-delta': {
-          fullContent += part.text
-          sseManager.sendToKin(task.parentKinId, {
-            type: 'chat:token',
-            kinId: task.parentKinId,
-            data: { messageId: assistantMessageId, token: part.text, taskId },
-          })
-          break
-        }
-        case 'tool-call': {
-          const contentOffset = fullContent.length
-          toolCallsLog.push({
-            id: part.toolCallId,
-            name: part.toolName,
-            args: part.input,
-            offset: contentOffset,
-          })
-          sseManager.sendToKin(task.parentKinId, {
-            type: 'chat:tool-call',
-            kinId: task.parentKinId,
-            data: {
-              messageId: assistantMessageId,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName,
+    try {
+      for await (const part of result.fullStream) {
+        switch (part.type) {
+          case 'text-delta': {
+            fullContent += part.text
+            sseManager.sendToKin(task.parentKinId, {
+              type: 'chat:token',
+              kinId: task.parentKinId,
+              data: { messageId: assistantMessageId, token: part.text, taskId },
+            })
+            break
+          }
+          case 'tool-call': {
+            const contentOffset = fullContent.length
+            toolCallsLog.push({
+              id: part.toolCallId,
+              name: part.toolName,
               args: part.input,
-              contentOffset,
-              taskId,
-            },
-          })
-          break
-        }
-        case 'tool-result': {
-          const logged = toolCallsLog.find((tc) => tc.id === part.toolCallId)
-          if (logged) logged.result = part.output
-          sseManager.sendToKin(task.parentKinId, {
-            type: 'chat:tool-result',
-            kinId: task.parentKinId,
-            data: {
-              messageId: assistantMessageId,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName,
-              result: part.output,
-              taskId,
-            },
-          })
-          break
+              offset: contentOffset,
+            })
+            sseManager.sendToKin(task.parentKinId, {
+              type: 'chat:tool-call',
+              kinId: task.parentKinId,
+              data: {
+                messageId: assistantMessageId,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                args: part.input,
+                contentOffset,
+                taskId,
+              },
+            })
+            break
+          }
+          case 'tool-result': {
+            const logged = toolCallsLog.find((tc) => tc.id === part.toolCallId)
+            if (logged) logged.result = part.output
+            sseManager.sendToKin(task.parentKinId, {
+              type: 'chat:tool-result',
+              kinId: task.parentKinId,
+              data: {
+                messageId: assistantMessageId,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                result: part.output,
+                taskId,
+              },
+            })
+            break
+          }
         }
       }
+    } catch (err) {
+      streamError = err instanceof Error ? err : new Error(String(err))
+    }
+
+    // If the stream errored, fail the task immediately
+    if (streamError) {
+      log.error({ taskId, error: streamError.message }, 'Sub-Kin stream error')
+
+      // Save partial content if any was produced before the error
+      if (fullContent || toolCallsLog.length > 0) {
+        await db.insert(messages).values({
+          id: assistantMessageId,
+          kinId: task.parentKinId,
+          taskId,
+          role: 'assistant',
+          content: fullContent || '',
+          sourceType: 'kin',
+          sourceId: kinIdentity.id,
+          toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+          createdAt: new Date(),
+        })
+      }
+
+      sseManager.sendToKin(task.parentKinId, {
+        type: 'chat:done',
+        kinId: task.parentKinId,
+        data: { messageId: assistantMessageId, content: fullContent, taskId },
+      })
+
+      const currentTask = await db.select().from(tasks).where(eq(tasks.id, taskId)).get()
+      if (currentTask && currentTask.status === 'in_progress') {
+        await resolveTask(taskId, 'failed', undefined, streamError.message)
+      }
+      return
+    }
+
+    // Detect silent provider failures: stream completed but produced no output at all
+    if (!fullContent && toolCallsLog.length === 0) {
+      log.warn({ taskId }, 'Sub-Kin stream produced no output — treating as failure')
+
+      sseManager.sendToKin(task.parentKinId, {
+        type: 'chat:done',
+        kinId: task.parentKinId,
+        data: { messageId: assistantMessageId, content: '', taskId },
+      })
+
+      const currentTask = await db.select().from(tasks).where(eq(tasks.id, taskId)).get()
+      if (currentTask && currentTask.status === 'in_progress') {
+        await resolveTask(taskId, 'failed', undefined, 'LLM returned empty response')
+      }
+      return
     }
 
     const responseText = fullContent
@@ -361,10 +430,12 @@ async function executeSubKin(taskId: string) {
       data: { messageId: assistantMessageId, content: responseText, taskId },
     })
 
-    // If task wasn't already resolved by tools (update_task_status), mark completed
+    // If the Kin didn't explicitly resolve the task via update_task_status(),
+    // treat it as a failure — the Kin must be explicit about success.
     const currentTask = await db.select().from(tasks).where(eq(tasks.id, taskId)).get()
     if (currentTask && currentTask.status === 'in_progress') {
-      await resolveTask(taskId, 'completed', responseText)
+      log.warn({ taskId }, 'Sub-Kin finished without calling update_task_status — marking as failed')
+      await resolveTask(taskId, 'failed', undefined, 'Task did not explicitly report completion')
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Unknown error'

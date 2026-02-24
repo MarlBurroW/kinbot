@@ -10,6 +10,7 @@ interface KinSummary {
   role: string
   avatarUrl: string | null
   model: string
+  providerId: string | null
   createdAt: string
 }
 
@@ -27,8 +28,19 @@ interface Model {
   id: string
   name: string
   providerId: string
+  providerName: string
   providerType: string
   capability: string
+}
+
+export interface GeneratedKinConfig {
+  name: string
+  role: string
+  character: string
+  expertise: string
+  suggestedModel: string
+  disableToolDomains: string[]
+  enableOptInToolDomains: string[]
 }
 
 interface CreateKinData {
@@ -37,6 +49,7 @@ interface CreateKinData {
   character: string
   expertise: string
   model: string
+  providerId?: string | null
 }
 
 interface UpdateKinData {
@@ -46,6 +59,7 @@ interface UpdateKinData {
   character?: string
   expertise?: string
   model?: string
+  providerId?: string | null
   toolConfig?: KinToolConfig | null
 }
 
@@ -110,8 +124,25 @@ export function useKins() {
   // Track which kins are currently processing (queue state from SSE)
   const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number }>>(new Map())
 
-  // Listen for kin updates and queue updates via SSE to keep the list in sync
+  // Listen for kin lifecycle and queue updates via SSE to keep the list in sync
   useSSE({
+    'kin:created': (data) => {
+      const newKin: KinSummary = {
+        id: data.kinId as string,
+        slug: data.slug as string,
+        name: data.name as string,
+        role: data.role as string,
+        model: data.model as string,
+        providerId: (data.providerId as string | null) ?? null,
+        avatarUrl: (data.avatarUrl as string | null) ?? null,
+        createdAt: data.createdAt as string,
+      }
+      setKins((prev) => {
+        // Avoid duplicates (e.g. if this client also called createKin via the UI)
+        if (prev.some((k) => k.id === newKin.id)) return prev
+        return [...prev, newKin]
+      })
+    },
     'kin:updated': (data) => {
       const kinId = data.kinId as string
       setKins((prev) =>
@@ -123,11 +154,21 @@ export function useKins() {
                 ...(data.name !== undefined && { name: data.name as string }),
                 ...(data.role !== undefined && { role: data.role as string }),
                 ...(data.model !== undefined && { model: data.model as string }),
+                ...(data.providerId !== undefined && { providerId: data.providerId as string | null }),
                 ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl as string | null }),
               }
             : k,
         ),
       )
+    },
+    'kin:deleted': (data) => {
+      const kinId = data.kinId as string
+      setKins((prev) => prev.filter((k) => k.id !== kinId))
+      setKinQueueState((prev) => {
+        const next = new Map(prev)
+        next.delete(kinId)
+        return next
+      })
     },
     'queue:update': (data) => {
       const kinId = data.kinId as string
@@ -184,6 +225,7 @@ export function useKins() {
               ...(data.name !== undefined && { name: data.name }),
               ...(data.role !== undefined && { role: data.role }),
               ...(data.model !== undefined && { model: data.model }),
+              ...(data.providerId !== undefined && { providerId: data.providerId }),
               avatarUrl: result.kin.avatarUrl,
             }
           : k,
@@ -230,6 +272,26 @@ export function useKins() {
     return `data:${data.mediaType};base64,${data.base64}`
   }, [])
 
+  const generateKinConfig = useCallback(async (data: {
+    description?: string
+    refinement?: string
+    currentConfig?: Record<string, unknown>
+    language?: string
+  }): Promise<GeneratedKinConfig> => {
+    const result = await api.post<{ config: GeneratedKinConfig }>('/kins/generate-config', data)
+    return result.config
+  }, [])
+
+  const generateAvatarPreviewFromConfig = useCallback(async (data: {
+    name: string
+    role: string
+    character: string
+    expertise: string
+  }): Promise<string> => {
+    const result = await api.post<{ base64: string; mediaType: string }>('/kins/avatar/preview', data)
+    return `data:${result.mediaType};base64,${result.base64}`
+  }, [])
+
   // LLM models only (for kin model selection)
   const llmModels = models.filter((m) => m.capability === 'llm')
   const imageModels = models.filter((m) => m.capability === 'image')
@@ -246,6 +308,8 @@ export function useKins() {
     deleteKin,
     uploadAvatar,
     generateAvatarPreview,
+    generateKinConfig,
+    generateAvatarPreviewFromConfig,
     hasImageCapability,
     reorderKins,
     refetch: fetchKins,

@@ -6,6 +6,7 @@ import { ChatPage } from '@/client/pages/chat/ChatPage'
 import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { DesignSystemPage } from '@/client/pages/design-system/DesignSystemPage'
+import { InvitePage } from '@/client/pages/invite/InvitePage'
 import { api } from '@/client/lib/api'
 
 const isDev = import.meta.env.DEV
@@ -22,14 +23,15 @@ function AppRoot() {
   const { isLoading: authLoading, isAuthenticated, login, refetch } = useAuth()
   const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus | null>(null)
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true)
+  const [backendError, setBackendError] = useState(false)
 
   const checkOnboarding = useCallback(async () => {
     try {
       const status = await api.get<OnboardingStatus>('/onboarding/status')
       setOnboardingStatus(status)
+      setBackendError(false)
     } catch {
-      // If the endpoint fails, assume onboarding is needed
-      setOnboardingStatus({ completed: false, hasAdmin: false, hasLlm: false, hasEmbedding: false })
+      setBackendError(true)
     } finally {
       setIsCheckingOnboarding(false)
     }
@@ -46,6 +48,28 @@ function AppRoot() {
         <div className="text-center animate-fade-in">
           <h1 className="gradient-primary-text text-4xl font-bold tracking-tight">KinBot</h1>
           <p className="mt-3 text-muted-foreground">{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Backend unreachable — show error with retry
+  if (backendError) {
+    return (
+      <div className="surface-base flex min-h-screen items-center justify-center">
+        <div className="text-center animate-fade-in max-w-md space-y-4">
+          <h1 className="gradient-primary-text text-4xl font-bold tracking-tight">KinBot</h1>
+          <p className="text-muted-foreground">{t('errors.backendUnavailable')}</p>
+          <button
+            onClick={() => {
+              setIsCheckingOnboarding(true)
+              setBackendError(false)
+              checkOnboarding()
+            }}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            {t('errors.retry')}
+          </button>
         </div>
       </div>
     )
@@ -91,6 +115,7 @@ export function App() {
     <BrowserRouter>
       <Routes>
         {isDev && <Route path="/design-system" element={<DesignSystemPage />} />}
+        <Route path="/invite/:token" element={<InvitePage />} />
         <Route path="*" element={<AppRoot />} />
       </Routes>
     </BrowserRouter>

@@ -73,7 +73,7 @@ export function AppSidebar({
 
         <SidebarSeparator />
 
-        <TaskList />
+        <TaskList llmModels={llmModels} />
 
         <SidebarSeparator />
 

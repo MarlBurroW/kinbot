@@ -21,6 +21,10 @@
     "copy": "Copy",
     "copied": "Copied"
   },
+  "errors": {
+    "backendUnavailable": "Unable to reach the server. Please check that the backend is running and try again.",
+    "retry": "Retry"
+  },
   "login": {
     "title": "Welcome back",
     "subtitle": "Sign in to your KinBot workspace",
@@ -116,6 +120,11 @@
       "empty": "No active tasks",
       "search": "Search tasks...",
       "noResults": "No tasks found",
+      "summary": {
+        "running": "{{count}} running",
+        "needYou": "{{count}} need you",
+        "pending": "{{count}} pending"
+      },
       "status": {
         "pending": "Pending",
         "in_progress": "Running",
@@ -134,7 +143,11 @@
       "pendingApproval": "Pending approval",
       "approve": "Approve",
       "lastRun": "Last: {{time}}",
-      "never": "Never run"
+      "never": "Never run",
+      "summary": {
+        "active": "{{count}} active",
+        "pending": "{{count}} pending"
+      }
     },
     "account": "My account",
     "settings": "Settings",
@@ -158,6 +171,9 @@
       "expertisePlaceholder": "Describe the knowledge and objectives...",
       "model": "AI Model",
       "modelPlaceholder": "Select a model",
+      "provider": "Provider",
+      "providerHint": "Multiple providers can serve this model. Choose which one this Kin should use, or leave on Auto to use the first available.",
+      "providerAuto": "Auto (first available)",
       "avatar": "Avatar",
       "avatarMode": "Avatar source",
       "avatarUpload": "Upload file",
@@ -177,7 +193,8 @@
     },
     "tabs": {
       "general": "General",
-      "tools": "Tools"
+      "tools": "Tools",
+      "memory": "Memory"
     },
     "tools": {
       "native": "Native Tools",
@@ -190,7 +207,8 @@
       "saveMcpHint": "Save the Kin first to configure MCP tools.",
       "connectionFailed": "Connection failed — unable to discover tools from this server.",
       "enableAll": "Enable all",
-      "disableAll": "Disable all"
+      "disableAll": "Disable all",
+      "optIn": "Opt-in"
     },
     "defaults": {
       "character": "You are a friendly, thoughtful, and versatile assistant. You communicate clearly and adapt your tone to the context — casual when appropriate, precise when needed.\n\nYou are patient, curious, and genuinely enjoy helping. When you don't know something, you say so honestly. You ask clarifying questions when the request is ambiguous.\n\nYou keep your responses concise unless the user explicitly asks for detail.",
@@ -211,6 +229,20 @@
       "createFirst": "Save the Kin first to enable generation.",
       "uploadHint": "Click to select or drag & drop an image",
       "imageModel": "Image model"
+    },
+    "wizard": {
+      "title": "Describe your Kin",
+      "subtitle": "Describe the assistant you need and we'll configure it for you.",
+      "placeholder": "e.g. An expert in corporate law who can help draft contracts and advise on compliance...",
+      "generate": "Generate",
+      "generating": "Generating configuration...",
+      "skipManual": "Create manually",
+      "refineLabel": "Refine with AI",
+      "refinePlaceholder": "e.g. Make it more formal, add tax law expertise...",
+      "refineSubmit": "Refine",
+      "refining": "Refining...",
+      "back": "Back",
+      "generateError": "Failed to generate configuration. Please try again or create manually."
     },
     "queue": "{{count}} in queue",
     "processing": "Processing...",
@@ -260,6 +292,8 @@
       "owner": "Owner",
       "target": "Target",
       "createdBy": "Created by",
+      "model": "Model",
+      "modelInherited": "Inherited from parent Kin",
       "history": "Execution history",
       "historyEmpty": "No executions yet",
       "executions": "{{count}} execution(s)"
@@ -273,10 +307,45 @@
     "empty": "No messages yet. Say hello!",
     "streaming": "Thinking...",
     "contextUsage": "Context: ~{{tokens}} / {{max}} tokens ({{percent}}%)",
+    "forceCompact": "Force compaction",
+    "compacting": {
+      "title": "Compacting conversation",
+      "running": "Summarizing messages...",
+      "done": "Compacted",
+      "memories": "{{count}} memories extracted",
+      "showSummary": "Show summary",
+      "inputDisabled": "Please wait — compacting conversation history...",
+      "nothingToCompact": "Nothing to compact — not enough messages yet"
+    },
     "taskResult": {
       "showResult": "Show result",
       "showError": "Show error details",
       "openDetail": "View task details"
+    },
+    "attachFile": "Attach file",
+    "dropFiles": "Drop files here",
+    "uploading": "Uploading...",
+    "uploadError": "Upload failed",
+    "removeFile": "Remove file",
+    "downloadFile": "Download",
+    "viewImage": "View full size",
+    "memoriesUsed": "{{count}} memories",
+    "memoriesUsedSingular": "1 memory"
+  },
+  "quickChat": {
+    "title": "Quick Session",
+    "open": "Quick session",
+    "empty": "Start a quick, private conversation with this Kin. Messages won't appear in the main session.",
+    "maxReached": "Maximum active quick sessions reached",
+    "endSession": "End session",
+    "expired": "This session has expired",
+    "closing": {
+      "title": "Close quick session?",
+      "description": "This conversation will not be saved in the main history. You can optionally save a summary as a memory.",
+      "saveMemory": "Save a summary as memory",
+      "summaryPlaceholder": "Describe what was discussed or decided...",
+      "save": "Save & close",
+      "closeOnly": "Close without saving"
     }
   },
   "taskDetail": {
@@ -294,6 +363,14 @@
   },
   "settings": {
     "title": "Settings",
+    "general": {
+      "title": "General",
+      "description": "Platform-wide settings that apply to all Kins.",
+      "globalPrompt": "Global prompt",
+      "globalPromptPlaceholder": "Enter instructions that all Kins should follow...",
+      "globalPromptHint": "This text is injected into every Kin's system prompt.",
+      "saved": "Global prompt updated"
+    },
     "providers": {
       "title": "AI Providers",
       "description": "Manage your AI provider connections",
@@ -404,6 +481,38 @@
       "createdByKin": "by {{name}}",
       "createdByAdmin": "by admin"
     },
+    "memories": {
+      "title": "Memories",
+      "description": "View and manage all Kin memories.",
+      "empty": "No memories yet",
+      "add": "Add memory",
+      "edit": "Edit memory",
+      "content": "Content",
+      "contentPlaceholder": "Enter the memory content...",
+      "categoryLabel": "Category",
+      "subject": "Subject",
+      "subjectPlaceholder": "Contact or context (optional)",
+      "kin": "Kin",
+      "kinPlaceholder": "Select a Kin",
+      "search": "Search memories...",
+      "category": {
+        "fact": "Fact",
+        "preference": "Preference",
+        "decision": "Decision",
+        "knowledge": "Knowledge"
+      },
+      "sourceAutomatic": "Auto",
+      "sourceExplicit": "Manual",
+      "filterAll": "All categories",
+      "filterAllKins": "All Kins",
+      "delete": "Delete memory",
+      "deleteConfirm": "This will permanently delete this memory. The Kin will no longer recall it.",
+      "added": "Memory added",
+      "saved": "Memory updated",
+      "deleted": "Memory deleted",
+      "saveKinFirst": "Save the Kin first to manage its memories.",
+      "count": "{{count}} memories"
+    },
     "contacts": {
       "title": "Contacts",
       "description": "Manage the shared contact registry accessible by all Kins.",
@@ -435,7 +544,173 @@
       "noteDeleted": "Note deleted",
       "added": "Contact added",
       "saved": "Contact updated",
-      "deleted": "Contact deleted"
+      "deleted": "Contact deleted",
+      "platformIds": "Platform identifiers",
+      "platformIdRevoked": "Platform access revoked",
+      "noPlatformIds": "No platform identifiers",
+      "linkToUser": "Link to system user",
+      "noUserLink": "None",
+      "linkedUser": "System user"
+    },
+    "webhooks": {
+      "title": "Webhooks",
+      "description": "Manage incoming webhooks that allow external services to notify your Kins.",
+      "empty": "No webhooks configured",
+      "add": "Add webhook",
+      "edit": "Edit webhook",
+      "name": "Name",
+      "namePlaceholder": "e.g. Grafana alerts, K8s events...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What will this webhook receive?",
+      "kin": "Target Kin",
+      "kinPlaceholder": "Select a Kin",
+      "active": "Active",
+      "inactive": "Inactive",
+      "triggerCount": "{{count}} triggers",
+      "lastTriggered": "Last triggered",
+      "never": "Never",
+      "copyUrl": "Copy URL",
+      "urlCopied": "Webhook URL copied",
+      "tokenWarning": "Save this token now — it will not be shown again.",
+      "copyToken": "Copy token",
+      "tokenCopied": "Token copied",
+      "regenerateToken": "Regenerate token",
+      "regenerateConfirm": "This will invalidate the current token. External services using it will stop working until updated.",
+      "regenerated": "Token regenerated",
+      "delete": "Delete webhook",
+      "deleteConfirm": "This will permanently delete this webhook. External services will receive 404 errors.",
+      "added": "Webhook created",
+      "saved": "Webhook updated",
+      "deleted": "Webhook deleted",
+      "viewLogs": "View logs",
+      "logs": "Trigger log",
+      "logsEmpty": "No triggers yet",
+      "payload": "Payload",
+      "sourceIp": "Source IP"
+    },
+    "users": {
+      "title": "Users",
+      "description": "Manage platform users and send invitations.",
+      "empty": "No other users yet",
+      "delete": "Remove user",
+      "deleteConfirm": "This will permanently remove this user's account. They will lose access to the platform.",
+      "deleted": "User removed",
+      "cannotDeleteSelf": "You cannot remove your own account",
+      "joined": "Joined",
+      "invitations": {
+        "title": "Invitations",
+        "empty": "No invitations",
+        "create": "Invite",
+        "label": "Label",
+        "labelPlaceholder": "e.g. For Mom, For coworker...",
+        "expiresIn": "Expires in (days)",
+        "created": "Invitation created",
+        "copyLink": "Copy link",
+        "linkCopied": "Link copied to clipboard",
+        "revoke": "Revoke",
+        "revokeConfirm": "This will invalidate the invitation link. Anyone who already has it will not be able to use it.",
+        "revoked": "Invitation revoked",
+        "status": {
+          "active": "Active",
+          "used": "Used",
+          "expired": "Expired"
+        },
+        "usedBy": "Used by {{name}}",
+        "expiresAt": "Expires {{date}}",
+        "createdBy": "Created by {{name}}"
+      }
+    },
+    "channels": {
+      "title": "Channels",
+      "description": "Connect your Kins to external messaging platforms. Messages will be routed to the selected Kin, and responses sent back automatically.",
+      "empty": "No channels configured",
+      "add": "Add channel",
+      "platform": "Platform",
+      "name": "Name",
+      "namePlaceholder": "My Telegram bot",
+      "botToken": "Bot token",
+      "botTokenPlaceholder": "Paste your bot token here",
+      "botTokenHint": "The token will be encrypted and stored in the vault.",
+      "allowedChatIds": "Allowed chat IDs",
+      "allowedChatIdsPlaceholder": "e.g. 123456789, -100987654321",
+      "allowedChatIdsHint": "Leave empty to accept messages from all chats.",
+      "autoCreateContacts": "Auto-create contacts",
+      "autoCreateContactsHint": "Automatically create a contact for unknown senders.",
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "error": "Error"
+      },
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "test": "Test connection",
+      "testSuccess": "Connection successful!",
+      "testFailed": "Connection failed",
+      "delete": "Delete channel",
+      "deleteConfirm": "This will permanently delete the channel and its user mappings. External platform users will no longer be able to reach this Kin.",
+      "deleted": "Channel deleted",
+      "saved": "Channel saved",
+      "created": "Channel created",
+      "messagesReceived": "received",
+      "messagesSent": "sent",
+      "manageUsers": "Users",
+      "pendingUsers": "pending",
+      "noUsers": "No pending users",
+      "newUserPending": "New user {{name}} awaiting approval",
+      "userApproved": "User approved",
+      "approve": {
+        "title": "Approve user",
+        "description": "{{name}} from {{platform}} requests access to this channel.",
+        "createContact": "Create a new contact",
+        "linkContact": "Link to existing contact",
+        "contactName": "Contact name",
+        "selectContact": "Select a contact",
+        "searchContacts": "Search contacts...",
+        "noContacts": "No contacts found",
+        "approve": "Approve"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choose which notifications you want to receive.",
+      "externalDelivery": "External delivery",
+      "externalDescription": "Receive notifications on external platforms.",
+      "addChannel": "Add delivery channel",
+      "editChannel": "Edit delivery channel",
+      "noChannels": "No external delivery channels configured.",
+      "sourceChannel": "Source channel (bot)",
+      "recipient": "Recipient",
+      "selectContact": "Select a contact",
+      "noContactsForPlatform": "No contacts have a {{platform}} ID. Add a platform ID to a contact first.",
+      "label": "Label",
+      "labelPlaceholder": "My Telegram",
+      "typeFilter": "types",
+      "typeFilterAll": "All types",
+      "testSent": "Test notification sent!",
+      "testFailed": "Test failed",
+      "errorState": "{{count}} consecutive delivery errors",
+      "autoDisabled": "Automatically disabled due to errors",
+      "noAvailableChannels": "No active channels available. Create and activate a channel first."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "markAllRead": "Mark all as read",
+    "delete": "Dismiss",
+    "types": {
+      "prompt-pending": "Input needed",
+      "channel-user-pending": "User pending approval",
+      "cron-pending-approval": "Cron pending approval",
+      "mcp-pending-approval": "MCP pending approval",
+      "kin-error": "Kin error"
+    },
+    "descriptions": {
+      "prompt-pending": "A Kin is waiting for your response to continue",
+      "channel-user-pending": "A new user on a channel needs your approval",
+      "cron-pending-approval": "A scheduled job created by a Kin needs your approval",
+      "mcp-pending-approval": "An MCP server added by a Kin needs your approval",
+      "kin-error": "A Kin encountered an error that may need investigation"
     }
   },
   "modelPicker": {
@@ -465,6 +740,7 @@
     },
     "domains": {
       "search": "Search",
+      "browse": "Web Browse",
       "contacts": "Contacts",
       "memory": "Memory",
       "vault": "Vault",
@@ -475,10 +751,18 @@
       "images": "Images",
       "shell": "Shell",
       "file-storage": "File Storage",
-      "mcp": "MCP"
+      "mcp": "MCP",
+      "kin-management": "Kin Management",
+      "webhooks": "Webhooks",
+      "system": "System",
+      "channels": "Channels",
+      "users": "Users"
     },
     "names": {
       "web_search": "Web Search",
+      "browse_url": "Browse URL",
+      "extract_links": "Extract Links",
+      "screenshot_url": "Screenshot URL",
       "get_contact": "Get Contact",
       "search_contacts": "Search Contacts",
       "create_contact": "Create Contact",
@@ -528,8 +812,45 @@
       "search_stored_files": "Search Stored Files",
       "update_stored_file": "Update Stored File",
       "delete_stored_file": "Delete Stored File",
-      "prompt_human": "Ask User"
+      "prompt_human": "Ask User",
+      "create_kin": "Create Kin",
+      "update_kin": "Update Kin",
+      "delete_kin": "Delete Kin",
+      "get_kin_details": "Kin Details",
+      "create_webhook": "Create Webhook",
+      "update_webhook": "Update Webhook",
+      "delete_webhook": "Delete Webhook",
+      "list_webhooks": "List Webhooks",
+      "get_cron_journal": "Cron Journal",
+      "get_platform_logs": "Platform Logs",
+      "list_users": "List Users",
+      "get_user": "Get User",
+      "create_invitation": "Create Invitation"
     }
+  },
+  "invite": {
+    "title": "Join KinBot",
+    "subtitle": "You've been invited to join this workspace",
+    "invalidToken": "This invitation link is invalid or has expired.",
+    "backToLogin": "Go to login",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "pseudonym": "Pseudonym",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "language": "Language",
+    "avatar": "Profile photo",
+    "submit": "Create account",
+    "creating": "Creating your account...",
+    "success": "Account created! Redirecting...",
+    "passwordMismatch": "Passwords do not match",
+    "error": "Something went wrong. Please try again."
+  },
+  "sse": {
+    "connected": "Connected to server",
+    "disconnected": "Disconnected from server",
+    "reconnecting": "Reconnecting to server..."
   },
   "humanPrompt": {
     "title": "Question from your Kin",

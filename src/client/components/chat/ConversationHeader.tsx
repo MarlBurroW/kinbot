@@ -5,7 +5,7 @@ import { Badge } from '@/client/components/ui/badge'
 import { Progress } from '@/client/components/ui/progress'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
-import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench } from 'lucide-react'
+import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 
 interface LLMModel {
@@ -31,7 +31,10 @@ interface ConversationHeaderProps {
   queueState?: { isProcessing: boolean; queueSize: number }
   onModelChange: (model: string) => void
   onToggleToolCalls: () => void
+  onForceCompact?: () => void
+  isCompacting?: boolean
   onEdit: () => void
+  onQuickSession?: () => void
 }
 
 function formatTokenCount(n: number): string {
@@ -54,7 +57,10 @@ export function ConversationHeader({
   queueState,
   onModelChange,
   onToggleToolCalls,
+  onForceCompact,
+  isCompacting = false,
   onEdit,
+  onQuickSession,
 }: ConversationHeaderProps) {
   const { t } = useTranslation()
 
@@ -109,7 +115,7 @@ export function ConversationHeader({
           models={llmModels}
           value={model}
           onValueChange={onModelChange}
-          className="h-7 w-auto max-w-[180px] text-xs"
+          className="h-7 w-auto max-w-[280px] text-xs"
         />
 
         {/* Context usage */}
@@ -162,6 +168,39 @@ export function ConversationHeader({
         </TooltipTrigger>
         <TooltipContent side="bottom">{t('tools.viewer.title')}</TooltipContent>
       </Tooltip>
+
+      {/* Force compaction button */}
+      {onForceCompact && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onForceCompact}
+              disabled={isCompacting}
+            >
+              {isCompacting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Archive className="size-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{t('chat.forceCompact')}</TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Quick session button */}
+      {onQuickSession && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" onClick={onQuickSession}>
+              <Zap className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{t('quickChat.open')}</TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Settings button */}
       <Button variant="ghost" size="icon-sm" onClick={onEdit}>

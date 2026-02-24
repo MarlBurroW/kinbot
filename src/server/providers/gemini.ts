@@ -13,9 +13,18 @@ interface GeminiModelsResponse {
   models: GeminiModel[]
 }
 
-function classifyModel(methods: string[]): 'llm' | 'embedding' | null {
-  if (methods.includes('embedContent')) return 'embedding'
-  if (methods.includes('generateContent')) return 'llm'
+interface GeminiClassification {
+  capability: 'llm' | 'embedding' | 'image'
+  supportsImageInput?: boolean
+}
+
+function classifyModel(id: string, methods: string[]): GeminiClassification | null {
+  if (methods.includes('embedContent')) return { capability: 'embedding' }
+  // Imagen models (pure text-to-image, no image input)
+  if (id.startsWith('imagen')) return { capability: 'image', supportsImageInput: false }
+  // Gemini image models (multimodal — support image editing)
+  if (id.includes('-image')) return { capability: 'image', supportsImageInput: true }
+  if (methods.includes('generateContent')) return { capability: 'llm' }
   return null
 }
 
@@ -49,10 +58,15 @@ export const geminiProvider: ProviderDefinition = {
       const apiModels = await fetchGeminiModels(config)
       return apiModels
         .map((m): ProviderModel | null => {
-          const capability = classifyModel(m.supportedGenerationMethods)
-          if (!capability) return null
           const id = m.name.replace(/^models\//, '')
-          return { id, name: m.displayName, capability }
+          const classification = classifyModel(id, m.supportedGenerationMethods)
+          if (!classification) return null
+          return {
+            id,
+            name: m.displayName,
+            capability: classification.capability,
+            supportsImageInput: classification.supportsImageInput,
+          }
         })
         .filter((m): m is ProviderModel => m !== null)
     } catch {

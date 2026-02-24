@@ -34,9 +34,21 @@ export const PROVIDERS_WITHOUT_API_KEY = ['anthropic-oauth'] as const
 
 export const REQUIRED_CAPABILITIES = ['llm', 'embedding'] as const
 
-export const MESSAGE_SOURCES = ['user', 'kin', 'task', 'cron', 'system'] as const
+export const MEMORY_CATEGORIES = ['fact', 'preference', 'decision', 'knowledge'] as const
+
+export const MESSAGE_SOURCES = ['user', 'kin', 'task', 'cron', 'system', 'webhook', 'channel'] as const
+
+export const CHANNEL_PLATFORMS = ['telegram', 'discord'] as const
 
 export const TASK_STATUSES = ['pending', 'in_progress', 'awaiting_human_input', 'completed', 'failed', 'cancelled'] as const
+
+export const NOTIFICATION_TYPES = [
+  'prompt:pending',
+  'channel:user-pending',
+  'cron:pending-approval',
+  'mcp:pending-approval',
+  'kin:error',
+] as const
 
 export const PALETTE_IDS = ['aurora', 'ocean', 'forest', 'sunset', 'monochrome'] as const
 
@@ -66,6 +78,7 @@ export interface ToolDomainMeta {
  *  - Avoid green (success) and red (destructive) for domain colors to prevent confusion with statuses. */
 export const TOOL_DOMAIN_META: Record<ToolDomain, ToolDomainMeta> = {
   search:     { icon: 'Search',       bg: 'bg-info/40',      text: 'text-info',             border: 'border-info/40',              labelKey: 'tools.domains.search' },
+  browse:     { icon: 'Globe',        bg: 'bg-chart-1/40',   text: 'text-chart-1',          border: 'border-chart-1/40',           labelKey: 'tools.domains.browse' },
   contacts:   { icon: 'Users',        bg: 'bg-primary/40',   text: 'text-primary',          border: 'border-primary/40',           labelKey: 'tools.domains.contacts' },
   memory:     { icon: 'Brain',        bg: 'bg-chart-2/40',   text: 'text-chart-2',          border: 'border-chart-2/40',           labelKey: 'tools.domains.memory' },
   vault:      { icon: 'ShieldCheck',  bg: 'bg-warning/40',   text: 'text-warning',          border: 'border-warning/40',           labelKey: 'tools.domains.vault' },
@@ -77,12 +90,21 @@ export const TOOL_DOMAIN_META: Record<ToolDomain, ToolDomainMeta> = {
   shell:           { icon: 'Terminal',     bg: 'bg-chart-5/40',   text: 'text-chart-5',          border: 'border-chart-5/40',           labelKey: 'tools.domains.shell' },
   'file-storage':  { icon: 'HardDrive',   bg: 'bg-accent/40',   text: 'text-accent-foreground',border: 'border-accent/40',            labelKey: 'tools.domains.file-storage' },
   mcp:             { icon: 'Plug',         bg: 'bg-muted',        text: 'text-muted-foreground', border: 'border-muted-foreground/40',  labelKey: 'tools.domains.mcp' },
+  'kin-management':{ icon: 'Crown',       bg: 'bg-chart-3/40',   text: 'text-chart-3',          border: 'border-chart-3/40',           labelKey: 'tools.domains.kin-management' },
+  webhooks:        { icon: 'Webhook',     bg: 'bg-info/40',      text: 'text-info',             border: 'border-info/40',              labelKey: 'tools.domains.webhooks' },
+  channels:        { icon: 'Radio',       bg: 'bg-chart-4/40',   text: 'text-chart-4',          border: 'border-chart-4/40',           labelKey: 'tools.domains.channels' },
+  system:          { icon: 'ScrollText',  bg: 'bg-chart-5/40',   text: 'text-chart-5',          border: 'border-chart-5/40',           labelKey: 'tools.domains.system' },
+  users:           { icon: 'UserCog',     bg: 'bg-chart-2/40',   text: 'text-chart-2',          border: 'border-chart-2/40',           labelKey: 'tools.domains.users' },
 } as const
 
 /** Map tool names to their UI domain category */
 export const TOOL_DOMAIN_MAP: Record<string, ToolDomain> = {
   // Search
   web_search: 'search',
+  // Browse
+  browse_url: 'browse',
+  extract_links: 'browse',
+  screenshot_url: 'browse',
   // Contacts
   get_contact: 'contacts',
   search_contacts: 'contacts',
@@ -144,12 +166,32 @@ export const TOOL_DOMAIN_MAP: Record<string, ToolDomain> = {
   update_mcp_server: 'mcp',
   remove_mcp_server: 'mcp',
   list_mcp_servers: 'mcp',
+  // Kin Management
+  create_kin: 'kin-management',
+  update_kin: 'kin-management',
+  delete_kin: 'kin-management',
+  get_kin_details: 'kin-management',
+  // Webhooks
+  create_webhook: 'webhooks',
+  update_webhook: 'webhooks',
+  delete_webhook: 'webhooks',
+  list_webhooks: 'webhooks',
+  // Channels
+  list_channels: 'channels',
+  list_channel_conversations: 'channels',
+  send_channel_message: 'channels',
+  // System
+  get_platform_logs: 'system',
+  // Users
+  list_users: 'users',
+  get_user: 'users',
+  create_invitation: 'users',
 } as const
 
-/** Suggested labels for contact identifiers (UI combo suggestions, not restrictive) */
+/** Suggested labels for contact identifiers (UI combo suggestions, not restrictive).
+ *  Platform IDs (telegram, discord, etc.) are now managed via contactPlatformIds. */
 export const CONTACT_IDENTIFIER_SUGGESTIONS = [
-  'email', 'phone', 'mobile', 'whatsapp',
-  'discord', 'telegram', 'signal', 'slack',
+  'email', 'phone', 'mobile',
   'twitter', 'instagram', 'linkedin', 'github',
-  'website',
+  'slack', 'website',
 ] as const

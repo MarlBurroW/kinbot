@@ -5,7 +5,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/client/componen
 import { AppSidebar } from '@/client/components/sidebar/AppSidebar'
 import { KinFormModal } from '@/client/components/kin/KinFormModal'
 import { ChatPanel } from '@/client/components/chat/ChatPanel'
-import { SettingsPage } from '@/client/pages/settings/SettingsPage'
+import { SettingsModal } from '@/client/pages/settings/SettingsPage'
 import { AccountPage } from '@/client/pages/account/AccountPage'
 import { useKins } from '@/client/hooks/useKins'
 import { useAuth } from '@/client/hooks/useAuth'
@@ -13,6 +13,8 @@ import { Separator } from '@/client/components/ui/separator'
 import { ThemeToggle } from '@/client/components/common/ThemeToggle'
 import { PaletteToggle } from '@/client/components/common/PaletteToggle'
 import { UserMenu } from '@/client/components/common/UserMenu'
+import { NotificationBell } from '@/client/components/notifications/NotificationBell'
+import { SSEStatusIndicator } from '@/client/components/common/SSEStatusIndicator'
 import { MessageSquare } from 'lucide-react'
 
 export function ChatPage() {
@@ -31,6 +33,8 @@ export function ChatPage() {
     deleteKin,
     uploadAvatar,
     generateAvatarPreview,
+    generateKinConfig,
+    generateAvatarPreviewFromConfig,
     hasImageCapability,
     reorderKins,
     refetchModels,
@@ -50,6 +54,13 @@ export function ChatPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingKin, setEditingKin] = useState<Awaited<ReturnType<typeof getKin>> | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>()
+
+  const handleOpenSettings = useCallback((section?: string) => {
+    setSettingsInitialSection(section)
+    setSettingsOpen(true)
+  }, [])
 
   const handleSelectKin = (slug: string) => {
     navigate(`/kin/${slug}`)
@@ -112,8 +123,10 @@ export function ChatPage() {
             <div className="flex flex-1 items-center justify-between">
               <h2 className="text-sm text-muted-foreground">KinBot</h2>
               <div className="flex items-center gap-1">
+                <SSEStatusIndicator />
                 <PaletteToggle />
                 <ThemeToggle />
+                {user && <NotificationBell onOpenSettings={handleOpenSettings} />}
                 {user && (
                   <UserMenu
                     user={{
@@ -123,6 +136,7 @@ export function ChatPage() {
                       avatarUrl: user.avatarUrl,
                     }}
                     onLogout={logout}
+                    onOpenSettings={() => handleOpenSettings()}
                   />
                 )}
               </div>
@@ -131,7 +145,6 @@ export function ChatPage() {
 
           {/* Page content */}
           <Routes>
-            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route
               path="*"
@@ -176,8 +189,11 @@ export function ChatPage() {
         llmModels={llmModels}
         imageModels={imageModels}
         onCreateKin={createKin}
+        onUpdateKin={updateKin}
         onUploadAvatar={uploadAvatar}
         onGenerateAvatarPreview={generateAvatarPreview}
+        onGenerateKinConfig={generateKinConfig}
+        onGenerateAvatarPreviewFromConfig={generateAvatarPreviewFromConfig}
         hasImageCapability={hasImageCapability}
       />
 
@@ -194,6 +210,9 @@ export function ChatPage() {
         onGenerateAvatarPreview={generateAvatarPreview}
         hasImageCapability={hasImageCapability}
       />
+
+      {/* Settings modal */}
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} initialSection={settingsInitialSection} />
     </SidebarProvider>
   )
 }

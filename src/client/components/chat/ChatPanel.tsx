@@ -7,13 +7,21 @@ import { TypingIndicator } from '@/client/components/chat/TypingIndicator'
 import { ConversationHeader } from '@/client/components/chat/ConversationHeader'
 import { ToolCallsViewer } from '@/client/components/chat/ToolCallsViewer'
 import { TaskResultCard } from '@/client/components/chat/TaskResultCard'
+import { CompactingCard } from '@/client/components/chat/CompactingCard'
 import { HumanPromptCard } from '@/client/components/chat/HumanPromptCard'
 import { TaskDetailModal } from '@/client/components/sidebar/TaskDetailModal'
+import { Sheet, SheetContent } from '@/client/components/ui/sheet'
+import { QuickChatPanel } from '@/client/components/chat/QuickChatPanel'
 import { useChat } from '@/client/hooks/useChat'
 import { useToolCalls } from '@/client/hooks/useToolCalls'
 import { useHumanPrompts } from '@/client/hooks/useHumanPrompts'
+import { useQuickSession } from '@/client/hooks/useQuickSession'
 import { useAuth } from '@/client/hooks/useAuth'
+import { useDraftMessage } from '@/client/hooks/useDraftMessage'
+import { useFileUpload } from '@/client/hooks/useFileUpload'
 import { MessageSquare } from 'lucide-react'
+import { toast } from 'sonner'
+import { api } from '@/client/lib/api'
 
 interface KinInfo {
   id: string
@@ -45,14 +53,46 @@ const COMPACTING_TOKEN_THRESHOLD = 30_000
 export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin }: ChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, streamingMessage, liveTasks, isStreaming, sendMessage, stopStreaming } = useChat(kin.id)
+  const { messages, streamingMessage, liveTasks, liveCompacting, isStreaming, sendMessage, stopStreaming } = useChat(kin.id)
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
+  const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
+  const { pendingFiles, addFiles, removeFile, clearFiles, isUploading } = useFileUpload(kin.id)
+  const { activeSession, isOpen: isQuickOpen, setIsOpen: setQuickOpen, createSession, closeSession } = useQuickSession(kin.id)
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
+  const isCompacting = liveCompacting?.status === 'running'
+
+  const handleQuickSession = useCallback(() => {
+    if (activeSession) {
+      setQuickOpen(true)
+    } else {
+      createSession()
+    }
+  }, [activeSession, setQuickOpen, createSession])
+
+  const handleQuickClose = useCallback(
+    (saveMemory?: boolean, memorySummary?: string) => {
+      if (activeSession) {
+        closeSession(activeSession.id, saveMemory, memorySummary)
+      }
+    },
+    [activeSession, closeSession],
+  )
+
+  const handleForceCompact = useCallback(async () => {
+    try {
+      await api.post(`/kins/${kin.id}/compacting/run`)
+    } catch (err: unknown) {
+      const code = (err as { error?: { code?: string } })?.error?.code
+      if (code === 'NOTHING_TO_COMPACT') {
+        toast.info(t('chat.compacting.nothingToCompact'))
+      }
+    }
+  }, [kin.id, t])
 
   // Estimate token usage from message content (rough: ~4 chars per token)
   const estimatedTokens = useMemo(
@@ -64,10 +104,31 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const isProcessing = queueState?.isProcessing ?? false
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
-  }, [messages, streamingMessage, isStreaming, isProcessing, liveTasks, pendingPrompts])
+  }, [messages, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts])
 
   // Resolve kin info for the currently open task detail modal
   const detailTask = detailTaskId ? liveTasks.find((t) => t.taskId === detailTaskId) : null
+
+  const handleSend = useCallback(
+    (content: string, fileIds?: string[]) => {
+      // Build optimistic MessageFile[] from pending files so images show immediately
+      // Use serverUrl (already uploaded) — previewUrl (blob:) gets revoked by clearFiles
+      const optimisticFiles = pendingFiles
+        .filter((f) => f.status === 'done' && f.serverId && f.serverUrl)
+        .map((f) => ({
+          id: f.serverId!,
+          name: f.name,
+          mimeType: f.mimeType,
+          size: f.size,
+          url: f.serverUrl!,
+        }))
+
+      sendMessage(content, fileIds, optimisticFiles.length > 0 ? optimisticFiles : undefined)
+      clearDraft()
+      clearFiles()
+    },
+    [sendMessage, clearDraft, clearFiles, pendingFiles],
+  )
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -87,7 +148,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         queueState={queueState}
         onModelChange={onModelChange}
         onToggleToolCalls={toggleToolCalls}
+        onForceCompact={handleForceCompact}
+        isCompacting={isCompacting}
         onEdit={onEditKin}
+        onQuickSession={handleQuickSession}
       />
 
       {/* Middle: messages + optional tool calls panel */}
@@ -105,6 +169,18 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
             ) : (
               <div className="space-y-1">
                 {messages.map((msg) => {
+                  // Render compacting trace as a dedicated card
+                  if (msg.sourceType === 'compacting') {
+                    return (
+                      <CompactingCard
+                        key={msg.id}
+                        status="done"
+                        summary={msg.content}
+                        memoriesExtracted={msg.memoriesExtracted}
+                      />
+                    )
+                  }
+
                   const isFromUser = msg.role === 'user' && msg.sourceType === 'user'
                   const isFromKin = msg.sourceType === 'kin' && msg.role === 'user'
                   const isTask = msg.sourceType === 'task'
@@ -114,6 +190,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       role={msg.role}
                       content={msg.content}
                       sourceType={msg.sourceType}
+                      files={msg.files}
                       avatarUrl={
                         isFromUser
                           ? user?.avatarUrl
@@ -130,6 +207,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       }
                       timestamp={msg.createdAt}
                       toolCalls={toolCallsByMessage.get(msg.id)}
+                      injectedMemories={msg.injectedMemories}
                       onOpenTaskDetail={isTask && msg.resolvedTaskId ? () => setDetailTaskId(msg.resolvedTaskId) : undefined}
                     />
                   )
@@ -161,6 +239,13 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     onOpenDetail={() => setDetailTaskId(task.taskId)}
                   />
                 ))}
+                {liveCompacting && (
+                  <CompactingCard
+                    status={liveCompacting.status}
+                    summary={liveCompacting.summary}
+                    memoriesExtracted={liveCompacting.memoriesExtracted}
+                  />
+                )}
                 {pendingPrompts.map((prompt) => (
                   <HumanPromptCard
                     key={prompt.id}
@@ -192,11 +277,17 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
 
       {/* Input */}
       <MessageInput
-        onSend={sendMessage}
+        value={draftContent}
+        onChange={setDraftContent}
+        onSend={handleSend}
         onStop={stopStreaming}
         isStreaming={isStreaming}
-        disabled={modelUnavailable}
-        disabledReason={modelUnavailable ? t('kin.modelUnavailableInput') : undefined}
+        disabled={modelUnavailable || isCompacting}
+        disabledReason={isCompacting ? t('chat.compacting.inputDisabled') : modelUnavailable ? t('kin.modelUnavailableInput') : undefined}
+        pendingFiles={pendingFiles}
+        isUploading={isUploading}
+        onAddFiles={addFiles}
+        onRemoveFile={removeFile}
       />
 
       {/* Task detail modal — opened from live task cards */}
@@ -206,7 +297,27 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onOpenChange={(open) => { if (!open) setDetailTaskId(null) }}
         kinName={detailTask?.senderName ?? kin.name}
         kinAvatarUrl={detailTask?.senderAvatarUrl ?? kin.avatarUrl}
+        llmModels={llmModels}
       />
+
+      {/* Quick session side panel */}
+      <Sheet open={isQuickOpen} onOpenChange={setQuickOpen}>
+        <SheetContent side="right" className="w-[500px] sm:max-w-lg p-0" showCloseButton={false}>
+          {activeSession && (
+            <QuickChatPanel
+              kinId={kin.id}
+              kinName={kin.name}
+              kinAvatarUrl={kin.avatarUrl}
+              kinModel={kin.model}
+              llmModels={llmModels}
+              sessionId={activeSession.id}
+              onHide={() => setQuickOpen(false)}
+              onEnd={handleQuickClose}
+              onModelChange={onModelChange}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

@@ -12,6 +12,11 @@ import {
   updateContactNote,
   deleteContactNote,
 } from '@/server/services/contacts'
+import {
+  listContactPlatformIds,
+  removeContactPlatformId,
+  addContactPlatformId,
+} from '@/server/services/channels'
 import { createLogger } from '@/server/logger'
 
 const log = createLogger('routes:contacts')
@@ -78,12 +83,15 @@ contactRoutes.patch('/:id', async (c) => {
     linkedKinId?: string | null
   }
 
-  const updated = await updateContact(id, body)
-  if (!updated) {
+  const result = await updateContact(id, body)
+  if (!result) {
     return c.json({ error: { code: 'CONTACT_NOT_FOUND', message: 'Contact not found' } }, 404)
   }
+  if ('error' in result && result.error === 'USER_ALREADY_LINKED') {
+    return c.json({ error: { code: 'USER_ALREADY_LINKED', message: `This user is already linked to contact "${result.linkedContactName}"` } }, 409)
+  }
 
-  return c.json({ contact: updated })
+  return c.json({ contact: result })
 })
 
 // DELETE /api/contacts/:id — delete a contact (cascades identifiers + notes)
@@ -138,6 +146,61 @@ contactRoutes.delete('/:id/identifiers/:identifierId', async (c) => {
   if (!removed) {
     return c.json(
       { error: { code: 'IDENTIFIER_NOT_FOUND', message: 'Identifier not found' } },
+      404,
+    )
+  }
+
+  return c.json({ success: true })
+})
+
+// ─── Platform IDs (channel authorization) ───────────────────────────────────
+
+// GET /api/contacts/:id/platform-ids — list platform IDs for a contact
+contactRoutes.get('/:id/platform-ids', async (c) => {
+  const contactId = c.req.param('id')
+  const platformIds = listContactPlatformIds(contactId)
+  return c.json({
+    platformIds: platformIds.map((p) => ({
+      id: p.id,
+      contactId: p.contactId,
+      platform: p.platform,
+      platformId: p.platformId,
+      createdAt: new Date(p.createdAt).getTime(),
+    })),
+  })
+})
+
+// POST /api/contacts/:id/platform-ids — add a platform ID to a contact
+contactRoutes.post('/:id/platform-ids', async (c) => {
+  const contactId = c.req.param('id')
+  const { platform, platformId } = (await c.req.json()) as { platform: string; platformId: string }
+
+  if (!platform || !platformId) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'platform and platformId are required' } },
+      400,
+    )
+  }
+
+  try {
+    const entry = addContactPlatformId(contactId, platform, platformId)
+    return c.json({ platformId: entry }, 201)
+  } catch (err) {
+    return c.json(
+      { error: { code: 'DUPLICATE_PLATFORM_ID', message: 'This platform ID is already assigned to a contact' } },
+      409,
+    )
+  }
+})
+
+// DELETE /api/contacts/:id/platform-ids/:pidId — remove a platform ID (revoke access)
+contactRoutes.delete('/:id/platform-ids/:pidId', async (c) => {
+  const pidId = c.req.param('pidId')
+
+  const removed = removeContactPlatformId(pidId)
+  if (!removed) {
+    return c.json(
+      { error: { code: 'NOT_FOUND', message: 'Platform ID not found' } },
       404,
     )
   }

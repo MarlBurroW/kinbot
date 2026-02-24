@@ -30,7 +30,7 @@ function resolveEncryptionKey(): string {
 }
 
 export const config = {
-  port: Number(process.env.PORT ?? 3000),
+  port: Number(process.env.PORT ?? 3333),
   dataDir,
   encryptionKey: resolveEncryptionKey(),
   logLevel: (process.env.LOG_LEVEL ?? 'info') as 'debug' | 'info' | 'warn' | 'error',
@@ -108,5 +108,56 @@ export const config = {
     cleanupIntervalMin: Number(process.env.FILE_STORAGE_CLEANUP_INTERVAL ?? 60),
   },
 
-  publicUrl: process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 3000}`,
+  webhooks: {
+    maxPerKin: Number(process.env.WEBHOOKS_MAX_PER_KIN ?? 20),
+    maxPayloadBytes: Number(process.env.WEBHOOKS_MAX_PAYLOAD_BYTES ?? 1_048_576), // 1MB
+  },
+
+  channels: {
+    maxPerKin: Number(process.env.CHANNELS_MAX_PER_KIN ?? 5),
+    telegramWebhookPath: '/api/channels/telegram',
+  },
+
+  quickSessions: {
+    defaultExpirationHours: Number(process.env.QUICK_SESSION_EXPIRATION_HOURS ?? 24),
+    maxActivePerUserPerKin: Number(process.env.QUICK_SESSION_MAX_PER_USER_KIN ?? 1),
+    retentionDays: Number(process.env.QUICK_SESSION_RETENTION_DAYS ?? 7),
+    cleanupIntervalMinutes: Number(process.env.QUICK_SESSION_CLEANUP_INTERVAL ?? 60),
+  },
+
+  webBrowsing: {
+    // Tier 1 (lightweight fetch)
+    pageTimeout: Number(process.env.WEB_BROWSING_PAGE_TIMEOUT ?? 30000),
+    maxContentLength: Number(process.env.WEB_BROWSING_MAX_CONTENT_LENGTH ?? 100000),
+    maxConcurrentFetches: Number(process.env.WEB_BROWSING_MAX_CONCURRENT ?? 5),
+    userAgent:
+      process.env.WEB_BROWSING_USER_AGENT ??
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    blockedDomains: (process.env.WEB_BROWSING_BLOCKED_DOMAINS ?? '').split(',').filter(Boolean),
+    proxy: process.env.WEB_BROWSING_PROXY ?? undefined,
+    // Tier 2 (headless browser)
+    headless: {
+      enabled: process.env.WEB_BROWSING_HEADLESS_ENABLED === 'true',
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH ?? undefined,
+      maxBrowsers: Number(process.env.WEB_BROWSING_MAX_BROWSERS ?? 2),
+      idleTimeoutMs: Number(process.env.WEB_BROWSING_BROWSER_IDLE_TIMEOUT ?? 60000),
+    },
+  },
+
+  invitations: {
+    defaultExpiryDays: Number(process.env.INVITATION_DEFAULT_EXPIRY_DAYS ?? 7),
+    maxActive: Number(process.env.INVITATION_MAX_ACTIVE ?? 50),
+  },
+
+  notifications: {
+    retentionDays: Number(process.env.NOTIFICATIONS_RETENTION_DAYS ?? 30),
+    maxPerUser: Number(process.env.NOTIFICATIONS_MAX_PER_USER ?? 500),
+    externalDelivery: {
+      maxPerUser: Number(process.env.NOTIFICATIONS_EXT_MAX_PER_USER ?? 5),
+      rateLimitPerMinute: Number(process.env.NOTIFICATIONS_EXT_RATE_LIMIT ?? 5),
+      maxConsecutiveErrors: Number(process.env.NOTIFICATIONS_EXT_MAX_ERRORS ?? 5),
+    },
+  },
+
+  publicUrl: process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 3333}`,
 } as const

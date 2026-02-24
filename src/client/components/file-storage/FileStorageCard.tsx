@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
+import { KinBadge } from '@/client/components/common/KinBadge'
 import {
   Copy,
   Download,
@@ -38,6 +39,7 @@ export interface StoredFileData {
 interface FileStorageCardProps {
   file: StoredFileData
   kinName?: string
+  kinAvatarUrl?: string | null
   onEdit?: () => void
   onDelete?: () => void
 }
@@ -61,7 +63,7 @@ function formatExpiry(expiresAt: number): string {
   return `${days}d`
 }
 
-export function FileStorageCard({ file, kinName, onEdit, onDelete }: FileStorageCardProps) {
+export function FileStorageCard({ file, kinName, kinAvatarUrl, onEdit, onDelete }: FileStorageCardProps) {
   const { t } = useTranslation()
 
   const handleCopyUrl = async () => {
@@ -122,10 +124,8 @@ export function FileStorageCard({ file, kinName, onEdit, onDelete }: FileStorage
                 <Download className="inline size-2.5 mr-0.5" />
                 {file.downloadCount}
               </span>
-              {file.createdByKinId && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                  {t('settings.files.createdByKin', { name: kinName ?? '?' })}
-                </Badge>
+              {file.createdByKinId && kinName && (
+                <KinBadge name={kinName} avatarUrl={kinAvatarUrl} />
               )}
             </div>
           </div>

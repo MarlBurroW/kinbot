@@ -1,12 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
-  SidebarGroupLabel,
 } from '@/client/components/ui/sidebar'
-import { ScrollArea } from '@/client/components/ui/scroll-area'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Badge } from '@/client/components/ui/badge'
 import { Button } from '@/client/components/ui/button'
@@ -16,8 +14,10 @@ import { CronDetailModal } from '@/client/components/sidebar/CronDetailModal'
 import { useCrons } from '@/client/hooks/useCrons'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
-import { Plus, Clock, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, Clock, CheckCircle2, Loader2, ChevronRight } from 'lucide-react'
 import type { CronSummary } from '@/shared/types'
+
+const STORAGE_KEY = 'sidebar.crons.open'
 
 interface KinOption {
   id: string
@@ -138,11 +138,35 @@ export function CronList({ kins, llmModels }: CronListProps) {
   const [editCron, setEditCron] = useState<CronSummary | null>(null)
   const [detailCron, setDetailCron] = useState<CronSummary | null>(null)
 
+  // Collapsible state persisted in localStorage
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return stored === null ? true : stored === 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsOpen(open)
+    try {
+      localStorage.setItem(STORAGE_KEY, String(open))
+    } catch { /* ignore */ }
+  }, [])
+
   // Split pending-approval from the rest
   const pendingCrons = useMemo(() => crons.filter((c) => c.requiresApproval), [crons])
   const regularCrons = useMemo(() => crons.filter((c) => !c.requiresApproval), [crons])
 
   const isEmpty = crons.length === 0 && !isLoading
+
+  // Summary counts for collapsed state
+  const activeCount = useMemo(
+    () => crons.filter((c) => c.isActive && !c.requiresApproval).length,
+    [crons],
+  )
+  const pendingApprovalCount = pendingCrons.length
 
   // Keep detailCron in sync with crons state (for live updates)
   const currentDetailCron = useMemo(
@@ -152,47 +176,86 @@ export function CronList({ kins, llmModels }: CronListProps) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{t('sidebar.crons.title')}</SidebarGroupLabel>
-      <SidebarGroupAction onClick={() => setShowCreateModal(true)} title={t('sidebar.crons.create')}>
-        <Plus className="size-4" />
-      </SidebarGroupAction>
-      <SidebarGroupContent>
-        {isLoading ? (
-          <div className="flex justify-center py-4">
-            <Loader2 className="size-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : isEmpty ? (
-          <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-            {t('sidebar.crons.empty')}
-          </p>
-        ) : (
-          <ScrollArea className="max-h-[25vh] overflow-hidden">
-            <div className="space-y-1 px-1">
-              {/* Pending approval */}
-              {pendingCrons.map((cron) => (
-                <CronCard
-                  key={cron.id}
-                  cron={cron}
-                  onClick={() => setDetailCron(cron)}
-                  onApprove={() => approveCron(cron.id)}
-                />
-              ))}
-              {pendingCrons.length > 0 && regularCrons.length > 0 && (
-                <div className="my-2 h-px bg-border/50" />
-              )}
-              {/* Active + inactive */}
-              {regularCrons.map((cron) => (
-                <CronCard
-                  key={cron.id}
-                  cron={cron}
-                  onClick={() => setDetailCron(cron)}
-                  onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-        )}
-      </SidebarGroupContent>
+      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
+        <div className="flex items-center">
+          <CollapsibleTrigger className="flex flex-1 items-center gap-1.5 px-2 py-1.5 hover:bg-sidebar-accent/30 transition-colors rounded-md cursor-pointer">
+            <ChevronRight className={cn(
+              'size-3.5 shrink-0 text-muted-foreground transition-transform duration-200',
+              isOpen && 'rotate-90',
+            )} />
+            <span className="text-xs font-medium text-sidebar-foreground/70">
+              {t('sidebar.crons.title')}
+            </span>
+
+            {/* Summary badges — only shown when collapsed */}
+            {!isOpen && (
+              <div className="ml-auto flex items-center gap-1">
+                {activeCount > 0 && (
+                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    {t('sidebar.crons.summary.active', { count: activeCount })}
+                  </span>
+                )}
+                {pendingApprovalCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning">
+                    {t('sidebar.crons.summary.pending', { count: pendingApprovalCount })}
+                  </span>
+                )}
+              </div>
+            )}
+          </CollapsibleTrigger>
+
+          {/* Create button — always visible */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-6 shrink-0 mr-1"
+            onClick={() => setShowCreateModal(true)}
+            title={t('sidebar.crons.create')}
+          >
+            <Plus className="size-4" />
+          </Button>
+        </div>
+
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : isEmpty ? (
+              <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                {t('sidebar.crons.empty')}
+              </p>
+            ) : (
+              <div className="max-h-[25vh] overflow-y-auto">
+                <div className="space-y-1 px-1">
+                  {/* Pending approval */}
+                  {pendingCrons.map((cron) => (
+                    <CronCard
+                      key={cron.id}
+                      cron={cron}
+                      onClick={() => setDetailCron(cron)}
+                      onApprove={() => approveCron(cron.id)}
+                    />
+                  ))}
+                  {pendingCrons.length > 0 && regularCrons.length > 0 && (
+                    <div className="my-2 h-px bg-border/50" />
+                  )}
+                  {/* Active + inactive */}
+                  {regularCrons.map((cron) => (
+                    <CronCard
+                      key={cron.id}
+                      cron={cron}
+                      onClick={() => setDetailCron(cron)}
+                      onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Create modal */}
       <CronFormModal
@@ -220,6 +283,7 @@ export function CronList({ kins, llmModels }: CronListProps) {
           open={detailCron !== null}
           onOpenChange={(open) => { if (!open) setDetailCron(null) }}
           cron={currentDetailCron}
+          llmModels={llmModels}
           onEdit={() => {
             setDetailCron(null)
             setEditCron(currentDetailCron)

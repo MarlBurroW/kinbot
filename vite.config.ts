@@ -14,10 +14,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     port: 5173,
+    
     proxy: {
       '/api/sse': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3333',
         changeOrigin: true,
         // SSE: disable proxy response buffering so events stream through immediately
         configure: (proxy) => {
@@ -28,7 +30,7 @@ export default defineConfig({
         },
       },
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3333',
         changeOrigin: true,
       },
     },

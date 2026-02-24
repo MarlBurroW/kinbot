@@ -76,6 +76,7 @@ export const kins = sqliteTable('kins', {
   character: text('character').notNull(),
   expertise: text('expertise').notNull(),
   model: text('model').notNull(),
+  providerId: text('provider_id').references(() => providers.id, { onDelete: 'set null' }),
   workspacePath: text('workspace_path').notNull(),
   toolConfig: text('tool_config'), // JSON: KinToolConfig
   createdBy: text('created_by').references(() => user.id),
@@ -106,6 +107,7 @@ export const messages = sqliteTable('messages', {
   id: text('id').primaryKey(),
   kinId: text('kin_id').notNull().references(() => kins.id),
   taskId: text('task_id').references(() => tasks.id),
+  sessionId: text('session_id').references(() => quickSessions.id, { onDelete: 'cascade' }),
   role: text('role').notNull(), // 'user' | 'assistant' | 'system' | 'tool'
   content: text('content'),
   sourceType: text('source_type').notNull(), // 'user' | 'kin' | 'task' | 'cron' | 'system'
@@ -123,6 +125,7 @@ export const messages = sqliteTable('messages', {
   index('idx_messages_task_id').on(table.taskId),
   index('idx_messages_kin_created').on(table.kinId, table.createdAt),
   index('idx_messages_source').on(table.sourceType, table.sourceId),
+  index('idx_messages_session_id').on(table.sessionId),
 ])
 
 export const compactingSnapshots = sqliteTable('compacting_snapshots', {
@@ -174,6 +177,18 @@ export const contactIdentifiers = sqliteTable('contact_identifiers', {
   index('idx_contact_identifiers_contact_id').on(table.contactId),
 ])
 
+export const contactPlatformIds = sqliteTable('contact_platform_ids', {
+  id: text('id').primaryKey(),
+  contactId: text('contact_id').notNull().references(() => contacts.id, { onDelete: 'cascade' }),
+  platform: text('platform').notNull(), // 'telegram', 'discord', etc.
+  platformId: text('platform_id').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  uniqueIndex('idx_contact_platform_ids_unique').on(table.platform, table.platformId),
+  index('idx_contact_platform_ids_contact').on(table.contactId),
+])
+
 export const contactNotes = sqliteTable('contact_notes', {
   id: text('id').primaryKey(),
   contactId: text('contact_id').notNull().references(() => contacts.id, { onDelete: 'cascade' }),
@@ -199,6 +214,20 @@ export const customTools = sqliteTable('custom_tools', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
   uniqueIndex('idx_custom_tools_kin_name').on(table.kinId, table.name),
+])
+
+export const quickSessions = sqliteTable('quick_sessions', {
+  id: text('id').primaryKey(),
+  kinId: text('kin_id').notNull().references(() => kins.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').notNull().references(() => user.id),
+  title: text('title'),
+  status: text('status').notNull().default('active'), // 'active' | 'closed'
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  closedAt: integer('closed_at', { mode: 'timestamp_ms' }),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
+}, (table) => [
+  index('idx_quick_sessions_kin_status').on(table.kinId, table.status),
+  index('idx_quick_sessions_user').on(table.createdBy),
 ])
 
 export const tasks = sqliteTable('tasks', {
@@ -242,6 +271,32 @@ export const crons = sqliteTable('crons', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 })
 
+export const webhooks = sqliteTable('webhooks', {
+  id: text('id').primaryKey(),
+  kinId: text('kin_id').notNull().references(() => kins.id),
+  name: text('name').notNull(),
+  token: text('token').notNull().unique(),
+  description: text('description'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  lastTriggeredAt: integer('last_triggered_at', { mode: 'timestamp_ms' }),
+  triggerCount: integer('trigger_count').notNull().default(0),
+  createdBy: text('created_by'), // 'user' | 'kin'
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_webhooks_kin_id').on(table.kinId),
+])
+
+export const webhookLogs = sqliteTable('webhook_logs', {
+  id: text('id').primaryKey(),
+  webhookId: text('webhook_id').notNull().references(() => webhooks.id, { onDelete: 'cascade' }),
+  payload: text('payload'),
+  sourceIp: text('source_ip'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_webhook_logs_webhook_created').on(table.webhookId, table.createdAt),
+])
+
 export const vaultSecrets = sqliteTable('vault_secrets', {
   id: text('id').primaryKey(),
   key: text('key').notNull().unique(),
@@ -263,6 +318,7 @@ export const queueItems = sqliteTable('queue_items', {
   requestId: text('request_id'),
   inReplyTo: text('in_reply_to'),
   taskId: text('task_id').references(() => tasks.id),
+  sessionId: text('session_id'),
   status: text('status').notNull().default('pending'), // 'pending' | 'processing' | 'done'
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   processedAt: integer('processed_at', { mode: 'timestamp_ms' }),
@@ -300,6 +356,128 @@ export const humanPrompts = sqliteTable('human_prompts', {
   index('idx_human_prompts_task').on(table.taskId),
   index('idx_human_prompts_status').on(table.status),
 ])
+
+// ─── Channels ────────────────────────────────────────────────────────────────
+
+export const channels = sqliteTable('channels', {
+  id: text('id').primaryKey(),
+  kinId: text('kin_id').notNull().references(() => kins.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  platform: text('platform').notNull(), // 'telegram' (+ 'discord' in phase 2)
+  platformConfig: text('platform_config').notNull(), // JSON (botTokenVaultKey, allowedChatIds, etc.)
+  status: text('status').notNull().default('inactive'), // 'active' | 'inactive' | 'error'
+  statusMessage: text('status_message'),
+  autoCreateContacts: integer('auto_create_contacts', { mode: 'boolean' }).notNull().default(false),
+  messagesReceived: integer('messages_received').notNull().default(0),
+  messagesSent: integer('messages_sent').notNull().default(0),
+  lastActivityAt: integer('last_activity_at', { mode: 'timestamp_ms' }),
+  createdBy: text('created_by').notNull().default('user'), // 'user' | 'kin'
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_channels_kin_id').on(table.kinId),
+])
+
+export const channelUserMappings = sqliteTable('channel_user_mappings', {
+  id: text('id').primaryKey(),
+  channelId: text('channel_id').notNull().references(() => channels.id, { onDelete: 'cascade' }),
+  platformUserId: text('platform_user_id').notNull(),
+  platformUsername: text('platform_username'),
+  platformDisplayName: text('platform_display_name'),
+  contactId: text('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('approved'), // 'pending' | 'approved' | 'blocked'
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  uniqueIndex('idx_channel_user_map').on(table.channelId, table.platformUserId),
+  index('idx_channel_user_map_status').on(table.channelId, table.status),
+])
+
+export const channelMessageLinks = sqliteTable('channel_message_links', {
+  id: text('id').primaryKey(),
+  channelId: text('channel_id').notNull().references(() => channels.id, { onDelete: 'cascade' }),
+  messageId: text('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }),
+  platformMessageId: text('platform_message_id').notNull(),
+  platformChatId: text('platform_chat_id').notNull(),
+  direction: text('direction').notNull(), // 'inbound' | 'outbound'
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_cml_message').on(table.messageId),
+  index('idx_cml_channel').on(table.channelId),
+])
+
+// ─── Invitations ────────────────────────────────────────────────────────────
+
+export const invitations = sqliteTable('invitations', {
+  id: text('id').primaryKey(),
+  token: text('token').notNull().unique(),
+  label: text('label'),
+  createdBy: text('created_by').notNull().references(() => user.id),
+  kinId: text('kin_id').references(() => kins.id, { onDelete: 'set null' }),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  usedAt: integer('used_at', { mode: 'timestamp_ms' }),
+  usedBy: text('used_by').references(() => user.id),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_invitations_created_by').on(table.createdBy),
+])
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+export const notifications = sqliteTable('notifications', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // NotificationType
+  title: text('title').notNull(),
+  body: text('body'),
+  kinId: text('kin_id').references(() => kins.id, { onDelete: 'set null' }),
+  relatedId: text('related_id'),
+  relatedType: text('related_type'), // 'prompt' | 'channel' | 'cron' | 'mcp' | 'kin'
+  isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_notifications_user_read').on(table.userId, table.isRead, table.createdAt),
+  index('idx_notifications_user_created').on(table.userId, table.createdAt),
+])
+
+export const notificationPreferences = sqliteTable('notification_preferences', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // NotificationType
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+}, (table) => [
+  uniqueIndex('idx_notif_pref_user_type').on(table.userId, table.type),
+])
+
+// ─── Notification Channels (external delivery) ──────────────────────────────
+
+export const notificationChannels = sqliteTable('notification_channels', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  channelId: text('channel_id').notNull().references(() => channels.id, { onDelete: 'cascade' }),
+  platformChatId: text('platform_chat_id').notNull(),
+  label: text('label'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  typeFilter: text('type_filter'), // JSON: NotificationType[] | null (null = all)
+  lastDeliveredAt: integer('last_delivered_at', { mode: 'timestamp_ms' }),
+  lastError: text('last_error'),
+  consecutiveErrors: integer('consecutive_errors').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_notif_channels_user').on(table.userId),
+  uniqueIndex('idx_notif_channels_unique').on(table.userId, table.channelId, table.platformChatId),
+])
+
+// ─── App Settings ────────────────────────────────────────────────────────────
+
+export const appSettings = sqliteTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at').notNull(), // Unix ms
+})
+
+// ─── File Storage ────────────────────────────────────────────────────────────
 
 export const fileStorage = sqliteTable('file_storage', {
   id: text('id').primaryKey(),

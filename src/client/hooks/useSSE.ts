@@ -1,7 +1,41 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 type SSEEventHandler = (data: Record<string, unknown>) => void
 type HandlersMap = Record<string, SSEEventHandler>
+
+// ---------------------------------------------------------------------------
+// Connection status — observable by useSSEStatus()
+// ---------------------------------------------------------------------------
+
+export type SSEConnectionStatus = 'connected' | 'disconnected' | 'reconnecting'
+
+type StatusListener = () => void
+
+interface StatusStore {
+  status: SSEConnectionStatus
+  listeners: Set<StatusListener>
+}
+
+function getStatusStore(): StatusStore {
+  if (import.meta.hot?.data?.sseStatusStore) {
+    return import.meta.hot.data.sseStatusStore as StatusStore
+  }
+  const store: StatusStore = { status: 'disconnected', listeners: new Set() }
+  if (import.meta.hot) {
+    import.meta.hot.data.sseStatusStore = store
+  }
+  return store
+}
+
+const statusStore = getStatusStore()
+
+function setStatus(next: SSEConnectionStatus) {
+  if (statusStore.status === next) return
+  statusStore.status = next
+  for (const listener of statusStore.listeners) {
+    listener()
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Singleton EventSource — one connection shared by all useSSE consumers.
@@ -68,11 +102,13 @@ function connect() {
 
   es.addEventListener('connected', () => {
     console.log('[SSE] Connected')
+    setStatus('connected')
   })
 
   es.onerror = () => {
     es.close()
     state.eventSource = null
+    setStatus('reconnecting')
     // Always schedule reconnect — during HMR, subscribers may temporarily be 0
     // but components will remount shortly. The teardown grace period handles
     // the case where the page is truly unloading.
@@ -101,6 +137,7 @@ function teardown() {
     state.eventSource.close()
     state.eventSource = null
   }
+  setStatus('disconnected')
 }
 
 // ---------------------------------------------------------------------------
@@ -129,6 +166,23 @@ export function useSSE(handlers: HandlersMap) {
       }
     }
   }, [])
+}
+
+// ---------------------------------------------------------------------------
+// Status hook — subscribe to connection state changes
+// ---------------------------------------------------------------------------
+
+function subscribeStatus(listener: StatusListener) {
+  statusStore.listeners.add(listener)
+  return () => { statusStore.listeners.delete(listener) }
+}
+
+function getStatusSnapshot(): SSEConnectionStatus {
+  return statusStore.status
+}
+
+export function useSSEStatus(): SSEConnectionStatus {
+  return useSyncExternalStore(subscribeStatus, getStatusSnapshot)
 }
 
 // ---------------------------------------------------------------------------

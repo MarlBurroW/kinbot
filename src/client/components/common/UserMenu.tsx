@@ -20,9 +20,10 @@ interface UserMenuProps {
     avatarUrl: string | null
   }
   onLogout: () => void
+  onOpenSettings: () => void
 }
 
-export function UserMenu({ user, onLogout }: UserMenuProps) {
+export function UserMenu({ user, onLogout, onOpenSettings }: UserMenuProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -51,7 +52,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           <User className="size-4" />
           {t('sidebar.account')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate('/settings')}>
+        <DropdownMenuItem onClick={onOpenSettings}>
           <Settings className="size-4" />
           {t('sidebar.settings')}
         </DropdownMenuItem>

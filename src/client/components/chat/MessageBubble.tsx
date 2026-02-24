@@ -1,10 +1,24 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
+import { Badge } from '@/client/components/ui/badge'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/client/components/ui/collapsible'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { InlineToolCall } from '@/client/components/chat/InlineToolCall'
 import { TaskResultCard } from '@/client/components/chat/TaskResultCard'
+import { ImageLightbox } from '@/client/components/chat/ImageLightbox'
 import { cn } from '@/client/lib/utils'
+import { PlatformIcon } from '@/client/components/common/PlatformIcon'
+import { FileIcon, Download, Brain, ChevronDown } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
+import type { MessageFile } from '@/shared/types'
+
+interface InjectedMemory {
+  id: string
+  category: string
+  content: string
+  subject: string | null
+}
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'system'
@@ -14,6 +28,8 @@ interface MessageBubbleProps {
   senderName?: string
   timestamp?: string
   toolCalls?: ToolCallViewItem[]
+  injectedMemories?: InjectedMemory[] | null
+  files?: MessageFile[]
   onOpenTaskDetail?: () => void
 }
 
@@ -75,6 +91,111 @@ function buildContentParts(content: string, toolCalls: ToolCallViewItem[]): Cont
   return parts
 }
 
+// ─── File attachments rendering ───────────────────────────────────────────────
+
+function MessageFiles({ files, isUser }: { files: MessageFile[]; isUser: boolean }) {
+  const [lightboxFile, setLightboxFile] = useState<MessageFile | null>(null)
+
+  const images = files.filter((f) => f.mimeType.startsWith('image/'))
+  const others = files.filter((f) => !f.mimeType.startsWith('image/'))
+
+  if (files.length === 0) return null
+
+  return (
+    <>
+      {/* Image thumbnails */}
+      {images.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {images.map((img) => (
+            <button
+              key={img.id}
+              type="button"
+              onClick={() => setLightboxFile(img)}
+              className="overflow-hidden rounded-lg border border-border/50 hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <img
+                src={img.url}
+                alt={img.name}
+                className="max-h-48 max-w-48 object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Non-image file chips */}
+      {others.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {others.map((file) => (
+            <a
+              key={file.id}
+              href={file.url}
+              download={file.name}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
+                isUser
+                  ? 'bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30'
+                  : 'bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20',
+              )}
+            >
+              <FileIcon className="size-3.5 shrink-0" />
+              <span className="max-w-32 truncate">{file.name}</span>
+              <Download className="size-3 shrink-0" />
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxFile && (
+        <ImageLightbox
+          file={lightboxFile}
+          onClose={() => setLightboxFile(null)}
+        />
+      )}
+    </>
+  )
+}
+
+// ─── Injected memories indicator ──────────────────────────────────────────────
+
+function InjectedMemoriesIndicator({ memories }: { memories: InjectedMemory[] }) {
+  const { t } = useTranslation()
+  const count = memories.length
+
+  return (
+    <Collapsible>
+      <CollapsibleTrigger className="group mt-1.5 flex items-center gap-1.5 text-xs text-chart-2 hover:text-chart-2/80 transition-colors">
+        <Brain className="size-3.5" />
+        <span>
+          {count === 1 ? t('chat.memoriesUsedSingular') : t('chat.memoriesUsed', { count })}
+        </span>
+        <ChevronDown className="size-3 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-1.5 space-y-1 rounded-lg border border-chart-2/20 bg-chart-2/5 px-3 py-2">
+          {memories.map((mem) => (
+            <div key={mem.id} className="flex items-start gap-2 text-xs">
+              <Badge variant="secondary" className="mt-0.5 shrink-0 px-1.5 py-0 text-[10px]">
+                {t(`settings.memories.category.${mem.category}`)}
+              </Badge>
+              <span className="text-muted-foreground whitespace-pre-wrap">
+                {mem.content}
+                {mem.subject && (
+                  <span className="ml-1 text-muted-foreground/60">({mem.subject})</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+// ─── Message bubble ───────────────────────────────────────────────────────────
+
 export const MessageBubble = memo(function MessageBubble({
   role,
   content,
@@ -83,13 +204,20 @@ export const MessageBubble = memo(function MessageBubble({
   senderName,
   timestamp,
   toolCalls,
+  injectedMemories,
+  files,
   onOpenTaskDetail,
 }: MessageBubbleProps) {
   const isUser = role === 'user' && sourceType === 'user'
   const isFromOtherKin = sourceType === 'kin' && role === 'user'
+  const isFromChannel = sourceType === 'channel'
+  // Extract platform from content prefix [telegram:Name] or [discord:Name]
+  const channelPlatform = isFromChannel ? content.match(/^\[(\w+):/)?.[1] ?? 'channel' : null
   const isTaskResult = sourceType === 'task'
   const isSystem = sourceType === 'system' || sourceType === 'cron'
   const hasToolCalls = toolCalls && toolCalls.length > 0
+  const hasFiles = files && files.length > 0
+  const hasMemories = injectedMemories && injectedMemories.length > 0
 
   const contentParts = useMemo(
     () => (hasToolCalls ? buildContentParts(content, toolCalls) : null),
@@ -153,6 +281,16 @@ export const MessageBubble = memo(function MessageBubble({
             ),
           )}
 
+          {/* Files after content parts */}
+          {hasFiles && (
+            <div className={cn('rounded-2xl px-4 py-2', bubbleClass)}>
+              <MessageFiles files={files} isUser={false} />
+            </div>
+          )}
+
+          {/* Injected memories indicator */}
+          {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
+
           {timestamp && (
             <p className="text-[10px] text-muted-foreground/70">
               {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -186,19 +324,27 @@ export const MessageBubble = memo(function MessageBubble({
             ? 'bg-primary text-primary-foreground rounded-tr-md'
             : isFromOtherKin
               ? 'bg-accent text-accent-foreground rounded-tl-md border border-border'
-              : 'bg-muted text-foreground rounded-tl-md',
+              : isFromChannel
+                ? 'bg-accent text-accent-foreground rounded-tl-md border border-chart-4/30'
+                : 'bg-muted text-foreground rounded-tl-md',
         )}
       >
         {senderName && (
           <p className={cn(
-            'mb-1 text-xs font-medium',
+            'mb-1 text-xs font-medium flex items-center gap-1.5',
             isUser ? 'text-primary-foreground/70' : 'text-muted-foreground',
           )}>
+            {isFromChannel && channelPlatform && <PlatformIcon platform={channelPlatform} variant="color" className="size-3" />}
             {senderName}
           </p>
         )}
 
         <MarkdownContent content={content} isUser={isUser} />
+
+        {hasFiles && <MessageFiles files={files} isUser={isUser} />}
+
+        {/* Injected memories indicator */}
+        {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
 
         {timestamp && (
           <p className={cn(

@@ -17,7 +17,7 @@ interface KinToolsTabProps {
 }
 
 function getEffectiveConfig(config: KinToolConfig | null): KinToolConfig {
-  return config ?? { disabledNativeTools: [], mcpAccess: {} }
+  return config ?? { disabledNativeTools: [], mcpAccess: {}, enabledOptInTools: [] }
 }
 
 export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsTabProps) {
@@ -26,38 +26,78 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsT
 
   const config = getEffectiveConfig(toolConfig)
 
-  // ─── Native tool toggle ────────────────────────────────────────────
+  // ─── Native tool toggle (dual model: deny-list + opt-in allow-list) ──
 
-  const isNativeToolEnabled = (toolName: string) =>
-    !config.disabledNativeTools.includes(toolName)
-
-  const toggleNativeTool = (toolName: string) => {
-    const disabled = new Set(config.disabledNativeTools)
-    if (disabled.has(toolName)) {
-      disabled.delete(toolName)
-    } else {
-      disabled.add(toolName)
+  const isNativeToolEnabled = (toolName: string, defaultDisabled?: boolean) => {
+    if (defaultDisabled) {
+      // Opt-in tool: enabled only if in enabledOptInTools
+      return config.enabledOptInTools?.includes(toolName) ?? false
     }
-    onToolConfigChange({
-      ...config,
-      disabledNativeTools: Array.from(disabled),
-    })
+    // Standard tool: enabled unless in disabledNativeTools
+    return !config.disabledNativeTools.includes(toolName)
+  }
+
+  const toggleNativeTool = (toolName: string, defaultDisabled?: boolean) => {
+    if (defaultDisabled) {
+      // Toggle in the opt-in allow-list
+      const optIn = new Set(config.enabledOptInTools ?? [])
+      if (optIn.has(toolName)) {
+        optIn.delete(toolName)
+      } else {
+        optIn.add(toolName)
+      }
+      onToolConfigChange({
+        ...config,
+        enabledOptInTools: Array.from(optIn),
+      })
+    } else {
+      // Existing deny-list toggle
+      const disabled = new Set(config.disabledNativeTools)
+      if (disabled.has(toolName)) {
+        disabled.delete(toolName)
+      } else {
+        disabled.add(toolName)
+      }
+      onToolConfigChange({
+        ...config,
+        disabledNativeTools: Array.from(disabled),
+      })
+    }
   }
 
   const toggleDomain = (group: NativeToolGroup) => {
-    const allEnabled = group.tools.every((t) => isNativeToolEnabled(t.name))
-    const disabled = new Set(config.disabledNativeTools)
-    for (const tool of group.tools) {
-      if (allEnabled) {
-        disabled.add(tool.name)
-      } else {
-        disabled.delete(tool.name)
+    const isOptIn = group.tools.some((t) => t.defaultDisabled)
+    const allEnabled = group.tools.every((t) => isNativeToolEnabled(t.name, t.defaultDisabled))
+
+    if (isOptIn) {
+      // Opt-in domain: toggle in enabledOptInTools
+      const optIn = new Set(config.enabledOptInTools ?? [])
+      for (const tool of group.tools) {
+        if (allEnabled) {
+          optIn.delete(tool.name)
+        } else {
+          optIn.add(tool.name)
+        }
       }
+      onToolConfigChange({
+        ...config,
+        enabledOptInTools: Array.from(optIn),
+      })
+    } else {
+      // Standard domain: toggle in disabledNativeTools
+      const disabled = new Set(config.disabledNativeTools)
+      for (const tool of group.tools) {
+        if (allEnabled) {
+          disabled.add(tool.name)
+        } else {
+          disabled.delete(tool.name)
+        }
+      }
+      onToolConfigChange({
+        ...config,
+        disabledNativeTools: Array.from(disabled),
+      })
     }
-    onToolConfigChange({
-      ...config,
-      disabledNativeTools: Array.from(disabled),
-    })
   }
 
   // ─── MCP tool toggle ──────────────────────────────────────────────
@@ -132,7 +172,8 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsT
         <h3 className="text-sm font-semibold text-foreground">{t('kin.tools.native')}</h3>
 
         {nativeTools.map((group) => {
-          const enabledCount = group.tools.filter((t) => isNativeToolEnabled(t.name)).length
+          const isOptIn = group.tools.some((t) => t.defaultDisabled)
+          const enabledCount = group.tools.filter((t) => isNativeToolEnabled(t.name, t.defaultDisabled)).length
           const allEnabled = enabledCount === group.tools.length
 
           return (
@@ -142,14 +183,15 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsT
               enabledCount={enabledCount}
               totalCount={group.tools.length}
               allEnabled={allEnabled}
+              isOptIn={isOptIn}
               onToggleAll={() => toggleDomain(group)}
             >
               {group.tools.map((tool) => (
                 <ToolRow
                   key={tool.name}
                   label={t(`tools.names.${tool.name}`, tool.name)}
-                  enabled={isNativeToolEnabled(tool.name)}
-                  onToggle={() => toggleNativeTool(tool.name)}
+                  enabled={isNativeToolEnabled(tool.name, tool.defaultDisabled)}
+                  onToggle={() => toggleNativeTool(tool.name, tool.defaultDisabled)}
                 />
               ))}
             </DomainGroup>
@@ -216,6 +258,7 @@ function DomainGroup({
   enabledCount,
   totalCount,
   allEnabled,
+  isOptIn,
   onToggleAll,
   children,
 }: {
@@ -223,6 +266,7 @@ function DomainGroup({
   enabledCount: number
   totalCount: number
   allEnabled: boolean
+  isOptIn?: boolean
   onToggleAll: () => void
   children: React.ReactNode
 }) {
@@ -248,6 +292,11 @@ function DomainGroup({
                 <ToolDomainIcon domain={domain} className={`size-3.5 ${meta.text}`} />
               </span>
               <span className="text-sm font-medium">{t(meta.labelKey)}</span>
+              {isOptIn && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {t('kin.tools.optIn')}
+                </Badge>
+              )}
               <span className="text-xs text-muted-foreground">
                 {t('kin.tools.countEnabled', { count: enabledCount, total: totalCount })}
               </span>

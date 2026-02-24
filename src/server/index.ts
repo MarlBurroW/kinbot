@@ -9,6 +9,12 @@ import { registerAllTools } from '@/server/tools/register'
 import { initCronScheduler } from '@/server/services/crons'
 import { Cron } from 'croner'
 import { cleanExpiredFiles } from '@/server/services/file-storage'
+import { startQuickSessionCleanup } from '@/server/services/quick-session-cleanup'
+import { browserPool } from '@/server/services/browser-pool'
+import { channelAdapters } from '@/server/channels/index'
+import { TelegramAdapter } from '@/server/channels/telegram'
+import { restoreActiveChannels } from '@/server/services/channels'
+import { ensureUserContactsExist } from '@/server/services/contacts'
 
 const log = createLogger('server')
 
@@ -34,10 +40,27 @@ startQueueWorker()
 log.info('Initializing cron scheduler...')
 initCronScheduler()
 
+// Start quick session cleanup
+startQuickSessionCleanup()
+
+// Ensure all users have a linked contact
+ensureUserContactsExist().catch((err) => log.error({ err }, 'Failed to backfill user contacts'))
+
+// Register channel adapters and restore active channels
+channelAdapters.register(new TelegramAdapter())
+restoreActiveChannels().catch((err) => log.error({ err }, 'Failed to restore active channels'))
+
 // File storage cleanup cron
 new Cron(`*/${config.fileStorage.cleanupIntervalMin} * * * *`, async () => {
   const count = await cleanExpiredFiles()
   if (count > 0) log.info({ count }, 'File storage cleanup completed')
+})
+
+// Notification cleanup cron (daily)
+import { cleanupOldNotifications } from '@/server/services/notifications'
+new Cron('0 3 * * *', async () => {
+  const count = await cleanupOldNotifications()
+  if (count > 0) log.info({ count }, 'Notification cleanup completed')
 })
 
 // Serve uploaded files
@@ -49,10 +72,20 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*', serveStatic({ path: './dist/client/index.html' }))
 }
 
-log.info({ port: config.port, env: process.env.NODE_ENV ?? 'development', dataDir: config.dataDir }, 'KinBot server started')
-
-export default {
+Bun.serve({
   port: config.port,
+  hostname: process.env.HOST ?? '127.0.0.1',
   fetch: app.fetch,
   idleTimeout: 255, // seconds — keep SSE connections alive (Bun default is 10s)
+})
+
+// Graceful shutdown — cleanup browser pool
+const shutdown = async () => {
+  log.info('Shutting down...')
+  await browserPool.shutdown()
+  process.exit(0)
 }
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
+
+log.info({ port: config.port, env: process.env.NODE_ENV ?? 'development', dataDir: config.dataDir }, 'KinBot server started')

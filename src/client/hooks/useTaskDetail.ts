@@ -12,6 +12,7 @@ interface TaskDetail {
   description: string
   status: TaskStatus
   mode: string
+  model: string | null
   depth: number
   result: string | null
   error: string | null

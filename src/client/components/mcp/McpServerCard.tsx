@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
+import { KinBadge } from '@/client/components/common/KinBadge'
 import { CheckCircle, Pencil, Plug, Trash2 } from 'lucide-react'
 
 export interface McpServerData {
@@ -19,12 +20,13 @@ export interface McpServerData {
 interface McpServerCardProps {
   server: McpServerData
   kinName?: string
+  kinAvatarUrl?: string | null
   onApprove?: () => void
   onEdit?: () => void
   onDelete?: () => void
 }
 
-export function McpServerCard({ server, kinName, onApprove, onEdit, onDelete }: McpServerCardProps) {
+export function McpServerCard({ server, kinName, kinAvatarUrl, onApprove, onEdit, onDelete }: McpServerCardProps) {
   const { t } = useTranslation()
 
   const isPending = server.status === 'pending_approval'
@@ -49,10 +51,8 @@ export function McpServerCard({ server, kinName, onApprove, onEdit, onDelete }: 
                   {t('settings.mcp.statusActive')}
                 </Badge>
               )}
-              {server.createdByKinId && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                  {t('settings.mcp.createdByKin', { name: kinName ?? '?' })}
-                </Badge>
+              {server.createdByKinId && kinName && (
+                <KinBadge name={kinName} avatarUrl={kinAvatarUrl} />
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate">

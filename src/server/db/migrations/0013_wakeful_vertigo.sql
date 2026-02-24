@@ -1,0 +1,1 @@
+ALTER TABLE `kins` ADD `provider_id` text REFERENCES providers(id);

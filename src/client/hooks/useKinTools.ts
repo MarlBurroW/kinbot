@@ -4,7 +4,7 @@ import type { ToolDomain } from '@/shared/types'
 
 export interface NativeToolGroup {
   domain: ToolDomain
-  tools: Array<{ name: string; enabled: boolean }>
+  tools: Array<{ name: string; enabled: boolean; defaultDisabled?: boolean }>
 }
 
 export interface McpToolGroup {

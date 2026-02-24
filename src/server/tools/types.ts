@@ -20,4 +20,6 @@ export interface ToolRegistration {
   create: ToolFactory
   /** Which agent contexts this tool is available in */
   availability: ToolAvailability[]
+  /** If true, tool is DISABLED by default — requires explicit opt-in via enabledOptInTools */
+  defaultDisabled?: boolean
 }

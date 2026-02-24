@@ -4,6 +4,8 @@ import { userProfiles, providers, user } from '@/server/db/schema'
 import { eq } from 'drizzle-orm'
 import { auth } from '@/server/auth/index'
 import { createLogger } from '@/server/logger'
+import { createContact, findContactByLinkedUserId } from '@/server/services/contacts'
+import { validateInvitation, markInvitationUsed } from '@/server/services/invitations'
 
 const log = createLogger('routes:onboarding')
 const onboardingRoutes = new Hono()
@@ -71,11 +73,12 @@ onboardingRoutes.post('/profile', async (c) => {
   }
 
   const body = await c.req.json()
-  const { firstName, lastName, pseudonym, language } = body as {
+  const { firstName, lastName, pseudonym, language, invitationToken } = body as {
     firstName: string
     lastName: string
     pseudonym: string
     language: string
+    invitationToken?: string
   }
 
   if (!firstName || !lastName || !pseudonym) {
@@ -85,14 +88,31 @@ onboardingRoutes.post('/profile', async (c) => {
     )
   }
 
-  // First user gets admin role
+  // Check if this is the first user or an invited user
   const adminExists = await db
     .select()
     .from(userProfiles)
     .where(eq(userProfiles.role, 'admin'))
     .get()
 
-  const role = adminExists ? 'member' : 'admin'
+  // If not the first user, require a valid invitation token
+  if (adminExists && invitationToken) {
+    const validation = validateInvitation(invitationToken)
+    if (!validation.valid) {
+      return c.json(
+        { error: { code: 'INVALID_INVITATION', message: `Invalid invitation: ${validation.reason}` } },
+        400,
+      )
+    }
+  } else if (adminExists && !invitationToken) {
+    return c.json(
+      { error: { code: 'INVITATION_REQUIRED', message: 'An invitation token is required to create an account' } },
+      403,
+    )
+  }
+
+  // All users are admin
+  const role = 'admin'
 
   await db.insert(userProfiles).values({
     userId,
@@ -108,6 +128,23 @@ onboardingRoutes.post('/profile', async (c) => {
     .update(user)
     .set({ name: `${firstName} ${lastName}`, updatedAt: new Date() })
     .where(eq(user.id, userId))
+
+  // Auto-create a contact for this user
+  const existingContact = findContactByLinkedUserId(userId)
+  if (!existingContact) {
+    const userEmail = session.user.email
+    await createContact({
+      name: `${firstName} ${lastName}`,
+      type: 'human',
+      linkedUserId: userId,
+      identifiers: userEmail ? [{ label: 'email', value: userEmail }] : undefined,
+    })
+  }
+
+  // Mark invitation as used if provided
+  if (invitationToken) {
+    markInvitationUsed(invitationToken, userId)
+  }
 
   log.info({ userId, role, pseudonym }, 'Onboarding completed')
 

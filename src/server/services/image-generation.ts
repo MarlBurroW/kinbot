@@ -1,12 +1,14 @@
-import { generateImage, generateText } from 'ai'
+import { generateImage as aiGenerateImage, generateText } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { eq } from 'drizzle-orm'
+import { join } from 'path'
 import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { providers } from '@/server/db/schema'
 import { decrypt } from '@/server/services/encryption'
+import { config } from '@/server/config'
 
 const log = createLogger('image-gen')
 
@@ -15,13 +17,20 @@ interface GenerateImageResult {
   mediaType: string
 }
 
+interface GenerateImageOptions {
+  providerId?: string
+  modelId?: string
+  imageUrl?: string
+}
+
 /**
  * Generate an image using a specific or the first available image provider.
+ * Supports optional image input for editing/inpainting.
  * Returns base64-encoded image data.
  */
-export async function generateAvatarImage(
+export async function generateImage(
   prompt: string,
-  options?: { providerId?: string; modelId?: string },
+  options?: GenerateImageOptions,
 ): Promise<GenerateImageResult> {
   let provider
   if (options?.providerId) {
@@ -44,10 +53,16 @@ export async function generateAvatarImage(
     baseUrl?: string
   }
 
+  // Resolve image input if provided
+  let imageData: Uint8Array | undefined
+  if (options?.imageUrl) {
+    imageData = await resolveImageInput(options.imageUrl)
+  }
+
   if (provider.type === 'openai') {
-    return generateWithOpenAI(providerConfig, prompt, options?.modelId)
+    return generateWithOpenAI(providerConfig, prompt, options?.modelId, imageData)
   } else if (provider.type === 'gemini') {
-    return generateWithGoogle(providerConfig, prompt, options?.modelId)
+    return generateWithGoogle(providerConfig, prompt, options?.modelId, imageData)
   }
 
   throw new ImageGenerationError(
@@ -56,15 +71,68 @@ export async function generateAvatarImage(
   )
 }
 
+/**
+ * Legacy alias — used by avatar generation routes.
+ */
+export const generateAvatarImage = generateImage
+
+/**
+ * Resolve an image URL to binary data.
+ * - Internal URLs (/api/uploads/..., /api/file-storage/...) are read from disk
+ * - External URLs (https://...) are fetched
+ */
+async function resolveImageInput(imageUrl: string): Promise<Uint8Array> {
+  if (imageUrl.startsWith('/api/uploads/')) {
+    // Internal upload: /api/uploads/messages/{kinId}/{filename} → data/uploads/messages/{kinId}/{filename}
+    const relativePath = imageUrl.replace('/api/uploads/', '')
+    const filePath = join(config.upload.dir, relativePath)
+    const file = Bun.file(filePath)
+    if (!(await file.exists())) {
+      throw new ImageGenerationError('IMAGE_NOT_FOUND', `Source image not found: ${imageUrl}`)
+    }
+    return new Uint8Array(await file.arrayBuffer())
+  }
+
+  if (imageUrl.startsWith('/api/file-storage/')) {
+    // Internal file-storage: /api/file-storage/d/{slug}/{filename} → data/file-storage/{slug}/{filename}
+    const relativePath = imageUrl.replace('/api/file-storage/d/', '')
+    const filePath = join(config.upload.dir, '..', 'file-storage', relativePath)
+    const file = Bun.file(filePath)
+    if (!(await file.exists())) {
+      throw new ImageGenerationError('IMAGE_NOT_FOUND', `Source image not found: ${imageUrl}`)
+    }
+    return new Uint8Array(await file.arrayBuffer())
+  }
+
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    // External URL
+    const response = await fetch(imageUrl)
+    if (!response.ok) {
+      throw new ImageGenerationError('IMAGE_FETCH_FAILED', `Failed to fetch source image from ${imageUrl}: ${response.status}`)
+    }
+    return new Uint8Array(await response.arrayBuffer())
+  }
+
+  throw new ImageGenerationError('INVALID_IMAGE_URL', `Invalid image URL: ${imageUrl}. Must be an internal /api/ path or an external https:// URL.`)
+}
+
+type ImagePrompt = string | { images: Uint8Array[]; text?: string }
+
+function buildPrompt(textPrompt: string, imageData?: Uint8Array): ImagePrompt {
+  if (!imageData) return textPrompt
+  return { images: [imageData], text: textPrompt }
+}
+
 async function generateWithOpenAI(
   config: { apiKey: string; baseUrl?: string },
   prompt: string,
   modelId?: string,
+  imageData?: Uint8Array,
 ): Promise<GenerateImageResult> {
   const openai = createOpenAI({ apiKey: config.apiKey, baseURL: config.baseUrl })
-  const { image } = await generateImage({
+  const { image } = await aiGenerateImage({
     model: openai.image(modelId ?? 'dall-e-3'),
-    prompt,
+    prompt: buildPrompt(prompt, imageData),
     size: '1024x1024' as `${number}x${number}`,
   })
   return {
@@ -77,11 +145,12 @@ async function generateWithGoogle(
   config: { apiKey: string; baseUrl?: string },
   prompt: string,
   modelId?: string,
+  imageData?: Uint8Array,
 ): Promise<GenerateImageResult> {
   const google = createGoogleGenerativeAI({ apiKey: config.apiKey, baseURL: config.baseUrl })
-  const { image } = await generateImage({
+  const { image } = await aiGenerateImage({
     model: google.image(modelId ?? 'imagen-3.0-generate-002'),
-    prompt,
+    prompt: buildPrompt(prompt, imageData),
     aspectRatio: '1:1' as `${number}:${number}`,
   })
   return {
@@ -107,7 +176,7 @@ async function findImageProvider() {
   return null
 }
 
-async function findLLMProvider() {
+export async function findLLMProvider() {
   const allProviders = await db.select().from(providers).all()
 
   for (const p of allProviders) {
@@ -125,7 +194,7 @@ async function findLLMProvider() {
 }
 
 /**
- * Check if avatar generation is possible (needs both image + LLM providers).
+ * Check if image generation is possible (needs both image + LLM providers).
  */
 export async function hasImageCapability(): Promise<boolean> {
   const [imageProvider, llmProvider] = await Promise.all([findImageProvider(), findLLMProvider()])

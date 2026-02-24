@@ -14,6 +14,7 @@ import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { Switch } from '@/client/components/ui/switch'
 import { Label } from '@/client/components/ui/label'
 import { TaskDetailModal } from '@/client/components/sidebar/TaskDetailModal'
+import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import {
   Clock,
   Pencil,
@@ -23,6 +24,7 @@ import {
   Ban,
   FileText,
   UserCheck,
+  Cpu,
 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
@@ -35,10 +37,19 @@ interface TasksResponse {
   hasMore: boolean
 }
 
+interface LLMModel {
+  id: string
+  name: string
+  providerId: string
+  providerType: string
+  capability: string
+}
+
 interface CronDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   cron: CronSummary
+  llmModels: LLMModel[]
   onEdit: () => void
   onApprove: (id: string) => Promise<CronSummary>
   onToggleActive: (id: string, isActive: boolean) => Promise<CronSummary>
@@ -78,6 +89,7 @@ export function CronDetailModal({
   open,
   onOpenChange,
   cron,
+  llmModels,
   onEdit,
   onApprove,
   onToggleActive,
@@ -191,6 +203,28 @@ export function CronDetailModal({
                 <div className="rounded-md bg-muted/50 px-3 py-2">
                   <p className="text-sm whitespace-pre-wrap">{cron.taskDescription}</p>
                 </div>
+              </div>
+
+              {/* Model */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">{t('cron.detail.model')}</p>
+                {cron.model ? (
+                  (() => {
+                    const resolvedModel = llmModels.find((m) => m.id === cron.model)
+                    return (
+                      <div className="flex items-center gap-2 text-sm">
+                        {resolvedModel ? (
+                          <ProviderIcon providerType={resolvedModel.providerType} className="size-4 shrink-0" />
+                        ) : (
+                          <Cpu className="size-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span>{resolvedModel?.name ?? cron.model}</span>
+                      </div>
+                    )
+                  })()
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">{t('cron.detail.modelInherited')}</p>
+                )}
               </div>
 
               {/* Active toggle */}
@@ -309,6 +343,7 @@ export function CronDetailModal({
         onOpenChange={(o) => { if (!o) setSelectedTaskId(null) }}
         kinName={selectedTask?.sourceKinName ?? selectedTask?.parentKinName}
         kinAvatarUrl={selectedTask?.sourceKinAvatarUrl ?? selectedTask?.parentKinAvatarUrl}
+        llmModels={llmModels}
       />
     </>
   )

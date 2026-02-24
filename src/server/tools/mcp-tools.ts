@@ -63,6 +63,19 @@ export const addMcpServerTool: ToolRegistration = {
 
           log.info({ serverId: id, name, kinId: ctx.kinId, status }, 'MCP server created by Kin')
 
+          // Persistent notification for pending approval
+          if (status === 'pending_approval') {
+            const { createNotification } = await import('@/server/services/notifications')
+            createNotification({
+              type: 'mcp:pending-approval',
+              title: 'MCP server needs approval',
+              body: name,
+              kinId: ctx.kinId,
+              relatedId: id,
+              relatedType: 'mcp',
+            }).catch(() => {})
+          }
+
           return {
             serverId: id,
             name,

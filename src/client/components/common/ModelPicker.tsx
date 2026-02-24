@@ -36,6 +36,8 @@ interface ModelPickerProps {
   valueFormat?: 'modelId' | 'providerAndModel'
   disabled?: boolean
   className?: string
+  /** Show a "None" option at the top to clear the selection */
+  allowClear?: boolean
 }
 
 export function ModelPicker({
@@ -46,6 +48,7 @@ export function ModelPicker({
   valueFormat = 'modelId',
   disabled = false,
   className,
+  allowClear = false,
 }: ModelPickerProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -157,6 +160,25 @@ export function ModelPicker({
             onWheel={(e) => e.stopPropagation()}
           >
             <CommandEmpty>{t('modelPicker.noResults')}</CommandEmpty>
+            {allowClear && (
+              <CommandGroup>
+                <CommandItem
+                  value="__clear__"
+                  onSelect={() => {
+                    onValueChange('')
+                    setOpen(false)
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      'size-4 shrink-0',
+                      !value ? 'opacity-100' : 'opacity-0',
+                    )}
+                  />
+                  <span className="text-muted-foreground">—</span>
+                </CommandItem>
+              </CommandGroup>
+            )}
             {Object.entries(modelsByProvider).map(([providerType, providerModels]) => (
               <CommandGroup
                 key={providerType}

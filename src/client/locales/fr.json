@@ -21,6 +21,10 @@
     "copy": "Copier",
     "copied": "Copié"
   },
+  "errors": {
+    "backendUnavailable": "Impossible de joindre le serveur. Vérifiez que le backend est en cours d'exécution et réessayez.",
+    "retry": "Réessayer"
+  },
   "login": {
     "title": "Bon retour",
     "subtitle": "Connectez-vous à votre espace KinBot",
@@ -116,6 +120,11 @@
       "empty": "Aucune tâche active",
       "search": "Rechercher...",
       "noResults": "Aucune tâche trouvée",
+      "summary": {
+        "running": "{{count}} en cours",
+        "needYou": "{{count}} en attente",
+        "pending": "{{count}} en file"
+      },
       "status": {
         "pending": "En attente",
         "in_progress": "En cours",
@@ -134,7 +143,11 @@
       "pendingApproval": "En attente d'approbation",
       "approve": "Approuver",
       "lastRun": "Dernier : {{time}}",
-      "never": "Jamais exécutée"
+      "never": "Jamais exécutée",
+      "summary": {
+        "active": "{{count}} actifs",
+        "pending": "{{count}} à approuver"
+      }
     },
     "account": "Mon compte",
     "settings": "Paramètres",
@@ -158,6 +171,9 @@
       "expertisePlaceholder": "Décrivez les connaissances et objectifs...",
       "model": "Modèle IA",
       "modelPlaceholder": "Sélectionnez un modèle",
+      "provider": "Fournisseur",
+      "providerHint": "Plusieurs fournisseurs peuvent servir ce modèle. Choisissez lequel utiliser, ou laissez sur Auto pour utiliser le premier disponible.",
+      "providerAuto": "Auto (premier disponible)",
       "avatar": "Avatar",
       "avatarMode": "Source de l'avatar",
       "avatarUpload": "Importer un fichier",
@@ -177,7 +193,8 @@
     },
     "tabs": {
       "general": "Général",
-      "tools": "Outils"
+      "tools": "Outils",
+      "memory": "Mémoire"
     },
     "tools": {
       "native": "Outils natifs",
@@ -190,7 +207,8 @@
       "saveMcpHint": "Enregistrez le Kin d'abord pour configurer les outils MCP.",
       "connectionFailed": "Connexion échouée — impossible de découvrir les outils de ce serveur.",
       "enableAll": "Tout activer",
-      "disableAll": "Tout désactiver"
+      "disableAll": "Tout désactiver",
+      "optIn": "Opt-in"
     },
     "defaults": {
       "character": "Tu es un assistant amical, réfléchi et polyvalent. Tu communiques clairement et tu adaptes ton ton au contexte — décontracté quand c'est approprié, précis quand c'est nécessaire.\n\nTu es patient, curieux et tu prends plaisir à aider. Quand tu ne sais pas quelque chose, tu le dis honnêtement. Tu poses des questions de clarification quand la demande est ambiguë.\n\nTu gardes tes réponses concises sauf si l'utilisateur demande explicitement plus de détails.",
@@ -211,6 +229,20 @@
       "createFirst": "Enregistrez le Kin d'abord pour activer la génération.",
       "uploadHint": "Cliquez pour sélectionner ou glissez-déposez une image",
       "imageModel": "Modèle d'image"
+    },
+    "wizard": {
+      "title": "Décrivez votre Kin",
+      "subtitle": "Décrivez l'assistant dont vous avez besoin et nous le configurerons pour vous.",
+      "placeholder": "ex. Un expert en droit des entreprises qui peut aider à rédiger des contrats et conseiller sur la conformité...",
+      "generate": "Générer",
+      "generating": "Génération de la configuration...",
+      "skipManual": "Créer manuellement",
+      "refineLabel": "Affiner avec l'IA",
+      "refinePlaceholder": "ex. Rends-le plus formel, ajoute le droit fiscal...",
+      "refineSubmit": "Affiner",
+      "refining": "Affinage...",
+      "back": "Retour",
+      "generateError": "Échec de la génération. Veuillez réessayer ou créer manuellement."
     },
     "queue": "{{count}} en file",
     "processing": "En cours...",
@@ -260,6 +292,8 @@
       "owner": "Propriétaire",
       "target": "Cible",
       "createdBy": "Créée par",
+      "model": "Modèle",
+      "modelInherited": "Hérité du Kin parent",
       "history": "Historique d'exécutions",
       "historyEmpty": "Aucune exécution",
       "executions": "{{count}} exécution(s)"
@@ -273,10 +307,45 @@
     "empty": "Aucun message. Dites bonjour !",
     "streaming": "Réflexion...",
     "contextUsage": "Contexte : ~{{tokens}} / {{max}} tokens ({{percent}} %)",
+    "forceCompact": "Forcer la compaction",
+    "compacting": {
+      "title": "Compaction de la conversation",
+      "running": "Résumé des messages en cours...",
+      "done": "Compacté",
+      "memories": "{{count}} souvenir(s) extrait(s)",
+      "showSummary": "Voir le résumé",
+      "inputDisabled": "Veuillez patienter — compaction de l'historique...",
+      "nothingToCompact": "Rien à compacter — pas assez de messages"
+    },
     "taskResult": {
       "showResult": "Voir le résultat",
       "showError": "Voir les détails de l'erreur",
       "openDetail": "Voir les détails de la tâche"
+    },
+    "attachFile": "Joindre un fichier",
+    "dropFiles": "Déposez les fichiers ici",
+    "uploading": "Envoi en cours...",
+    "uploadError": "Échec de l'envoi",
+    "removeFile": "Retirer le fichier",
+    "downloadFile": "Télécharger",
+    "viewImage": "Voir en taille réelle",
+    "memoriesUsed": "{{count}} souvenirs",
+    "memoriesUsedSingular": "1 souvenir"
+  },
+  "quickChat": {
+    "title": "Session rapide",
+    "open": "Session rapide",
+    "empty": "Lancez une conversation rapide et privée avec ce Kin. Les messages n'apparaîtront pas dans la session principale.",
+    "maxReached": "Nombre maximum de sessions rapides atteint",
+    "endSession": "Terminer la session",
+    "expired": "Cette session a expiré",
+    "closing": {
+      "title": "Fermer la session rapide ?",
+      "description": "Cette conversation ne sera pas conservée dans l'historique principal. Vous pouvez sauvegarder un résumé en mémoire.",
+      "saveMemory": "Sauvegarder un résumé en mémoire",
+      "summaryPlaceholder": "Décrivez ce qui a été discuté ou décidé...",
+      "save": "Sauvegarder et fermer",
+      "closeOnly": "Fermer sans sauvegarder"
     }
   },
   "taskDetail": {
@@ -294,6 +363,14 @@
   },
   "settings": {
     "title": "Paramètres",
+    "general": {
+      "title": "Général",
+      "description": "Paramètres globaux qui s'appliquent à tous les Kins.",
+      "globalPrompt": "Prompt global",
+      "globalPromptPlaceholder": "Saisissez les instructions que tous les Kins doivent suivre...",
+      "globalPromptHint": "Ce texte est injecté dans le prompt système de chaque Kin.",
+      "saved": "Prompt global mis à jour"
+    },
     "providers": {
       "title": "Fournisseurs IA",
       "description": "Gérez vos connexions aux fournisseurs IA",
@@ -404,6 +481,38 @@
       "createdByKin": "par {{name}}",
       "createdByAdmin": "par l'admin"
     },
+    "memories": {
+      "title": "Souvenirs",
+      "description": "Consultez et gérez les souvenirs de tous les Kins.",
+      "empty": "Aucun souvenir",
+      "add": "Ajouter un souvenir",
+      "edit": "Modifier le souvenir",
+      "content": "Contenu",
+      "contentPlaceholder": "Saisir le contenu du souvenir...",
+      "categoryLabel": "Catégorie",
+      "subject": "Sujet",
+      "subjectPlaceholder": "Contact ou contexte (optionnel)",
+      "kin": "Kin",
+      "kinPlaceholder": "Sélectionner un Kin",
+      "search": "Rechercher des souvenirs...",
+      "category": {
+        "fact": "Fait",
+        "preference": "Préférence",
+        "decision": "Décision",
+        "knowledge": "Connaissance"
+      },
+      "sourceAutomatic": "Auto",
+      "sourceExplicit": "Manuel",
+      "filterAll": "Toutes les catégories",
+      "filterAllKins": "Tous les Kins",
+      "delete": "Supprimer le souvenir",
+      "deleteConfirm": "Le souvenir sera supprimé définitivement. Le Kin ne pourra plus le rappeler.",
+      "added": "Souvenir ajouté",
+      "saved": "Souvenir mis à jour",
+      "deleted": "Souvenir supprimé",
+      "saveKinFirst": "Enregistrez le Kin d'abord pour gérer ses souvenirs.",
+      "count": "{{count}} souvenirs"
+    },
     "contacts": {
       "title": "Contacts",
       "description": "Gestion du registre de contacts partagé par tous les Kins.",
@@ -435,7 +544,173 @@
       "noteDeleted": "Note supprimée",
       "added": "Contact ajouté",
       "saved": "Contact mis à jour",
-      "deleted": "Contact supprimé"
+      "deleted": "Contact supprimé",
+      "platformIds": "Identifiants de plateforme",
+      "platformIdRevoked": "Accès plateforme révoqué",
+      "noPlatformIds": "Aucun identifiant de plateforme",
+      "linkToUser": "Lier à un utilisateur",
+      "noUserLink": "Aucun",
+      "linkedUser": "Utilisateur système"
+    },
+    "webhooks": {
+      "title": "Webhooks",
+      "description": "Gérez les webhooks entrants permettant aux services externes de notifier vos Kins.",
+      "empty": "Aucun webhook configuré",
+      "add": "Ajouter un webhook",
+      "edit": "Modifier le webhook",
+      "name": "Nom",
+      "namePlaceholder": "ex. Alertes Grafana, Événements K8s...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Que va recevoir ce webhook ?",
+      "kin": "Kin cible",
+      "kinPlaceholder": "Sélectionnez un Kin",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "triggerCount": "{{count}} déclenchements",
+      "lastTriggered": "Dernier déclenchement",
+      "never": "Jamais",
+      "copyUrl": "Copier l'URL",
+      "urlCopied": "URL du webhook copiée",
+      "tokenWarning": "Enregistrez ce token maintenant — il ne sera plus affiché.",
+      "copyToken": "Copier le token",
+      "tokenCopied": "Token copié",
+      "regenerateToken": "Régénérer le token",
+      "regenerateConfirm": "Cela invalidera le token actuel. Les services externes utilisant ce token cesseront de fonctionner jusqu'à mise à jour.",
+      "regenerated": "Token régénéré",
+      "delete": "Supprimer le webhook",
+      "deleteConfirm": "Cela supprimera définitivement ce webhook. Les services externes recevront des erreurs 404.",
+      "added": "Webhook créé",
+      "saved": "Webhook mis à jour",
+      "deleted": "Webhook supprimé",
+      "viewLogs": "Voir les logs",
+      "logs": "Journal des déclenchements",
+      "logsEmpty": "Aucun déclenchement pour le moment",
+      "payload": "Payload",
+      "sourceIp": "IP source"
+    },
+    "users": {
+      "title": "Utilisateurs",
+      "description": "Gérez les utilisateurs de la plateforme et envoyez des invitations.",
+      "empty": "Aucun autre utilisateur",
+      "delete": "Supprimer l'utilisateur",
+      "deleteConfirm": "Cela supprimera définitivement le compte de cet utilisateur. Il perdra l'accès à la plateforme.",
+      "deleted": "Utilisateur supprimé",
+      "cannotDeleteSelf": "Vous ne pouvez pas supprimer votre propre compte",
+      "joined": "Inscrit le",
+      "invitations": {
+        "title": "Invitations",
+        "empty": "Aucune invitation",
+        "create": "Inviter",
+        "label": "Libellé",
+        "labelPlaceholder": "ex. Pour Maman, Pour le coloc...",
+        "expiresIn": "Expire dans (jours)",
+        "created": "Invitation créée",
+        "copyLink": "Copier le lien",
+        "linkCopied": "Lien copié dans le presse-papier",
+        "revoke": "Révoquer",
+        "revokeConfirm": "Cela invalidera le lien d'invitation. Toute personne l'ayant déjà reçu ne pourra plus l'utiliser.",
+        "revoked": "Invitation révoquée",
+        "status": {
+          "active": "Active",
+          "used": "Utilisée",
+          "expired": "Expirée"
+        },
+        "usedBy": "Utilisée par {{name}}",
+        "expiresAt": "Expire le {{date}}",
+        "createdBy": "Créée par {{name}}"
+      }
+    },
+    "channels": {
+      "title": "Channels",
+      "description": "Connectez vos Kins à des plateformes de messagerie externes. Les messages seront routés vers le Kin sélectionné, et les réponses renvoyées automatiquement.",
+      "empty": "Aucun channel configuré",
+      "add": "Ajouter un channel",
+      "platform": "Plateforme",
+      "name": "Nom",
+      "namePlaceholder": "Mon bot Telegram",
+      "botToken": "Token du bot",
+      "botTokenPlaceholder": "Collez votre token de bot ici",
+      "botTokenHint": "Le token sera chiffré et stocké dans le vault.",
+      "allowedChatIds": "Chat IDs autorisés",
+      "allowedChatIdsPlaceholder": "ex: 123456789, -100987654321",
+      "allowedChatIdsHint": "Laissez vide pour accepter les messages de tous les chats.",
+      "autoCreateContacts": "Créer les contacts automatiquement",
+      "autoCreateContactsHint": "Créer automatiquement un contact pour les expéditeurs inconnus.",
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif",
+        "error": "Erreur"
+      },
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "test": "Tester la connexion",
+      "testSuccess": "Connexion réussie !",
+      "testFailed": "Connexion échouée",
+      "delete": "Supprimer le channel",
+      "deleteConfirm": "Cela supprimera définitivement le channel et ses mappings utilisateurs. Les utilisateurs de la plateforme externe ne pourront plus joindre ce Kin.",
+      "deleted": "Channel supprimé",
+      "saved": "Channel sauvegardé",
+      "created": "Channel créé",
+      "messagesReceived": "reçus",
+      "messagesSent": "envoyés",
+      "manageUsers": "Utilisateurs",
+      "pendingUsers": "en attente",
+      "noUsers": "Aucun utilisateur en attente",
+      "newUserPending": "Nouvel utilisateur {{name}} en attente d'approbation",
+      "userApproved": "Utilisateur approuvé",
+      "approve": {
+        "title": "Approuver l'utilisateur",
+        "description": "{{name}} de {{platform}} demande l'accès à ce channel.",
+        "createContact": "Créer un nouveau contact",
+        "linkContact": "Lier à un contact existant",
+        "contactName": "Nom du contact",
+        "selectContact": "Sélectionnez un contact",
+        "searchContacts": "Rechercher des contacts...",
+        "noContacts": "Aucun contact trouvé",
+        "approve": "Approuver"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choisissez les notifications que vous souhaitez recevoir.",
+      "externalDelivery": "Livraison externe",
+      "externalDescription": "Recevez les notifications sur des plateformes externes.",
+      "addChannel": "Ajouter un canal de livraison",
+      "editChannel": "Modifier le canal de livraison",
+      "noChannels": "Aucun canal de livraison externe configuré.",
+      "sourceChannel": "Canal source (bot)",
+      "recipient": "Destinataire",
+      "selectContact": "Sélectionnez un contact",
+      "noContactsForPlatform": "Aucun contact n'a d'identifiant {{platform}}. Ajoutez un identifiant de plateforme à un contact d'abord.",
+      "label": "Libellé",
+      "labelPlaceholder": "Mon Telegram",
+      "typeFilter": "types",
+      "typeFilterAll": "Tous les types",
+      "testSent": "Notification test envoyée !",
+      "testFailed": "Test échoué",
+      "errorState": "{{count}} erreurs de livraison consécutives",
+      "autoDisabled": "Automatiquement désactivé suite aux erreurs",
+      "noAvailableChannels": "Aucun canal actif disponible. Créez et activez un canal d'abord."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification",
+    "markAllRead": "Tout marquer comme lu",
+    "delete": "Supprimer",
+    "types": {
+      "prompt-pending": "Réponse attendue",
+      "channel-user-pending": "Utilisateur en attente",
+      "cron-pending-approval": "Cron en attente",
+      "mcp-pending-approval": "MCP en attente",
+      "kin-error": "Erreur Kin"
+    },
+    "descriptions": {
+      "prompt-pending": "Un Kin attend votre réponse pour continuer",
+      "channel-user-pending": "Un nouvel utilisateur sur un channel attend votre approbation",
+      "cron-pending-approval": "Une tâche planifiée créée par un Kin nécessite votre approbation",
+      "mcp-pending-approval": "Un serveur MCP ajouté par un Kin nécessite votre approbation",
+      "kin-error": "Un Kin a rencontré une erreur qui peut nécessiter investigation"
     }
   },
   "modelPicker": {
@@ -465,6 +740,7 @@
     },
     "domains": {
       "search": "Recherche",
+      "browse": "Navigation web",
       "contacts": "Contacts",
       "memory": "Mémoire",
       "vault": "Coffre-fort",
@@ -475,10 +751,18 @@
       "images": "Images",
       "shell": "Shell",
       "file-storage": "Stockage fichiers",
-      "mcp": "MCP"
+      "mcp": "MCP",
+      "kin-management": "Gestion des Kins",
+      "webhooks": "Webhooks",
+      "system": "Système",
+      "channels": "Channels",
+      "users": "Utilisateurs"
     },
     "names": {
       "web_search": "Recherche web",
+      "browse_url": "Parcourir une URL",
+      "extract_links": "Extraire les liens",
+      "screenshot_url": "Capture d'écran",
       "get_contact": "Obtenir un contact",
       "search_contacts": "Rechercher des contacts",
       "create_contact": "Créer un contact",
@@ -528,8 +812,45 @@
       "search_stored_files": "Rechercher des fichiers",
       "update_stored_file": "Modifier un fichier",
       "delete_stored_file": "Supprimer un fichier",
-      "prompt_human": "Demander à l'utilisateur"
+      "prompt_human": "Demander à l'utilisateur",
+      "create_kin": "Créer un Kin",
+      "update_kin": "Modifier un Kin",
+      "delete_kin": "Supprimer un Kin",
+      "get_kin_details": "Détails d'un Kin",
+      "create_webhook": "Créer un webhook",
+      "update_webhook": "Modifier un webhook",
+      "delete_webhook": "Supprimer un webhook",
+      "list_webhooks": "Lister les webhooks",
+      "get_cron_journal": "Journal des crons",
+      "get_platform_logs": "Logs plateforme",
+      "list_users": "Lister les utilisateurs",
+      "get_user": "Obtenir un utilisateur",
+      "create_invitation": "Créer une invitation"
     }
+  },
+  "invite": {
+    "title": "Rejoindre KinBot",
+    "subtitle": "Vous avez été invité à rejoindre cet espace",
+    "invalidToken": "Ce lien d'invitation est invalide ou a expiré.",
+    "backToLogin": "Aller à la connexion",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "pseudonym": "Pseudonyme",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "language": "Langue",
+    "avatar": "Photo de profil",
+    "submit": "Créer le compte",
+    "creating": "Création du compte...",
+    "success": "Compte créé ! Redirection...",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "error": "Une erreur est survenue. Veuillez réessayer."
+  },
+  "sse": {
+    "connected": "Connecté au serveur",
+    "disconnected": "Déconnecté du serveur",
+    "reconnecting": "Reconnexion au serveur..."
   },
   "humanPrompt": {
     "title": "Question de votre Kin",

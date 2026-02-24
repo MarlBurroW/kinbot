@@ -5,6 +5,7 @@ interface ContactSummary {
   name: string
   type: string
   linkedKinSlug?: string | null
+  linkedUserName?: string | null
   identifierSummary?: string
 }
 
@@ -45,8 +46,11 @@ interface PromptParams {
   kinDirectory: KinDirectoryEntry[]
   mcpTools?: MCPToolSummaryForPrompt[]
   isSubKin: boolean
+  isQuickSession?: boolean
   taskDescription?: string
   previousCronRuns?: CronRunSummary[]
+  activeChannels?: Array<{ platform: string; name: string }>
+  globalPrompt?: string | null
   userLanguage: 'fr' | 'en'
 }
 
@@ -73,11 +77,13 @@ export function buildSystemPrompt(params: PromptParams): string {
     blocks.push(
       `## Constraints\n` +
       `- Focus exclusively on this task.\n` +
-      `- Use report_to_parent() to send intermediate results or the final result.\n` +
-      `- Use update_task_status() to signal your progress.\n` +
-      `- When done, set your status to "completed" and send the final result.\n` +
-      `- If blocked, use request_input() to ask for clarification (max ${config.tasks.maxRequestInput} times).\n` +
-      `- If you cannot accomplish the task, set your status to "failed" with an explanation.` +
+      `- Use report_to_parent() to send intermediate progress updates if useful.\n` +
+      `- If blocked, use request_input() to ask for clarification (max ${config.tasks.maxRequestInput} times).\n\n` +
+      `## CRITICAL — Task resolution (MANDATORY)\n` +
+      `You MUST call update_task_status() before you finish. There is no auto-completion.\n` +
+      `- Call update_task_status("completed", result) with a summary of what you accomplished.\n` +
+      `- Call update_task_status("failed", undefined, reason) if you cannot accomplish the task.\n` +
+      `If you do not call update_task_status(), the task will be marked as failed automatically.` +
       cronJournalInstruction,
     )
 
@@ -106,6 +112,11 @@ export function buildSystemPrompt(params: PromptParams): string {
         `This is a recurring scheduled task. Here are your most recent executions (newest first):\n\n${runLines}`,
       )
     }
+
+    // [3.5] Platform directives (global prompt) — applies to sub-Kins too
+    if (params.globalPrompt) {
+      blocks.push(`## Platform directives\n\n${params.globalPrompt}`)
+    }
   } else {
     // [1] Identity (with slug)
     const slugSuffix = params.kin.slug ? ` (slug: ${params.kin.slug})` : ''
@@ -120,6 +131,50 @@ export function buildSystemPrompt(params: PromptParams): string {
     if (params.kin.expertise) {
       blocks.push(`## Expertise\n\n${params.kin.expertise}`)
     }
+
+    // [3.5] Platform directives (global prompt)
+    if (params.globalPrompt) {
+      blocks.push(`## Platform directives\n\n${params.globalPrompt}`)
+    }
+  }
+
+  // Quick session: skip contacts, kin directory, hidden instructions, and MCP blocks
+  if (params.isQuickSession) {
+    // [5] Relevant memories (read-only)
+    if (params.relevantMemories.length > 0) {
+      const memoryLines = params.relevantMemories
+        .map((m) => `- [${m.category}] ${m.content}${m.subject ? ` (subject: ${m.subject})` : ''}`)
+        .join('\n')
+      blocks.push(
+        `## Memories\n\nRelevant information from your past interactions:\n\n${memoryLines}`,
+      )
+    }
+
+    // [3.5] Platform directives (global prompt) — applies to quick sessions too
+    if (params.globalPrompt) {
+      blocks.push(`## Platform directives\n\n${params.globalPrompt}`)
+    }
+
+    blocks.push(
+      `## Quick session\n\n` +
+      `This is a quick session. You do not have access to the main conversation history, ` +
+      `inter-Kin communication, or administrative tools. Focus on the immediate task.\n` +
+      `Do not offer to save memories or create contacts — those capabilities are not available here.`,
+    )
+
+    // [7] Language
+    const languageName = LANGUAGE_NAMES[params.userLanguage] ?? 'English'
+    blocks.push(
+      `## Language\n\n` +
+      `You MUST respond in ${languageName} (${params.userLanguage}).`,
+    )
+
+    // [8] Date and context
+    blocks.push(
+      `## Context\n\nCurrent date and time: ${new Date().toISOString()}\nPlatform: KinBot`,
+    )
+
+    return blocks.join('\n\n')
   }
 
   // [4] Contacts (compact summary — global shared registry)
@@ -131,6 +186,9 @@ export function buildSystemPrompt(params: PromptParams): string {
           parts.push(`slug: ${c.linkedKinSlug}`)
         }
         parts.push(c.type)
+        if (c.linkedUserName) {
+          parts.push(`system user "${c.linkedUserName}"`)
+        }
         if (c.identifierSummary) {
           parts.push(c.identifierSummary)
         }
@@ -178,6 +236,15 @@ export function buildSystemPrompt(params: PromptParams): string {
       `  - "private" notes are only visible to you.\n` +
       `  - "global" notes are visible to all Kins.\n` +
       `- Use delete_contact() only when explicitly asked by the user.\n\n` +
+      `### Channel contact resolution\n` +
+      `- Messages from channels (Telegram, Discord, etc.) are prefixed with [platform:senderName].\n` +
+      `- When a sender is marked "(unknown — platform_id: ..., username: ...)", they are NOT yet in the contacts registry.\n` +
+      `- Before creating a new contact, ALWAYS:\n` +
+      `  1. Use find_contact_by_identifier("platform", "platform_id") to verify they don't already exist.\n` +
+      `  2. Use search_contacts("senderName") to check if the person exists under a different name or identifier.\n` +
+      `  3. If found, use update_contact() to add the missing platform identifier. The label MUST be the exact platform name in lowercase (e.g., "telegram", "discord").\n` +
+      `  4. If truly new, use create_contact() with all available identifiers.\n` +
+      `- This prevents duplicate contacts when the same person talks from different channels.\n\n` +
       `### Memory management\n` +
       `- When you identify important information worth remembering long-term (fact, preference, decision), use memorize() to save it immediately.\n` +
       `- If you're unsure about past information, use recall() to check your memory rather than guessing.\n\n` +
@@ -221,6 +288,19 @@ export function buildSystemPrompt(params: PromptParams): string {
       `## MCP Tools (external servers)\n\n` +
       `You have access to tools from the following external MCP servers. ` +
       `Call them like any other tool.\n\n${mcpLines}`,
+    )
+  }
+
+  // [6.7] Active channels (external messaging platforms)
+  if (params.activeChannels && params.activeChannels.length > 0) {
+    const channelLines = params.activeChannels
+      .map((ch) => `- ${ch.platform}: "${ch.name}"`)
+      .join('\n')
+    blocks.push(
+      `## External channels\n\n` +
+      `You are connected to the following external messaging platforms:\n\n${channelLines}\n\n` +
+      `Messages prefixed with [platform:Name] come from these platforms. Your responses are automatically sent back to the originating conversation.\n` +
+      `Keep responses concise for external platforms. Avoid referencing internal tools, UI elements, or administrative details.`,
     )
   }
 

@@ -1,0 +1,244 @@
+import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { Input } from '@/client/components/ui/input'
+import { Button } from '@/client/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/client/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/client/components/ui/alert-dialog'
+import { Plus, Search } from 'lucide-react'
+import { api } from '@/client/lib/api'
+import { useMemories } from '@/client/hooks/useMemories'
+import { MemoryCard } from '@/client/components/memory/MemoryCard'
+import { MemoryFormDialog } from '@/client/components/memory/MemoryFormDialog'
+import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
+import { MEMORY_CATEGORIES } from '@/shared/constants'
+import type { MemorySummary, MemoryCategory } from '@/shared/types'
+
+interface MemoryListProps {
+  kinId?: string | null
+  compact?: boolean
+}
+
+export function MemoryList({ kinId, compact }: MemoryListProps) {
+  const { t } = useTranslation()
+  const {
+    memories,
+    isLoading,
+    applyFilters,
+    createMemory,
+    updateMemory,
+    deleteMemory,
+  } = useMemories(kinId)
+
+  // Local UI state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [kinFilter, setKinFilter] = useState<string>('all')
+  const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
+  const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
+  const [kins, setKins] = useState<KinOption[]>([])
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingMemory, setEditingMemory] = useState<MemorySummary | null>(null)
+  const [deletingMemory, setDeletingMemory] = useState<MemorySummary | null>(null)
+
+  // Fetch Kins for global mode (filter + form dialog + card kin name)
+  useEffect(() => {
+    if (!kinId) {
+      api
+        .get<{ kins: { id: string; name: string; role: string; avatarUrl: string | null }[] }>('/kins')
+        .then((data) => {
+          setKins(data.kins)
+          setKinNames(new Map(data.kins.map((k) => [k.id, k.name])))
+          setKinAvatars(new Map(data.kins.map((k) => [k.id, k.avatarUrl])))
+        })
+        .catch(() => {})
+    }
+  }, [kinId])
+
+  // Apply server-side filters when dropdowns change
+  useEffect(() => {
+    const newFilters: { category?: MemoryCategory; kinId?: string } = {}
+    if (categoryFilter !== 'all') newFilters.category = categoryFilter as MemoryCategory
+    if (!kinId && kinFilter !== 'all') newFilters.kinId = kinFilter
+    applyFilters(newFilters)
+  }, [categoryFilter, kinFilter, applyFilters, kinId])
+
+  // Client-side text search
+  const filteredMemories = useMemo(() => {
+    if (!searchQuery.trim()) return memories
+    const q = searchQuery.toLowerCase()
+    return memories.filter(
+      (m) =>
+        m.content.toLowerCase().includes(q) ||
+        (m.subject && m.subject.toLowerCase().includes(q)),
+    )
+  }, [memories, searchQuery])
+
+  // CRUD handlers
+  const handleSave = async (targetKinId: string, data: { content: string; category: MemoryCategory; subject?: string }) => {
+    await createMemory(targetKinId, data)
+    toast.success(t('settings.memories.added'))
+  }
+
+  const handleUpdate = async (memoryId: string, targetKinId: string, updates: { content?: string; category?: MemoryCategory; subject?: string | null }) => {
+    await updateMemory(memoryId, targetKinId, updates)
+    toast.success(t('settings.memories.saved'))
+  }
+
+  const handleDelete = async () => {
+    if (!deletingMemory) return
+    try {
+      await deleteMemory(deletingMemory.id, deletingMemory.kinId)
+      toast.success(t('settings.memories.deleted'))
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      toast.error(message)
+    } finally {
+      setDeletingMemory(null)
+    }
+  }
+
+  const openAdd = () => {
+    setEditingMemory(null)
+    setModalOpen(true)
+  }
+
+  const openEdit = (memory: MemorySummary) => {
+    setEditingMemory(memory)
+    setModalOpen(true)
+  }
+
+  const selectedKinForFilter = kins.find((k) => k.id === kinFilter)
+
+  return (
+    <div className="space-y-4">
+      {/* Filters row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('settings.memories.search')}
+            className="pl-8"
+          />
+        </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('settings.memories.filterAll')}</SelectItem>
+            {MEMORY_CATEGORIES.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {t(`settings.memories.category.${cat}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!kinId && (
+          <Select value={kinFilter} onValueChange={setKinFilter}>
+            <SelectTrigger className="w-[200px] h-auto min-h-9">
+              {kinFilter !== 'all' && selectedKinForFilter ? (
+                <KinSelectItem kin={selectedKinForFilter} />
+              ) : (
+                <SelectValue placeholder={t('settings.memories.filterAllKins')} />
+              )}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('settings.memories.filterAllKins')}</SelectItem>
+              {kins.map((k) => (
+                <SelectItem key={k.id} value={k.id} className="py-2">
+                  <KinSelectItem kin={k} />
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      {/* Count */}
+      {!isLoading && (
+        <p className="text-xs text-muted-foreground">
+          {t('settings.memories.count', { count: filteredMemories.length })}
+        </p>
+      )}
+
+      {/* Memory list */}
+      {isLoading ? (
+        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+          {t('common.loading')}
+        </div>
+      ) : filteredMemories.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+          {t('settings.memories.empty')}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filteredMemories.map((memory) => (
+            <MemoryCard
+              key={memory.id}
+              memory={memory}
+              kinName={kinNames.get(memory.kinId)}
+              kinAvatarUrl={kinAvatars.get(memory.kinId)}
+              showKinName={!kinId}
+              onEdit={() => openEdit(memory)}
+              onDelete={() => setDeletingMemory(memory)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Add button */}
+      <Button variant="outline" onClick={openAdd} className="w-full">
+        <Plus className="size-4" />
+        {t('settings.memories.add')}
+      </Button>
+
+      {/* Form dialog (add/edit) */}
+      <MemoryFormDialog
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onSave={handleSave}
+        onUpdate={handleUpdate}
+        memory={editingMemory}
+        kinId={kinId}
+        kins={kins}
+      />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deletingMemory} onOpenChange={(v) => { if (!v) setDeletingMemory(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('settings.memories.delete')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('settings.memories.deleteConfirm')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}

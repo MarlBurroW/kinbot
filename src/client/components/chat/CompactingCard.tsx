@@ -1,0 +1,109 @@
+import { memo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/client/components/ui/collapsible'
+import { Loader2, Archive, CheckCircle2, ChevronRight, Brain } from 'lucide-react'
+import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
+import { cn } from '@/client/lib/utils'
+
+interface CompactingCardProps {
+  status: 'running' | 'done'
+  summary: string | null
+  memoriesExtracted: number | null
+}
+
+export const CompactingCard = memo(function CompactingCard({
+  status,
+  summary,
+  memoriesExtracted,
+}: CompactingCardProps) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const isRunning = status === 'running'
+
+  return (
+    <div className="flex justify-center py-2 animate-fade-in-up">
+      <Collapsible open={open} onOpenChange={setOpen} className="w-full max-w-md">
+        <div
+          className={cn(
+            'surface-card rounded-xl border p-4 space-y-2 transition-colors duration-300',
+            isRunning ? 'border-primary/30' : 'border-border',
+          )}
+        >
+          <div className="flex items-center gap-3">
+            {/* Icon */}
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              {isRunning ? (
+                <Loader2 className="size-4 text-primary animate-spin" />
+              ) : (
+                <Archive className="size-4 text-primary" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">
+                {t('chat.compacting.title')}
+              </p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                {isRunning ? (
+                  <span className="text-xs font-medium text-primary">
+                    {t('chat.compacting.running')}
+                  </span>
+                ) : (
+                  <>
+                    <CheckCircle2 className="size-3 shrink-0 text-success" />
+                    <span className="text-xs font-medium text-success">
+                      {t('chat.compacting.done')}
+                    </span>
+                    {memoriesExtracted != null && memoriesExtracted > 0 && (
+                      <>
+                        <span className="text-[10px] text-muted-foreground">·</span>
+                        <Brain className="size-3 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground">
+                          {t('chat.compacting.memories', { count: memoriesExtracted })}
+                        </span>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Indeterminate progress bar while running */}
+          {isRunning && (
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full animate-indeterminate-progress rounded-full bg-primary/50" />
+            </div>
+          )}
+
+          {/* Collapsible summary when done */}
+          {!isRunning && summary && (
+            <CollapsibleTrigger className="flex w-full cursor-pointer items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+              <ChevronRight
+                className={cn(
+                  'size-3 shrink-0 transition-transform duration-200',
+                  open && 'rotate-90',
+                )}
+              />
+              <span>{t('chat.compacting.showSummary')}</span>
+            </CollapsibleTrigger>
+          )}
+
+          <CollapsibleContent>
+            {summary && (
+              <div className="mt-1 rounded-lg bg-muted/80 p-3">
+                <div className="text-xs leading-relaxed text-foreground">
+                  <MarkdownContent content={summary} isUser={false} />
+                </div>
+              </div>
+            )}
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+    </div>
+  )
+})

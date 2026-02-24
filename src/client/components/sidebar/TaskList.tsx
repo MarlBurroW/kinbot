@@ -1,18 +1,31 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
 } from '@/client/components/ui/sidebar'
-import { ScrollArea } from '@/client/components/ui/scroll-area'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
 import { Input } from '@/client/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { cn } from '@/client/lib/utils'
-import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, Search } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, Search, ChevronRight } from 'lucide-react'
 import { TaskDetailModal } from '@/client/components/sidebar/TaskDetailModal'
 import { useTasks } from '@/client/hooks/useTasks'
 import type { TaskStatus, TaskSummary } from '@/shared/types'
+
+interface LLMModel {
+  id: string
+  name: string
+  providerId: string
+  providerType: string
+  capability: string
+}
+
+interface TaskListProps {
+  llmModels: LLMModel[]
+}
+
+const STORAGE_KEY = 'sidebar.tasks.open'
 
 const STATUS_CONFIG: Record<TaskStatus, {
   icon: typeof Clock
@@ -120,7 +133,7 @@ function TaskCard({ task, onClick }: { task: TaskSummary; onClick: () => void })
   )
 }
 
-export function TaskList() {
+export function TaskList({ llmModels }: TaskListProps) {
   const { t } = useTranslation()
   const {
     activeTasks,
@@ -136,19 +149,33 @@ export function TaskList() {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Collapsible state persisted in localStorage
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return stored === null ? true : stored === 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsOpen(open)
+    try {
+      localStorage.setItem(STORAGE_KEY, String(open))
+    } catch { /* ignore */ }
+  }, [])
+
   // IntersectionObserver on sentinel for infinite scroll
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel) return
 
-    // Use the ScrollArea viewport as root so the observer fires when scrolling inside it
-    const viewport = scrollRef.current?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
-
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) loadMore()
       },
-      { root: viewport, threshold: 0.1 },
+      { root: scrollRef.current, threshold: 0.1 },
     )
 
     observer.observe(sentinel)
@@ -174,67 +201,114 @@ export function TaskList() {
 
   const isEmpty = activeTasks.length === 0 && deduplicatedHistory.length === 0 && !isLoading
 
+  // Summary counts for collapsed state
+  const runningCount = useMemo(
+    () => activeTasks.filter((t) => t.status === 'in_progress').length,
+    [activeTasks],
+  )
+  const needYouCount = useMemo(
+    () => activeTasks.filter((t) => t.status === 'awaiting_human_input').length,
+    [activeTasks],
+  )
+  const pendingCount = useMemo(
+    () => activeTasks.filter((t) => t.status === 'pending').length,
+    [activeTasks],
+  )
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{t('sidebar.tasks.title')}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        {/* Search input */}
-        <div className="px-1 pb-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('sidebar.tasks.search')}
-              className="h-8 pl-8 text-xs"
-            />
-          </div>
-        </div>
+      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
+        <CollapsibleTrigger className="flex w-full items-center gap-1.5 px-2 py-1.5 hover:bg-sidebar-accent/30 transition-colors rounded-md cursor-pointer">
+          <ChevronRight className={cn(
+            'size-3.5 shrink-0 text-muted-foreground transition-transform duration-200',
+            isOpen && 'rotate-90',
+          )} />
+          <span className="text-xs font-medium text-sidebar-foreground/70">
+            {t('sidebar.tasks.title')}
+          </span>
 
-        {isEmpty ? (
-          <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-            {searchQuery ? t('sidebar.tasks.noResults') : t('sidebar.tasks.empty')}
-          </p>
-        ) : (
-          <div ref={scrollRef}>
-            <ScrollArea className="max-h-[25vh] overflow-hidden">
-              <div className="space-y-1 px-1">
-                {/* Active tasks — pinned at top, hidden during search */}
-                {activeTasks.length > 0 && !searchQuery && (
-                  <>
-                    {activeTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        onClick={() => setSelectedTaskId(task.id)}
-                      />
-                    ))}
-                    {deduplicatedHistory.length > 0 && (
-                      <div className="my-2 h-px bg-border/50" />
-                    )}
-                  </>
-                )}
+          {/* Summary badges — only shown when collapsed */}
+          {!isOpen && (
+            <div className="ml-auto flex items-center gap-1">
+              {runningCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  {t('sidebar.tasks.summary.running', { count: runningCount })}
+                </span>
+              )}
+              {needYouCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning">
+                  {t('sidebar.tasks.summary.needYou', { count: needYouCount })}
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {t('sidebar.tasks.summary.pending', { count: pendingCount })}
+                </span>
+              )}
+            </div>
+          )}
+        </CollapsibleTrigger>
 
-                {/* History / search results */}
-                {deduplicatedHistory.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onClick={() => setSelectedTaskId(task.id)}
-                  />
-                ))}
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            {/* Search input */}
+            <div className="px-1 pb-2 pt-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('sidebar.tasks.search')}
+                  className="h-8 pl-8 text-xs"
+                />
+              </div>
+            </div>
 
-                {/* Infinite scroll sentinel */}
-                <div ref={sentinelRef} className="flex justify-center py-2">
-                  {(isLoadingMore || (isLoading && deduplicatedHistory.length === 0)) && (
-                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            {isEmpty ? (
+              <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                {searchQuery ? t('sidebar.tasks.noResults') : t('sidebar.tasks.empty')}
+              </p>
+            ) : (
+              <div ref={scrollRef} className="max-h-[25vh] overflow-y-auto">
+                <div className="space-y-1 px-1">
+                  {/* Active tasks — pinned at top, hidden during search */}
+                  {activeTasks.length > 0 && !searchQuery && (
+                    <>
+                      {activeTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onClick={() => setSelectedTaskId(task.id)}
+                        />
+                      ))}
+                      {deduplicatedHistory.length > 0 && (
+                        <div className="my-2 h-px bg-border/50" />
+                      )}
+                    </>
                   )}
+
+                  {/* History / search results */}
+                  {deduplicatedHistory.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onClick={() => setSelectedTaskId(task.id)}
+                    />
+                  ))}
+
+                  {/* Infinite scroll sentinel */}
+                  <div ref={sentinelRef} className="flex justify-center py-2">
+                    {(isLoadingMore || (isLoading && deduplicatedHistory.length === 0)) && (
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
               </div>
-            </ScrollArea>
-          </div>
-        )}
-      </SidebarGroupContent>
+            )}
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </Collapsible>
 
       <TaskDetailModal
         taskId={selectedTaskId}
@@ -242,6 +316,7 @@ export function TaskList() {
         onOpenChange={(open) => { if (!open) setSelectedTaskId(null) }}
         kinName={selectedTask?.sourceKinName ?? selectedTask?.parentKinName}
         kinAvatarUrl={selectedTask?.sourceKinAvatarUrl ?? selectedTask?.parentKinAvatarUrl}
+        llmModels={llmModels}
       />
     </SidebarGroup>
   )

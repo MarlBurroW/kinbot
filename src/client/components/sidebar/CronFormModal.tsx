@@ -28,20 +28,13 @@ import {
   SelectValue,
 } from '@/client/components/ui/select'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
-import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { AlertCircle, Loader2, Trash2 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
 import type { CronSummary } from '@/shared/types'
-
-interface KinOption {
-  id: string
-  name: string
-  role: string
-  avatarUrl: string | null
-}
 
 interface LLMModel {
   id: string
@@ -80,26 +73,6 @@ const CRON_PRESETS = [
   { key: 'presetWeekly', value: '0 9 * * 1' },
   { key: 'presetMonthly', value: '0 9 1 * *' },
 ] as const
-
-function KinSelectItem({ kin }: { kin: KinOption }) {
-  const initials = kin.name.slice(0, 2).toUpperCase()
-  return (
-    <div className="flex items-center gap-2.5">
-      <Avatar className="size-6 shrink-0">
-        {kin.avatarUrl && <AvatarImage src={kin.avatarUrl} alt={kin.name} />}
-        <AvatarFallback className="text-[9px] bg-secondary">{initials}</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0">
-        <span className="block truncate text-sm">{kin.name}</span>
-        {kin.role && (
-          <span className="block truncate text-[10px] text-muted-foreground leading-tight">
-            {kin.role}
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
 
 export function CronFormModal({
   open,
@@ -334,6 +307,7 @@ export function CronFormModal({
                 value={model}
                 onValueChange={setModel}
                 placeholder={t('cron.create.modelPlaceholder')}
+                allowClear
               />
             </div>
           </div>

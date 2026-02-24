@@ -71,10 +71,11 @@ class ToolRegistry {
   }
 
   /** List all registered tool names with their availability (for API/UI). */
-  list(): Array<{ name: string; availability: ToolAvailability[] }> {
+  list(): Array<{ name: string; availability: ToolAvailability[]; defaultDisabled: boolean }> {
     return Array.from(this.tools.entries()).map(([name, reg]) => ({
       name,
       availability: reg.availability,
+      defaultDisabled: reg.defaultDisabled ?? false,
     }))
   }
 

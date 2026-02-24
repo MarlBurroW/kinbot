@@ -21,6 +21,7 @@ export function McpServersSettings() {
   const { t } = useTranslation()
   const [servers, setServers] = useState<McpServerData[]>([])
   const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
+  const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
   const [modalOpen, setModalOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<McpServerData | null>(null)
   const [deletingServer, setDeletingServer] = useState<McpServerData | null>(null)
@@ -41,8 +42,9 @@ export function McpServersSettings() {
 
   const fetchKinNames = async () => {
     try {
-      const data = await api.get<{ kins: { id: string; name: string }[] }>('/kins')
+      const data = await api.get<{ kins: { id: string; name: string; avatarUrl: string | null }[] }>('/kins')
       setKinNames(new Map(data.kins.map((k) => [k.id, k.name])))
+      setKinAvatars(new Map(data.kins.map((k) => [k.id, k.avatarUrl])))
     } catch {
       // Ignore
     }
@@ -107,6 +109,7 @@ export function McpServersSettings() {
           key={server.id}
           server={server}
           kinName={server.createdByKinId ? kinNames.get(server.createdByKinId) : undefined}
+          kinAvatarUrl={server.createdByKinId ? kinAvatars.get(server.createdByKinId) : undefined}
           onApprove={() => handleApprove(server.id)}
           onEdit={() => openEdit(server)}
           onDelete={() => setDeletingServer(server)}

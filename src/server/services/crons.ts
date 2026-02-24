@@ -80,6 +80,19 @@ export async function createCron(params: CreateCronParams) {
       kinId: created.kinId,
       data: { cronId: created.id, kinId: created.kinId },
     })
+
+    // Persistent notification for Kin-created crons requiring approval
+    if (isKinCreated) {
+      const { createNotification } = await import('@/server/services/notifications')
+      createNotification({
+        type: 'cron:pending-approval',
+        title: 'Cron needs approval',
+        body: params.name,
+        kinId: params.kinId,
+        relatedId: id,
+        relatedType: 'cron',
+      }).catch(() => {})
+    }
   }
 
   return created!

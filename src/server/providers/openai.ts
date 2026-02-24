@@ -13,15 +13,23 @@ interface OpenAIModelsResponse {
   data: OpenAIModel[]
 }
 
-function classifyModel(id: string): 'llm' | 'embedding' | 'image' | null {
+interface OpenAIClassification {
+  capability: 'llm' | 'embedding' | 'image'
+  supportsImageInput?: boolean
+}
+
+function classifyModel(id: string): OpenAIClassification | null {
   if (id.startsWith('ft:')) return null
-  if (id.includes('embedding')) return 'embedding'
-  if (id.startsWith('dall-e') || id.startsWith('gpt-image')) return 'image'
+  if (id.includes('embedding')) return { capability: 'embedding' }
+  // DALL-E 3 is text-to-image only (no editing support in the SDK)
+  if (id.startsWith('dall-e')) return { capability: 'image', supportsImageInput: false }
+  // GPT Image models support image input (editing/inpainting)
+  if (id.startsWith('gpt-image')) return { capability: 'image', supportsImageInput: true }
   if (
     id.startsWith('gpt-') ||
     id.startsWith('chatgpt-') ||
     /^o[1-9]/.test(id)
-  ) return 'llm'
+  ) return { capability: 'llm' }
   return null
 }
 
@@ -63,9 +71,14 @@ export const openaiProvider: ProviderDefinition = {
       const apiModels = await fetchOpenAIModels(config)
       const models = apiModels
         .map((m): ProviderModel | null => {
-          const capability = classifyModel(m.id)
-          if (!capability) return null
-          return { id: m.id, name: m.id, capability }
+          const classification = classifyModel(m.id)
+          if (!classification) return null
+          return {
+            id: m.id,
+            name: m.id,
+            capability: classification.capability,
+            supportsImageInput: classification.supportsImageInput,
+          }
         })
         .filter((m): m is ProviderModel => m !== null)
         .sort((a, b) => a.id.localeCompare(b.id))

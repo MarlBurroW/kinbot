@@ -122,14 +122,28 @@ export function useTasks() {
       const status = data.status as TaskStatus
       const now = new Date().toISOString()
 
-      setActiveTasks((prev) => prev.filter((t) => t.id !== taskId))
+      let wasKnown = false
+
+      setActiveTasks((prev) => {
+        if (prev.some((t) => t.id === taskId)) wasKnown = true
+        return prev.filter((t) => t.id !== taskId)
+      })
+
       setHistoryTasks((prev) => {
         const exists = prev.some((t) => t.id === taskId)
         if (exists) {
+          wasKnown = true
           return prev.map((t) => (t.id === taskId ? { ...t, status, updatedAt: now } : t))
         }
         return prev
       })
+
+      // If the task was never in our lists (resolved faster than fetchActiveTasks
+      // could return), refetch history so it appears in the sidebar
+      if (!wasKnown) {
+        offsetRef.current = 0
+        fetchHistory(0, false)
+      }
     },
   })
 

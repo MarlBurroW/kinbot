@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
+import { KinBadge } from '@/client/components/common/KinBadge'
 import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 
 export interface VaultSecretData {
@@ -16,11 +17,12 @@ export interface VaultSecretData {
 interface VaultSecretCardProps {
   secret: VaultSecretData
   kinName?: string
+  kinAvatarUrl?: string | null
   onEdit?: () => void
   onDelete?: () => void
 }
 
-export function VaultSecretCard({ secret, kinName, onEdit, onDelete }: VaultSecretCardProps) {
+export function VaultSecretCard({ secret, kinName, kinAvatarUrl, onEdit, onDelete }: VaultSecretCardProps) {
   const { t } = useTranslation()
 
   return (
@@ -33,11 +35,13 @@ export function VaultSecretCard({ secret, kinName, onEdit, onDelete }: VaultSecr
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium font-mono truncate">{secret.key}</p>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                {secret.createdByKinId
-                  ? t('settings.vault.createdByKin', { name: kinName ?? '?' })
-                  : t('settings.vault.createdByAdmin')}
-              </Badge>
+              {secret.createdByKinId && kinName ? (
+                <KinBadge name={kinName} avatarUrl={kinAvatarUrl} />
+              ) : (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                  {t('settings.vault.createdByAdmin')}
+                </Badge>
+              )}
             </div>
             {secret.description && (
               <p className="text-xs text-muted-foreground truncate">{secret.description}</p>

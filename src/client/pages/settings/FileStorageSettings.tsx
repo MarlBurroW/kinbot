@@ -22,6 +22,7 @@ export function FileStorageSettings() {
   const [files, setFiles] = useState<StoredFileData[]>([])
   const [kins, setKins] = useState<{ id: string; name: string }[]>([])
   const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
+  const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
   const [modalOpen, setModalOpen] = useState(false)
   const [editingFile, setEditingFile] = useState<StoredFileData | null>(null)
   const [deletingFile, setDeletingFile] = useState<StoredFileData | null>(null)
@@ -42,9 +43,10 @@ export function FileStorageSettings() {
 
   const fetchKins = async () => {
     try {
-      const data = await api.get<{ kins: { id: string; name: string }[] }>('/kins')
+      const data = await api.get<{ kins: { id: string; name: string; avatarUrl: string | null }[] }>('/kins')
       setKins(data.kins)
       setKinNames(new Map(data.kins.map((k) => [k.id, k.name])))
+      setKinAvatars(new Map(data.kins.map((k) => [k.id, k.avatarUrl])))
     } catch {
       // Ignore
     }
@@ -98,6 +100,7 @@ export function FileStorageSettings() {
           key={file.id}
           file={file}
           kinName={file.createdByKinId ? kinNames.get(file.createdByKinId) : undefined}
+          kinAvatarUrl={file.createdByKinId ? kinAvatars.get(file.createdByKinId) : undefined}
           onEdit={() => openEdit(file)}
           onDelete={() => setDeletingFile(file)}
         />

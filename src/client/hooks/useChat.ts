@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
-import type { ToolCallEntry, TaskStatus } from '@/shared/types'
+import type { ToolCallEntry, TaskStatus, MessageFile } from '@/shared/types'
 
 export interface ChatMessage {
   id: string
@@ -14,7 +14,9 @@ export interface ChatMessage {
   isRedacted: boolean
   toolCalls: ToolCallEntry[] | null
   resolvedTaskId: string | null
-  files: unknown[]
+  injectedMemories: Array<{ id: string; category: string; content: string; subject: string | null }> | null
+  memoriesExtracted: number | null
+  files: MessageFile[]
   createdAt: string
 }
 
@@ -30,6 +32,15 @@ export interface LiveTask {
   createdAt: string
 }
 
+/** Live compacting card rendered in the conversation while compacting is active */
+export interface LiveCompacting {
+  kinId: string
+  status: 'running' | 'done'
+  summary: string | null
+  memoriesExtracted: number | null
+  startedAt: string
+}
+
 interface MessagesResponse {
   messages: ChatMessage[]
   hasMore: boolean
@@ -41,6 +52,7 @@ export function useChat(kinId: string | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [liveTasks, setLiveTasks] = useState<LiveTask[]>([])
+  const [liveCompacting, setLiveCompacting] = useState<LiveCompacting | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const streamingContentRef = useRef('')
@@ -78,16 +90,16 @@ export function useChat(kinId: string | null) {
 
       setMessages(data.messages)
 
-      // Remove live tasks whose result already appears as a persisted message
-      const taskMessages = data.messages.filter((m) => m.sourceType === 'task')
-      if (taskMessages.length > 0) {
+      // Remove live tasks whose result already appears as a persisted message.
+      // Only match by resolvedTaskId (precise) and never remove tasks still active.
+      const resolvedTaskIds = new Set(
+        data.messages
+          .filter((m) => m.sourceType === 'task' && m.resolvedTaskId)
+          .map((m) => m.resolvedTaskId!),
+      )
+      if (resolvedTaskIds.size > 0) {
         setLiveTasks((prev) =>
-          prev.filter((t) => {
-            // Precise match by resolvedTaskId, fallback to title match
-            return !taskMessages.some((m) =>
-              m.resolvedTaskId === t.taskId || m.content.includes(t.title),
-            )
-          }),
+          prev.filter((t) => !resolvedTaskIds.has(t.taskId)),
         )
       }
     } catch {
@@ -102,6 +114,7 @@ export function useChat(kinId: string | null) {
     setIsStreaming(false)
     setStreamingMessage(null)
     setLiveTasks([])
+    setLiveCompacting(null)
     streamingContentRef.current = ''
     streamingMessageIdRef.current = null
     taskIdByTitleRef.current.clear()
@@ -116,6 +129,7 @@ export function useChat(kinId: string | null) {
     'chat:token': (data) => {
       if (data.kinId !== kinId) return
       if (data.taskId) return // Ignore tokens from sub-Kin tasks
+      if (data.sessionId) return // Ignore tokens from quick sessions
 
       const token = data.token as string
       const messageId = data.messageId as string
@@ -137,6 +151,8 @@ export function useChat(kinId: string | null) {
           isRedacted: false,
           toolCalls: null,
           resolvedTaskId: null,
+          injectedMemories: null,
+          memoriesExtracted: null,
           files: [],
           createdAt: new Date().toISOString(),
         })
@@ -158,6 +174,7 @@ export function useChat(kinId: string | null) {
     'chat:done': (data) => {
       if (data.kinId !== kinId) return
       if (data.taskId) return // Ignore done events from sub-Kin tasks
+      if (data.sessionId) return // Ignore done events from quick sessions
 
       // Flush any pending batch timer
       if (batchTimerRef.current) {
@@ -183,6 +200,8 @@ export function useChat(kinId: string | null) {
             isRedacted: false,
             toolCalls: null,
             resolvedTaskId: null,
+            injectedMemories: null,
+            memoriesExtracted: null,
             files: [],
             createdAt: new Date().toISOString(),
           },
@@ -201,6 +220,7 @@ export function useChat(kinId: string | null) {
     'chat:message': (data) => {
       if (data.kinId !== kinId) return
       if (data.taskId) return // Ignore messages from sub-Kin tasks
+      if (data.sessionId) return // Ignore messages from quick sessions
 
       // Resolve taskId: prefer SSE data, fallback to title-based ref lookup
       let resolvedTaskId = (data.resolvedTaskId as string) ?? null
@@ -225,20 +245,17 @@ export function useChat(kinId: string | null) {
         isRedacted: false,
         toolCalls: null,
         resolvedTaskId,
+        injectedMemories: null,
+        memoriesExtracted: null,
         files: [],
         createdAt: new Date(data.createdAt as number).toISOString(),
       }
       setMessages((prev) => [...prev, message])
 
-      // If this is a task result message, remove the corresponding live task
-      if (data.sourceType === 'task') {
-        const resolvedId = data.resolvedTaskId as string | undefined
-        setLiveTasks((prev) =>
-          prev.filter((t) => {
-            if (resolvedId && t.taskId === resolvedId) return false
-            return !(data.content as string).includes(t.title)
-          }),
-        )
+      // If this is a task result message, remove the corresponding live task (by precise ID only)
+      if (data.sourceType === 'task' && data.resolvedTaskId) {
+        const resolvedId = data.resolvedTaskId as string
+        setLiveTasks((prev) => prev.filter((t) => t.taskId !== resolvedId))
       }
     },
 
@@ -302,14 +319,42 @@ export function useChat(kinId: string | null) {
       // (for await mode it may take longer; fetchMessages on chat:done handles that)
       setTimeout(() => fetchMessages(), 1000)
     },
+
+    'compacting:start': (data) => {
+      if (data.kinId !== kinId) return
+      setLiveCompacting({
+        kinId: data.kinId as string,
+        status: 'running',
+        summary: null,
+        memoriesExtracted: null,
+        startedAt: new Date().toISOString(),
+      })
+    },
+
+    'compacting:done': (data) => {
+      if (data.kinId !== kinId) return
+      setLiveCompacting((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'done',
+              summary: data.summary as string,
+              memoriesExtracted: data.memoriesExtracted as number,
+            }
+          : null,
+      )
+      // Refresh messages — the persisted compacting trace will appear, then clear live card
+      fetchMessages().then(() => setLiveCompacting(null))
+    },
   })
 
   // Send a message
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!kinId || !content.trim()) return
+    async (content: string, fileIds?: string[], optimisticFiles?: MessageFile[]) => {
+      const hasFiles = fileIds && fileIds.length > 0
+      if (!kinId || (!content.trim() && !hasFiles)) return
 
-      // Optimistic update — add user message immediately
+      // Optimistic update — add user message immediately (with file previews)
       const tempId = `temp-${Date.now()}`
       const userMessage: ChatMessage = {
         id: tempId,
@@ -322,14 +367,16 @@ export function useChat(kinId: string | null) {
         isRedacted: false,
         toolCalls: null,
         resolvedTaskId: null,
-        files: [],
+        injectedMemories: null,
+        memoriesExtracted: null,
+        files: optimisticFiles ?? [],
         createdAt: new Date().toISOString(),
       }
 
       setMessages((prev) => [...prev, userMessage])
 
       try {
-        await api.post(`/kins/${kinId}/messages`, { content })
+        await api.post(`/kins/${kinId}/messages`, { content, fileIds })
       } catch {
         // Remove optimistic message on error
         setMessages((prev) => prev.filter((m) => m.id !== tempId))
@@ -361,6 +408,7 @@ export function useChat(kinId: string | null) {
     messages,
     streamingMessage,
     liveTasks,
+    liveCompacting,
     isLoading,
     isStreaming,
     sendMessage,

@@ -16,4 +16,6 @@ export interface ProviderModel {
   id: string
   name: string
   capability: 'llm' | 'embedding' | 'image'
+  /** True if the image model accepts images as input (editing/inpainting) */
+  supportsImageInput?: boolean
 }

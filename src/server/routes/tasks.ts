@@ -24,15 +24,16 @@ taskRoutes.get('/', async (c) => {
 
   // Fetch kin info (name + avatar) for display
   const kinIds = [...new Set(allTasks.flatMap((t) => [t.parentKinId, t.sourceKinId].filter(Boolean)))]
-  const kinMap = new Map<string, { name: string; avatarUrl: string | null }>()
+  const kinMap = new Map<string, { name: string; avatarUrl: string | null; model: string }>()
 
   for (const id of kinIds) {
-    const kin = await db.select({ id: kins.id, name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, id)).get()
+    const kin = await db.select({ id: kins.id, name: kins.name, avatarPath: kins.avatarPath, model: kins.model }).from(kins).where(eq(kins.id, id)).get()
     if (kin) {
       const ext = kin.avatarPath?.split('.').pop() ?? 'png'
       kinMap.set(kin.id, {
         name: kin.name,
         avatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${ext}` : null,
+        model: kin.model,
       })
     }
   }
@@ -53,6 +54,7 @@ taskRoutes.get('/', async (c) => {
         description: t.description,
         status: t.status,
         mode: t.mode,
+        model: t.model ?? parentKin?.model ?? null,
         depth: t.depth,
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
@@ -80,6 +82,13 @@ taskRoutes.get('/:id', async (c) => {
     .orderBy(asc(messages.createdAt))
     .all()
 
+  // Resolve effective model (fall back to parent Kin's model)
+  let effectiveModel = task.model
+  if (!effectiveModel) {
+    const parentKin = await db.select({ model: kins.model }).from(kins).where(eq(kins.id, task.parentKinId)).get()
+    effectiveModel = parentKin?.model ?? null
+  }
+
   return c.json({
     task: {
       id: task.id,
@@ -88,6 +97,7 @@ taskRoutes.get('/:id', async (c) => {
       description: task.description,
       status: task.status,
       mode: task.mode,
+      model: effectiveModel,
       depth: task.depth,
       result: task.result,
       error: task.error,

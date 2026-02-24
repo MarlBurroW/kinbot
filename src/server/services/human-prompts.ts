@@ -75,6 +75,22 @@ export async function createHumanPrompt(params: CreatePromptParams) {
     },
   })
 
+  // Persistent notification for action-required
+  const { createNotification } = await import('@/server/services/notifications')
+  const taskTitle = params.taskId
+    ? (await db.select({ title: tasks.title, description: tasks.description }).from(tasks).where(eq(tasks.id, params.taskId)).get())
+    : null
+  createNotification({
+    type: 'prompt:pending',
+    title: taskTitle
+      ? `Task needs your input: ${taskTitle.title ?? taskTitle.description ?? 'Unnamed task'}`
+      : 'Kin needs your input',
+    body: params.question,
+    kinId: params.kinId,
+    relatedId: promptId,
+    relatedType: 'prompt',
+  }).catch(() => {}) // fire-and-forget
+
   log.info({ promptId, kinId: params.kinId, taskId: params.taskId, promptType: params.promptType }, 'Human prompt created')
 
   return { promptId }

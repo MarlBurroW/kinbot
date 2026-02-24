@@ -17,7 +17,17 @@ import { mcpServerRoutes } from '@/server/routes/mcp-servers'
 import { fileRoutes } from '@/server/routes/files'
 import { fileStorageRoutes } from '@/server/routes/file-storage'
 import { promptRoutes } from '@/server/routes/prompts'
+import { memoryRoutes } from '@/server/routes/memories'
 import { sharedRoutes } from '@/server/routes/shared'
+import { webhookRoutes } from '@/server/routes/webhooks'
+import { webhookIncomingRoutes } from '@/server/routes/webhooks-incoming'
+import { channelRoutes } from '@/server/routes/channels'
+import { channelTelegramRoutes } from '@/server/routes/channel-telegram'
+import { quickSessionKinRoutes, quickSessionDetailRoutes } from '@/server/routes/quick-sessions'
+import { userRoutes } from '@/server/routes/users'
+import { invitationRoutes } from '@/server/routes/invitations'
+import { notificationRoutes } from '@/server/routes/notifications'
+import { settingsRoutes } from '@/server/routes/settings'
 
 export type AppVariables = {
   session: { id: string; userId: string; token: string }
@@ -62,6 +72,10 @@ app.route('/api/sse', sseRoutes)
 app.route('/api/kins', kinRoutes)
 app.route('/api/kins/:kinId/messages', messageRoutes)
 app.route('/api/vault', vaultRoutes)
+app.route('/api/users', userRoutes)
+app.route('/api/invitations', invitationRoutes)
+app.route('/api/notifications', notificationRoutes)
+app.route('/api/settings', settingsRoutes)
 app.route('/api/contacts', contactRoutes)
 app.route('/api/tasks', taskRoutes)
 app.route('/api/crons', cronRoutes)
@@ -69,6 +83,13 @@ app.route('/api/mcp-servers', mcpServerRoutes)
 app.route('/api/files', fileRoutes)
 app.route('/api/file-storage', fileStorageRoutes)
 app.route('/api/prompts', promptRoutes)
+app.route('/api/memories', memoryRoutes)
+app.route('/api/webhooks/incoming', webhookIncomingRoutes)
+app.route('/api/webhooks', webhookRoutes)
+app.route('/api/channels/telegram', channelTelegramRoutes)
+app.route('/api/channels', channelRoutes)
+app.route('/api/kins/:kinId/quick-sessions', quickSessionKinRoutes)
+app.route('/api/quick-sessions', quickSessionDetailRoutes)
 app.route('/s', sharedRoutes)
 
 export { app }

@@ -29,6 +29,12 @@ import { api } from '@/client/lib/api'
 import { CONTACT_IDENTIFIER_SUGGESTIONS } from '@/shared/constants'
 import type { ContactData } from '@/client/components/contacts/ContactCard'
 
+interface UserOption {
+  id: string
+  name: string
+  pseudonym: string
+}
+
 interface IdentifierRow {
   existingId?: string
   label: string
@@ -138,12 +144,23 @@ export function ContactFormDialog({
   const [error, setError] = useState('')
   const [name, setName] = useState('')
   const [type, setType] = useState<'human' | 'kin'>('human')
+  const [linkedUserId, setLinkedUserId] = useState<string | null>(null)
+  const [users, setUsers] = useState<UserOption[]>([])
   const [identifiers, setIdentifiers] = useState<IdentifierRow[]>([])
+
+  useEffect(() => {
+    if (open) {
+      api.get<{ users: UserOption[] }>('/users')
+        .then((data) => setUsers(data.users))
+        .catch(() => {})
+    }
+  }, [open])
 
   useEffect(() => {
     if (open && contact) {
       setName(contact.name)
       setType(contact.type as 'human' | 'kin')
+      setLinkedUserId(contact.linkedUserId ?? null)
       setIdentifiers(
         contact.identifiers.map((i) => ({ existingId: i.id, label: i.label, value: i.value })),
       )
@@ -151,6 +168,7 @@ export function ContactFormDialog({
     } else if (open) {
       setName('')
       setType('human')
+      setLinkedUserId(null)
       setIdentifiers([])
       setError('')
     }
@@ -181,7 +199,7 @@ export function ContactFormDialog({
       const validIdentifiers = identifiers.filter((i) => i.label && i.value.trim())
 
       if (isEditing) {
-        await api.patch(`/contacts/${contact.id}`, { name, type })
+        await api.patch(`/contacts/${contact.id}`, { name, type, linkedUserId })
 
         // Delete identifiers that were removed from the form
         const currentExistingIds = new Set(validIdentifiers.filter((i) => i.existingId).map((i) => i.existingId))
@@ -212,6 +230,7 @@ export function ContactFormDialog({
         await api.post('/contacts', {
           name,
           type,
+          linkedUserId: linkedUserId || undefined,
           identifiers: validIdentifiers.length > 0
             ? validIdentifiers.map((i) => ({ label: i.label, value: i.value }))
             : undefined,
@@ -220,7 +239,8 @@ export function ContactFormDialog({
       onSaved()
       handleClose()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err))
+      const apiErr = err as { error?: { message?: string } }
+      setError(apiErr?.error?.message ?? (err instanceof Error ? err.message : String(err)))
     } finally {
       setIsSaving(false)
     }
@@ -270,6 +290,28 @@ export function ContactFormDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {type === 'human' && users.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="contact-linked-user">{t('settings.contacts.linkToUser')}</Label>
+              <Select
+                value={linkedUserId ?? '_none'}
+                onValueChange={(v) => setLinkedUserId(v === '_none' ? null : v)}
+              >
+                <SelectTrigger id="contact-linked-user">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">{t('settings.contacts.noUserLink')}</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} ({u.pseudonym})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>{t('settings.contacts.identifiers')}</Label>

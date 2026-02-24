@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
@@ -12,8 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/client/components/ui/select'
+import { PlatformIcon } from '@/client/components/common/PlatformIcon'
 import { Pencil, Trash2, User, Bot, Globe, Lock, Plus, Check, X } from 'lucide-react'
 import { api } from '@/client/lib/api'
+import type { ContactPlatformId } from '@/shared/types'
 
 export interface ContactIdentifierData {
   id: string
@@ -36,6 +38,7 @@ export interface ContactData {
   type: 'human' | 'kin'
   linkedUserId: string | null
   linkedKinId: string | null
+  linkedUserName: string | null
   identifiers: ContactIdentifierData[]
   notes: ContactNoteData[]
   createdAt: number
@@ -59,12 +62,30 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
   const { t } = useTranslation()
   const Icon = contact.type === 'kin' ? Bot : User
 
+  const [platformIds, setPlatformIds] = useState<ContactPlatformId[]>([])
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [addingNote, setAddingNote] = useState(false)
   const [newNoteKinId, setNewNoteKinId] = useState('')
   const [newNoteScope, setNewNoteScope] = useState<'global' | 'private'>('global')
   const [newNoteContent, setNewNoteContent] = useState('')
+
+  useEffect(() => {
+    api
+      .get<{ platformIds: ContactPlatformId[] }>(`/contacts/${contact.id}/platform-ids`)
+      .then((data) => setPlatformIds(data.platformIds))
+      .catch(() => {})
+  }, [contact.id])
+
+  const revokePlatformId = async (pidId: string) => {
+    try {
+      await api.delete(`/contacts/${contact.id}/platform-ids/${pidId}`)
+      setPlatformIds((prev) => prev.filter((p) => p.id !== pidId))
+      toast.success(t('settings.contacts.platformIdRevoked'))
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    }
+  }
 
   const startEdit = (note: ContactNoteData) => {
     setEditingNoteId(note.id)
@@ -142,6 +163,12 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
                   {contact.type === 'kin' ? t('settings.contacts.typeKin') : t('settings.contacts.typeHuman')}
                 </Badge>
+                {contact.linkedUserName && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 gap-1">
+                    <User className="size-2.5" />
+                    {contact.linkedUserName}
+                  </Badge>
+                )}
               </div>
               {contact.identifiers.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
@@ -167,6 +194,28 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
             )}
           </div>
         </div>
+
+        {platformIds.length > 0 && (
+          <div className="ml-8 border-t pt-2 space-y-1">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              {t('settings.contacts.platformIds')}
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {platformIds.map((pid) => (
+                <Badge key={pid.id} variant="outline" className="text-[10px] px-1.5 py-0 font-normal gap-1 group">
+                  <PlatformIcon platform={pid.platform} variant="color" className="size-3" />
+                  <span className="capitalize">{pid.platform}</span>: {pid.platformId}
+                  <button
+                    onClick={() => revokePlatformId(pid.id)}
+                    className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                  >
+                    <X className="size-2.5" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
         {(contact.notes.length > 0 || addingNote) && (
           <div className="ml-8 space-y-1.5 border-t pt-2">

@@ -1,7 +1,7 @@
 import { eq, and, like, or, sql } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db } from '@/server/db/index'
-import { contacts, contactIdentifiers, contactNotes, kins } from '@/server/db/schema'
+import { contacts, contactIdentifiers, contactNotes, kins, user, userProfiles } from '@/server/db/schema'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,6 +29,7 @@ interface ContactWithDetails {
   type: string
   linkedUserId: string | null
   linkedKinId: string | null
+  linkedUserName: string | null
   createdAt: Date
   updatedAt: Date
   identifiers: Array<{ id: string; label: string; value: string }>
@@ -40,6 +41,7 @@ interface ContactSummary {
   name: string
   type: string
   linkedKinSlug?: string | null
+  linkedUserName?: string | null
   identifierSummary?: string
 }
 
@@ -84,8 +86,16 @@ export async function getContactWithDetails(
     notes = db.select().from(contactNotes).where(eq(contactNotes.contactId, contactId)).all()
   }
 
+  // Resolve linked user name
+  let linkedUserName: string | null = null
+  if (contact.linkedUserId) {
+    const u = db.select({ name: user.name }).from(user).where(eq(user.id, contact.linkedUserId)).get()
+    linkedUserName = u?.name ?? null
+  }
+
   return {
     ...contact,
+    linkedUserName,
     identifiers,
     notes: notes.map((n) => ({
       id: n.id,
@@ -99,6 +109,12 @@ export async function getContactWithDetails(
 }
 
 export async function createContact(input: CreateContactInput) {
+  // Prevent duplicate user-contact links
+  if (input.linkedUserId) {
+    const existing = findContactByLinkedUserId(input.linkedUserId)
+    if (existing) return existing
+  }
+
   const id = uuid()
   const now = new Date()
 
@@ -132,6 +148,14 @@ export async function createContact(input: CreateContactInput) {
 export async function updateContact(contactId: string, updates: UpdateContactInput) {
   const existing = db.select().from(contacts).where(eq(contacts.id, contactId)).get()
   if (!existing) return null
+
+  // Prevent duplicate user-contact links
+  if (updates.linkedUserId) {
+    const linked = findContactByLinkedUserId(updates.linkedUserId)
+    if (linked && linked.id !== contactId) {
+      return { error: 'USER_ALREADY_LINKED' as const, linkedContactName: linked.name }
+    }
+  }
 
   db.update(contacts)
     .set({
@@ -267,6 +291,10 @@ export function findContactByIdentifier(label: string, value: string) {
   return row ? db.select().from(contacts).where(eq(contacts.id, row.contactId)).get() : null
 }
 
+export function findContactByLinkedUserId(userId: string) {
+  return db.select().from(contacts).where(eq(contacts.linkedUserId, userId)).get() ?? null
+}
+
 export function listContactIdentifiers(contactId: string) {
   return db
     .select({ id: contactIdentifiers.id, label: contactIdentifiers.label, value: contactIdentifiers.value })
@@ -354,6 +382,7 @@ export async function listContactsForPrompt(): Promise<ContactSummary[]> {
       name: contacts.name,
       type: contacts.type,
       linkedKinId: contacts.linkedKinId,
+      linkedUserId: contacts.linkedUserId,
     })
     .from(contacts)
     .all()
@@ -366,6 +395,13 @@ export async function listContactsForPrompt(): Promise<ContactSummary[]> {
         linkedKinSlug = linked?.slug ?? null
       }
 
+      let linkedUserName: string | null = null
+      if (c.linkedUserId) {
+        const profile = db.select({ pseudonym: userProfiles.pseudonym }).from(userProfiles)
+          .where(eq(userProfiles.userId, c.linkedUserId)).get()
+        linkedUserName = profile?.pseudonym ?? null
+      }
+
       const identifiers = db
         .select({ label: contactIdentifiers.label })
         .from(contactIdentifiers)
@@ -374,7 +410,34 @@ export async function listContactsForPrompt(): Promise<ContactSummary[]> {
 
       const identifierSummary = identifiers.map((i) => i.label).join(', ') || undefined
 
-      return { id: c.id, name: c.name, type: c.type, linkedKinSlug, identifierSummary }
+      return { id: c.id, name: c.name, type: c.type, linkedKinSlug, linkedUserName, identifierSummary }
     }),
   )
+}
+
+// ─── User contact backfill ──────────────────────────────────────────────────
+
+export async function ensureUserContactsExist() {
+  const allUsers = db
+    .select({
+      id: user.id,
+      email: user.email,
+      firstName: userProfiles.firstName,
+      lastName: userProfiles.lastName,
+    })
+    .from(user)
+    .innerJoin(userProfiles, eq(user.id, userProfiles.userId))
+    .all()
+
+  for (const u of allUsers) {
+    const existing = findContactByLinkedUserId(u.id)
+    if (!existing) {
+      await createContact({
+        name: `${u.firstName} ${u.lastName}`,
+        type: 'human',
+        linkedUserId: u.id,
+        identifiers: u.email ? [{ label: 'email', value: u.email }] : undefined,
+      })
+    }
+  }
 }

@@ -229,8 +229,10 @@ providerRoutes.get('/models', async (c) => {
     id: string
     name: string
     providerId: string
+    providerName: string
     providerType: string
     capability: string
+    supportsImageInput?: boolean
   }> = []
 
   for (const p of allProviders) {
@@ -245,8 +247,10 @@ providerRoutes.get('/models', async (c) => {
           id: model.id,
           name: model.name,
           providerId: p.id,
+          providerName: p.name,
           providerType: p.type,
           capability: model.capability,
+          ...(model.capability === 'image' && { supportsImageInput: model.supportsImageInput ?? false }),
         })
       }
     } catch (err) {

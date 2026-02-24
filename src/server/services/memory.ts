@@ -311,7 +311,7 @@ function searchByFTS(
 export async function getRelevantMemories(
   kinId: string,
   query: string,
-): Promise<Array<{ category: string; content: string; subject: string | null }>> {
+): Promise<Array<{ id: string; category: string; content: string; subject: string | null }>> {
   const results = await searchMemories(kinId, query, config.memory.maxRelevantMemories)
-  return results.map((r) => ({ category: r.category, content: r.content, subject: r.subject }))
+  return results.map((r) => ({ id: r.id, category: r.category, content: r.content, subject: r.subject }))
 }

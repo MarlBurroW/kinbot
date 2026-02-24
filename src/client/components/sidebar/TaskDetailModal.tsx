@@ -21,6 +21,7 @@ import { HumanPromptCard } from '@/client/components/chat/HumanPromptCard'
 import { useTaskDetail } from '@/client/hooks/useTaskDetail'
 import { useHumanPrompts } from '@/client/hooks/useHumanPrompts'
 import { cn } from '@/client/lib/utils'
+import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import {
   Clock,
   Loader2,
@@ -31,8 +32,17 @@ import {
   GitBranch,
   Layers,
   Wrench,
+  Cpu,
 } from 'lucide-react'
 import type { TaskStatus } from '@/shared/types'
+
+interface LLMModel {
+  id: string
+  name: string
+  providerId: string
+  providerType: string
+  capability: string
+}
 
 interface TaskDetailModalProps {
   taskId: string | null
@@ -40,6 +50,7 @@ interface TaskDetailModalProps {
   onOpenChange: (open: boolean) => void
   kinName?: string
   kinAvatarUrl?: string | null
+  llmModels?: LLMModel[]
 }
 
 const STATUS_CONFIG: Record<
@@ -64,6 +75,7 @@ export function TaskDetailModal({
   onOpenChange,
   kinName,
   kinAvatarUrl,
+  llmModels = [],
 }: TaskDetailModalProps) {
   const { t } = useTranslation()
   const {
@@ -110,6 +122,7 @@ export function TaskDetailModal({
   const StatusIcon = statusConfig?.icon
   const isActive = task?.status === 'pending' || task?.status === 'in_progress' || task?.status === 'awaiting_human_input'
   const initials = kinName?.slice(0, 2).toUpperCase() ?? 'K'
+  const resolvedModel = task?.model ? llmModels.find((m) => m.id === task.model) : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,6 +185,16 @@ export function TaskDetailModal({
                       ? t('taskDetail.modeAwait')
                       : t('taskDetail.modeAsync')}
                   </Badge>
+                  {task.model && (
+                    <span className="flex items-center gap-1">
+                      {resolvedModel ? (
+                        <ProviderIcon providerType={resolvedModel.providerType} className="size-3" />
+                      ) : (
+                        <Cpu className="size-3" />
+                      )}
+                      <span className="truncate max-w-[140px]">{resolvedModel?.name ?? task.model}</span>
+                    </span>
+                  )}
                   {toolCallCount > 0 && (
                     <Button
                       variant={isToolCallsOpen ? 'secondary' : 'ghost'}

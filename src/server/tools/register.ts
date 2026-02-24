@@ -2,6 +2,11 @@ import { createLogger } from '@/server/logger'
 import { toolRegistry } from '@/server/tools/index'
 import { webSearchTool } from '@/server/tools/search-tools'
 import {
+  browseUrlTool,
+  extractLinksTool,
+  screenshotUrlTool,
+} from '@/server/tools/browse-tools'
+import {
   getContactTool,
   searchContactsTool,
   createContactTool,
@@ -56,7 +61,7 @@ import {
   runCustomToolTool,
   listCustomToolsTool,
 } from '@/server/tools/custom-tool-tools'
-import { generateImageTool } from '@/server/tools/image-tools'
+import { generateImageTool, listImageModelsTool } from '@/server/tools/image-tools'
 import { runShellTool } from '@/server/tools/shell-tools'
 import {
   addMcpServerTool,
@@ -72,6 +77,29 @@ import {
   updateStoredFileTool,
   deleteStoredFileTool,
 } from '@/server/tools/file-storage-tools'
+import {
+  createKinTool,
+  updateKinTool,
+  deleteKinTool,
+  getKinDetailsTool,
+} from '@/server/tools/kin-management-tools'
+import {
+  createWebhookTool,
+  updateWebhookTool,
+  deleteWebhookTool,
+  listWebhooksTool,
+} from '@/server/tools/webhook-tools'
+import {
+  listChannelsTool,
+  listChannelConversationsTool,
+  sendChannelMessageTool,
+} from '@/server/tools/channel-tools'
+import { getPlatformLogsTool } from '@/server/tools/platform-tools'
+import {
+  listUsersTool,
+  getUserTool,
+  createInvitationTool,
+} from '@/server/tools/user-tools'
 
 const log = createLogger('tools')
 
@@ -85,6 +113,11 @@ const log = createLogger('tools')
 export function registerAllTools(): void {
   // Phase 10.5: Web search
   toolRegistry.register('web_search', webSearchTool)
+
+  // Web browsing
+  toolRegistry.register('browse_url', browseUrlTool)
+  toolRegistry.register('extract_links', extractLinksTool)
+  toolRegistry.register('screenshot_url', screenshotUrlTool)
 
   // Phase 11: Contact tools
   toolRegistry.register('get_contact', getContactTool)
@@ -144,8 +177,9 @@ export function registerAllTools(): void {
   toolRegistry.register('run_custom_tool', runCustomToolTool)
   toolRegistry.register('list_custom_tools', listCustomToolsTool)
 
-  // Phase 21: Image generation (main only)
+  // Phase 21: Image tools
   toolRegistry.register('generate_image', generateImageTool)
+  toolRegistry.register('list_image_models', listImageModelsTool)
 
   // Phase 18: MCP management tools (main only)
   toolRegistry.register('add_mcp_server', addMcpServerTool)
@@ -163,6 +197,31 @@ export function registerAllTools(): void {
   toolRegistry.register('search_stored_files', searchStoredFilesTool)
   toolRegistry.register('update_stored_file', updateStoredFileTool)
   toolRegistry.register('delete_stored_file', deleteStoredFileTool)
+
+  // Kin management tools (main only, opt-in required)
+  toolRegistry.register('create_kin', createKinTool)
+  toolRegistry.register('update_kin', updateKinTool)
+  toolRegistry.register('delete_kin', deleteKinTool)
+  toolRegistry.register('get_kin_details', getKinDetailsTool)
+
+  // Webhook tools (main only)
+  toolRegistry.register('create_webhook', createWebhookTool)
+  toolRegistry.register('update_webhook', updateWebhookTool)
+  toolRegistry.register('delete_webhook', deleteWebhookTool)
+  toolRegistry.register('list_webhooks', listWebhooksTool)
+
+  // Channel tools (main only, send_channel_message is opt-in)
+  toolRegistry.register('list_channels', listChannelsTool)
+  toolRegistry.register('list_channel_conversations', listChannelConversationsTool)
+  toolRegistry.register('send_channel_message', sendChannelMessageTool)
+
+  // Platform / system tools (main only, opt-in required)
+  toolRegistry.register('get_platform_logs', getPlatformLogsTool)
+
+  // User management tools (main only)
+  toolRegistry.register('list_users', listUsersTool)
+  toolRegistry.register('get_user', getUserTool)
+  toolRegistry.register('create_invitation', createInvitationTool)
 
   log.info({ count: toolRegistry.registeredCount }, 'Native tools registered')
 }

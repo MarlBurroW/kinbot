@@ -8,6 +8,9 @@ import { sseManager } from '@/server/sse/index'
 
 const log = createLogger('queue')
 
+/** In-memory sideband for file IDs attached to queue items (single-process, lost on restart — files stay orphaned but harmless) */
+const queueFileIds = new Map<string, string[]>()
+
 export interface EnqueueParams {
   kinId: string
   messageType: string
@@ -18,6 +21,9 @@ export interface EnqueueParams {
   requestId?: string
   inReplyTo?: string
   taskId?: string
+  sessionId?: string
+  /** Uploaded file IDs to link to the message once it's created */
+  fileIds?: string[]
 }
 
 /**
@@ -38,6 +44,7 @@ export async function enqueueMessage(params: EnqueueParams) {
     requestId: params.requestId,
     inReplyTo: params.inReplyTo,
     taskId: params.taskId,
+    sessionId: params.sessionId,
     status: 'pending',
     createdAt: new Date(),
   })
@@ -58,6 +65,11 @@ export async function enqueueMessage(params: EnqueueParams) {
     data: { kinId: params.kinId, queueSize: queuePosition, isProcessing: false },
   })
 
+  // Store file IDs in sideband map for later retrieval by kin-engine
+  if (params.fileIds && params.fileIds.length > 0) {
+    queueFileIds.set(id, params.fileIds)
+  }
+
   log.debug({ kinId: params.kinId, itemId: id, messageType: params.messageType, sourceType: params.sourceType, queuePosition }, 'Message enqueued')
 
   return { id, queuePosition }
@@ -69,8 +81,15 @@ export async function enqueueMessage(params: EnqueueParams) {
  *
  * Uses a single atomic UPDATE ... RETURNING * to prevent race conditions:
  * no two callers can grab the same item, even without external locks.
+ *
+ * @param mode - 'main' filters for session_id IS NULL (main session + tasks),
+ *               'quick' filters for session_id IS NOT NULL (quick sessions).
  */
-export async function dequeueMessage(kinId: string) {
+export async function dequeueMessage(kinId: string, mode: 'main' | 'quick' = 'main') {
+  const sessionFilter = mode === 'main'
+    ? 'AND session_id IS NULL'
+    : 'AND session_id IS NOT NULL'
+
   const row = sqlite.query<{
     id: string
     kin_id: string
@@ -82,6 +101,7 @@ export async function dequeueMessage(kinId: string) {
     request_id: string | null
     in_reply_to: string | null
     task_id: string | null
+    session_id: string | null
     status: string
     created_at: number
     processed_at: number | null
@@ -90,7 +110,7 @@ export async function dequeueMessage(kinId: string) {
     SET status = 'processing'
     WHERE id = (
       SELECT id FROM queue_items
-      WHERE kin_id = ? AND status = 'pending'
+      WHERE kin_id = ? AND status = 'pending' ${sessionFilter}
       ORDER BY priority DESC, created_at ASC
       LIMIT 1
     )
@@ -98,6 +118,10 @@ export async function dequeueMessage(kinId: string) {
   `).get(kinId)
 
   if (!row) return null
+
+  // Pop file IDs from sideband map (one-shot — consumed on dequeue)
+  const fileIds = queueFileIds.get(row.id)
+  if (fileIds) queueFileIds.delete(row.id)
 
   return {
     id: row.id,
@@ -110,9 +134,11 @@ export async function dequeueMessage(kinId: string) {
     requestId: row.request_id,
     inReplyTo: row.in_reply_to,
     taskId: row.task_id,
+    sessionId: row.session_id,
     status: row.status,
     createdAt: new Date(row.created_at),
     processedAt: row.processed_at ? new Date(row.processed_at) : null,
+    fileIds: fileIds ?? null,
   }
 }
 
@@ -128,15 +154,18 @@ export async function markQueueItemDone(itemId: string) {
 
 /**
  * Check if a Kin is currently processing a message.
+ * @param mode - 'main' checks only main/task items, 'quick' checks only quick session items.
  */
-export async function isKinProcessing(kinId: string): Promise<boolean> {
-  const processing = await db
-    .select()
-    .from(queueItems)
-    .where(and(eq(queueItems.kinId, kinId), eq(queueItems.status, 'processing')))
-    .get()
+export async function isKinProcessing(kinId: string, mode: 'main' | 'quick' = 'main'): Promise<boolean> {
+  const sessionFilter = mode === 'main'
+    ? 'AND session_id IS NULL'
+    : 'AND session_id IS NOT NULL'
 
-  return !!processing
+  const row = sqlite.query<{ id: string }, [string]>(
+    `SELECT id FROM queue_items WHERE kin_id = ? AND status = 'processing' ${sessionFilter} LIMIT 1`,
+  ).get(kinId)
+
+  return !!row
 }
 
 /**

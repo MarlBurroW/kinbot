@@ -80,7 +80,7 @@ export function useAuth() {
       method: 'POST',
       credentials: 'include',
     })
-    setState({ user: null, isLoading: false, isAuthenticated: false })
+    window.location.href = '/'
   }
 
   return {

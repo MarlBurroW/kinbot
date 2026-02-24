@@ -12,6 +12,7 @@ import {
 } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { createMemory, searchMemories } from '@/server/services/memory'
+import { sseManager } from '@/server/sse/index'
 import type { MemoryCategory } from '@/shared/types'
 
 const log = createLogger('compacting')
@@ -34,7 +35,7 @@ async function shouldCompact(kinId: string): Promise<boolean> {
     .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
     .get()
 
-  // Get non-compacted messages (after snapshot, excluding redact_pending)
+  // Get non-compacted messages (after snapshot, excluding redact_pending, quick sessions, and compacting traces)
   let query = db
     .select({ content: messages.content, createdAt: messages.createdAt })
     .from(messages)
@@ -42,7 +43,9 @@ async function shouldCompact(kinId: string): Promise<boolean> {
       and(
         eq(messages.kinId, kinId),
         isNull(messages.taskId),
+        isNull(messages.sessionId),
         eq(messages.redactPending, false),
+        ne(messages.sourceType, 'compacting'),
       ),
     )
     .orderBy(asc(messages.createdAt))
@@ -78,9 +81,14 @@ async function shouldCompact(kinId: string): Promise<boolean> {
  * 4. Clean up excess snapshots
  * 5. Trigger memory extraction pipeline
  */
-export async function runCompacting(kinId: string): Promise<boolean> {
+export interface CompactingResult {
+  summary: string
+  memoriesExtracted: number
+}
+
+export async function runCompacting(kinId: string): Promise<CompactingResult | null> {
   const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
-  if (!kin) return false
+  if (!kin) return null
 
   const activeSnapshot = await db
     .select()
@@ -88,7 +96,7 @@ export async function runCompacting(kinId: string): Promise<boolean> {
     .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
     .get()
 
-  // Get non-compacted messages
+  // Get non-compacted messages (excluding quick sessions and compacting traces)
   const allMainMessages = await db
     .select()
     .from(messages)
@@ -96,7 +104,9 @@ export async function runCompacting(kinId: string): Promise<boolean> {
       and(
         eq(messages.kinId, kinId),
         isNull(messages.taskId),
+        isNull(messages.sessionId),
         eq(messages.redactPending, false),
+        ne(messages.sourceType, 'compacting'),
       ),
     )
     .orderBy(asc(messages.createdAt))
@@ -108,13 +118,13 @@ export async function runCompacting(kinId: string): Promise<boolean> {
       )
     : allMainMessages
 
-  if (nonCompacted.length === 0) return false
+  if (nonCompacted.length === 0) return null
 
   // Keep 30% of messages as raw context
   const keepCount = Math.max(1, Math.ceil(nonCompacted.length * 0.3))
   const messagesToSummarize = nonCompacted.slice(0, -keepCount)
 
-  if (messagesToSummarize.length === 0) return false
+  if (messagesToSummarize.length === 0) return null
 
   const lastSummarizedMessage = messagesToSummarize[messagesToSummarize.length - 1]!
 
@@ -166,13 +176,21 @@ export async function runCompacting(kinId: string): Promise<boolean> {
 
   systemPrompt += `\n## Exchanges to summarize\n\n${formattedMessages}`
 
-  // Resolve model for compacting
+  // Resolve model for compacting — only use Kin's provider preference when using the Kin's model
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
-  const model = await resolveLLMModel(config.compacting.model ?? kin.model)
+  const compactingProviderId = config.compacting.model ? null : kin.providerId
+  const model = await resolveLLMModel(config.compacting.model ?? kin.model, compactingProviderId)
   if (!model) {
     log.warn({ kinId }, 'No LLM model available for compacting')
-    return false
+    return null
   }
+
+  // Emit SSE: compaction started
+  sseManager.sendToKin(kinId, {
+    type: 'compacting:start',
+    kinId,
+    data: { kinId },
+  })
 
   // Generate summary
   const result = await generateText({
@@ -181,7 +199,7 @@ export async function runCompacting(kinId: string): Promise<boolean> {
   })
 
   const summary = result.text
-  if (!summary) return false
+  if (!summary) return null
 
   // Save new snapshot
   const newSnapshotId = uuid()
@@ -211,14 +229,34 @@ export async function runCompacting(kinId: string): Promise<boolean> {
   // Clean up excess snapshots
   await cleanupSnapshots(kinId)
 
-  // Trigger memory extraction (non-blocking)
-  extractMemories(kinId, kin.model, messagesToSummarize, lastSummarizedMessage.id).catch(
-    (err) => log.error({ kinId, err }, 'Memory extraction error'),
-  )
+  // Extract memories (awaited so we can report count)
+  const memoriesExtracted = await extractMemories(kinId, kin.model, kin.providerId, messagesToSummarize, lastSummarizedMessage.id)
 
-  log.info({ kinId, snapshotId: newSnapshotId, summarizedCount: messagesToSummarize.length }, 'Compacting snapshot created')
+  // Persist a system message so the compaction trace survives page refresh
+  // role='system' is skipped by buildMessageHistory → won't pollute LLM context
+  const compactingMessageId = uuid()
+  await db.insert(messages).values({
+    id: compactingMessageId,
+    kinId,
+    role: 'system',
+    content: summary,
+    sourceType: 'compacting',
+    isRedacted: false,
+    redactPending: false,
+    metadata: JSON.stringify({ memoriesExtracted }),
+    createdAt: new Date(),
+  })
 
-  return true
+  log.info({ kinId, snapshotId: newSnapshotId, summarizedCount: messagesToSummarize.length, memoriesExtracted }, 'Compacting snapshot created')
+
+  // Emit SSE: compaction done
+  sseManager.sendToKin(kinId, {
+    type: 'compacting:done',
+    kinId,
+    data: { kinId, summary, memoriesExtracted },
+  })
+
+  return { summary, memoriesExtracted }
 }
 
 // ─── Snapshot Cleanup ────────────────────────────────────────────────────────
@@ -248,12 +286,14 @@ async function cleanupSnapshots(kinId: string) {
 async function extractMemories(
   kinId: string,
   kinModel: string,
+  kinProviderId: string | null,
   messagesToAnalyze: Array<{ id: string; content: string | null; role: string }>,
   lastMessageId: string,
-) {
+): Promise<number> {
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
-  const model = await resolveLLMModel(config.memory.extractionModel ?? kinModel)
-  if (!model) return
+  const extractionProviderId = config.memory.extractionModel ? null : kinProviderId
+  const model = await resolveLLMModel(config.memory.extractionModel ?? kinModel, extractionProviderId)
+  if (!model) return 0
 
   // Get existing memories for dedup context
   const existingMemories = await db
@@ -297,7 +337,7 @@ async function extractMemories(
 
     // Parse JSON array from response
     const jsonMatch = result.text.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) return
+    if (!jsonMatch) return 0
 
     const extracted = JSON.parse(jsonMatch[0]) as Array<{
       content: string
@@ -305,6 +345,7 @@ async function extractMemories(
       subject: string
     }>
 
+    let count = 0
     for (const item of extracted) {
       if (!item.content || !item.category) continue
 
@@ -320,10 +361,13 @@ async function extractMemories(
           sourceMessageId: lastMessageId,
           sourceChannel: 'automatic',
         })
+        count++
       }
     }
+    return count
   } catch (err) {
     log.error({ kinId, err }, 'Memory extraction LLM error')
+    return 0
   }
 }
 
