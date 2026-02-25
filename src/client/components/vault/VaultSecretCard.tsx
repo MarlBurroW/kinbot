@@ -3,6 +3,7 @@ import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
 import { KinBadge } from '@/client/components/common/KinBadge'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 
 export interface VaultSecretData {
@@ -55,9 +56,10 @@ export function VaultSecretCard({ secret, kinName, kinAvatarUrl, onEdit, onDelet
             </Button>
           )}
           {onDelete && (
-            <Button variant="ghost" size="icon-xs" onClick={onDelete}>
-              <Trash2 className="size-3.5" />
-            </Button>
+            <ConfirmDeleteButton
+              onConfirm={onDelete}
+              description={t('settings.vault.deleteConfirm')}
+            />
           )}
         </div>
       </CardContent>

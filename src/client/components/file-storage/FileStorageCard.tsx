@@ -15,6 +15,7 @@ import {
   Trash2,
   Globe,
 } from 'lucide-react'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { toast } from 'sonner'
 
 export interface StoredFileData {
@@ -140,9 +141,10 @@ export function FileStorageCard({ file, kinName, kinAvatarUrl, onEdit, onDelete 
             </Button>
           )}
           {onDelete && (
-            <Button variant="ghost" size="icon-xs" onClick={onDelete}>
-              <Trash2 className="size-3.5" />
-            </Button>
+            <ConfirmDeleteButton
+              onConfirm={onDelete}
+              description={t('settings.files.deleteConfirm')}
+            />
           )}
         </div>
       </CardContent>
