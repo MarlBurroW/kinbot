@@ -12,6 +12,7 @@ import { togetherProvider } from '@/server/providers/together'
 import { fireworksProvider } from '@/server/providers/fireworks'
 import { deepseekProvider } from '@/server/providers/deepseek'
 import { ollamaProvider } from '@/server/providers/ollama'
+import { openrouterProvider } from '@/server/providers/openrouter'
 
 const log = createLogger('providers')
 
@@ -28,6 +29,7 @@ const registry: Record<string, ProviderDefinition> = {
   fireworks: fireworksProvider,
   deepseek: deepseekProvider,
   ollama: ollamaProvider,
+  openrouter: openrouterProvider,
 }
 
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {
