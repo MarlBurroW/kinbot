@@ -718,7 +718,8 @@
       "testFailed": "Test échoué",
       "errorState": "{{count}} erreurs de livraison consécutives",
       "autoDisabled": "Automatiquement désactivé suite aux erreurs",
-      "noAvailableChannels": "Aucun canal actif disponible. Créez et activez un canal d'abord."
+      "noAvailableChannels": "Aucun canal actif disponible. Créez et activez un canal d'abord.",
+      "deleteConfirm": "Ce canal de notification sera définitivement supprimé. Vous ne recevrez plus de notifications par ce biais."
     }
   },
   "notifications": {

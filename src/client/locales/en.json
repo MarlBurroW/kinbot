@@ -718,7 +718,8 @@
       "testFailed": "Test failed",
       "errorState": "{{count}} consecutive delivery errors",
       "autoDisabled": "Automatically disabled due to errors",
-      "noAvailableChannels": "No active channels available. Create and activate a channel first."
+      "noAvailableChannels": "No active channels available. Create and activate a channel first.",
+      "deleteConfirm": "This will permanently delete this notification channel. You will no longer receive notifications through it."
     }
   },
   "notifications": {

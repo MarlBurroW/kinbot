@@ -3,6 +3,7 @@ import { Button } from '@/client/components/ui/button'
 import { Card, CardContent } from '@/client/components/ui/card'
 import { Switch } from '@/client/components/ui/switch'
 import { KinBadge } from '@/client/components/common/KinBadge'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { Pencil, Trash2, Webhook, Copy, RefreshCw, History } from 'lucide-react'
 import { toast } from 'sonner'
 import type { WebhookSummary } from '@/shared/types'
@@ -80,9 +81,10 @@ export function WebhookCard({ webhook, onEdit, onDelete, onToggle, onRegenerateT
             </Button>
           )}
           {onDelete && (
-            <Button variant="ghost" size="icon-xs" onClick={onDelete}>
-              <Trash2 className="size-3.5" />
-            </Button>
+            <ConfirmDeleteButton
+              onConfirm={onDelete}
+              description={t('settings.webhooks.deleteConfirm')}
+            />
           )}
         </div>
       </CardContent>

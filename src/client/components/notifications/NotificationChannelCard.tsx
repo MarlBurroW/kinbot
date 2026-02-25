@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/client/components/ui/card'
 import { Badge } from '@/client/components/ui/badge'
 import { Switch } from '@/client/components/ui/switch'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { Pencil, Trash2, Send, AlertTriangle } from 'lucide-react'
 import type { NotificationChannelSummary } from '@/shared/types'
 
@@ -61,9 +62,12 @@ export function NotificationChannelCard({ channel, onEdit, onDelete, onTest, onT
           <Button variant="ghost" size="icon" className="size-7" onClick={onEdit}>
             <Pencil className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={onDelete}>
-            <Trash2 className="size-3.5" />
-          </Button>
+          <ConfirmDeleteButton
+            onConfirm={onDelete}
+            description={t('settings.notifications.deleteConfirm')}
+            size="icon"
+            className="size-7 text-destructive"
+          />
           <Switch
             checked={channel.isActive}
             onCheckedChange={onToggle}

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/client/components/ui/select'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { Pencil, Trash2, User, Bot, Globe, Lock, Plus, Check, X } from 'lucide-react'
 import { api } from '@/client/lib/api'
 import type { ContactPlatformId } from '@/shared/types'
@@ -188,9 +189,10 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
               </Button>
             )}
             {onDelete && (
-              <Button variant="ghost" size="icon-xs" onClick={onDelete}>
-                <Trash2 className="size-3.5" />
-              </Button>
+              <ConfirmDeleteButton
+                onConfirm={onDelete}
+                description={t('settings.contacts.deleteConfirm')}
+              />
             )}
           </div>
         </div>
