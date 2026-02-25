@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/client/components/ui/card'
 import { Switch } from '@/client/components/ui/switch'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
 import { KinBadge } from '@/client/components/common/KinBadge'
-import { Pencil, Trash2, Send, MessageSquare, Clock, ChevronDown, Plug, Loader2 } from 'lucide-react'
+import { Pencil, Send, MessageSquare, Clock, ChevronDown, Plug, Loader2 } from 'lucide-react'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { cn } from '@/client/lib/utils'
 import type { ChannelSummary } from '@/shared/types'
 
@@ -78,9 +79,11 @@ export function ChannelCard({ channel, expanded, testing, onToggleExpand, onEdit
             </Button>
           )}
           {onDelete && (
-            <Button variant="ghost" size="icon-xs" onClick={onDelete}>
-              <Trash2 className="size-3.5" />
-            </Button>
+            <ConfirmDeleteButton
+              onConfirm={onDelete}
+              title={t('settings.channels.delete')}
+              description={t('settings.channels.deleteConfirm')}
+            />
           )}
           {onToggleExpand && (
             <Button variant="ghost" size="icon-xs" onClick={onToggleExpand}>

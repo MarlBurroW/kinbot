@@ -3,7 +3,8 @@ import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
 import { KinBadge } from '@/client/components/common/KinBadge'
-import { CheckCircle, Pencil, Plug, Trash2 } from 'lucide-react'
+import { CheckCircle, Pencil, Plug } from 'lucide-react'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 
 export interface McpServerData {
   id: string
@@ -79,9 +80,11 @@ export function McpServerCard({ server, kinName, kinAvatarUrl, onApprove, onEdit
             </Button>
           )}
           {onDelete && (
-            <Button variant="ghost" size="icon-xs" onClick={onDelete}>
-              <Trash2 className="size-3.5" />
-            </Button>
+            <ConfirmDeleteButton
+              onConfirm={onDelete}
+              title={t('settings.mcp.delete')}
+              description={t('settings.mcp.deleteConfirm')}
+            />
           )}
         </div>
       </CardContent>

@@ -2,9 +2,10 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
-import { Brain, Globe, Image, Loader2, Pencil, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { Brain, Globe, Image, Loader2, Pencil, RefreshCw, Search } from 'lucide-react'
 import { PROVIDER_DISPLAY_NAMES } from '@/shared/constants'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 
 const CAPABILITY_ICONS: Record<string, typeof Brain> = {
   llm: Brain,
@@ -83,13 +84,11 @@ export function ProviderCard({ provider, isTesting, onTest, onEdit, onDelete }: 
             </Button>
           )}
           {onDelete && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={onDelete}
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
+            <ConfirmDeleteButton
+              onConfirm={onDelete}
+              title={t('settings.providers.delete')}
+              description={t('settings.providers.deleteConfirm')}
+            />
           )}
         </div>
       </CardContent>
