@@ -119,6 +119,12 @@ const providers = [
     capabilities: ['Image'],
     logo: 'https://fal.ai/favicon.ico',
   },
+  {
+    name: 'Serper',
+    description: 'Google SERP API',
+    capabilities: ['Search'],
+    logo: 'https://serper.dev/favicon.ico',
+  },
 ]
 
 const capabilityColors: Record<string, string> = {
@@ -194,7 +200,7 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        20 providers and counting. Missing one?{' '}
+        21 providers and counting. Missing one?{' '}
         <a href="https://github.com/MarlBurroW/kinbot/issues" className="underline" style={{ color: 'var(--color-primary)' }}>Open an issue</a>.
       </p>
     </section>

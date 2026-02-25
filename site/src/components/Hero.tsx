@@ -1,10 +1,55 @@
-import { useState } from 'react'
-import { Check, Copy, Github, ArrowRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, Copy, Github, ArrowRight, Star, GitFork, Tag } from 'lucide-react'
 
 const INSTALL_CMD = 'curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash'
 
+interface RepoStats {
+  stars: number
+  forks: number
+  version: string
+}
+
+function useGitHubStats(): RepoStats | null {
+  const [stats, setStats] = useState<RepoStats | null>(null)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('https://api.github.com/repos/MarlBurroW/kinbot').then(r => r.json()),
+      fetch('https://api.github.com/repos/MarlBurroW/kinbot/releases/latest').then(r => r.json()),
+    ])
+      .then(([repo, release]) => {
+        setStats({
+          stars: repo.stargazers_count ?? 0,
+          forks: repo.forks_count ?? 0,
+          version: release.tag_name ?? '',
+        })
+      })
+      .catch(() => {})
+  }, [])
+
+  return stats
+}
+
+function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
+      style={{
+        background: 'color-mix(in oklch, var(--color-glow-1) 8%, transparent)',
+        color: 'var(--color-muted-foreground)',
+        border: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)',
+      }}
+      title={label}
+    >
+      {icon}
+      <span>{value}</span>
+    </div>
+  )
+}
+
 export function Hero() {
   const [copied, setCopied] = useState(false)
+  const stats = useGitHubStats()
 
   const copy = async () => {
     await navigator.clipboard.writeText(INSTALL_CMD)
@@ -44,6 +89,29 @@ export function Hero() {
           Open Source · Self-hosted · AGPL-3.0
         </span>
       </div>
+
+      {/* GitHub stats */}
+      {stats && (
+        <div className="animate-fade-in-up flex items-center gap-3 mb-6" style={{ animationDelay: '0.05s' }}>
+          {stats.version && (
+            <StatBadge
+              icon={<Tag size={12} style={{ color: 'var(--color-primary)' }} />}
+              label="Latest version"
+              value={stats.version}
+            />
+          )}
+          <StatBadge
+            icon={<Star size={12} style={{ color: 'var(--color-primary)' }} />}
+            label="GitHub stars"
+            value={stats.stars.toLocaleString()}
+          />
+          <StatBadge
+            icon={<GitFork size={12} style={{ color: 'var(--color-primary)' }} />}
+            label="Forks"
+            value={stats.forks.toLocaleString()}
+          />
+        </div>
+      )}
 
       {/* Heading */}
       <div className="animate-fade-in-up text-center max-w-4xl" style={{ animationDelay: '0.1s' }}>
