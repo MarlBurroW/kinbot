@@ -210,7 +210,10 @@
       "connectionFailed": "Connexion échouée — impossible de découvrir les outils de ce serveur.",
       "enableAll": "Tout activer",
       "disableAll": "Tout désactiver",
-      "optIn": "Opt-in"
+      "optIn": "Opt-in",
+      "searchProvider": "Fournisseur de recherche",
+      "searchProviderDescription": "Remplace le fournisseur de recherche par défaut pour ce Kin.",
+      "searchProviderDefault": "Défaut (paramètre global)"
     },
     "defaults": {
       "character": "Tu es un assistant amical, réfléchi et polyvalent. Tu communiques clairement et tu adaptes ton ton au contexte — décontracté quand c'est approprié, précis quand c'est nécessaire.\n\nTu es patient, curieux et tu prends plaisir à aider. Quand tu ne sais pas quelque chose, tu le dis honnêtement. Tu poses des questions de clarification quand la demande est ambiguë.\n\nTu gardes tes réponses concises sauf si l'utilisateur demande explicitement plus de détails.",
@@ -405,7 +408,11 @@
       "description": "Gérez vos connexions aux fournisseurs de recherche web",
       "empty": "Aucun fournisseur de recherche configuré",
       "add": "Ajouter un fournisseur de recherche",
-      "emptyDescription": "Connectez un fournisseur de recherche pour que vos Kins puissent chercher sur le web."
+      "emptyDescription": "Connectez un fournisseur de recherche pour que vos Kins puissent chercher sur le web.",
+      "defaultProvider": "Fournisseur par défaut",
+      "defaultProviderDescription": "Utilisé par tous les Kins sauf s'ils le remplacent individuellement.",
+      "defaultProviderAutomatic": "Automatique (premier valide)",
+      "defaultProviderSaved": "Fournisseur de recherche par défaut mis à jour"
     },
     "mcp": {
       "title": "Serveurs MCP",

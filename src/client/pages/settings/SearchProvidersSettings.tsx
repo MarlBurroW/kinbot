@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
+import { Label } from '@/client/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/client/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,9 +34,11 @@ export function SearchProvidersSettings() {
   const [editingProvider, setEditingProvider] = useState<ProviderData | null>(null)
   const [deletingProvider, setDeletingProvider] = useState<ProviderData | null>(null)
   const [testingId, setTestingId] = useState<string | null>(null)
+  const [defaultProviderId, setDefaultProviderId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProviders()
+    fetchDefaultProvider()
   }, [])
 
   const fetchProviders = async () => {
@@ -37,6 +47,26 @@ export function SearchProvidersSettings() {
       setProviders(data.providers.filter((p) => (SEARCH_PROVIDER_TYPES as readonly string[]).includes(p.type)))
     } catch {
       // Ignore
+    }
+  }
+
+  const fetchDefaultProvider = async () => {
+    try {
+      const data = await api.get<{ searchProviderId: string | null }>('/settings/search-provider')
+      setDefaultProviderId(data.searchProviderId)
+    } catch {
+      // Ignore
+    }
+  }
+
+  const handleDefaultProviderChange = async (value: string) => {
+    const newId = value === '__automatic__' ? null : value
+    try {
+      await api.put('/settings/search-provider', { searchProviderId: newId })
+      setDefaultProviderId(newId)
+      toast.success(t('settings.searchProviders.defaultProviderSaved'))
+    } catch {
+      toast.error(t('common.error'))
     }
   }
 
@@ -61,6 +91,10 @@ export function SearchProvidersSettings() {
     if (!deletingProvider) return
     try {
       await api.delete(`/providers/${deletingProvider.id}`)
+      // If we deleted the default, clear it locally
+      if (defaultProviderId === deletingProvider.id) {
+        setDefaultProviderId(null)
+      }
       await fetchProviders()
       toast.success(t('settings.providers.deleted'))
     } catch (err: unknown) {
@@ -86,6 +120,8 @@ export function SearchProvidersSettings() {
     setModalOpen(true)
   }
 
+  const validProviders = providers.filter((p) => p.isValid)
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -93,6 +129,32 @@ export function SearchProvidersSettings() {
           {t('settings.searchProviders.description')}
         </p>
       </div>
+
+      {/* Default provider selector */}
+      {providers.length > 0 && (
+        <div className="surface-card rounded-lg p-4 space-y-2">
+          <Label className="text-sm font-medium">{t('settings.searchProviders.defaultProvider')}</Label>
+          <p className="text-xs text-muted-foreground">{t('settings.searchProviders.defaultProviderDescription')}</p>
+          <Select
+            value={defaultProviderId ?? '__automatic__'}
+            onValueChange={handleDefaultProviderChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__automatic__">
+                {t('settings.searchProviders.defaultProviderAutomatic')}
+              </SelectItem>
+              {validProviders.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Provider list */}
       {providers.length === 0 && (

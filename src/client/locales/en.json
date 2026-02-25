@@ -210,7 +210,10 @@
       "connectionFailed": "Connection failed — unable to discover tools from this server.",
       "enableAll": "Enable all",
       "disableAll": "Disable all",
-      "optIn": "Opt-in"
+      "optIn": "Opt-in",
+      "searchProvider": "Search provider",
+      "searchProviderDescription": "Override the default search provider for this Kin.",
+      "searchProviderDefault": "Default (global setting)"
     },
     "defaults": {
       "character": "You are a friendly, thoughtful, and versatile assistant. You communicate clearly and adapt your tone to the context — casual when appropriate, precise when needed.\n\nYou are patient, curious, and genuinely enjoy helping. When you don't know something, you say so honestly. You ask clarifying questions when the request is ambiguous.\n\nYou keep your responses concise unless the user explicitly asks for detail.",
@@ -405,7 +408,11 @@
       "description": "Manage web search provider connections",
       "empty": "No search providers configured",
       "add": "Add search provider",
-      "emptyDescription": "Connect a search provider so your Kins can look things up on the web."
+      "emptyDescription": "Connect a search provider so your Kins can look things up on the web.",
+      "defaultProvider": "Default provider",
+      "defaultProviderDescription": "Used by all Kins unless they override it individually.",
+      "defaultProviderAutomatic": "Automatic (first valid)",
+      "defaultProviderSaved": "Default search provider updated"
     },
     "mcp": {
       "title": "MCP Servers",

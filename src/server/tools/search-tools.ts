@@ -12,7 +12,7 @@ const log = createLogger('tools:search')
  */
 export const webSearchTool: ToolRegistration = {
   availability: ['main'],
-  create: () =>
+  create: (ctx) =>
     tool({
       description:
         'Search the web for current information. Use this when you need recent data, facts, ' +
@@ -34,7 +34,7 @@ export const webSearchTool: ToolRegistration = {
       }),
       execute: async ({ query, count, freshness }) => {
         log.debug({ query }, 'Web search executed')
-        const results = await webSearch(query, { count, freshness })
+        const results = await webSearch(query, { count, freshness }, ctx.kinId)
         return { results }
       },
     }),
