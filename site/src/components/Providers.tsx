@@ -1,123 +1,157 @@
-const providers = [
+import Claude from '@lobehub/icons/es/Claude'
+import OpenAI from '@lobehub/icons/es/OpenAI'
+import Gemini from '@lobehub/icons/es/Gemini'
+import Mistral from '@lobehub/icons/es/Mistral'
+import DeepSeek from '@lobehub/icons/es/DeepSeek'
+import Groq from '@lobehub/icons/es/Groq'
+import Ollama from '@lobehub/icons/es/Ollama'
+import Together from '@lobehub/icons/es/Together'
+import Fireworks from '@lobehub/icons/es/Fireworks'
+import Voyage from '@lobehub/icons/es/Voyage'
+import OpenRouter from '@lobehub/icons/es/OpenRouter'
+import Cohere from '@lobehub/icons/es/Cohere'
+import XAI from '@lobehub/icons/es/XAI'
+import Tavily from '@lobehub/icons/es/Tavily'
+import Jina from '@lobehub/icons/es/Jina'
+import Replicate from '@lobehub/icons/es/Replicate'
+import Stability from '@lobehub/icons/es/Stability'
+import Fal from '@lobehub/icons/es/Fal'
+
+import type { ComponentType, SVGProps } from 'react'
+
+type SvgIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>
+
+const providers: {
+  name: string
+  description: string
+  capabilities: string[]
+  Icon: SvgIcon
+  color?: string
+  imgFallback?: string
+}[] = [
   {
     name: 'Anthropic',
     description: 'Claude models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/anthropic/d4a27f',
+    Icon: Claude.Color,
   },
   {
     name: 'OpenAI',
     description: 'GPT, DALL·E, Embeddings',
     capabilities: ['LLM', 'Image', 'Embedding'],
-    logo: 'https://cdn.simpleicons.org/openai/10a37f',
+    Icon: OpenAI,
   },
   {
     name: 'Google Gemini',
     description: 'Gemini models',
     capabilities: ['LLM', 'Image'],
-    logo: 'https://cdn.simpleicons.org/googlegemini/8b6fc0',
+    Icon: Gemini.Color,
   },
   {
     name: 'Mistral AI',
     description: 'European LLMs',
     capabilities: ['LLM'],
-    logo: 'https://mistral.ai/favicon.ico',
+    Icon: Mistral.Color,
   },
   {
     name: 'DeepSeek',
     description: 'Reasoning models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/deepseek/4d6bfe',
+    Icon: DeepSeek.Color,
   },
   {
     name: 'Groq',
     description: 'Ultra-fast inference',
     capabilities: ['LLM'],
-    logo: 'https://groq.com/favicon.ico',
+    Icon: Groq,
+    color: '#F55036',
   },
   {
     name: 'Ollama',
     description: 'Local models, no API key',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/ollama/ffffff',
+    Icon: Ollama,
   },
   {
     name: 'Together AI',
     description: 'Open-source models',
     capabilities: ['LLM'],
-    logo: 'https://together.ai/favicon.ico',
+    Icon: Together.Color,
   },
   {
     name: 'Fireworks AI',
     description: 'Fast open models',
     capabilities: ['LLM'],
-    logo: 'https://fireworks.ai/favicon.ico',
+    Icon: Fireworks.Color,
   },
   {
     name: 'Voyage AI',
     description: 'Specialized embeddings',
     capabilities: ['Embedding'],
-    logo: 'https://www.voyageai.com/favicon.ico',
+    Icon: Voyage.Color,
   },
   {
     name: 'OpenRouter',
     description: 'Model aggregator',
     capabilities: ['LLM'],
-    logo: 'https://openrouter.ai/favicon.ico',
+    Icon: OpenRouter,
+    color: '#6566F1',
   },
   {
     name: 'Cohere',
     description: 'LLM + Embeddings + Rerank',
     capabilities: ['LLM', 'Embedding'],
-    logo: 'https://cdn.simpleicons.org/cohere/39594d',
+    Icon: Cohere.Color,
   },
   {
     name: 'xAI',
     description: 'Grok models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/x/ffffff',
+    Icon: XAI,
   },
   {
     name: 'Brave Search',
     description: 'Web search API',
     capabilities: ['Search'],
-    logo: 'https://cdn.simpleicons.org/brave/fb542b',
+    Icon: null as unknown as SvgIcon,
+    imgFallback: 'https://cdn.simpleicons.org/brave/fb542b',
   },
   {
     name: 'Tavily',
     description: 'AI-optimized search',
     capabilities: ['Search'],
-    logo: 'https://tavily.com/favicon.ico',
+    Icon: Tavily.Color,
   },
   {
     name: 'Jina AI',
     description: 'Embeddings & reranking',
     capabilities: ['Embedding'],
-    logo: 'https://jina.ai/favicon.ico',
+    Icon: Jina,
   },
   {
     name: 'Nomic',
     description: 'Open-source embeddings',
     capabilities: ['Embedding'],
-    logo: 'https://nomic.ai/favicon.ico',
+    Icon: null as unknown as SvgIcon,
+    imgFallback: 'https://nomic.ai/favicon.ico',
   },
   {
     name: 'Replicate',
     description: 'Flux, SDXL & more',
     capabilities: ['Image'],
-    logo: 'https://cdn.simpleicons.org/replicate/ffffff',
+    Icon: Replicate,
   },
   {
     name: 'Stability AI',
     description: 'Stable Diffusion API',
     capabilities: ['Image'],
-    logo: 'https://cdn.simpleicons.org/stability.ai/ffffff',
+    Icon: Stability,
   },
   {
     name: 'FAL',
     description: 'Fast image inference',
     capabilities: ['Image'],
-    logo: 'https://fal.ai/favicon.ico',
+    Icon: Fal,
   },
   {
     name: 'Serper',
@@ -158,12 +192,20 @@ export function Providers() {
             style={{ boxShadow: 'var(--shadow-md)' }}
           >
             <div className="flex justify-center mb-3">
-              <img
-                src={provider.logo}
-                alt={provider.name}
-                className="w-10 h-10 transition-transform duration-300 group-hover:scale-110"
-                loading="lazy"
-              />
+              {provider.imgFallback ? (
+                <img
+                  src={provider.imgFallback}
+                  alt={provider.name}
+                  className="w-10 h-10 transition-transform duration-300 group-hover:scale-110"
+                  loading="lazy"
+                />
+              ) : (
+                <provider.Icon
+                  size={40}
+                  className="transition-transform duration-300 group-hover:scale-110"
+                  {...(provider.color ? { color: provider.color } : {})}
+                />
+              )}
             </div>
             <h3
               className="font-semibold text-sm mb-1"
