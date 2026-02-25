@@ -9,6 +9,7 @@ import { braveSearchProvider } from '@/server/providers/brave-search'
 import { mistralProvider } from '@/server/providers/mistral'
 import { groqProvider } from '@/server/providers/groq'
 import { togetherProvider } from '@/server/providers/together'
+import { fireworksProvider } from '@/server/providers/fireworks'
 
 const log = createLogger('providers')
 
@@ -22,6 +23,7 @@ const registry: Record<string, ProviderDefinition> = {
   mistral: mistralProvider,
   groq: groqProvider,
   together: togetherProvider,
+  fireworks: fireworksProvider,
 }
 
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {
