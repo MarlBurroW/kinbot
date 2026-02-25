@@ -582,14 +582,202 @@ uninstall() {
   echo ""
 }
 
+# ─── Help ────────────────────────────────────────────────────────────────────
+show_help() {
+  echo ""
+  echo -e "${BOLD}KinBot Installer${NC} — Self-hosted AI agent platform"
+  echo ""
+  echo -e "${BOLD}USAGE${NC}"
+  echo "  curl -fsSL https://kinbot.sh | bash"
+  echo "  bash install.sh [OPTIONS]"
+  echo ""
+  echo -e "${BOLD}OPTIONS${NC}"
+  echo "  --help          Show this help message"
+  echo "  --status        Check current KinBot installation health"
+  echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
+  echo ""
+  echo -e "${BOLD}ENVIRONMENT VARIABLES${NC}"
+  echo "  KINBOT_PORT         Port to run on (default: 3000)"
+  echo "  KINBOT_DIR          Installation directory"
+  echo "  KINBOT_DATA_DIR     Data directory (database, config)"
+  echo "  KINBOT_PUBLIC_URL   Public URL for webhooks & invite links"
+  echo "  KINBOT_BRANCH       Git branch to install (default: main)"
+  echo "  KINBOT_NO_PROMPT    Skip interactive prompts (default: false)"
+  echo ""
+  echo -e "${BOLD}EXAMPLES${NC}"
+  echo "  # Install with defaults"
+  echo "  curl -fsSL https://kinbot.sh | bash"
+  echo ""
+  echo "  # Install on custom port, non-interactive"
+  echo "  KINBOT_PORT=8080 KINBOT_NO_PROMPT=true bash install.sh"
+  echo ""
+  echo "  # System-wide install (as root)"
+  echo "  sudo bash install.sh"
+  echo ""
+  echo "  # Update existing installation (just run again)"
+  echo "  bash install.sh"
+  echo ""
+  echo "  # Check installation health"
+  echo "  bash install.sh --status"
+  echo ""
+  echo "  # Uninstall"
+  echo "  bash install.sh --uninstall"
+  echo ""
+}
+
+# ─── Status check ────────────────────────────────────────────────────────────
+check_status() {
+  echo ""
+  echo -e "${BOLD}KinBot Status Check${NC}"
+  echo ""
+
+  detect_os
+
+  local has_issues=false
+
+  # Check installation directory
+  header "Installation"
+  if [ -d "$KINBOT_DIR/.git" ]; then
+    local version
+    version="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+    local branch
+    branch="$(git -C "$KINBOT_DIR" branch --show-current 2>/dev/null || echo "unknown")"
+    success "Installed at $KINBOT_DIR (${branch} @ ${version})"
+  else
+    error_noexit "KinBot not found at $KINBOT_DIR"
+    has_issues=true
+  fi
+
+  # Check data directory
+  if [ -d "$KINBOT_DATA_DIR" ]; then
+    success "Data directory: $KINBOT_DATA_DIR"
+    if [ -f "$KINBOT_DATA_DIR/kinbot.env" ]; then
+      success "Config file exists"
+      # shellcheck disable=SC1090
+      . "$KINBOT_DATA_DIR/kinbot.env" 2>/dev/null || true
+      KINBOT_PORT="${PORT:-$KINBOT_PORT}"
+    else
+      warn "No config file found at $KINBOT_DATA_DIR/kinbot.env"
+      has_issues=true
+    fi
+    if [ -f "$KINBOT_DATA_DIR/kinbot.db" ]; then
+      local db_size
+      db_size="$(du -h "$KINBOT_DATA_DIR/kinbot.db" 2>/dev/null | awk '{print $1}')"
+      success "Database: $db_size"
+    else
+      warn "No database found"
+      has_issues=true
+    fi
+  else
+    error_noexit "Data directory not found at $KINBOT_DATA_DIR"
+    has_issues=true
+  fi
+
+  # Check Bun
+  header "Runtime"
+  BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  if command -v bun &>/dev/null; then
+    success "Bun v$(bun --version)"
+  else
+    warn "Bun not found"
+    has_issues=true
+  fi
+
+  # Check service
+  header "Service"
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    if launchctl list 2>/dev/null | grep -q io.kinbot.server; then
+      success "launchd service is loaded"
+    else
+      warn "launchd service not loaded"
+      has_issues=true
+    fi
+  elif [ "$IS_ROOT" = true ]; then
+    if systemctl is-active --quiet kinbot 2>/dev/null; then
+      success "systemd service is running"
+    elif systemctl is-enabled --quiet kinbot 2>/dev/null; then
+      warn "systemd service is enabled but not running"
+      has_issues=true
+    else
+      warn "systemd system service not found"
+      has_issues=true
+    fi
+  else
+    if systemctl --user is-active --quiet kinbot 2>/dev/null; then
+      success "systemd user service is running"
+    elif systemctl --user is-enabled --quiet kinbot 2>/dev/null; then
+      warn "systemd user service is enabled but not running"
+      has_issues=true
+    else
+      warn "systemd user service not found"
+      has_issues=true
+    fi
+  fi
+
+  # Check port
+  header "Network"
+  if command -v ss &>/dev/null; then
+    if ss -tlnp 2>/dev/null | grep -q ":${KINBOT_PORT} "; then
+      success "Port $KINBOT_PORT is listening"
+    else
+      warn "Port $KINBOT_PORT is not listening"
+      has_issues=true
+    fi
+  elif command -v lsof &>/dev/null; then
+    if lsof -i ":${KINBOT_PORT}" -sTCP:LISTEN &>/dev/null; then
+      success "Port $KINBOT_PORT is listening"
+    else
+      warn "Port $KINBOT_PORT is not listening"
+      has_issues=true
+    fi
+  else
+    info "Cannot check port (no ss or lsof)"
+  fi
+
+  # HTTP health check
+  if command -v curl &>/dev/null; then
+    local http_code
+    http_code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${KINBOT_PORT}/" --max-time 3 2>/dev/null || echo "000")"
+    if [ "$http_code" != "000" ]; then
+      success "HTTP responding (status $http_code)"
+    else
+      warn "HTTP not responding on localhost:${KINBOT_PORT}"
+      has_issues=true
+    fi
+  fi
+
+  # Summary
+  echo ""
+  if [ "$has_issues" = true ]; then
+    echo -e "${YELLOW}${BOLD}Some issues detected.${NC} Check the warnings above."
+  else
+    echo -e "${GREEN}${BOLD}Everything looks good!${NC}"
+  fi
+  echo ""
+}
+
+# Non-fatal error (for status checks)
+error_noexit() { echo -e "${RED}✗${NC} $*" >&2; }
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
-  # Handle --uninstall flag
+  # Handle flags
   for arg in "$@"; do
-    if [ "$arg" = "--uninstall" ] || [ "$arg" = "uninstall" ]; then
-      uninstall
-      exit 0
-    fi
+    case "$arg" in
+      --help|-h|help)
+        show_help
+        exit 0
+        ;;
+      --uninstall|uninstall)
+        uninstall
+        exit 0
+        ;;
+      --status|status)
+        check_status
+        exit 0
+        ;;
+    esac
   done
 
   echo ""
