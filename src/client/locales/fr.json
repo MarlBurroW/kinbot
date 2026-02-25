@@ -711,7 +711,31 @@
         "noContacts": "Aucun contact trouvé",
         "approve": "Approuver"
       },
-      "emptyDescription": "Configurez un canal comme Telegram ou Discord pour discuter avec vos Kins en dehors de l'interface web."
+      "emptyDescription": "Configurez un canal comme Telegram ou Discord pour discuter avec vos Kins en dehors de l'interface web.",
+      "setupGuide": {
+        "title": "Comment obtenir votre token de bot",
+        "telegram": {
+          "title": "Configuration Telegram",
+          "steps": [
+            "Ouvrez Telegram et cherchez @BotFather",
+            "Envoyez /newbot et suivez les instructions pour nommer votre bot",
+            "BotFather vous donnera un token du type 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+            "Copiez ce token et collez-le ci-dessus"
+          ],
+          "tip": "Vous pouvez personnaliser votre bot plus tard avec /setdescription et /setuserpic dans BotFather."
+        },
+        "discord": {
+          "title": "Configuration Discord",
+          "steps": [
+            "Allez sur discord.com/developers/applications et cliquez \"New Application\"",
+            "Allez dans l onglet Bot et cliquez \"Reset Token\" pour obtenir votre token",
+            "Activez le Message Content intent dans Privileged Gateway Intents",
+            "Allez dans OAuth2 > URL Generator, selectionnez le scope \"bot\" avec la permission Send Messages",
+            "Utilisez l URL generee pour inviter le bot sur votre serveur"
+          ],
+          "tip": "Assurez-vous que le Message Content intent est active, sinon votre bot ne recevra pas le contenu des messages."
+        }
+      }
     },
     "notifications": {
       "title": "Notifications",
