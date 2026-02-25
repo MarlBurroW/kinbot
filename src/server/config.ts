@@ -159,5 +159,11 @@ export const config = {
     },
   },
 
+  wakeups: {
+    maxPendingPerKin: Number(process.env.WAKEUPS_MAX_PENDING_PER_KIN ?? 20),
+    minDelaySeconds: 10,
+    maxDelaySeconds: 2_592_000, // 30 days
+  },
+
   publicUrl: process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 3333}`,
 } as const

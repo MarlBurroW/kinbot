@@ -101,6 +101,11 @@ import {
   getUserTool,
   createInvitationTool,
 } from '@/server/tools/user-tools'
+import {
+  wakeMeInTool,
+  cancelWakeupTool,
+  listWakeupsTool,
+} from '@/server/tools/wakeup-tools'
 
 const log = createLogger('tools')
 
@@ -226,6 +231,11 @@ export function registerAllTools(): void {
   toolRegistry.register('list_users', listUsersTool)
   toolRegistry.register('get_user', getUserTool)
   toolRegistry.register('create_invitation', createInvitationTool)
+
+  // Wake-up scheduler tools (main only)
+  toolRegistry.register('wake_me_in', wakeMeInTool)
+  toolRegistry.register('cancel_wakeup', cancelWakeupTool)
+  toolRegistry.register('list_wakeups', listWakeupsTool)
 
   log.info({ count: toolRegistry.registeredCount }, 'Native tools registered')
 }

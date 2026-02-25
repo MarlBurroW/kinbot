@@ -7,6 +7,7 @@ import { db, initVirtualTables } from '@/server/db/index'
 import { startQueueWorker } from '@/server/services/kin-engine'
 import { registerAllTools } from '@/server/tools/register'
 import { initCronScheduler } from '@/server/services/crons'
+import { recoverPendingWakeups } from '@/server/services/wakeup-scheduler'
 import { Cron } from 'croner'
 import { cleanExpiredFiles } from '@/server/services/file-storage'
 import { startQuickSessionCleanup } from '@/server/services/quick-session-cleanup'
@@ -39,6 +40,10 @@ startQueueWorker()
 // Initialize cron scheduler (restore active crons from DB)
 log.info('Initializing cron scheduler...')
 initCronScheduler()
+
+// Recover pending wake-ups (reschedule timers after restart)
+log.info('Recovering pending wake-ups...')
+recoverPendingWakeups().catch((err) => log.error({ err }, 'Failed to recover pending wake-ups'))
 
 // Start quick session cleanup
 startQuickSessionCleanup()

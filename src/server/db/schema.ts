@@ -265,6 +265,7 @@ export const crons = sqliteTable('crons', {
   model: text('model'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   requiresApproval: integer('requires_approval', { mode: 'boolean' }).notNull().default(false),
+  runOnce: integer('run_once', { mode: 'boolean' }).notNull().default(false),
   lastTriggeredAt: integer('last_triggered_at', { mode: 'timestamp_ms' }),
   createdBy: text('created_by'), // 'user' | 'kin'
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
@@ -467,6 +468,21 @@ export const notificationChannels = sqliteTable('notification_channels', {
 }, (table) => [
   index('idx_notif_channels_user').on(table.userId),
   uniqueIndex('idx_notif_channels_unique').on(table.userId, table.channelId, table.platformChatId),
+])
+
+// ─── Scheduled Wake-ups ──────────────────────────────────────────────────────
+
+export const scheduledWakeups = sqliteTable('scheduled_wakeups', {
+  id: text('id').primaryKey(),
+  callerKinId: text('caller_kin_id').notNull().references(() => kins.id, { onDelete: 'cascade' }),
+  targetKinId: text('target_kin_id').notNull().references(() => kins.id, { onDelete: 'cascade' }),
+  reason: text('reason'),
+  fireAt: integer('fire_at').notNull(), // Unix ms
+  status: text('status').notNull().default('pending'), // 'pending' | 'fired' | 'cancelled'
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_wakeups_target_status').on(table.targetKinId, table.status),
+  index('idx_wakeups_caller').on(table.callerKinId),
 ])
 
 // ─── App Settings ────────────────────────────────────────────────────────────
