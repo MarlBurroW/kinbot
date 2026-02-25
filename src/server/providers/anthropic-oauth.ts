@@ -237,7 +237,6 @@ export const REQUIRED_SYSTEM_BLOCK = {
 
 export const anthropicOAuthProvider: ProviderDefinition = {
   type: 'anthropic-oauth',
-  capabilities: ['llm'],
 
   async testConnection(config: ProviderConfig) {
     try {

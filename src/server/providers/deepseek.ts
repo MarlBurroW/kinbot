@@ -50,7 +50,6 @@ async function fetchModels(config: ProviderConfig): Promise<DeepSeekModel[]> {
 
 export const deepseekProvider: ProviderDefinition = {
   type: 'deepseek',
-  capabilities: ['llm'],
 
   async testConnection(config: ProviderConfig) {
     try {

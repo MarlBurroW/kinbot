@@ -39,7 +39,6 @@ async function fetchCohereModels(config: ProviderConfig): Promise<CohereModel[]>
 
 export const cohereProvider: ProviderDefinition = {
   type: 'cohere',
-  capabilities: ['llm', 'embedding'],
 
   async testConnection(config: ProviderConfig) {
     try {

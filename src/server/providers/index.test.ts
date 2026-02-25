@@ -15,7 +15,7 @@ describe('Provider Registry', () => {
         'anthropic', 'openai', 'gemini', 'mistral', 'groq',
         'together', 'fireworks', 'deepseek', 'ollama', 'openrouter',
         'cohere', 'xai', 'voyage', 'brave-search', 'tavily',
-        'anthropic-oauth',
+        'anthropic-oauth', 'jina', 'nomic',
       ]
       for (const type of known) {
         const def = getProviderDefinition(type)
@@ -33,8 +33,6 @@ describe('Provider Registry', () => {
     it('definitions have required shape', () => {
       const def = getProviderDefinition('openai')!
       expect(def.type).toBe('openai')
-      expect(Array.isArray(def.capabilities)).toBe(true)
-      expect(def.capabilities.length).toBeGreaterThan(0)
       expect(typeof def.testConnection).toBe('function')
       expect(typeof def.listModels).toBe('function')
     })

@@ -40,7 +40,6 @@ async function fetchModels(config: ProviderConfig): Promise<OllamaModel[]> {
 
 export const ollamaProvider: ProviderDefinition = {
   type: 'ollama',
-  capabilities: ['llm', 'embedding'],
 
   async testConnection(config: ProviderConfig) {
     try {

@@ -42,7 +42,6 @@ async function fetchGeminiModels(config: ProviderConfig): Promise<GeminiModel[]>
 
 export const geminiProvider: ProviderDefinition = {
   type: 'gemini',
-  capabilities: ['llm', 'image'],
 
   async testConnection(config: ProviderConfig) {
     try {

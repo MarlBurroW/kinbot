@@ -61,7 +61,6 @@ async function fetchModels(config: ProviderConfig): Promise<FireworksModel[]> {
 
 export const fireworksProvider: ProviderDefinition = {
   type: 'fireworks',
-  capabilities: ['llm', 'embedding', 'image'],
 
   async testConnection(config: ProviderConfig) {
     try {
