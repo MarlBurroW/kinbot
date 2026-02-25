@@ -5,6 +5,7 @@ import { Features } from './components/Features'
 import { Providers } from './components/Providers'
 import { Architecture } from './components/Architecture'
 import { Install } from './components/Install'
+import { FAQ } from './components/FAQ'
 import { Footer } from './components/Footer'
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
         <Providers />
         <Architecture />
         <Install />
+        <FAQ />
       </main>
       <Footer />
     </div>

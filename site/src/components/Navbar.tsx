@@ -35,6 +35,7 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
             { label: 'Features', href: '#features' },
             { label: 'Architecture', href: '#architecture' },
             { label: 'Install', href: '#install' },
+            { label: 'FAQ', href: '#faq' },
           ].map(({ label, href }) => (
             <a
               key={label}
