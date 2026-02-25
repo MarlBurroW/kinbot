@@ -40,7 +40,7 @@ const faqs: FAQItem[] = [
   {
     question: 'What channels can I connect?',
     answer:
-      'Telegram, Discord, and Slack are fully supported today. WhatsApp, Signal, and Matrix are on the roadmap. The channel adapter architecture makes adding new platforms straightforward. Your agents can live where your users already are.',
+      'Telegram, Discord, Slack, and WhatsApp are fully supported today. Signal and Matrix are on the roadmap. The channel adapter architecture makes adding new platforms straightforward. Your agents can live where your users already are.',
   },
   {
     question: 'Is my data private?',

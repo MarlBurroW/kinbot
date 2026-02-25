@@ -22,7 +22,7 @@ const rows: Row[] = [
   { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'no' },
   { feature: 'Multi-provider (25+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes' },
   { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'Chat integrations (Telegram, Discord, Slack)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
+  { feature: 'Chat integrations (Telegram, Discord, Slack, WhatsApp)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
   { feature: 'Multi-user with roles', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', librechat: 'yes' },
   { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes' },
 ]
