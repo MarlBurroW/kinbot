@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { User, Github, Code2, Globe, Search, FileEdit, Lock, Send, MessageCircle, Hash, ShieldCheck, Slack } from 'lucide-react'
 
@@ -13,18 +12,11 @@ const MAIN_COLOR  = 'var(--color-primary)'
 // The channel the message is shown flowing through
 const ACTIVE_CHANNEL_COLOR = '#5865F2'
 
-// Dot arrival offsets — delay + (duration × fraction) = arrival time at target node.
-// CSS wik-flow-down: visible 10%→90%, "arrives" near 90% of animation duration.
-// SVG animateMotion: motion completes at keyTime 0.65 of animation duration.
-const FLOW_ARRIVE   = (delay: string, dur = 1.8) => parseFloat(delay) + dur * 0.9
-const FANOUT_ARRIVE = (delay: string, dur = 1.5) => parseFloat(delay) + dur * 0.65
-const TOOL_ARRIVE   = (delay: string, dur = 1.2) => parseFloat(delay) + dur * 0.65
-const s = (n: number) => `${n.toFixed(2)}s`
 
 type Channel = { id: string; label: string; Icon: LucideIcon; color: string; active?: boolean }
 type Tool = { id: string; label: string; Icon: LucideIcon; color: string }
 type SubKin = {
-  id: string; label: string; sublabel: string; color: string
+  id: string; label: string; sublabel: string; badge: string; color: string
   fanDelays: string[]   // animated dot delays on the fan-out paths
   toolDelays: string[]  // animated dot delays on tool fan-out (one per tool)
   tools: Tool[]
@@ -40,56 +32,33 @@ const CHANNELS: Channel[] = [
 
 const SUB_KINS: SubKin[] = [
   {
-    id: 'dev', label: 'Dev Kin', sublabel: 'Code review',
+    id: 'dev', label: 'Dev Kin', sublabel: 'Code review', badge: 'Dev',
     color: 'var(--color-glow-3)',
     fanDelays: ['0.9s', '2.2s'], toolDelays: ['2.0s', '3.0s'],
     tools: [
-      { id: 'github', label: 'GitHub', Icon: Github, color: '#94a3b8'              },
+      { id: 'github', label: 'GitHub', Icon: Github, color: 'var(--color-glow-3)' },
       { id: 'code',   label: 'Code',   Icon: Code2,  color: 'var(--color-glow-3)' },
     ],
   },
   {
-    id: 'analyst', label: 'Analyst Kin', sublabel: 'Research',
+    id: 'analyst', label: 'Analyst Kin', sublabel: 'Research', badge: 'Research',
     color: 'var(--color-glow-2)',
     fanDelays: ['1.2s', '2.5s'], toolDelays: ['2.3s', '3.3s'],
     tools: [
-      { id: 'web',    label: 'Web',    Icon: Globe,  color: '#3B9EDA'              },
+      { id: 'web',    label: 'Web',    Icon: Globe,  color: 'var(--color-glow-2)' },
       { id: 'search', label: 'Search', Icon: Search, color: 'var(--color-glow-2)' },
     ],
   },
   {
-    id: 'editor', label: 'Editor Kin', sublabel: 'Writes summary',
-    color: '#10B981',
+    id: 'editor', label: 'Editor Kin', sublabel: 'Writes summary', badge: 'Writing',
+    color: 'var(--color-glow-1)',
     fanDelays: ['1.5s', '2.8s'], toolDelays: ['2.6s', '3.6s'],
     tools: [
-      { id: 'edit',  label: 'Edit',  Icon: FileEdit, color: '#10B981'  },
-      { id: 'vault', label: 'Vault', Icon: Lock,     color: MAIN_COLOR },
+      { id: 'edit',  label: 'Edit',  Icon: FileEdit, color: 'var(--color-glow-1)' },
+      { id: 'vault', label: 'Vault', Icon: Lock,     color: 'var(--color-glow-1)' },
     ],
   },
 ]
-
-// ── Node receive ping ─────────────────────────────────────────────────
-// Absolute overlay on a card/chip. Flashes a glow when the incoming dot arrives.
-// arrivalDelay = delay + (animDuration × travelFraction) for that connector's dot.
-// period       = animation duration of that connector's dots (so ping repeats in sync).
-function NodePing({ color, arrivalDelay, period, radius = '1rem' }: {
-  color: string; arrivalDelay: string; period: string; radius?: string
-}) {
-  return (
-    <div
-      className="absolute inset-0 pointer-events-none"
-      style={{
-        borderRadius: radius,
-        '--wik-ping-color': `color-mix(in oklch, ${color} 55%, transparent)`,
-        animationName: 'wik-node-ping',
-        animationDuration: period,
-        animationDelay: arrivalDelay,
-        animationTimingFunction: 'ease-out',
-        animationIterationCount: 'infinite',
-      } as CSSProperties}
-    />
-  )
-}
 
 // ── Kin avatar ────────────────────────────────────────────────────────
 function KinAvatar({ color, size = 44 }: { color: string; size?: number }) {
@@ -160,10 +129,7 @@ function FlowConnector({ color, label, dotDelays, height = 56 }: {
 }
 
 // ── Channels row ──────────────────────────────────────────────────────
-// The active channel (Discord) gets a NodePing timed to when the dot from
-// the "You → Channels" connector arrives (delay=0s, dur=1.8s, arrive at 90%).
 function ChannelsRow() {
-  const channelArrival = s(FLOW_ARRIVE('0s'))  // 1.62s
   return (
     <div className="flex justify-center gap-1.5 flex-wrap">
       {CHANNELS.map(ch => (
@@ -180,9 +146,6 @@ function ChannelsRow() {
         >
           <ch.Icon size={11} strokeWidth={1.5} />
           <span>{ch.label}</span>
-          {ch.active && (
-            <NodePing color={ch.color} arrivalDelay={channelArrival} period="1.8s" radius="9999px" />
-          )}
         </div>
       ))}
     </div>
@@ -277,8 +240,7 @@ function ToolFanOut({ color, toolDelays }: { color: string; toolDelays: string[]
 }
 
 // ── Compact sub-Kin card ──────────────────────────────────────────────
-// pingDelay = when the dot from Main Kin's fan-out arrives at this card.
-function SubKinCard({ kin, pingDelay }: { kin: SubKin; pingDelay: string }) {
+function SubKinCard({ kin }: { kin: SubKin }) {
   return (
     <div className="relative w-full glass-strong rounded-xl p-2" style={{
       border: `1px solid color-mix(in oklch, ${kin.color} 38%, transparent)`,
@@ -295,18 +257,16 @@ function SubKinCard({ kin, pingDelay }: { kin: SubKin; pingDelay: string }) {
           </p>
         </div>
       </div>
-      <Badge label="Expert" color={kin.color} />
-      <NodePing color={kin.color} arrivalDelay={pingDelay} period="1.5s" radius="0.75rem" />
+      <Badge label={kin.badge} color={kin.color} />
     </div>
   )
 }
 
 // ── Tool chips (horizontal, 2 side by side) ───────────────────────────
-// pingDelays[i] = when the tool fan-out dot arrives at tool i.
-function ToolChips({ tools, pingDelays }: { tools: Tool[]; pingDelays: string[] }) {
+function ToolChips({ tools }: { tools: Tool[] }) {
   return (
     <div className="w-full flex gap-1">
-      {tools.map((t, i) => (
+      {tools.map((t) => (
         <div
           key={t.id}
           className="relative flex-1 flex items-center gap-1 rounded-lg px-1.5 py-1 text-[9px] font-medium min-w-0"
@@ -318,7 +278,6 @@ function ToolChips({ tools, pingDelays }: { tools: Tool[]; pingDelays: string[] 
         >
           <t.Icon size={10} strokeWidth={1.5} style={{ flexShrink: 0 }} />
           <span className="truncate">{t.label}</span>
-          <NodePing color={t.color} arrivalDelay={pingDelays[i]} period="1.2s" radius="0.5rem" />
         </div>
       ))}
     </div>
@@ -327,10 +286,6 @@ function ToolChips({ tools, pingDelays }: { tools: Tool[]; pingDelays: string[] 
 
 // ── Main component ────────────────────────────────────────────────────
 export function WhatIsKin() {
-  // Main Kin receives the dot from the "Channels → Main Kin" connector
-  // (delay=0.3s, dur=1.8s, arrives at 90% of duration).
-  const mainKinPingDelay = s(FLOW_ARRIVE('0.3s'))  // 1.92s
-
   return (
     <section id="what-is-a-kin" className="py-24 px-6">
       <div className="max-w-5xl mx-auto">
@@ -423,7 +378,6 @@ export function WhatIsKin() {
                 }} />
               ))}
             </div>
-            <NodePing color={MAIN_COLOR} arrivalDelay={mainKinPingDelay} period="1.8s" />
           </div>
 
           {/* 4 ─ Fan-out: Main Kin → 3 sub-Kin columns */}
@@ -431,20 +385,14 @@ export function WhatIsKin() {
 
           {/* 5 ─ Sub-Kin columns (no gap — spacing via px inside each cell) */}
           <div className="grid grid-cols-3">
-            {SUB_KINS.map((kin, i) => {
-              // Each sub-Kin receives from Main's fan-out (first fanDelay dot, dur=1.5s)
-              const subKinPingDelay = s(FANOUT_ARRIVE(kin.fanDelays[0]))
-              // Each tool receives from that sub-Kin's tool fan-out (dur=1.2s)
-              const toolPingDelays = kin.toolDelays.map(d => s(TOOL_ARRIVE(d)))
-              return (
-                <div key={kin.id} className={`flex flex-col items-center ${i === 0 ? 'pr-2' : i === 2 ? 'pl-2' : 'px-1'}`}>
-                  <SubKinCard kin={kin} pingDelay={subKinPingDelay} />
-                  {/* Tool fan-out: Sub-Kin → 2 tools (SVG bezier paths with traveling dots) */}
-                  <ToolFanOut color={kin.color} toolDelays={kin.toolDelays} />
-                  <ToolChips tools={kin.tools} pingDelays={toolPingDelays} />
-                </div>
-              )
-            })}
+            {SUB_KINS.map((kin, i) => (
+              <div key={kin.id} className={`flex flex-col items-center ${i === 0 ? 'pr-2' : i === 2 ? 'pl-2' : 'px-1'}`}>
+                <SubKinCard kin={kin} />
+                {/* Tool fan-out: Sub-Kin → 2 tools (SVG bezier paths with traveling dots) */}
+                <ToolFanOut color={kin.color} toolDelays={kin.toolDelays} />
+                <ToolChips tools={kin.tools} />
+              </div>
+            ))}
           </div>
 
           {/* Caption */}
