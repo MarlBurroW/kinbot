@@ -10,7 +10,7 @@
 [![Runtime: Bun](https://img.shields.io/badge/Runtime-Bun-f9f1e1?style=flat-square&logo=bun&logoColor=black)](https://bun.sh)
 [![Stack: React + Hono](https://img.shields.io/badge/Stack-React%20%2B%20Hono-61dafb?style=flat-square&logo=react&logoColor=black)](https://hono.dev)
 
-[Features](#features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Configuration](#configuration) · [Development](#development) · [Contributing](#contributing)
+[Website](https://marlburrow.github.io/kinbot/) · [Features](#features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Configuration](#configuration) · [Development](#development) · [Contributing](#contributing)
 
 </div>
 
