@@ -14,6 +14,7 @@ import { deepseekProvider } from '@/server/providers/deepseek'
 import { ollamaProvider } from '@/server/providers/ollama'
 import { openrouterProvider } from '@/server/providers/openrouter'
 import { cohereProvider } from '@/server/providers/cohere'
+import { xaiProvider } from '@/server/providers/xai'
 
 const log = createLogger('providers')
 
@@ -32,6 +33,7 @@ const registry: Record<string, ProviderDefinition> = {
   ollama: ollamaProvider,
   openrouter: openrouterProvider,
   cohere: cohereProvider,
+  xai: xaiProvider,
 }
 
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {
