@@ -58,7 +58,7 @@ It's a **self-hosted** platform designed for individuals and small groups (famil
 ### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
-- **Multi-provider** — 14 providers: Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, Voyage AI, Brave Search, and more; configure once, capabilities auto-detected
+- **Multi-provider** — 15 providers: Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Brave Search, and more; configure once, capabilities auto-detected
 
 ### Experience
 - **8 color palettes** — Aurora, Ocean, Forest, Sunset, Monochrome, Sakura, Neon, Lavender
@@ -173,7 +173,7 @@ NODE_ENV=production bun run start
 | **Runtime** | [Bun](https://bun.sh) |
 | **Backend** | [Hono](https://hono.dev), [Drizzle ORM](https://orm.drizzle.team), bun:sqlite, [sqlite-vec](https://github.com/asg017/sqlite-vec), [Vercel AI SDK](https://sdk.vercel.ai), [Better Auth](https://www.better-auth.com), [croner](https://github.com/Hexagon/croner) |
 | **Frontend** | [React 19](https://react.dev), [Vite](https://vite.dev), [Tailwind CSS 4](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com), [i18next](https://www.i18next.com) |
-| **AI Providers** | Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, Voyage AI, Brave Search |
+| **AI Providers** | Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Brave Search |
 | **Database** | SQLite (single file) + FTS5 + sqlite-vec |
 
 ---

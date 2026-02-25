@@ -72,6 +72,12 @@ const providers = [
     logo: 'https://cdn.simpleicons.org/cohere',
   },
   {
+    name: 'xAI',
+    description: 'Grok models',
+    capabilities: ['LLM'],
+    logo: 'https://cdn.simpleicons.org/x',
+  },
+  {
     name: 'Brave Search',
     description: 'Web search API',
     capabilities: ['Search'],
@@ -152,7 +158,7 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        More providers coming soon — xAI, Replicate, Stability AI, Tavily, and more.
+        More providers coming soon — Replicate, Stability AI, Tavily, Jina AI, and more.
       </p>
     </section>
   )
