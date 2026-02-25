@@ -25,6 +25,7 @@ import { channelRoutes } from '@/server/routes/channels'
 import { channelTelegramRoutes } from '@/server/routes/channel-telegram'
 import { channelSlackRoutes } from '@/server/routes/channel-slack'
 import { channelWhatsAppRoutes } from '@/server/routes/channel-whatsapp'
+import { channelSignalRoutes } from '@/server/routes/channel-signal'
 import { quickSessionKinRoutes, quickSessionDetailRoutes } from '@/server/routes/quick-sessions'
 import { userRoutes } from '@/server/routes/users'
 import { invitationRoutes } from '@/server/routes/invitations'
@@ -97,6 +98,7 @@ app.route('/api/webhooks', webhookRoutes)
 app.route('/api/channels/telegram', channelTelegramRoutes)
 app.route('/api/channels/slack/webhook', channelSlackRoutes)
 app.route('/api/channels/whatsapp/webhook', channelWhatsAppRoutes)
+app.route('/api/channels/signal/webhook', channelSignalRoutes)
 app.route('/api/channels', channelRoutes)
 app.route('/api/kins/:kinId/quick-sessions', quickSessionKinRoutes)
 app.route('/api/quick-sessions', quickSessionDetailRoutes)
