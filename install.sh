@@ -113,6 +113,57 @@ check_prerequisites() {
   success "unzip found"
 }
 
+# ─── Pre-flight checks ───────────────────────────────────────────────────────
+preflight_checks() {
+  header "Running pre-flight checks..."
+
+  # Check available disk space (need ~500MB for clone + deps + build)
+  local install_parent
+  install_parent="$(dirname "$KINBOT_DIR")"
+  mkdir -p "$install_parent" 2>/dev/null || true
+
+  local avail_kb
+  if avail_kb="$(df -k "$install_parent" 2>/dev/null | awk 'NR==2 {print $4}')"; then
+    if [ -n "$avail_kb" ] && [ "$avail_kb" -lt 512000 ] 2>/dev/null; then
+      local avail_mb=$((avail_kb / 1024))
+      error "Not enough disk space: ${avail_mb}MB available in $install_parent (need at least 500MB)"
+    elif [ -n "$avail_kb" ] && [ "$avail_kb" -lt 1024000 ] 2>/dev/null; then
+      local avail_mb=$((avail_kb / 1024))
+      warn "Low disk space: ${avail_mb}MB available in $install_parent (recommended: 1GB+)"
+    else
+      success "Disk space OK"
+    fi
+  fi
+
+  # Check if target port is already in use (skip on update — our own service may be running)
+  if [ -d "$KINBOT_DIR/.git" ]; then
+    : # skip port check on update
+  elif [ -n "${KINBOT_PORT:-}" ]; then
+    local port_in_use=false
+    if command -v ss &>/dev/null; then
+      ss -tlnp 2>/dev/null | grep -q ":${KINBOT_PORT} " && port_in_use=true
+    elif command -v lsof &>/dev/null; then
+      lsof -i ":${KINBOT_PORT}" -sTCP:LISTEN &>/dev/null && port_in_use=true
+    elif command -v netstat &>/dev/null; then
+      netstat -tlnp 2>/dev/null | grep -q ":${KINBOT_PORT} " && port_in_use=true
+    fi
+
+    if [ "$port_in_use" = true ]; then
+      warn "Port $KINBOT_PORT is already in use. You may need to choose a different port."
+      warn "Set KINBOT_PORT=<number> or change it during the configuration step."
+    else
+      success "Port $KINBOT_PORT is available"
+    fi
+  fi
+
+  # Check internet connectivity (needed for git clone and bun install)
+  if curl -fsSL --max-time 5 https://github.com >/dev/null 2>&1; then
+    success "Internet connectivity OK"
+  else
+    error "Cannot reach github.com. Check your internet connection and try again."
+  fi
+}
+
 # ─── Interactive prompt (works with curl | bash via /dev/tty) ─────────────────
 # Usage: prompt_value VAR_NAME "Question" "default value"
 prompt_value() {
@@ -788,6 +839,7 @@ main() {
 
   detect_os
   check_prerequisites
+  preflight_checks
   ensure_bun
   install_or_update
   configure
