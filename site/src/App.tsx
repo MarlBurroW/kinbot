@@ -10,6 +10,7 @@ import { FAQ } from './components/FAQ'
 import { Changelog } from './components/Changelog'
 import { GitHubCTA } from './components/GitHubCTA'
 import { Footer } from './components/Footer'
+import { Stats } from './components/Stats'
 import { ScrollReveal } from './components/ScrollReveal'
 
 export default function App() {
@@ -29,6 +30,9 @@ export default function App() {
       <Navbar dark={dark} onToggleDark={() => setDark(d => !d)} />
       <main>
         <Hero />
+        <ScrollReveal>
+          <Stats />
+        </ScrollReveal>
         <ScrollReveal>
           <Features />
         </ScrollReveal>
