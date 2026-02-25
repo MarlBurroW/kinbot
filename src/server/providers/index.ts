@@ -11,6 +11,7 @@ import { groqProvider } from '@/server/providers/groq'
 import { togetherProvider } from '@/server/providers/together'
 import { fireworksProvider } from '@/server/providers/fireworks'
 import { deepseekProvider } from '@/server/providers/deepseek'
+import { ollamaProvider } from '@/server/providers/ollama'
 
 const log = createLogger('providers')
 
@@ -26,6 +27,7 @@ const registry: Record<string, ProviderDefinition> = {
   together: togetherProvider,
   fireworks: fireworksProvider,
   deepseek: deepseekProvider,
+  ollama: ollamaProvider,
 }
 
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {
