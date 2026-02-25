@@ -2,74 +2,101 @@
 
 # KinBot
 
-**A self-hosted platform of specialized AI agents with persistent identity, continuous memory, and real collaboration.**
+**AI agents that actually remember you.**
+
+Self-hosted. Persistent memory. Real collaboration.
 
 [![GitHub Release](https://img.shields.io/github/v/release/MarlBurroW/kinbot?style=flat-square&color=a855f7)](https://github.com/MarlBurroW/kinbot/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/MarlBurroW/kinbot?style=flat-square&color=ec4899)](https://github.com/MarlBurroW/kinbot)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Runtime: Bun](https://img.shields.io/badge/Runtime-Bun-f9f1e1?style=flat-square&logo=bun&logoColor=black)](https://bun.sh)
-[![Stack: React + Hono](https://img.shields.io/badge/Stack-React%20%2B%20Hono-61dafb?style=flat-square&logo=react&logoColor=black)](https://hono.dev)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/MarlBurroW/kinbot/pkgs/container/kinbot)
 
-[Website](https://marlburrow.github.io/kinbot/) · [Features](#features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Configuration](#configuration) · [Development](#development) · [Contributing](#contributing)
+[Website](https://marlburrow.github.io/kinbot/) · [Quick Start](#-quick-start) · [Features](#-features) · [Architecture](#-architecture) · [Configuration](#configuration) · [Development](#development) · [Contributing](#contributing)
 
 </div>
 
+## Why KinBot?
+
+Most AI tools treat every conversation as **disposable**. You explain yourself Monday, they forget by Tuesday.
+
+KinBot is different. You create **Kins** — AI agents with:
+
+| | |
+|---|---|
+| 🧠 **Persistent memory** | They remember every conversation. Forever. Vector search + full-text across months of interactions. |
+| 🎭 **Real identity** | Name, role, personality, avatar. They know who they are and who you are. |
+| 🤝 **Collaboration** | Kins talk to each other, delegate tasks, spawn workers. A team, not a chatbot. |
+| ⚡ **Autonomy** | Cron jobs, webhooks, Telegram. They work while you sleep. |
+| 🏠 **Self-hosted** | One process. One SQLite file. Your data never leaves your server. |
+
+> *"Like having your own team of AI specialists that live on your server and never forget a thing."*
+
 ---
 
-## What is KinBot?
+## ✨ Features
 
-Most AI assistants are **stateless** — each conversation starts from zero, they don't know who you are, they forget everything, and they can't work autonomously. KinBot is different.
+### 🧠 Intelligence
+Persistent memory (vector + full-text) · Session compacting · Sub-agents · Inter-Kin communication · Continuous sessions that never reset
 
-KinBot lets you create **Kins** — specialized AI agents that have:
+### 🔧 Automation & Extensibility
+Cron jobs · Webhooks · Telegram · MCP servers · Custom tools · 19 AI providers (incl. Ollama) · Multi-provider auto-detection
 
-- **Persistent identity** — a name, role, character, expertise, and avatar. They know who they are and who they're talking to.
-- **One continuous session** — never "new conversation". Kins remember every interaction from day one.
-- **Long-term memory** — automatically extract and recall important facts across months of conversations.
-- **Autonomy** — delegate work to sub-Kins, run scheduled jobs, react to webhooks and messages from external platforms.
-- **Collaboration** — Kins communicate with each other, share context, spawn workers for complex tasks.
+### 🔒 Security & Privacy
+AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted · Your data never leaves your server
 
-It's a **self-hosted** platform designed for individuals and small groups (family, friends, small teams). One process, one SQLite file, one server — zero external infrastructure required.
+### 🎨 Experience
+8 color palettes · Dark/Light/System themes · English & French · File uploads · Image generation · Real-time SSE streaming
 
----
+<details>
+<summary><strong>Full feature list</strong></summary>
 
-## Features
-
-### Kins
+#### Kins
 - **Persistent identity** — each Kin has a name, description, character, expertise domain, model, and avatar
 - **Continuous sessions** — one session per Kin, never resets
 - **Shared Kins** — all users on the instance interact with the same Kins; messages are tagged with sender identity
 
-### Intelligence
+#### Intelligence
 - **Long-term memory** — dual-channel: automatic extraction pipeline on every LLM turn + explicit `remember()` tool; hybrid search (vector similarity + full-text)
 - **Session compacting** — automatic summarization to stay within token limits; original messages are always preserved, snapshots are rollback-able
 - **Sub-Kins (tasks)** — Kins can delegate work to ephemeral sub-agents; `await` mode re-enters the parent queue with the result, `async` mode deposits it as informational
 - **Inter-Kin communication** — request/reply pattern with correlation IDs; rate-limited; replies are always informational (no ping-pong)
 
-### Automation
+#### Automation
 - **Cron jobs** — in-process scheduler (croner); Kins can create their own crons (with user approval); cron results appear in the main session
 - **Webhooks** — inbound webhooks to trigger Kins from external systems; configurable per-Kin
 - **Channels** — Telegram integration; receive and send messages through external platforms
 
-### Security & Privacy
+#### Security & Privacy
 - **Vault** — AES-256-GCM encrypted secrets; never exposed in prompts or logs; message redaction prevents leaking into compacted summaries
 - **Authentication** — Better Auth with HTTP-only cookie sessions; admin + member roles; invitation system
 - **Self-hosted** — your data never leaves your server
 
-### Extensibility
+#### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
-- **Multi-provider** — 15 providers: Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Brave Search, and more; configure once, capabilities auto-detected
+- **Multi-provider** — 19 providers: Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Replicate, Brave Search, and more
 
-### Experience
+#### Experience
 - **8 color palettes** — Aurora, Ocean, Forest, Sunset, Monochrome, Sakura, Neon, Lavender
 - **Dark / Light / System** theme modes
 - **Internationalization** — English and French
 - **File uploads** — share files with Kins; image generation supported
 - **Real-time streaming** — SSE-based, multiplexed across all Kins on a single connection
 
+</details>
+
 ---
 
-## Quick Start
+## 🚀 Quick Start
+
+```bash
+docker run -d --name kinbot -p 3000:3000 -v kinbot-data:/app/data ghcr.io/marlburrow/kinbot:latest
+```
+
+Open `http://localhost:3000` — done. The onboarding wizard handles the rest.
+
+<details>
+<summary><strong>Other install methods</strong> (one-liner script, Docker Compose, manual)</summary>
 
 ### One-liner install (Linux / macOS)
 
@@ -85,9 +112,7 @@ This script will:
 5. Create a system service (systemd on Linux, launchd on macOS)
 6. Start KinBot on port **3000**
 
-Open `http://localhost:3000` — the onboarding wizard will guide you through the rest (create your admin account + configure AI providers).
-
-**Customizable via env vars before running:**
+**Customizable via env vars:**
 ```bash
 KINBOT_DIR=/home/me/kinbot \
 KINBOT_DATA_DIR=/home/me/kinbot-data \
@@ -95,23 +120,15 @@ KINBOT_PORT=8080 \
   bash <(curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh)
 ```
 
-### Docker
+### Docker Compose
 
-```bash
-docker run -d \
-  --name kinbot \
-  -p 3000:3000 \
-  -v kinbot-data:/app/data \
-  --restart unless-stopped \
-  ghcr.io/MarlBurroW/kinbot:latest
-```
-
-Or with Docker Compose (see [`docker/docker-compose.yml`](docker/docker-compose.yml)):
 ```bash
 git clone https://github.com/MarlBurroW/kinbot.git
 cd kinbot/docker
 ENCRYPTION_KEY=$(openssl rand -hex 32) docker compose up -d
 ```
+
+See [`docker/docker-compose.yml`](docker/docker-compose.yml) for full options.
 
 ### Manual
 
@@ -123,6 +140,8 @@ bun run build
 bun run db:migrate
 NODE_ENV=production bun run start
 ```
+
+</details>
 
 ---
 
@@ -173,7 +192,7 @@ NODE_ENV=production bun run start
 | **Runtime** | [Bun](https://bun.sh) |
 | **Backend** | [Hono](https://hono.dev), [Drizzle ORM](https://orm.drizzle.team), bun:sqlite, [sqlite-vec](https://github.com/asg017/sqlite-vec), [Vercel AI SDK](https://sdk.vercel.ai), [Better Auth](https://www.better-auth.com), [croner](https://github.com/Hexagon/croner) |
 | **Frontend** | [React 19](https://react.dev), [Vite](https://vite.dev), [Tailwind CSS 4](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com), [i18next](https://www.i18next.com) |
-| **AI Providers** | Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Brave Search |
+| **AI Providers** | Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Replicate, Brave Search |
 | **Database** | SQLite (single file) + FTS5 + sqlite-vec |
 
 ---
