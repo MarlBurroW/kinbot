@@ -15,6 +15,7 @@ import { PaletteToggle } from '@/client/components/common/PaletteToggle'
 import { UserMenu } from '@/client/components/common/UserMenu'
 import { NotificationBell } from '@/client/components/notifications/NotificationBell'
 import { SSEStatusIndicator } from '@/client/components/common/SSEStatusIndicator'
+import { CommandPalette } from '@/client/components/common/CommandPalette'
 import { MessageSquare } from 'lucide-react'
 
 export function ChatPage() {
@@ -213,6 +214,14 @@ export function ChatPage() {
 
       {/* Settings modal */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} initialSection={settingsInitialSection} />
+
+      {/* Command palette (Cmd+K) */}
+      <CommandPalette
+        kins={kins}
+        onSelectKin={handleSelectKin}
+        onCreateKin={handleOpenCreateModal}
+        onOpenSettings={handleOpenSettings}
+      />
     </SidebarProvider>
   )
 }

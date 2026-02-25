@@ -887,5 +887,16 @@
     "selectOne": "Select one option",
     "selectMultiple": "Select one or more options",
     "noneSelected": "Select at least one option"
+  },
+  "commandPalette": {
+    "title": "Command Palette",
+    "description": "Search for commands, kins, and settings...",
+    "placeholder": "Type a command or search...",
+    "empty": "No results found.",
+    "kins": "Kins",
+    "actions": "Actions",
+    "settings": "Settings",
+    "createKin": "Create new Kin",
+    "toggleTheme": "Toggle dark/light theme"
   }
 }
