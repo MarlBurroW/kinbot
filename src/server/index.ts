@@ -18,6 +18,7 @@ import { DiscordAdapter } from '@/server/channels/discord'
 import { SlackAdapter } from '@/server/channels/slack'
 import { WhatsAppAdapter } from '@/server/channels/whatsapp'
 import { SignalAdapter } from '@/server/channels/signal'
+import { MatrixAdapter } from '@/server/channels/matrix'
 import { restoreActiveChannels } from '@/server/services/channels'
 import { ensureUserContactsExist } from '@/server/services/contacts'
 
@@ -61,6 +62,7 @@ channelAdapters.register(new DiscordAdapter())
 channelAdapters.register(new SlackAdapter())
 channelAdapters.register(new WhatsAppAdapter())
 channelAdapters.register(new SignalAdapter())
+channelAdapters.register(new MatrixAdapter())
 restoreActiveChannels().catch((err) => log.error({ err }, 'Failed to restore active channels'))
 
 // File storage cleanup cron
