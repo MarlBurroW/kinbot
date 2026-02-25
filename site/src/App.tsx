@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navbar } from './components/Navbar'
 import { Hero } from './components/Hero'
 import { Features } from './components/Features'
+import { Comparison } from './components/Comparison'
 import { Providers } from './components/Providers'
 import { Architecture } from './components/Architecture'
 import { Install } from './components/Install'
@@ -27,6 +28,7 @@ export default function App() {
       <main>
         <Hero />
         <Features />
+        <Comparison />
         <Providers />
         <Architecture />
         <Install />
