@@ -711,7 +711,31 @@
         "noContacts": "No contacts found",
         "approve": "Approve"
       },
-      "emptyDescription": "Set up a channel like Telegram or Discord so your Kins can chat outside the web UI."
+      "emptyDescription": "Set up a channel like Telegram or Discord so your Kins can chat outside the web UI.",
+      "setupGuide": {
+        "title": "How to get your bot token",
+        "telegram": {
+          "title": "Telegram Setup",
+          "steps": [
+            "Open Telegram and search for @BotFather",
+            "Send /newbot and follow the prompts to name your bot",
+            "BotFather will give you a token like 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+            "Copy that token and paste it above"
+          ],
+          "tip": "You can customize your bot later with /setdescription and /setuserpic in BotFather."
+        },
+        "discord": {
+          "title": "Discord Setup",
+          "steps": [
+            "Go to discord.com/developers/applications and click \"New Application\"",
+            "Go to the Bot tab and click \"Reset Token\" to get your token",
+            "Enable the Message Content intent under Privileged Gateway Intents",
+            "Go to OAuth2 > URL Generator, select \"bot\" scope with Send Messages permission",
+            "Use the generated URL to invite the bot to your server"
+          ],
+          "tip": "Make sure the Message Content intent is enabled, or your bot won't receive message text."
+        }
+      }
     },
     "notifications": {
       "title": "Notifications",
