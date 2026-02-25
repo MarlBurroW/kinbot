@@ -11,6 +11,7 @@ import { Changelog } from './components/Changelog'
 import { GitHubCTA } from './components/GitHubCTA'
 import { Footer } from './components/Footer'
 import { Stats } from './components/Stats'
+import { WhatIsKin } from './components/WhatIsKin'
 import { ScrollReveal } from './components/ScrollReveal'
 
 export default function App() {
@@ -32,6 +33,9 @@ export default function App() {
         <Hero />
         <ScrollReveal>
           <Stats />
+        </ScrollReveal>
+        <ScrollReveal>
+          <WhatIsKin />
         </ScrollReveal>
         <ScrollReveal>
           <Features />

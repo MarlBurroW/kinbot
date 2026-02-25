@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Check, Copy, Github, ArrowRight, Star, GitFork, Tag } from 'lucide-react'
+import previewVideo from '/preview1.mp4'
 
 const INSTALL_CMD = 'curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash'
 
@@ -127,8 +128,22 @@ export function Hero() {
         </p>
       </div>
 
+      {/* Video preview */}
+      <div className="animate-levitate animate-fade-in-up mt-10 w-full max-w-3xl" style={{ animationDelay: '0.2s' }}>
+        <div className="glass-strong gradient-border rounded-2xl overflow-hidden shadow-xl">
+          <video
+            src={previewVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full block"
+          />
+        </div>
+      </div>
+
       {/* CTA buttons */}
-      <div className="animate-fade-in-up flex flex-col sm:flex-row items-center gap-4 mt-10" style={{ animationDelay: '0.2s' }}>
+      <div className="animate-fade-in-up flex flex-col sm:flex-row items-center gap-4 mt-10" style={{ animationDelay: '0.3s' }}>
         <a
           href="https://github.com/MarlBurroW/kinbot"
           target="_blank"
@@ -154,7 +169,7 @@ export function Hero() {
       </div>
 
       {/* Install command */}
-      <div className="animate-fade-in-up w-full max-w-2xl mt-8" style={{ animationDelay: '0.3s' }}>
+      <div className="animate-fade-in-up w-full max-w-2xl mt-8" style={{ animationDelay: '0.4s' }}>
         <div className="glass-strong gradient-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
             <div className="flex gap-1.5">
@@ -183,49 +198,6 @@ export function Hero() {
         <p className="text-center text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
           Linux (Debian/Ubuntu, RHEL/Fedora) and macOS · Requires git
         </p>
-      </div>
-
-      {/* Mock chat preview */}
-      <div className="animate-levitate animate-fade-in-up mt-16 w-full max-w-lg" style={{ animationDelay: '0.4s' }}>
-        <div className="glass-strong gradient-border rounded-2xl overflow-hidden shadow-xl">
-          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <div className="w-8 h-8 rounded-full gradient-border flex items-center justify-center text-sm font-bold"
-              style={{ background: 'linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid))' }}>
-              A
-            </div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>Aria</p>
-              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Research specialist · online</p>
-            </div>
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="flex justify-end">
-              <div className="rounded-xl rounded-br-sm px-3.5 py-2 text-sm max-w-[80%]"
-                style={{ background: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
-                What did we conclude last week about the market analysis?
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <div className="w-6 h-6 rounded-full flex-shrink-0 mt-1 flex items-center justify-center text-xs font-bold"
-                style={{ background: 'linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid))', color: 'white' }}>
-                A
-              </div>
-              <div className="rounded-xl rounded-bl-sm px-3.5 py-2 text-sm max-w-[85%]"
-                style={{ background: 'var(--color-card)', color: 'var(--color-card-foreground)', border: '1px solid var(--color-border)' }}>
-                From my memory of our session on Feb 17th: we concluded the European segment was the strongest opportunity, with 3x projected growth vs North America. I summarized the full report in your workspace.
-              </div>
-            </div>
-            <div className="flex gap-2 items-center pl-8">
-              <div className="flex gap-1">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full animate-pulse"
-                    style={{ background: 'var(--color-primary)', opacity: 0.6, animationDelay: `${i * 0.2}s` }} />
-                ))}
-              </div>
-              <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Aria is typing…</span>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   )

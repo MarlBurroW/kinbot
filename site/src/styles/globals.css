@@ -199,6 +199,38 @@ body {
   animation: gradient-shift 5s ease infinite;
 }
 
+/* ─── NODE RECEIVE PING (WhatIsKin) ──────────────────── */
+/* Absolute overlay that flashes a glow when a dot arrives at that node.   */
+/* --wik-ping-color must be set inline on the element.                     */
+@keyframes wik-node-ping {
+  0%   { background: transparent;
+         box-shadow: 0 0 0 0 var(--wik-ping-color, transparent); }
+  12%  { background: color-mix(in oklch, var(--wik-ping-color, transparent) 14%, transparent);
+         box-shadow: 0 0 16px 4px var(--wik-ping-color, transparent); }
+  45%  { background: transparent;
+         box-shadow: 0 0 0 0 transparent; }
+  100% { background: transparent;
+         box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ─── SEQUENCE FLOW DOT (WhatIsKin) ──────────────────── */
+@keyframes wik-flow-down {
+  0%   { top:  -6px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: calc(100% + 6px); opacity: 0; }
+}
+
+.wik-flow-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: wik-flow-down linear infinite;
+}
+
 /* ─── CODE BLOCK ──────────────────────────────────────── */
 .code-block {
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;

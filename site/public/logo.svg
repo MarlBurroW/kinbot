@@ -1,0 +1,110 @@
+<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient: violet → sky blue -->
+    <linearGradient id="grad" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a1040"/>
+      <stop offset="100%" stop-color="#0a1628"/>
+    </linearGradient>
+
+    <!-- Glow filter for nodes -->
+    <filter id="nodeGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle glow for lines -->
+    <filter id="lineGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for satellite nodes -->
+    <filter id="softGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="240" height="240" rx="52" fill="url(#bgGrad)"/>
+
+  <!-- Inner ring (very subtle) -->
+  <circle cx="120" cy="120" r="96"
+    fill="none"
+    stroke="url(#grad)"
+    stroke-width="1"
+    opacity="0.12"/>
+
+  <!-- Satellite connections (faint, extending the network feel) -->
+  <g opacity="0.18" stroke="url(#grad)" stroke-width="1.5" stroke-dasharray="3 5" stroke-linecap="round">
+    <line x1="82" y1="58" x2="58"  y2="32"/>
+    <line x1="82" y1="182" x2="58"  y2="208"/>
+    <line x1="168" y1="58" x2="198" y2="32"/>
+    <line x1="168" y1="182" x2="198" y2="208"/>
+    <line x1="82" y1="120" x2="36"  y2="120"/>
+  </g>
+
+  <!-- Satellite ghost nodes -->
+  <g filter="url(#softGlow)" opacity="0.28">
+    <circle cx="52"  cy="28"  r="5" fill="#c4b5fd"/>
+    <circle cx="52"  cy="212" r="5" fill="#7dd3fc"/>
+    <circle cx="202" cy="28"  r="5" fill="#c4b5fd"/>
+    <circle cx="202" cy="212" r="5" fill="#7dd3fc"/>
+    <circle cx="30"  cy="120" r="5" fill="#a5b4fc"/>
+  </g>
+
+  <!-- K strokes with glow -->
+  <g filter="url(#lineGlow)">
+    <!-- Vertical bar -->
+    <line x1="82" y1="58" x2="82" y2="182"
+      stroke="url(#grad)" stroke-width="13" stroke-linecap="round"/>
+    <!-- Upper arm -->
+    <line x1="82" y1="120" x2="168" y2="58"
+      stroke="url(#grad)" stroke-width="13" stroke-linecap="round"/>
+    <!-- Lower arm -->
+    <line x1="82" y1="120" x2="168" y2="182"
+      stroke="url(#grad)" stroke-width="13" stroke-linecap="round"/>
+  </g>
+
+  <!-- Main nodes with glow -->
+  <g filter="url(#nodeGlow)">
+    <!-- Junction node (center, largest) -->
+    <circle cx="82" cy="120" r="12" fill="url(#grad)"/>
+    <circle cx="82" cy="120" r="7"  fill="#ede9fe"/>
+
+    <!-- Top of vertical -->
+    <circle cx="82" cy="58" r="8" fill="#b4a4fd"/>
+    <circle cx="82" cy="58" r="4" fill="#f5f3ff"/>
+
+    <!-- Bottom of vertical -->
+    <circle cx="82" cy="182" r="8" fill="#67d2fb"/>
+    <circle cx="82" cy="182" r="4" fill="#f0f9ff"/>
+
+    <!-- Upper arm end -->
+    <circle cx="168" cy="58" r="8" fill="#c4afff"/>
+    <circle cx="168" cy="58" r="4" fill="#f5f3ff"/>
+
+    <!-- Lower arm end -->
+    <circle cx="168" cy="182" r="8" fill="#56cbfa"/>
+    <circle cx="168" cy="182" r="4" fill="#f0f9ff"/>
+
+    <!-- Mid-arm secondary nodes -->
+    <circle cx="125" cy="89"  r="5" fill="#d8b4fe" opacity="0.85"/>
+    <circle cx="125" cy="151" r="5" fill="#7dd3fc" opacity="0.85"/>
+  </g>
+</svg>
