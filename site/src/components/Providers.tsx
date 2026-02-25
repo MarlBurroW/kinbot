@@ -95,6 +95,30 @@ const providers = [
     capabilities: ['Embedding'],
     logo: 'https://jina.ai/favicon.ico',
   },
+  {
+    name: 'Nomic',
+    description: 'Open-source embeddings',
+    capabilities: ['Embedding'],
+    logo: 'https://nomic.ai/favicon.ico',
+  },
+  {
+    name: 'Replicate',
+    description: 'Flux, SDXL & more',
+    capabilities: ['Image'],
+    logo: 'https://cdn.simpleicons.org/replicate/ffffff',
+  },
+  {
+    name: 'Stability AI',
+    description: 'Stable Diffusion API',
+    capabilities: ['Image'],
+    logo: 'https://cdn.simpleicons.org/stability.ai/ffffff',
+  },
+  {
+    name: 'FAL',
+    description: 'Fast image inference',
+    capabilities: ['Image'],
+    logo: 'https://fal.ai/favicon.ico',
+  },
 ]
 
 const capabilityColors: Record<string, string> = {
@@ -170,7 +194,8 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        More providers coming soon — Replicate, Stability AI, Perplexity, and more.
+        20 providers and counting. Missing one?{' '}
+        <a href="https://github.com/MarlBurroW/kinbot/issues" className="underline" style={{ color: 'var(--color-primary)' }}>Open an issue</a>.
       </p>
     </section>
   )

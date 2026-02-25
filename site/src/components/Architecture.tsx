@@ -21,7 +21,7 @@ const layers = [
   },
 ]
 
-const providers = ['Anthropic', 'OpenAI', 'Gemini', 'Voyage AI']
+const providers = ['Anthropic', 'OpenAI', 'Gemini', 'Mistral', 'DeepSeek', '+ 15 more']
 const external = ['Telegram', 'Webhooks', 'MCP Servers', 'Crons']
 
 export function Architecture() {
