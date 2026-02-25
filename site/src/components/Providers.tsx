@@ -24,16 +24,34 @@ const providers = [
     logo: 'https://cdn.simpleicons.org/mistral',
   },
   {
+    name: 'DeepSeek',
+    description: 'Reasoning models',
+    capabilities: ['LLM'],
+    logo: 'https://cdn.simpleicons.org/deepseek',
+  },
+  {
     name: 'Groq',
     description: 'Ultra-fast inference',
     capabilities: ['LLM'],
     logo: 'https://cdn.simpleicons.org/groq',
   },
   {
+    name: 'Ollama',
+    description: 'Local models, no API key',
+    capabilities: ['LLM'],
+    logo: 'https://cdn.simpleicons.org/ollama',
+  },
+  {
     name: 'Together AI',
     description: 'Open-source models',
     capabilities: ['LLM'],
     logo: 'https://cdn.simpleicons.org/togetherai',
+  },
+  {
+    name: 'Fireworks AI',
+    description: 'Fast open models',
+    capabilities: ['LLM'],
+    logo: 'https://cdn.simpleicons.org/fireship',
   },
   {
     name: 'Voyage AI',
@@ -122,7 +140,7 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        More providers coming soon — OpenRouter, DeepSeek, Ollama, Cohere, xAI, and more.
+        More providers coming soon — OpenRouter, Cohere, xAI, Replicate, Stability AI, and more.
       </p>
     </section>
   )
