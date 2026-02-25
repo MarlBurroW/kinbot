@@ -544,32 +544,47 @@ export async function resolveTask(
       },
     })
   } else if (task.mode === 'async' && status === 'failed') {
-    // Async mode: deposit failure as informational message
-    const msgId = uuid()
-    await db.insert(messages).values({
-      id: msgId,
-      kinId: task.parentKinId,
-      role: 'user',
-      content: `[Task failed: ${taskLabel}] Error: ${error ?? 'Unknown error'}`,
-      sourceType: 'task',
-      sourceId: executingKinId,
-      metadata: taskMetadata,
-      createdAt: new Date(),
-    })
+    const failureContent = `[Task failed: ${taskLabel}] Error: ${error ?? 'Unknown error'}`
 
-    sseManager.sendToKin(task.parentKinId, {
-      type: 'chat:message',
-      kinId: task.parentKinId,
-      data: {
-        id: msgId,
-        role: 'user',
-        content: `[Task failed: ${taskLabel}] Error: ${error ?? 'Unknown error'}`,
+    if (task.cronId) {
+      // Cron-triggered failures are actionable — enqueue so the owner Kin reacts
+      await enqueueMessage({
+        kinId: task.parentKinId,
+        messageType: 'task_result',
+        content: failureContent,
         sourceType: 'task',
         sourceId: executingKinId,
-        resolvedTaskId: taskId,
-        createdAt: Date.now(),
-      },
-    })
+        priority: config.queue.taskPriority,
+        taskId,
+      })
+    } else {
+      // Non-cron async failure: deposit as informational message (no turn)
+      const msgId = uuid()
+      await db.insert(messages).values({
+        id: msgId,
+        kinId: task.parentKinId,
+        role: 'user',
+        content: failureContent,
+        sourceType: 'task',
+        sourceId: executingKinId,
+        metadata: taskMetadata,
+        createdAt: new Date(),
+      })
+
+      sseManager.sendToKin(task.parentKinId, {
+        type: 'chat:message',
+        kinId: task.parentKinId,
+        data: {
+          id: msgId,
+          role: 'user',
+          content: failureContent,
+          sourceType: 'task',
+          sourceId: executingKinId,
+          resolvedTaskId: taskId,
+          createdAt: Date.now(),
+        },
+      })
+    }
   }
 }
 
