@@ -16,6 +16,7 @@ import { channelAdapters } from '@/server/channels/index'
 import { TelegramAdapter } from '@/server/channels/telegram'
 import { DiscordAdapter } from '@/server/channels/discord'
 import { SlackAdapter } from '@/server/channels/slack'
+import { WhatsAppAdapter } from '@/server/channels/whatsapp'
 import { restoreActiveChannels } from '@/server/services/channels'
 import { ensureUserContactsExist } from '@/server/services/contacts'
 
@@ -57,6 +58,7 @@ ensureUserContactsExist().catch((err) => log.error({ err }, 'Failed to backfill 
 channelAdapters.register(new TelegramAdapter())
 channelAdapters.register(new DiscordAdapter())
 channelAdapters.register(new SlackAdapter())
+channelAdapters.register(new WhatsAppAdapter())
 restoreActiveChannels().catch((err) => log.error({ err }, 'Failed to restore active channels'))
 
 // File storage cleanup cron
