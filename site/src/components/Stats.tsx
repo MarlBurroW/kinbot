@@ -10,7 +10,7 @@ interface Stat {
 
 const stats: Stat[] = [
   { icon: Cpu, value: 25, suffix: '+', label: 'AI providers' },
-  { icon: MessageSquare, value: 4, suffix: '', label: 'Chat platforms' },
+  { icon: MessageSquare, value: 6, suffix: '', label: 'Chat platforms' },
   { icon: Puzzle, value: 0, suffix: '∞', label: 'MCP tools' },
   { icon: Zap, value: 0, suffix: '1', label: 'Single process' },
   { icon: Globe, value: 0, suffix: '0', label: 'Cloud dependency' },

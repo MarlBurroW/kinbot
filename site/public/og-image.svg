@@ -1,0 +1,96 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f0520"/>
+      <stop offset="50%" stop-color="#1a0a35"/>
+      <stop offset="100%" stop-color="#0a1628"/>
+    </linearGradient>
+    <linearGradient id="grad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="40" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Ambient glow orbs -->
+  <circle cx="200" cy="315" r="200" fill="#a78bfa" opacity="0.06" filter="url(#softGlow)"/>
+  <circle cx="1000" cy="315" r="200" fill="#38bdf8" opacity="0.05" filter="url(#softGlow)"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.04" stroke="#a78bfa" stroke-width="0.5">
+    <line x1="0" y1="157" x2="1200" y2="157"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="473" x2="1200" y2="473"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+  </g>
+
+  <!-- Logo K shape (scaled from logo.svg, centered left) -->
+  <g transform="translate(120, 175) scale(1.15)" filter="url(#glow)">
+    <!-- K strokes -->
+    <line x1="82" y1="58" x2="82" y2="182" stroke="url(#grad)" stroke-width="13" stroke-linecap="round"/>
+    <line x1="82" y1="120" x2="168" y2="58" stroke="url(#grad)" stroke-width="13" stroke-linecap="round"/>
+    <line x1="82" y1="120" x2="168" y2="182" stroke="url(#grad)" stroke-width="13" stroke-linecap="round"/>
+    <!-- Nodes -->
+    <circle cx="82" cy="120" r="12" fill="url(#grad)"/>
+    <circle cx="82" cy="120" r="7" fill="#ede9fe"/>
+    <circle cx="82" cy="58" r="8" fill="#b4a4fd"/>
+    <circle cx="82" cy="58" r="4" fill="#f5f3ff"/>
+    <circle cx="82" cy="182" r="8" fill="#67d2fb"/>
+    <circle cx="82" cy="182" r="4" fill="#f0f9ff"/>
+    <circle cx="168" cy="58" r="8" fill="#c4afff"/>
+    <circle cx="168" cy="58" r="4" fill="#f5f3ff"/>
+    <circle cx="168" cy="182" r="8" fill="#56cbfa"/>
+    <circle cx="168" cy="182" r="4" fill="#f0f9ff"/>
+    <circle cx="125" cy="89" r="5" fill="#d8b4fe" opacity="0.85"/>
+    <circle cx="125" cy="151" r="5" fill="#7dd3fc" opacity="0.85"/>
+  </g>
+
+  <!-- Text content -->
+  <text x="480" y="250" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="80" fill="url(#textGrad)">KinBot</text>
+  <text x="480" y="330" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="32" fill="#94a3b8">AI agents that actually remember you.</text>
+  <text x="480" y="390" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="24" fill="#64748b">Self-hosted · Multi-agent · Persistent memory</text>
+
+  <!-- Stats row -->
+  <g transform="translate(480, 440)">
+    <g>
+      <text font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="28" fill="#a78bfa">22+</text>
+      <text y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="14" fill="#64748b">AI Providers</text>
+    </g>
+    <g transform="translate(160, 0)">
+      <text font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="28" fill="#7dd3fc">6</text>
+      <text y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="14" fill="#64748b">Chat Platforms</text>
+    </g>
+    <g transform="translate(300, 0)">
+      <text font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="28" fill="#c4b5fd">∞</text>
+      <text y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="14" fill="#64748b">MCP Tools</text>
+    </g>
+    <g transform="translate(440, 0)">
+      <text font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="28" fill="#67d2fb">100%</text>
+      <text y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="14" fill="#64748b">Self-hosted</text>
+    </g>
+  </g>
+
+  <!-- Bottom border accent -->
+  <rect x="0" y="620" width="1200" height="10" fill="url(#textGrad)" opacity="0.6"/>
+</svg>
