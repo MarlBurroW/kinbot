@@ -506,8 +506,92 @@ print_summary() {
   echo ""
 }
 
+# ─── Uninstall ───────────────────────────────────────────────────────────────
+uninstall() {
+  echo ""
+  echo -e "${BOLD}KinBot Uninstaller${NC}"
+  echo ""
+
+  detect_os
+
+  # Stop and disable service
+  header "Stopping service..."
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local plist="$HOME/Library/LaunchAgents/io.kinbot.server.plist"
+    if [ -f "$plist" ]; then
+      launchctl unload "$plist" 2>/dev/null || true
+      rm -f "$plist"
+      success "launchd service removed"
+    else
+      info "No launchd service found"
+    fi
+  elif [ "$IS_ROOT" = true ]; then
+    if systemctl is-active --quiet kinbot 2>/dev/null; then
+      systemctl stop kinbot
+    fi
+    systemctl disable kinbot 2>/dev/null || true
+    rm -f /etc/systemd/system/kinbot.service
+    systemctl daemon-reload
+    success "systemd system service removed"
+  else
+    if systemctl --user is-active --quiet kinbot 2>/dev/null; then
+      systemctl --user stop kinbot
+    fi
+    systemctl --user disable kinbot 2>/dev/null || true
+    rm -f "$HOME/.config/systemd/user/kinbot.service"
+    systemctl --user daemon-reload
+    success "systemd user service removed"
+  fi
+
+  # Remove app directory
+  header "Removing application files..."
+  if [ -d "$KINBOT_DIR" ]; then
+    rm -rf "$KINBOT_DIR"
+    success "Removed $KINBOT_DIR"
+  else
+    info "$KINBOT_DIR not found — skipping"
+  fi
+
+  # Remove system user (root only)
+  if [ "$IS_ROOT" = true ] && id "${KINBOT_USER:-kinbot}" &>/dev/null; then
+    userdel "${KINBOT_USER:-kinbot}" 2>/dev/null || true
+    success "System user '${KINBOT_USER:-kinbot}' removed"
+  fi
+
+  # Ask about data directory
+  echo ""
+  local remove_data="n"
+  if [ "${KINBOT_NO_PROMPT:-}" = "true" ] || [ "${CI:-}" = "true" ]; then
+    remove_data="n"
+  else
+    echo -en "  ${YELLOW}?${NC} ${BOLD}Remove data directory ($KINBOT_DATA_DIR)?${NC} ${DIM}This deletes your database and config [y/N]${NC}: " >/dev/tty
+    read -r remove_data </dev/tty || remove_data="n"
+  fi
+
+  if [[ "$remove_data" =~ ^[Yy]$ ]]; then
+    if [ -d "$KINBOT_DATA_DIR" ]; then
+      rm -rf "$KINBOT_DATA_DIR"
+      success "Removed $KINBOT_DATA_DIR"
+    fi
+  else
+    info "Data kept at $KINBOT_DATA_DIR"
+  fi
+
+  echo ""
+  echo -e "${GREEN}${BOLD}KinBot uninstalled.${NC}"
+  echo ""
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
+  # Handle --uninstall flag
+  for arg in "$@"; do
+    if [ "$arg" = "--uninstall" ] || [ "$arg" = "uninstall" ]; then
+      uninstall
+      exit 0
+    fi
+  done
+
   echo ""
   echo -e "${BOLD}KinBot Installer${NC}"
   echo -e "Self-hosted AI agent platform"
