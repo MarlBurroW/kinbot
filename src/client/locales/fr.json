@@ -184,7 +184,11 @@
       "avatarPromptPlaceholder": "Décrivez l'avatar souhaité...",
       "avatarGenerating": "Génération de l'avatar...",
       "avatarNoImageProvider": "Aucun fournisseur d'image configuré",
-      "submit": "Créer le Kin"
+      "submit": "Créer le Kin",
+      "characterHint": "Définissez la personnalité, le ton et le style de communication. Cela influence la façon dont le Kin s'exprime et se comporte.",
+      "expertiseHint": "Décrivez ce que le Kin sait et sur quoi il doit se concentrer. Cela guide ses réponses et ses domaines de compétence.",
+      "nameHint": "Un nom court et mémorable pour ce Kin.",
+      "roleHint": "Une brève description de ce que fait ce Kin (affiché dans la barre latérale)."
     },
     "settings": {
       "title": "Paramètres du Kin",
