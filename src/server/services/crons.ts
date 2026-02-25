@@ -24,6 +24,7 @@ interface CreateCronParams {
   targetKinId?: string
   model?: string
   createdBy: 'user' | 'kin'
+  runOnce?: boolean
 }
 
 export async function createCron(params: CreateCronParams) {
@@ -38,11 +39,18 @@ export async function createCron(params: CreateCronParams) {
     throw new Error(`Max active crons (${config.crons.maxActive}) reached`)
   }
 
-  // Validate cron expression
+  // Validate schedule (cron expression or ISO datetime for one-shot)
   try {
-    new Cron(params.schedule, { paused: true })
-  } catch {
-    throw new Error(`Invalid cron expression: "${params.schedule}"`)
+    const arg = _parseCronArg(params.schedule)
+    if (arg instanceof Date) {
+      if (arg <= new Date()) throw new Error('Datetime must be in the future')
+    } else {
+      new Cron(arg, { paused: true })
+    }
+  } catch (err) {
+    throw new Error(
+      `Invalid schedule: "${params.schedule}" — ${err instanceof Error ? err.message : err}`,
+    )
   }
 
   const id = uuid()
@@ -61,6 +69,7 @@ export async function createCron(params: CreateCronParams) {
     model: params.model ?? null,
     isActive: !isKinCreated,
     requiresApproval: isKinCreated,
+    runOnce: params.runOnce ?? false,
     createdBy: params.createdBy,
     createdAt: now,
     updatedAt: now,
@@ -112,9 +121,16 @@ export async function updateCron(
   // Validate new schedule if provided
   if (updates.schedule) {
     try {
-      new Cron(updates.schedule, { paused: true })
-    } catch {
-      throw new Error(`Invalid cron expression: "${updates.schedule}"`)
+      const arg = _parseCronArg(updates.schedule)
+      if (arg instanceof Date) {
+        if (arg <= new Date()) throw new Error('Datetime must be in the future')
+      } else {
+        new Cron(arg, { paused: true })
+      }
+    } catch (err) {
+      throw new Error(
+        `Invalid schedule: "${updates.schedule}" — ${err instanceof Error ? err.message : err}`,
+      )
     }
   }
 
@@ -194,20 +210,51 @@ export async function approveCron(cronId: string) {
 
 // ─── Scheduler ───────────────────────────────────────────────────────────────
 
+/**
+ * Detect whether a schedule string is an ISO 8601 datetime or a cron expression.
+ * Returns a Date for datetime strings, or the original string for cron expressions.
+ */
+function _parseCronArg(schedule: string): string | Date {
+  if (/^\d{4}-\d{2}-\d{2}/.test(schedule)) {
+    const d = new Date(schedule)
+    if (!isNaN(d.getTime())) return d
+  }
+  return schedule
+}
+
 function scheduleJob(cron: typeof crons.$inferSelect) {
   // Don't schedule if already scheduled
   if (scheduledJobs.has(cron.id)) return
 
-  const job = new Cron(cron.schedule, async () => {
+  const cronArg = _parseCronArg(cron.schedule)
+
+  const job = new Cron(cronArg as string, async () => {
     try {
       await triggerCron(cron.id)
+      // Auto-deactivate after first fire for one-shot crons
+      if (cron.runOnce) {
+        await db
+          .update(crons)
+          .set({ isActive: false, updatedAt: new Date() })
+          .where(eq(crons.id, cron.id))
+        stopJob(cron.id)
+        sseManager.broadcast({
+          type: 'cron:updated',
+          kinId: cron.kinId,
+          data: { cronId: cron.id, kinId: cron.kinId },
+        })
+        log.info({ cronId: cron.id, name: cron.name }, 'One-shot cron fired and deactivated')
+      }
     } catch (err) {
       log.error({ cronId: cron.id, err }, 'Cron trigger error')
     }
   })
 
   scheduledJobs.set(cron.id, job)
-  log.info({ cronId: cron.id, name: cron.name, schedule: cron.schedule }, 'Cron scheduled')
+  log.info(
+    { cronId: cron.id, name: cron.name, schedule: cron.schedule, runOnce: cron.runOnce },
+    'Cron scheduled',
+  )
 }
 
 function stopJob(cronId: string) {

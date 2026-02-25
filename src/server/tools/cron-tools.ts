@@ -40,8 +40,16 @@ export const createCronTool: ToolRegistration = {
           .string()
           .optional()
           .describe('LLM model override for the sub-Kin'),
+        run_once: z
+          .boolean()
+          .optional()
+          .describe(
+            'If true, the cron fires exactly once then auto-deactivates. ' +
+            'When run_once is true, schedule can also be an ISO 8601 datetime string ' +
+            '(e.g. "2026-03-15T14:30:00") for a specific point in time.',
+          ),
       }),
-      execute: async ({ name, schedule, task_description, target_kin_slug, model }) => {
+      execute: async ({ name, schedule, task_description, target_kin_slug, model, run_once }) => {
         let targetKinId: string | undefined
         if (target_kin_slug) {
           const resolved = resolveKinId(target_kin_slug)
@@ -60,11 +68,13 @@ export const createCronTool: ToolRegistration = {
             targetKinId,
             model,
             createdBy: 'kin',
+            runOnce: run_once,
           })
           return {
             cronId: cron.id,
             name: cron.name,
             schedule: cron.schedule,
+            runOnce: cron.runOnce,
             requiresApproval: true,
             message: 'Cron created — awaiting user approval before activation.',
           }
@@ -151,6 +161,7 @@ export const listCronsTool: ToolRegistration = {
             schedule: c.schedule,
             taskDescription: c.taskDescription,
             isActive: c.isActive,
+            runOnce: c.runOnce,
             requiresApproval: c.requiresApproval,
             lastTriggeredAt: c.lastTriggeredAt,
           })),

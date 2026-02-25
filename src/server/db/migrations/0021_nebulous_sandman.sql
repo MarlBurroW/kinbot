@@ -1,0 +1,1 @@
+ALTER TABLE `crons` ADD `run_once` integer DEFAULT false NOT NULL;
