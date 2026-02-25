@@ -6,6 +6,7 @@ import { Providers } from './components/Providers'
 import { Architecture } from './components/Architecture'
 import { Install } from './components/Install'
 import { FAQ } from './components/FAQ'
+import { Changelog } from './components/Changelog'
 import { Footer } from './components/Footer'
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
         <Architecture />
         <Install />
         <FAQ />
+        <Changelog />
       </main>
       <Footer />
     </div>
