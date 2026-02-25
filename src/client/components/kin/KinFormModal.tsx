@@ -31,6 +31,7 @@ import { AvatarPickerModal, type AvatarPickerResult } from '@/client/components/
 import { KinToolsTab } from '@/client/components/kin/KinToolsTab'
 import { MemoryList } from '@/client/components/memory/MemoryList'
 import { AlertCircle, ArrowLeft, Brain, Camera, Loader2, Settings, Sparkles, Trash2, Wrench } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { cn } from '@/client/lib/utils'
 import { getErrorMessage } from '@/client/lib/api'
 import { TOOL_DOMAIN_MAP } from '@/shared/constants'
@@ -606,7 +607,7 @@ export function KinFormModal({
                             <div className="flex-1 space-y-4">
                               <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                  <Label htmlFor="kinFormName">{t('kin.create.name')}</Label>
+                                  <Label htmlFor="kinFormName" className="inline-flex items-center gap-1.5">{t('kin.create.name')} <InfoTip content={t('kin.create.nameTip')} /></Label>
                                   <Input
                                     id="kinFormName"
                                     value={name}
@@ -616,7 +617,7 @@ export function KinFormModal({
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label htmlFor="kinFormRole">{t('kin.create.role')}</Label>
+                                  <Label htmlFor="kinFormRole" className="inline-flex items-center gap-1.5">{t('kin.create.role')} <InfoTip content={t('kin.create.roleTip')} /></Label>
                                   <Input
                                     id="kinFormRole"
                                     value={role}
@@ -626,7 +627,7 @@ export function KinFormModal({
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label>{t('kin.create.model')}</Label>
+                                  <Label className="inline-flex items-center gap-1.5">{t('kin.create.model')} <InfoTip content={t('kin.create.modelTip')} /></Label>
                                   <ModelPicker
                                     models={llmModels}
                                     value={model}
@@ -679,7 +680,7 @@ export function KinFormModal({
 
                           {/* Character */}
                           <div className="space-y-2">
-                            <Label>{t('kin.create.character')}</Label>
+                            <Label className="inline-flex items-center gap-1.5">{t('kin.create.character')} <InfoTip content={t('kin.create.characterTip')} /></Label>
                             <MarkdownEditor
                               value={character}
                               onChange={setCharacter}
@@ -690,7 +691,7 @@ export function KinFormModal({
 
                           {/* Expertise */}
                           <div className="space-y-2">
-                            <Label>{t('kin.create.expertise')}</Label>
+                            <Label className="inline-flex items-center gap-1.5">{t('kin.create.expertise')} <InfoTip content={t('kin.create.expertiseTip')} /></Label>
                             <MarkdownEditor
                               value={expertise}
                               onChange={setExpertise}
