@@ -4,9 +4,11 @@
 
 **A self-hosted platform of specialized AI agents with persistent identity, continuous memory, and real collaboration.**
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
-[![Runtime: Bun](https://img.shields.io/badge/Runtime-Bun-f9f1e1?logo=bun&logoColor=black)](https://bun.sh)
-[![Stack: React + Hono](https://img.shields.io/badge/Stack-React%20%2B%20Hono-61dafb?logo=react&logoColor=black)](https://hono.dev)
+[![GitHub Release](https://img.shields.io/github/v/release/MarlBurroW/kinbot?style=flat-square&color=a855f7)](https://github.com/MarlBurroW/kinbot/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/MarlBurroW/kinbot?style=flat-square&color=ec4899)](https://github.com/MarlBurroW/kinbot)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=flat-square)](LICENSE)
+[![Runtime: Bun](https://img.shields.io/badge/Runtime-Bun-f9f1e1?style=flat-square&logo=bun&logoColor=black)](https://bun.sh)
+[![Stack: React + Hono](https://img.shields.io/badge/Stack-React%20%2B%20Hono-61dafb?style=flat-square&logo=react&logoColor=black)](https://hono.dev)
 
 [Features](#features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Configuration](#configuration) · [Development](#development) · [Contributing](#contributing)
 
@@ -56,7 +58,7 @@ It's a **self-hosted** platform designed for individuals and small groups (famil
 ### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
-- **Multi-provider** — Anthropic Claude, OpenAI GPT, Google Gemini, Voyage AI (embeddings), Brave Search; configure once, capabilities auto-detected
+- **Multi-provider** — 14 providers: Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, Voyage AI, Brave Search, and more; configure once, capabilities auto-detected
 
 ### Experience
 - **8 color palettes** — Aurora, Ocean, Forest, Sunset, Monochrome, Sakura, Neon, Lavender
@@ -171,7 +173,7 @@ NODE_ENV=production bun run start
 | **Runtime** | [Bun](https://bun.sh) |
 | **Backend** | [Hono](https://hono.dev), [Drizzle ORM](https://orm.drizzle.team), bun:sqlite, [sqlite-vec](https://github.com/asg017/sqlite-vec), [Vercel AI SDK](https://sdk.vercel.ai), [Better Auth](https://www.better-auth.com), [croner](https://github.com/Hexagon/croner) |
 | **Frontend** | [React 19](https://react.dev), [Vite](https://vite.dev), [Tailwind CSS 4](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com), [i18next](https://www.i18next.com) |
-| **AI Providers** | Anthropic Claude, OpenAI GPT, Google Gemini, Voyage AI |
+| **AI Providers** | Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, Voyage AI, Brave Search |
 | **Database** | SQLite (single file) + FTS5 + sqlite-vec |
 
 ---

@@ -60,6 +60,18 @@ const providers = [
     logo: 'https://cdn.simpleicons.org/v',
   },
   {
+    name: 'OpenRouter',
+    description: 'Model aggregator',
+    capabilities: ['LLM'],
+    logo: 'https://cdn.simpleicons.org/openrouter',
+  },
+  {
+    name: 'Cohere',
+    description: 'LLM + Embeddings + Rerank',
+    capabilities: ['LLM', 'Embedding'],
+    logo: 'https://cdn.simpleicons.org/cohere',
+  },
+  {
     name: 'Brave Search',
     description: 'Web search API',
     capabilities: ['Search'],
@@ -140,7 +152,7 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        More providers coming soon — OpenRouter, Cohere, xAI, Replicate, Stability AI, and more.
+        More providers coming soon — xAI, Replicate, Stability AI, Tavily, and more.
       </p>
     </section>
   )
