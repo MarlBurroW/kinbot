@@ -184,7 +184,11 @@
       "avatarPromptPlaceholder": "Describe the avatar you want...",
       "avatarGenerating": "Generating avatar...",
       "avatarNoImageProvider": "No image provider configured",
-      "submit": "Create Kin"
+      "submit": "Create Kin",
+      "characterHint": "Define personality, tone, and communication style. This shapes how the Kin speaks and behaves in conversations.",
+      "expertiseHint": "Describe what the Kin knows and what it should focus on. This guides its responses and areas of competence.",
+      "nameHint": "A short, memorable name for this Kin.",
+      "roleHint": "A brief description of what this Kin does (shown in the sidebar)."
     },
     "settings": {
       "title": "Kin settings",

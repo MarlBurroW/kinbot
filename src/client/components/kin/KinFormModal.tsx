@@ -685,6 +685,7 @@ export function KinFormModal({
                               onChange={setCharacter}
                               height="180px"
                             />
+                            <p className="text-xs text-muted-foreground">{t('kin.create.characterHint')}</p>
                           </div>
 
                           {/* Expertise */}
@@ -695,6 +696,7 @@ export function KinFormModal({
                               onChange={setExpertise}
                               height="180px"
                             />
+                            <p className="text-xs text-muted-foreground">{t('kin.create.expertiseHint')}</p>
                           </div>
                         </div>
                       )}
