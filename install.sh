@@ -23,6 +23,7 @@ KINBOT_PORT="${KINBOT_PORT:-3000}"
 KINBOT_PUBLIC_URL="${KINBOT_PUBLIC_URL:-}"
 KINBOT_REPO="MarlBurroW/kinbot"
 KINBOT_BRANCH="${KINBOT_BRANCH:-main}"
+KINBOT_DRY_RUN=false
 
 # ─── Colors ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -644,6 +645,7 @@ show_help() {
   echo ""
   echo -e "${BOLD}OPTIONS${NC}"
   echo "  --help          Show this help message"
+  echo "  --dry-run       Show what would happen without making changes"
   echo "  --status        Check current KinBot installation health"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
   echo ""
@@ -670,6 +672,9 @@ show_help() {
   echo ""
   echo "  # Check installation health"
   echo "  bash install.sh --status"
+  echo ""
+  echo "  # Preview what would happen"
+  echo "  bash install.sh --dry-run"
   echo ""
   echo "  # Uninstall"
   echo "  bash install.sh --uninstall"
@@ -811,6 +816,111 @@ check_status() {
 # Non-fatal error (for status checks)
 error_noexit() { echo -e "${RED}✗${NC} $*" >&2; }
 
+# ─── Dry run ─────────────────────────────────────────────────────────────────
+dry_run() {
+  echo ""
+  echo -e "${BOLD}KinBot Installer — Dry Run${NC}"
+  echo -e "${DIM}No changes will be made. This shows what would happen.${NC}"
+  echo ""
+
+  detect_os
+
+  # Check existing installation
+  header "Installation plan"
+  if [ -d "$KINBOT_DIR/.git" ]; then
+    local current_version
+    current_version="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+    info "Mode: ${BOLD}UPDATE${NC} (existing install at $KINBOT_DIR, currently $current_version)"
+  else
+    info "Mode: ${BOLD}FRESH INSTALL${NC}"
+    info "Will clone to: $KINBOT_DIR"
+  fi
+  info "Data directory: $KINBOT_DATA_DIR"
+  info "Branch: $KINBOT_BRANCH"
+
+  # Prerequisites
+  header "Prerequisites"
+  for cmd in git curl unzip; do
+    if command -v "$cmd" &>/dev/null; then
+      success "$cmd — already installed"
+    else
+      info "$cmd — ${YELLOW}will be installed${NC}"
+    fi
+  done
+
+  # Bun
+  BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  if command -v bun &>/dev/null; then
+    success "Bun v$(bun --version) — already installed"
+  else
+    info "Bun — ${YELLOW}will be installed${NC} from https://bun.sh"
+  fi
+
+  # Disk space
+  header "Disk space"
+  local install_parent
+  install_parent="$(dirname "$KINBOT_DIR")"
+  local avail_kb
+  if avail_kb="$(df -k "$install_parent" 2>/dev/null | awk 'NR==2 {print $4}')"; then
+    local avail_mb=$((avail_kb / 1024))
+    if [ "$avail_mb" -lt 500 ] 2>/dev/null; then
+      warn "Only ${avail_mb}MB available (need 500MB+)"
+    else
+      success "${avail_mb}MB available"
+    fi
+  fi
+
+  # Port
+  header "Network"
+  info "Will listen on port $KINBOT_PORT"
+  local port_in_use=false
+  if command -v ss &>/dev/null; then
+    ss -tlnp 2>/dev/null | grep -q ":${KINBOT_PORT} " && port_in_use=true
+  elif command -v lsof &>/dev/null; then
+    lsof -i ":${KINBOT_PORT}" -sTCP:LISTEN &>/dev/null && port_in_use=true
+  fi
+  if [ "$port_in_use" = true ]; then
+    warn "Port $KINBOT_PORT is currently in use"
+  else
+    success "Port $KINBOT_PORT is available"
+  fi
+
+  # Config
+  header "Configuration"
+  local env_file="$KINBOT_DATA_DIR/kinbot.env"
+  if [ -d "$KINBOT_DIR/.git" ] && [ -f "$env_file" ]; then
+    info "Existing config at $env_file — will be kept"
+  else
+    info "Will create config at $env_file"
+    info "Interactive prompts for: port, public URL"
+  fi
+
+  # Service
+  header "Service"
+  if [ "$IS_ROOT" = true ]; then
+    info "Will create system user: ${KINBOT_USER:-kinbot}"
+  fi
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    info "Will create launchd service: ~/Library/LaunchAgents/io.kinbot.server.plist"
+  elif [ "$IS_ROOT" = true ]; then
+    info "Will create systemd system service: /etc/systemd/system/kinbot.service"
+  else
+    info "Will create systemd user service: ~/.config/systemd/user/kinbot.service"
+  fi
+
+  # Build
+  header "Build steps"
+  info "bun install --frozen-lockfile"
+  info "bun run build"
+  info "bun run db:migrate"
+
+  # Summary
+  echo ""
+  echo -e "${GREEN}${BOLD}Dry run complete.${NC} Run without --dry-run to proceed with installation."
+  echo ""
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
   # Handle flags
@@ -828,8 +938,16 @@ main() {
         check_status
         exit 0
         ;;
+      --dry-run|dry-run)
+        KINBOT_DRY_RUN=true
+        ;;
     esac
   done
+
+  if [ "$KINBOT_DRY_RUN" = true ]; then
+    dry_run
+    exit 0
+  fi
 
   echo ""
   echo -e "${BOLD}KinBot Installer${NC}"
