@@ -17,6 +17,7 @@ import { cohereProvider } from '@/server/providers/cohere'
 import { xaiProvider } from '@/server/providers/xai'
 import { tavilyProvider } from '@/server/providers/tavily'
 import { jinaProvider } from '@/server/providers/jina'
+import { nomicProvider } from '@/server/providers/nomic'
 
 const log = createLogger('providers')
 
@@ -38,6 +39,7 @@ const registry: Record<string, ProviderDefinition> = {
   xai: xaiProvider,
   tavily: tavilyProvider,
   jina: jinaProvider,
+  nomic: nomicProvider,
 }
 
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {
