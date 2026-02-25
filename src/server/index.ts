@@ -14,6 +14,7 @@ import { startQuickSessionCleanup } from '@/server/services/quick-session-cleanu
 import { browserPool } from '@/server/services/browser-pool'
 import { channelAdapters } from '@/server/channels/index'
 import { TelegramAdapter } from '@/server/channels/telegram'
+import { DiscordAdapter } from '@/server/channels/discord'
 import { restoreActiveChannels } from '@/server/services/channels'
 import { ensureUserContactsExist } from '@/server/services/contacts'
 
@@ -53,6 +54,7 @@ ensureUserContactsExist().catch((err) => log.error({ err }, 'Failed to backfill 
 
 // Register channel adapters and restore active channels
 channelAdapters.register(new TelegramAdapter())
+channelAdapters.register(new DiscordAdapter())
 restoreActiveChannels().catch((err) => log.error({ err }, 'Failed to restore active channels'))
 
 // File storage cleanup cron
