@@ -15,6 +15,7 @@ import { ollamaProvider } from '@/server/providers/ollama'
 import { openrouterProvider } from '@/server/providers/openrouter'
 import { cohereProvider } from '@/server/providers/cohere'
 import { xaiProvider } from '@/server/providers/xai'
+import { tavilyProvider } from '@/server/providers/tavily'
 
 const log = createLogger('providers')
 
@@ -34,6 +35,7 @@ const registry: Record<string, ProviderDefinition> = {
   openrouter: openrouterProvider,
   cohere: cohereProvider,
   xai: xaiProvider,
+  tavily: tavilyProvider,
 }
 
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {

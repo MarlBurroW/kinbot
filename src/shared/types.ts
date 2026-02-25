@@ -61,7 +61,7 @@ export interface ContactForNotification {
   platformId: string
 }
 
-export type ProviderType = 'anthropic' | 'anthropic-oauth' | 'openai' | 'gemini' | 'voyage' | 'brave-search' | 'mistral' | 'groq' | 'together' | 'fireworks' | 'deepseek' | 'ollama' | 'openrouter' | 'cohere' | 'xai'
+export type ProviderType = 'anthropic' | 'anthropic-oauth' | 'openai' | 'gemini' | 'voyage' | 'brave-search' | 'mistral' | 'groq' | 'together' | 'fireworks' | 'deepseek' | 'ollama' | 'openrouter' | 'cohere' | 'xai' | 'tavily'
 
 export type ProviderCapability = 'llm' | 'embedding' | 'image' | 'search'
 
