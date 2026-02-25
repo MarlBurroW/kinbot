@@ -12,7 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Plus } from 'lucide-react'
+import { Plus , Plug} from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { McpServerCard, type McpServerData } from '@/client/components/mcp/McpServerCard'
 import { McpServerFormDialog } from '@/client/components/mcp/McpServerFormDialog'
@@ -99,9 +100,13 @@ export function McpServersSettings() {
       </div>
 
       {servers.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.mcp.empty')}
-        </div>
+        <EmptyState
+          icon={Plug}
+          title={t('settings.mcp.empty')}
+          description={t('settings.mcp.emptyDescription')}
+          actionLabel={t('settings.mcp.add')}
+          onAction={openAdd}
+        />
       )}
 
       {servers.map((server) => (

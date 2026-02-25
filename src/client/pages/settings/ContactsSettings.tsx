@@ -12,7 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Plus } from 'lucide-react'
+import { Plus , Users} from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { ContactCard, type ContactData, type KinInfo } from '@/client/components/contacts/ContactCard'
 import { ContactFormDialog } from '@/client/components/contacts/ContactFormDialog'
@@ -86,9 +87,13 @@ export function ContactsSettings() {
       </div>
 
       {contacts.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.contacts.empty')}
-        </div>
+        <EmptyState
+          icon={Users}
+          title={t('settings.contacts.empty')}
+          description={t('settings.contacts.emptyDescription')}
+          actionLabel={t('settings.contacts.add')}
+          onAction={openAdd}
+        />
       )}
 
       {contacts.map((contact) => (

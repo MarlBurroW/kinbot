@@ -12,7 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Plus } from 'lucide-react'
+import { Plus , Lock} from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { VaultSecretCard, type VaultSecretData } from '@/client/components/vault/VaultSecretCard'
 import { VaultSecretFormDialog } from '@/client/components/vault/VaultSecretFormDialog'
@@ -88,9 +89,13 @@ export function VaultSettings() {
       </div>
 
       {secrets.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.vault.empty')}
-        </div>
+        <EmptyState
+          icon={Lock}
+          title={t('settings.vault.empty')}
+          description={t('settings.vault.emptyDescription')}
+          actionLabel={t('settings.vault.add')}
+          onAction={openAdd}
+        />
       )}
 
       {secrets.map((secret) => (

@@ -12,7 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Plus } from 'lucide-react'
+import { Plus, Cpu } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
@@ -95,9 +96,13 @@ export function ProvidersSettings() {
 
       {/* Provider list */}
       {providers.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.providers.empty')}
-        </div>
+        <EmptyState
+          icon={Cpu}
+          title={t('settings.providers.empty')}
+          description={t('settings.providers.emptyDescription')}
+          actionLabel={t('settings.providers.add')}
+          onAction={openAdd}
+        />
       )}
 
       {providers.map((provider) => (
