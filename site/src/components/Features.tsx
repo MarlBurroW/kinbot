@@ -66,7 +66,7 @@ const features = [
     icon: Webhook,
     title: 'Webhooks & Channels',
     description:
-      'Inbound webhooks trigger Kins from external systems. Telegram, Discord, Slack, and WhatsApp integration lets Kins interact with users on their preferred platform.',
+      'Inbound webhooks trigger Kins from external systems. Telegram, Discord, Slack, WhatsApp, and Signal integration lets Kins interact with users on their preferred platform.',
   },
   {
     icon: Zap,
