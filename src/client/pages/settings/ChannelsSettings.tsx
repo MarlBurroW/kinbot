@@ -13,7 +13,8 @@ import {
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
 import { Collapsible, CollapsibleContent } from '@/client/components/ui/collapsible'
-import { Plus } from 'lucide-react'
+import { Plus , MessageCircle} from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { ChannelCard } from '@/client/components/channel/ChannelCard'
 import { ChannelFormDialog } from '@/client/components/channel/ChannelFormDialog'
@@ -151,9 +152,13 @@ export function ChannelsSettings() {
       </div>
 
       {channels.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.channels.empty')}
-        </div>
+        <EmptyState
+          icon={MessageCircle}
+          title={t('settings.channels.empty')}
+          description={t('settings.channels.emptyDescription')}
+          actionLabel={t('settings.channels.add')}
+          onAction={openAdd}
+        />
       )}
 
       {channels.map((channel) => {

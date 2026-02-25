@@ -12,7 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Plus } from 'lucide-react'
+import { Plus , FileUp} from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { FileStorageCard, type StoredFileData } from '@/client/components/file-storage/FileStorageCard'
 import { FileStorageFormDialog } from '@/client/components/file-storage/FileStorageFormDialog'
@@ -90,9 +91,13 @@ export function FileStorageSettings() {
       </div>
 
       {files.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.files.empty')}
-        </div>
+        <EmptyState
+          icon={FileUp}
+          title={t('settings.files.empty')}
+          description={t('settings.files.emptyDescription')}
+          actionLabel={t('settings.files.add')}
+          onAction={openAdd}
+        />
       )}
 
       {files.map((file) => (

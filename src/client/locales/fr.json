@@ -397,13 +397,15 @@
       "valid": "Connecté",
       "invalid": "Connexion échouée",
       "added": "Fournisseur ajouté avec succès",
-      "deleted": "Fournisseur supprimé"
+      "deleted": "Fournisseur supprimé",
+      "emptyDescription": "Ajoutez un fournisseur d'IA comme OpenAI, Anthropic ou Gemini pour alimenter vos Kins."
     },
     "searchProviders": {
       "title": "Recherche",
       "description": "Gérez vos connexions aux fournisseurs de recherche web",
       "empty": "Aucun fournisseur de recherche configuré",
-      "add": "Ajouter un fournisseur de recherche"
+      "add": "Ajouter un fournisseur de recherche",
+      "emptyDescription": "Connectez un fournisseur de recherche pour que vos Kins puissent chercher sur le web."
     },
     "mcp": {
       "title": "Serveurs MCP",
@@ -433,7 +435,8 @@
       "statusPending": "En attente d'approbation",
       "approve": "Approuver",
       "createdByKin": "par {{name}}",
-      "createdByAdmin": "par l'admin"
+      "createdByAdmin": "par l'admin",
+      "emptyDescription": "Les serveurs MCP étendent vos Kins avec des outils et sources de données externes."
     },
     "vault": {
       "title": "Coffre-fort",
@@ -456,7 +459,8 @@
       "saved": "Secret mis à jour",
       "deleted": "Secret supprimé",
       "createdByKin": "par {{name}}",
-      "createdByAdmin": "par l'admin"
+      "createdByAdmin": "par l'admin",
+      "emptyDescription": "Stockez vos clés API et secrets en toute sécurité pour vos configurations d'outils."
     },
     "files": {
       "title": "Fichiers",
@@ -491,7 +495,8 @@
       "saved": "Fichier mis à jour",
       "deleted": "Fichier supprimé",
       "createdByKin": "par {{name}}",
-      "createdByAdmin": "par l'admin"
+      "createdByAdmin": "par l'admin",
+      "emptyDescription": "Uploadez des fichiers que vos Kins pourront consulter pendant les conversations."
     },
     "memories": {
       "title": "Souvenirs",
@@ -562,7 +567,8 @@
       "noPlatformIds": "Aucun identifiant de plateforme",
       "linkToUser": "Lier à un utilisateur",
       "noUserLink": "Aucun",
-      "linkedUser": "Utilisateur système"
+      "linkedUser": "Utilisateur système",
+      "emptyDescription": "Ajoutez des contacts pour que vos Kins puissent reconnaître et personnaliser les interactions."
     },
     "webhooks": {
       "title": "Webhooks",
@@ -598,7 +604,8 @@
       "logs": "Journal des déclenchements",
       "logsEmpty": "Aucun déclenchement pour le moment",
       "payload": "Payload",
-      "sourceIp": "IP source"
+      "sourceIp": "IP source",
+      "emptyDescription": "Créez des webhooks pour déclencher des actions ou envoyer des données à des services externes."
     },
     "users": {
       "title": "Utilisateurs",
@@ -630,7 +637,8 @@
         "usedBy": "Utilisée par {{name}}",
         "expiresAt": "Expire le {{date}}",
         "createdBy": "Créée par {{name}}"
-      }
+      },
+      "emptyDescription": "Invitez d'autres personnes à collaborer et utiliser vos Kins."
     },
     "channels": {
       "title": "Channels",
@@ -680,7 +688,8 @@
         "searchContacts": "Rechercher des contacts...",
         "noContacts": "Aucun contact trouvé",
         "approve": "Approuver"
-      }
+      },
+      "emptyDescription": "Configurez un canal comme Telegram ou Discord pour discuter avec vos Kins en dehors de l'interface web."
     },
     "notifications": {
       "title": "Notifications",

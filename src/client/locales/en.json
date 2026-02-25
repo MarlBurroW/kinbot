@@ -397,13 +397,15 @@
       "valid": "Connected",
       "invalid": "Connection failed",
       "added": "Provider added successfully",
-      "deleted": "Provider deleted"
+      "deleted": "Provider deleted",
+      "emptyDescription": "Add an AI provider like OpenAI, Anthropic, or Gemini to power your Kins."
     },
     "searchProviders": {
       "title": "Search",
       "description": "Manage web search provider connections",
       "empty": "No search providers configured",
-      "add": "Add search provider"
+      "add": "Add search provider",
+      "emptyDescription": "Connect a search provider so your Kins can look things up on the web."
     },
     "mcp": {
       "title": "MCP Servers",
@@ -433,7 +435,8 @@
       "statusPending": "Pending approval",
       "approve": "Approve",
       "createdByKin": "by {{name}}",
-      "createdByAdmin": "by admin"
+      "createdByAdmin": "by admin",
+      "emptyDescription": "MCP servers extend your Kins with external tools and data sources."
     },
     "vault": {
       "title": "Vault",
@@ -456,7 +459,8 @@
       "saved": "Secret updated",
       "deleted": "Secret deleted",
       "createdByKin": "by {{name}}",
-      "createdByAdmin": "by admin"
+      "createdByAdmin": "by admin",
+      "emptyDescription": "Store API keys and secrets securely for use in tool configurations."
     },
     "files": {
       "title": "Files",
@@ -491,7 +495,8 @@
       "saved": "File updated",
       "deleted": "File deleted",
       "createdByKin": "by {{name}}",
-      "createdByAdmin": "by admin"
+      "createdByAdmin": "by admin",
+      "emptyDescription": "Upload files that your Kins can reference during conversations."
     },
     "memories": {
       "title": "Memories",
@@ -562,7 +567,8 @@
       "noPlatformIds": "No platform identifiers",
       "linkToUser": "Link to system user",
       "noUserLink": "None",
-      "linkedUser": "System user"
+      "linkedUser": "System user",
+      "emptyDescription": "Add contacts so your Kins can recognize and personalize interactions."
     },
     "webhooks": {
       "title": "Webhooks",
@@ -598,7 +604,8 @@
       "logs": "Trigger log",
       "logsEmpty": "No triggers yet",
       "payload": "Payload",
-      "sourceIp": "Source IP"
+      "sourceIp": "Source IP",
+      "emptyDescription": "Create webhooks to trigger actions or send data to external services."
     },
     "users": {
       "title": "Users",
@@ -630,7 +637,8 @@
         "usedBy": "Used by {{name}}",
         "expiresAt": "Expires {{date}}",
         "createdBy": "Created by {{name}}"
-      }
+      },
+      "emptyDescription": "Invite others to collaborate and use your Kins."
     },
     "channels": {
       "title": "Channels",
@@ -680,7 +688,8 @@
         "searchContacts": "Search contacts...",
         "noContacts": "No contacts found",
         "approve": "Approve"
-      }
+      },
+      "emptyDescription": "Set up a channel like Telegram or Discord so your Kins can chat outside the web UI."
     },
     "notifications": {
       "title": "Notifications",

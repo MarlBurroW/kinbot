@@ -22,7 +22,8 @@ import {
 } from '@/client/components/ui/dialog'
 import { Input } from '@/client/components/ui/input'
 import { Label } from '@/client/components/ui/label'
-import { Plus, Copy, Eye, EyeOff } from 'lucide-react'
+import { Plus, Copy, Eye, EyeOff , Webhook} from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { WebhookCard } from '@/client/components/webhook/WebhookCard'
 import { WebhookFormDialog } from '@/client/components/webhook/WebhookFormDialog'
@@ -156,9 +157,13 @@ export function WebhooksSettings() {
       </div>
 
       {webhooks.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.webhooks.empty')}
-        </div>
+        <EmptyState
+          icon={Webhook}
+          title={t('settings.webhooks.empty')}
+          description={t('settings.webhooks.emptyDescription')}
+          actionLabel={t('settings.webhooks.add')}
+          onAction={openAdd}
+        />
       )}
 
       {webhooks.map((webhook) => (

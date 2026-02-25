@@ -24,7 +24,8 @@ import {
 } from '@/client/components/ui/dialog'
 import { Input } from '@/client/components/ui/input'
 import { Label } from '@/client/components/ui/label'
-import { UserPlus, Copy, Trash2, Link2, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { UserPlus, Copy, Trash2, Link2, Clock, CheckCircle2, XCircle, Users } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { useAuth } from '@/client/hooks/useAuth'
 import type { UserSummary, InvitationSummary } from '@/shared/types'
@@ -147,9 +148,11 @@ export function UsersSettings() {
       {/* Users list */}
       <div className="space-y-3">
         {users.length === 0 && (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            {t('settings.users.empty')}
-          </div>
+          <EmptyState
+            icon={Users}
+            title={t('settings.users.empty')}
+            description={t('settings.users.emptyDescription')}
+          />
         )}
 
         {users.map((u) => {

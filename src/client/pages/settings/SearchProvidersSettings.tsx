@@ -12,7 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
@@ -95,9 +96,13 @@ export function SearchProvidersSettings() {
 
       {/* Provider list */}
       {providers.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.searchProviders.empty')}
-        </div>
+        <EmptyState
+          icon={Search}
+          title={t('settings.searchProviders.empty')}
+          description={t('settings.searchProviders.emptyDescription')}
+          actionLabel={t('settings.searchProviders.add')}
+          onAction={openAdd}
+        />
       )}
 
       {providers.map((provider) => (
