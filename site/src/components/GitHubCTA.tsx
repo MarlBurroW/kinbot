@@ -52,8 +52,8 @@ export function GitHubCTA() {
           <span style={{ color: 'var(--color-foreground)' }}>Built in the open.</span>
         </h2>
         <p className="text-lg mb-8 max-w-xl mx-auto" style={{ color: 'var(--color-muted-foreground)' }}>
-          KinBot is free, open source, and community-driven.
-          Star the repo to follow progress, or jump in and contribute.
+          KinBot is built by someone who got tired of AI forgetting everything.
+          It's open source, actively developed, and looking for early adopters who want to push it further.
         </p>
 
         {/* Stats */}

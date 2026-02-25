@@ -54,7 +54,7 @@ const features = [
     icon: Plug,
     title: 'Multi-Provider',
     description:
-      '8 providers out of the box — Anthropic, OpenAI, Gemini, Mistral, Groq, Together AI, Voyage, Brave Search. Add an API key, capabilities auto-detected.',
+      '25+ providers — from Anthropic and OpenAI to Ollama for fully local inference. LLM, embedding, image, and search capabilities auto-detected from a single API key.',
   },
   {
     icon: MessageSquare,
@@ -66,7 +66,7 @@ const features = [
     icon: Webhook,
     title: 'Webhooks & Channels',
     description:
-      'Inbound webhooks trigger Kins from external systems. Telegram integration lets Kins interact with users through their preferred platform.',
+      'Inbound webhooks trigger Kins from external systems. Telegram, Discord, and Slack integration lets Kins interact with users on their preferred platform.',
   },
   {
     icon: Zap,

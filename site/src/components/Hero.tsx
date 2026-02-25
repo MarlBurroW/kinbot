@@ -122,8 +122,8 @@ export function Hero() {
           AI agents that actually remember you.
         </p>
         <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-          Self-hosted specialized AI agents with persistent identity, continuous memory,
-          and real collaboration. One server. One file. Zero infrastructure.
+          Create AI agents that live on your server, remember everything, and work together.
+          One process, one file, zero cloud.
         </p>
       </div>
 
