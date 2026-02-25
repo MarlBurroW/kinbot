@@ -10,6 +10,8 @@ import {
   setExtractionModel,
   getEmbeddingModel,
   setEmbeddingModel,
+  getDefaultSearchProvider,
+  setDefaultSearchProvider,
 } from '@/server/services/app-settings'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
@@ -112,6 +114,29 @@ settingsRoutes.put('/embedding-model', async (c) => {
   await setEmbeddingModel(model.trim())
   log.info({ model: model.trim() }, 'Embedding model updated')
   return c.json({ embeddingModel: model.trim() })
+})
+
+// GET /api/settings/search-provider
+settingsRoutes.get('/search-provider', async (c) => {
+  const searchProviderId = await getDefaultSearchProvider()
+  return c.json({ searchProviderId })
+})
+
+// PUT /api/settings/search-provider
+settingsRoutes.put('/search-provider', async (c) => {
+  const body = await c.req.json()
+  const { searchProviderId } = body as { searchProviderId: string | null }
+
+  if (searchProviderId !== null && typeof searchProviderId !== 'string') {
+    return c.json(
+      { error: { code: 'INVALID_BODY', message: 'searchProviderId must be a string or null' } },
+      400,
+    )
+  }
+
+  await setDefaultSearchProvider(searchProviderId ?? null)
+  log.info({ searchProviderId }, 'Default search provider updated')
+  return c.json({ searchProviderId: searchProviderId ?? null })
 })
 
 export { settingsRoutes }

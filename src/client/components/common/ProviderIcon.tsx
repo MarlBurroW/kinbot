@@ -15,6 +15,9 @@ import Cohere from '@lobehub/icons/es/Cohere'
 import XAI from '@lobehub/icons/es/XAI'
 import Tavily from '@lobehub/icons/es/Tavily'
 import Jina from '@lobehub/icons/es/Jina'
+import Replicate from '@lobehub/icons/es/Replicate'
+import Stability from '@lobehub/icons/es/Stability'
+import Fal from '@lobehub/icons/es/Fal'
 
 type SvgIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>
 
@@ -36,6 +39,9 @@ const PROVIDER_MONO: Record<string, SvgIcon> = {
   xai: XAI,
   tavily: Tavily,
   jina: Jina,
+  replicate: Replicate,
+  stability: Stability,
+  fal: Fal,
 }
 
 /** Color icons — use .Color variant where available */
@@ -51,6 +57,9 @@ const PROVIDER_COLOR: Record<string, SvgIcon> = {
   deepseek: DeepSeek.Color,
   cohere: Cohere.Color,
   tavily: Tavily.Color,
+  replicate: Replicate,
+  stability: Stability,
+  fal: Fal,
   // Mono-only icons — brand color applied via PROVIDER_BRAND_COLORS
   groq: Groq,
   openrouter: OpenRouter,
@@ -65,6 +74,13 @@ const PROVIDER_BRAND_COLORS: Record<string, string> = {
   openrouter: '#6566F1',
 }
 
+/** Image fallbacks for providers not in @lobehub/icons */
+const PROVIDER_IMG_FALLBACKS: Record<string, string> = {
+  'brave-search': 'https://cdn.simpleicons.org/brave/fb542b',
+  nomic: 'https://nomic.ai/favicon.ico',
+  serper: 'https://serper.dev/favicon.ico',
+}
+
 interface ProviderIconProps {
   providerType: string
   className?: string
@@ -73,6 +89,12 @@ interface ProviderIconProps {
 }
 
 export function ProviderIcon({ providerType, className, variant = 'mono' }: ProviderIconProps) {
+  // Image fallback (providers not covered by @lobehub/icons)
+  const imgSrc = PROVIDER_IMG_FALLBACKS[providerType]
+  if (imgSrc) {
+    return <img src={imgSrc} alt={providerType} className={className} style={{ objectFit: 'contain' }} />
+  }
+
   if (variant === 'color') {
     const Icon = PROVIDER_COLOR[providerType]
     if (!Icon) return <Cpu className={className} />

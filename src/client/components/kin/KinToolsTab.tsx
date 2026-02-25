@@ -1,14 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Switch } from '@/client/components/ui/switch'
+import { Label } from '@/client/components/ui/label'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/client/components/ui/select'
 import { ToolDomainIcon } from '@/client/components/common/ToolDomainIcon'
 import { Badge } from '@/client/components/ui/badge'
 import { useKinTools, type NativeToolGroup, type McpToolGroup } from '@/client/hooks/useKinTools'
-import { TOOL_DOMAIN_META } from '@/shared/constants'
+import { TOOL_DOMAIN_META, SEARCH_PROVIDER_TYPES } from '@/shared/constants'
 import { ChevronRight, Loader2, Plug } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
+import { api } from '@/client/lib/api'
 import type { KinToolConfig, ToolDomain } from '@/shared/types'
+import type { ProviderData } from '@/client/components/kin/ProviderCard'
 
 interface KinToolsTabProps {
   kinId: string | null
@@ -23,6 +33,18 @@ function getEffectiveConfig(config: KinToolConfig | null): KinToolConfig {
 export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsTabProps) {
   const { t } = useTranslation()
   const { nativeTools, mcpTools, isLoading } = useKinTools(kinId)
+  const [searchProviders, setSearchProviders] = useState<ProviderData[]>([])
+
+  useEffect(() => {
+    api.get<{ providers: ProviderData[] }>('/providers')
+      .then((data) => {
+        const valid = data.providers.filter(
+          (p) => p.isValid && (SEARCH_PROVIDER_TYPES as readonly string[]).includes(p.type),
+        )
+        setSearchProviders(valid)
+      })
+      .catch(() => {})
+  }, [])
 
   const config = getEffectiveConfig(toolConfig)
 
@@ -198,6 +220,39 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsT
           )
         })}
       </div>
+
+      {/* Search provider override */}
+      {searchProviders.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">{t('kin.tools.searchProvider')}</h3>
+          <div className="rounded-lg border bg-card/50 p-3 space-y-2">
+            <Label className="text-xs text-muted-foreground">{t('kin.tools.searchProviderDescription')}</Label>
+            <Select
+              value={config.searchProviderId ?? '__default__'}
+              onValueChange={(value) => {
+                onToolConfigChange({
+                  ...config,
+                  searchProviderId: value === '__default__' ? undefined : value,
+                })
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">
+                  {t('kin.tools.searchProviderDefault')}
+                </SelectItem>
+                {searchProviders.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
 
       {/* MCP tools */}
       {(mcpTools.length > 0 || kinId) && (

@@ -118,6 +118,8 @@ export interface KinToolConfig {
   mcpAccess: Record<string, string[]>
   /** Native tool names that are explicitly ENABLED despite being defaultDisabled (allow-list) */
   enabledOptInTools?: string[]
+  /** Provider ID to use for web_search — overrides the global default */
+  searchProviderId?: string
 }
 
 /** Task summary as returned by GET /api/tasks */
