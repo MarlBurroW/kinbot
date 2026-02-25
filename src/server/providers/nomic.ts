@@ -27,7 +27,6 @@ async function fetchNomicModels(config: ProviderConfig): Promise<NomicModel[]> {
 
 export const nomicProvider: ProviderDefinition = {
   type: 'nomic',
-  capabilities: ['embedding'],
 
   async testConnection(config: ProviderConfig) {
     try {

@@ -2,35 +2,41 @@
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr'] as const
 
-export const PROVIDER_TYPES = ['anthropic', 'anthropic-oauth', 'openai', 'gemini', 'voyage', 'brave-search'] as const
+// ---------------------------------------------------------------------------
+// Provider constants — all derived from PROVIDER_META (single source of truth)
+// To add a provider: add one entry to src/shared/provider-metadata.ts
+// ---------------------------------------------------------------------------
+import { PROVIDER_META, type ProviderType, type ProviderMeta } from '@/shared/provider-metadata'
+export type { ProviderType } from '@/shared/provider-metadata'
+
+type MetaEntries = [ProviderType, ProviderMeta][]
+const metaEntries = Object.entries(PROVIDER_META) as MetaEntries
+
+export const PROVIDER_TYPES = metaEntries.map(([t]) => t)
 
 /** AI providers (llm, embedding, image capabilities) */
-export const AI_PROVIDER_TYPES = ['anthropic', 'anthropic-oauth', 'openai', 'gemini', 'voyage'] as const
+export const AI_PROVIDER_TYPES = metaEntries
+  .filter(([, m]) => (m.capabilities as readonly string[]).some(c => c !== 'search'))
+  .map(([t]) => t)
 
 /** Search providers (search capability) */
-export const SEARCH_PROVIDER_TYPES = ['brave-search'] as const
+export const SEARCH_PROVIDER_TYPES = metaEntries
+  .filter(([, m]) => (m.capabilities as readonly string[]).includes('search'))
+  .map(([t]) => t)
 
-export const PROVIDER_CAPABILITIES: Record<string, readonly string[]> = {
-  anthropic: ['llm'],
-  'anthropic-oauth': ['llm'],
-  openai: ['llm', 'embedding', 'image'],
-  gemini: ['llm', 'image'],
-  voyage: ['embedding'],
-  'brave-search': ['search'],
-} as const
+export const PROVIDER_CAPABILITIES: Record<string, readonly string[]> = Object.fromEntries(
+  metaEntries.map(([t, m]) => [t, m.capabilities]),
+)
 
 /** Human-readable display names for provider types */
-export const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
-  anthropic: 'Anthropic',
-  'anthropic-oauth': 'Anthropic (Claude Max)',
-  openai: 'OpenAI',
-  gemini: 'Gemini',
-  voyage: 'Voyage',
-  'brave-search': 'Brave Search',
-} as const
+export const PROVIDER_DISPLAY_NAMES: Record<string, string> = Object.fromEntries(
+  metaEntries.map(([t, m]) => [t, m.displayName]),
+)
 
 /** Provider types where the API key field is optional (auto-detected credentials) */
-export const PROVIDERS_WITHOUT_API_KEY = ['anthropic-oauth'] as const
+export const PROVIDERS_WITHOUT_API_KEY = metaEntries
+  .filter(([, m]) => m.noApiKey)
+  .map(([t]) => t)
 
 export const REQUIRED_CAPABILITIES = ['llm', 'embedding'] as const
 

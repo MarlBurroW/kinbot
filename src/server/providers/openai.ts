@@ -51,7 +51,6 @@ async function fetchOpenAIModels(config: ProviderConfig): Promise<OpenAIModel[]>
 
 export const openaiProvider: ProviderDefinition = {
   type: 'openai',
-  capabilities: ['llm', 'embedding', 'image'],
 
   async testConnection(config: ProviderConfig) {
     try {

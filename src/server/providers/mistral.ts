@@ -50,7 +50,6 @@ async function fetchModels(config: ProviderConfig): Promise<MistralModel[]> {
 
 export const mistralProvider: ProviderDefinition = {
   type: 'mistral',
-  capabilities: ['llm', 'embedding'],
 
   async testConnection(config: ProviderConfig) {
     try {

@@ -4,7 +4,6 @@ const TAVILY_BASE_URL = 'https://api.tavily.com'
 
 export const tavilyProvider: ProviderDefinition = {
   type: 'tavily',
-  capabilities: ['search'],
 
   async testConnection(config: ProviderConfig) {
     try {

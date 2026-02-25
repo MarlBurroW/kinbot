@@ -19,20 +19,24 @@ interface OpenRouterModelsResponse {
 
 function classifyModel(model: OpenRouterModel): 'llm' | 'embedding' | 'image' | null {
   const id = model.id.toLowerCase()
+  const arch = model.architecture
 
-  // Image generation models
-  if (
-    id.includes('dall-e') ||
-    id.includes('stable-diffusion') ||
-    id.includes('flux') ||
-    id.includes('image-generation')
-  ) return 'image'
+  // Use structured output modalities when available (most reliable)
+  if (arch?.output_modalities?.includes('image')) return 'image'
+  // Fallback to modality string (e.g. "text->image")
+  if (arch?.modality?.includes('->image')) return 'image'
 
-  // Embedding models
+  // Embedding models (not exposed in modalities for most OpenRouter providers)
   if (id.includes('embed')) return 'embedding'
 
-  // Default to LLM (OpenRouter is primarily an LLM aggregator)
+  // Default to LLM
   return 'llm'
+}
+
+function resolveSupportsImageInput(model: OpenRouterModel): boolean | undefined {
+  const arch = model.architecture
+  if (arch?.input_modalities) return arch.input_modalities.includes('image')
+  return undefined
 }
 
 async function fetchModels(config: ProviderConfig): Promise<OpenRouterModel[]> {
@@ -55,7 +59,6 @@ async function fetchModels(config: ProviderConfig): Promise<OpenRouterModel[]> {
 
 export const openrouterProvider: ProviderDefinition = {
   type: 'openrouter',
-  capabilities: ['llm', 'embedding', 'image'],
 
   async testConnection(config: ProviderConfig) {
     try {
@@ -81,6 +84,7 @@ export const openrouterProvider: ProviderDefinition = {
             id: m.id,
             name: m.name ?? m.id,
             capability,
+            supportsImageInput: capability === 'image' ? resolveSupportsImageInput(m) : undefined,
           }
         })
         .filter((m): m is ProviderModel => m !== null)

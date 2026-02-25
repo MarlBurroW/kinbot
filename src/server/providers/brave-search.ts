@@ -4,7 +4,6 @@ const BRAVE_BASE_URL = 'https://api.search.brave.com/res/v1'
 
 export const braveSearchProvider: ProviderDefinition = {
   type: 'brave-search',
-  capabilities: ['search'],
 
   async testConnection(config: ProviderConfig) {
     try {

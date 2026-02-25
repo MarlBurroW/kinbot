@@ -51,7 +51,6 @@ async function fetchModels(config: ProviderConfig): Promise<XAIModel[]> {
 
 export const xaiProvider: ProviderDefinition = {
   type: 'xai',
-  capabilities: ['llm', 'embedding', 'image'],
 
   async testConnection(config: ProviderConfig) {
     try {

@@ -32,7 +32,6 @@ async function fetchAnthropicModels(config: ProviderConfig): Promise<AnthropicMo
 
 export const anthropicProvider: ProviderDefinition = {
   type: 'anthropic',
-  capabilities: ['llm'],
 
   async testConnection(config: ProviderConfig) {
     try {

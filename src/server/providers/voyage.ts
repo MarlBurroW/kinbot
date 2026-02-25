@@ -27,7 +27,6 @@ async function fetchVoyageModels(config: ProviderConfig): Promise<VoyageModel[]>
 
 export const voyageProvider: ProviderDefinition = {
   type: 'voyage',
-  capabilities: ['embedding'],
 
   async testConnection(config: ProviderConfig) {
     try {

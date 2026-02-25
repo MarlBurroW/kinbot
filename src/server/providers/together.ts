@@ -62,7 +62,6 @@ async function fetchModels(config: ProviderConfig): Promise<TogetherModel[]> {
 
 export const togetherProvider: ProviderDefinition = {
   type: 'together',
-  capabilities: ['llm', 'embedding', 'image'],
 
   async testConnection(config: ProviderConfig) {
     try {

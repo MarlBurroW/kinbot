@@ -1,4 +1,6 @@
 import type { ProviderDefinition, ProviderConfig, ProviderModel } from '@/server/providers/types'
+import type { ProviderCapability } from '@/shared/types'
+import { PROVIDER_META, type ProviderType } from '@/shared/provider-metadata'
 import { createLogger } from '@/server/logger'
 import { anthropicProvider } from '@/server/providers/anthropic'
 import { anthropicOAuthProvider } from '@/server/providers/anthropic-oauth'
@@ -46,8 +48,8 @@ export function getProviderDefinition(type: string): ProviderDefinition | undefi
   return registry[type]
 }
 
-export function getCapabilitiesForType(type: string): string[] {
-  return registry[type]?.capabilities ?? []
+export function getCapabilitiesForType(type: string): ProviderCapability[] {
+  return [...(PROVIDER_META[type as ProviderType]?.capabilities ?? [])]
 }
 
 export async function testProviderConnection(
@@ -64,7 +66,7 @@ export async function testProviderConnection(
   log.info({ type, valid: result.valid, error: result.error }, 'Provider connection tested')
   return {
     valid: result.valid,
-    capabilities: result.valid ? definition.capabilities : [],
+    capabilities: result.valid ? [...(PROVIDER_META[type as ProviderType]?.capabilities ?? [])] : [],
     error: result.error,
   }
 }

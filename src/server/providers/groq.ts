@@ -45,7 +45,6 @@ async function fetchModels(config: ProviderConfig): Promise<GroqModel[]> {
 
 export const groqProvider: ProviderDefinition = {
   type: 'groq',
-  capabilities: ['llm'],
 
   async testConnection(config: ProviderConfig) {
     try {

@@ -25,16 +25,8 @@ async function fetchJinaModels(config: ProviderConfig): Promise<JinaModel[]> {
   return data.data
 }
 
-function classifyModel(id: string): 'embedding' | 'llm' {
-  if (id.includes('embed') || id.includes('colbert')) {
-    return 'embedding'
-  }
-  return 'llm'
-}
-
 export const jinaProvider: ProviderDefinition = {
   type: 'jina',
-  capabilities: ['embedding'],
 
   async testConnection(config: ProviderConfig) {
     try {
@@ -48,13 +40,11 @@ export const jinaProvider: ProviderDefinition = {
   async listModels(config: ProviderConfig) {
     try {
       const apiModels = await fetchJinaModels(config)
-      return apiModels
-        .filter((m) => classifyModel(m.id) === 'embedding')
-        .map((m): ProviderModel => ({
-          id: m.id,
-          name: m.id,
-          capability: 'embedding',
-        }))
+      return apiModels.map((m): ProviderModel => ({
+        id: m.id,
+        name: m.id,
+        capability: 'embedding',
+      }))
     } catch {
       return []
     }
