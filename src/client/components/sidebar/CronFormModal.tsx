@@ -32,6 +32,7 @@ import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { AlertCircle, Loader2, Trash2 } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { cn } from '@/client/lib/utils'
 import { getErrorMessage } from '@/client/lib/api'
 import { cronToHuman } from '@/client/lib/cron-human'
@@ -191,7 +192,7 @@ export function CronFormModal({
           <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="cronFormName">{t('cron.create.name')}</Label>
+              <Label htmlFor="cronFormName" className="inline-flex items-center gap-1.5">{t('cron.create.name')} <InfoTip content={t('cron.create.nameTip')} /></Label>
               <Input
                 id="cronFormName"
                 value={name}
@@ -203,7 +204,7 @@ export function CronFormModal({
 
             {/* Owner Kin */}
             <div className="space-y-2">
-              <Label>{t('cron.create.kin')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('cron.create.kin')} <InfoTip content={t('cron.create.kinTip')} /></Label>
               {isEdit ? (
                 <div className="flex items-center gap-2.5 rounded-md border border-input bg-muted/30 px-3 py-2">
                   {selectedKin && <KinSelectItem kin={selectedKin} />}
@@ -230,7 +231,7 @@ export function CronFormModal({
 
             {/* Schedule */}
             <div className="space-y-2">
-              <Label htmlFor="cronFormSchedule">{t('cron.create.schedule')}</Label>
+              <Label htmlFor="cronFormSchedule" className="inline-flex items-center gap-1.5">{t('cron.create.schedule')} <InfoTip content={t('cron.create.scheduleTip')} /></Label>
               <Input
                 id="cronFormSchedule"
                 value={schedule}
@@ -266,7 +267,7 @@ export function CronFormModal({
 
             {/* Task description (MarkdownEditor) */}
             <div className="space-y-2">
-              <Label>{t('cron.create.taskDescription')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('cron.create.taskDescription')} <InfoTip content={t('cron.create.taskDescriptionTip')} /></Label>
               <MarkdownEditor
                 value={taskDescription}
                 onChange={setTaskDescription}
@@ -276,7 +277,7 @@ export function CronFormModal({
 
             {/* Target Kin (optional) */}
             <div className="space-y-2">
-              <Label>{t('cron.create.targetKin')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('cron.create.targetKin')} <InfoTip content={t('cron.create.targetKinTip')} /></Label>
               <Select value={targetKinId} onValueChange={setTargetKinId}>
                 <SelectTrigger className="w-full h-auto min-h-9">
                   {targetKinId && targetKinId !== 'none' ? (
@@ -302,7 +303,7 @@ export function CronFormModal({
 
             {/* Model (ModelPicker) */}
             <div className="space-y-2">
-              <Label>{t('cron.create.model')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('cron.create.model')} <InfoTip content={t('cron.create.modelTip')} /></Label>
               <ModelPicker
                 models={llmModels}
                 value={model}

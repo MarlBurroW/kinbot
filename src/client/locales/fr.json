@@ -188,7 +188,12 @@
       "characterHint": "Définissez la personnalité, le ton et le style de communication. Cela influence la façon dont le Kin s'exprime et se comporte.",
       "expertiseHint": "Décrivez ce que le Kin sait et sur quoi il doit se concentrer. Cela guide ses réponses et ses domaines de compétence.",
       "nameHint": "Un nom court et mémorable pour ce Kin.",
-      "roleHint": "Une brève description de ce que fait ce Kin (affiché dans la barre latérale)."
+      "roleHint": "Une brève description de ce que fait ce Kin (affiché dans la barre latérale).",
+      "nameTip": "Un nom court et reconnaissable. C'est ainsi que le Kin apparaît dans la barre latérale et les conversations.",
+      "roleTip": "Un résumé en une ligne de ce que fait ce Kin. Affiché sous le nom dans la barre latérale.",
+      "modelTip": "Le modèle IA qui anime ce Kin. Les modèles plus grands sont plus intelligents mais plus lents et coûteux.",
+      "characterTip": "Définit la personnalité du Kin : comment il parle, son ton, ses particularités. C'est en quelque sorte l'\"âme\" du Kin.",
+      "expertiseTip": "Décrit ce que le Kin sait et sur quoi il doit se concentrer. Guide ses réponses et domaines de compétence."
     },
     "settings": {
       "title": "Paramètres du Kin",
@@ -285,7 +290,13 @@
       "targetKinHint": "Si défini, ce Kin exécute la tâche au lieu du propriétaire.",
       "model": "Modèle (optionnel)",
       "modelPlaceholder": "Laisser vide pour le modèle par défaut du Kin",
-      "submit": "Créer la tâche"
+      "submit": "Créer la tâche",
+      "nameTip": "Un nom descriptif pour identifier cette tâche. Affiché dans la barre latérale et les notifications.",
+      "kinTip": "Le Kin qui possède et exécute cette tâche. Il suivra les instructions à chaque déclenchement.",
+      "scheduleTip": "Expression cron standard (5 champs). Utilisez les préréglages ou écrivez la vôtre. Les heures sont dans le fuseau du serveur.",
+      "taskDescriptionTip": "Instructions détaillées pour le Kin. Soyez précis sur ce qu'il doit faire, vérifier ou produire à chaque exécution.",
+      "targetKinTip": "Délègue optionnellement l'exécution à un autre Kin. Utile quand le Kin propriétaire dispatche le travail à un spécialiste.",
+      "modelTip": "Remplace le modèle par défaut du Kin pour cette tâche. Utile pour des modèles moins chers sur les tâches routinières."
     },
     "edit": {
       "title": "Modifier la tâche planifiée",

@@ -188,7 +188,12 @@
       "characterHint": "Define personality, tone, and communication style. This shapes how the Kin speaks and behaves in conversations.",
       "expertiseHint": "Describe what the Kin knows and what it should focus on. This guides its responses and areas of competence.",
       "nameHint": "A short, memorable name for this Kin.",
-      "roleHint": "A brief description of what this Kin does (shown in the sidebar)."
+      "roleHint": "A brief description of what this Kin does (shown in the sidebar).",
+      "nameTip": "A short, recognizable name. This is how the Kin appears in the sidebar and in conversations.",
+      "roleTip": "A one-line summary of what this Kin does. Shown under the name in the sidebar.",
+      "modelTip": "The AI model powering this Kin. Different models have different strengths — larger models are smarter but slower and more expensive.",
+      "characterTip": "Defines the Kin's personality: how it talks, its tone, quirks, and communication style. Think of it as the Kin's \"soul\".",
+      "expertiseTip": "Describes what the Kin knows and should focus on. This guides its answers, priorities, and areas of competence."
     },
     "settings": {
       "title": "Kin settings",
@@ -285,7 +290,13 @@
       "targetKinHint": "If set, this Kin executes the task instead of the owner.",
       "model": "Model (optional)",
       "modelPlaceholder": "Leave empty to use the Kin's default",
-      "submit": "Create job"
+      "submit": "Create job",
+      "nameTip": "A descriptive name to identify this job. Shown in the sidebar and notifications.",
+      "kinTip": "The Kin that owns and runs this job. It will execute the task instructions on each trigger.",
+      "scheduleTip": "Standard cron expression (5 fields). Use the presets below or write your own. Times are in the server's timezone.",
+      "taskDescriptionTip": "Detailed instructions for the Kin. Be specific about what it should do, check, or produce at each execution.",
+      "targetKinTip": "Optionally delegate execution to a different Kin. Useful when the owner Kin dispatches work to a specialist.",
+      "modelTip": "Override the Kin's default model for this job. Useful for running cheaper models on routine tasks."
     },
     "edit": {
       "title": "Edit scheduled job",
