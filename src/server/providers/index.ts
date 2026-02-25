@@ -23,6 +23,7 @@ import { nomicProvider } from '@/server/providers/nomic'
 import { replicateProvider } from '@/server/providers/replicate'
 import { stabilityProvider } from '@/server/providers/stability'
 import { falProvider } from '@/server/providers/fal'
+import { serperProvider } from '@/server/providers/serper'
 
 const log = createLogger('providers')
 
@@ -48,6 +49,7 @@ const registry: Record<string, ProviderDefinition> = {
   replicate: replicateProvider,
   stability: stabilityProvider,
   fal: falProvider,
+  serper: serperProvider,
 }
 
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {
