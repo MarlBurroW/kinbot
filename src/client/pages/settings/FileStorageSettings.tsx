@@ -14,6 +14,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus , FileUp} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { FileStorageCard, type StoredFileData } from '@/client/components/file-storage/FileStorageCard'
 import { FileStorageFormDialog } from '@/client/components/file-storage/FileStorageFormDialog'
@@ -21,6 +22,7 @@ import { FileStorageFormDialog } from '@/client/components/file-storage/FileStor
 export function FileStorageSettings() {
   const { t } = useTranslation()
   const [files, setFiles] = useState<StoredFileData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [kins, setKins] = useState<{ id: string; name: string }[]>([])
   const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
   const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
@@ -39,6 +41,8 @@ export function FileStorageSettings() {
       setFiles(data.files)
     } catch {
       // Ignore
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -79,6 +83,10 @@ export function FileStorageSettings() {
   const openEdit = (file: StoredFileData) => {
     setEditingFile(file)
     setModalOpen(true)
+  }
+
+  if (isLoading) {
+    return <SettingsListSkeleton count={2} />
   }
 
   return (

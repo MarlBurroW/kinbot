@@ -24,6 +24,7 @@ import { Input } from '@/client/components/ui/input'
 import { Label } from '@/client/components/ui/label'
 import { Plus, Copy, Eye, EyeOff , Webhook} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { WebhookCard } from '@/client/components/webhook/WebhookCard'
 import { WebhookFormDialog } from '@/client/components/webhook/WebhookFormDialog'
@@ -38,6 +39,7 @@ interface WebhookWithToken extends WebhookSummary {
 export function WebhooksSettings() {
   const { t } = useTranslation()
   const [webhooks, setWebhooks] = useState<WebhookSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [kins, setKins] = useState<KinOption[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editingWebhook, setEditingWebhook] = useState<WebhookSummary | null>(null)
@@ -55,6 +57,8 @@ export function WebhooksSettings() {
       setWebhooks(data.webhooks)
     } catch {
       // Ignore
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
@@ -144,6 +148,10 @@ export function WebhooksSettings() {
     } catch {
       // fallback
     }
+  }
+
+  if (isLoading) {
+    return <SettingsListSkeleton count={2} />
   }
 
   return (

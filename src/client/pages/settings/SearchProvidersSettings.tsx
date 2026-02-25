@@ -22,6 +22,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus, Search } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
@@ -30,6 +31,7 @@ import { SEARCH_PROVIDER_TYPES } from '@/shared/constants'
 export function SearchProvidersSettings() {
   const { t } = useTranslation()
   const [providers, setProviders] = useState<ProviderData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderData | null>(null)
   const [deletingProvider, setDeletingProvider] = useState<ProviderData | null>(null)
@@ -47,6 +49,8 @@ export function SearchProvidersSettings() {
       setProviders(data.providers.filter((p) => (SEARCH_PROVIDER_TYPES as readonly string[]).includes(p.type)))
     } catch {
       // Ignore
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -120,6 +124,10 @@ export function SearchProvidersSettings() {
   }
 
   const validProviders = providers.filter((p) => p.isValid)
+
+  if (isLoading) {
+    return <SettingsListSkeleton count={2} />
+  }
 
   return (
     <div className="space-y-4">

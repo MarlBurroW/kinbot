@@ -14,6 +14,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus, Cpu } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
@@ -22,6 +23,7 @@ import { AI_PROVIDER_TYPES } from '@/shared/constants'
 export function ProvidersSettings() {
   const { t } = useTranslation()
   const [providers, setProviders] = useState<ProviderData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderData | null>(null)
   const [deletingProvider, setDeletingProvider] = useState<ProviderData | null>(null)
@@ -37,6 +39,8 @@ export function ProvidersSettings() {
       setProviders(data.providers.filter((p) => (AI_PROVIDER_TYPES as readonly string[]).includes(p.type)))
     } catch {
       // Ignore
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -83,6 +87,10 @@ export function ProvidersSettings() {
   const openEdit = (provider: ProviderData) => {
     setEditingProvider(provider)
     setModalOpen(true)
+  }
+
+  if (isLoading) {
+    return <SettingsListSkeleton count={3} />
   }
 
   return (

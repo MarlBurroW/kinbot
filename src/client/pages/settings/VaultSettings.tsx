@@ -14,6 +14,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus , Lock} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { VaultSecretCard, type VaultSecretData } from '@/client/components/vault/VaultSecretCard'
 import { VaultSecretFormDialog } from '@/client/components/vault/VaultSecretFormDialog'
@@ -21,6 +22,7 @@ import { VaultSecretFormDialog } from '@/client/components/vault/VaultSecretForm
 export function VaultSettings() {
   const { t } = useTranslation()
   const [secrets, setSecrets] = useState<VaultSecretData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
   const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
   const [modalOpen, setModalOpen] = useState(false)
@@ -38,6 +40,8 @@ export function VaultSettings() {
       setSecrets(data.secrets)
     } catch {
       // Ignore
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -77,6 +81,10 @@ export function VaultSettings() {
   const openEdit = (secret: VaultSecretData) => {
     setEditingSecret(secret)
     setModalOpen(true)
+  }
+
+  if (isLoading) {
+    return <SettingsListSkeleton count={2} />
   }
 
   return (

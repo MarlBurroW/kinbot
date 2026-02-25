@@ -15,6 +15,7 @@ import {
 import { Collapsible, CollapsibleContent } from '@/client/components/ui/collapsible'
 import { Plus , MessageCircle} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { ChannelCard } from '@/client/components/channel/ChannelCard'
 import { ChannelFormDialog } from '@/client/components/channel/ChannelFormDialog'
@@ -25,6 +26,7 @@ import type { KinOption } from '@/client/components/common/KinSelectItem'
 export function ChannelsSettings() {
   const { t } = useTranslation()
   const [channels, setChannels] = useState<ChannelSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [kins, setKins] = useState<KinOption[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editingChannel, setEditingChannel] = useState<ChannelSummary | null>(null)
@@ -39,6 +41,8 @@ export function ChannelsSettings() {
       setChannels(data.channels)
     } catch {
       // Ignore
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
@@ -138,6 +142,10 @@ export function ChannelsSettings() {
   const openEdit = (channel: ChannelSummary) => {
     setEditingChannel(channel)
     setModalOpen(true)
+  }
+
+  if (isLoading) {
+    return <SettingsListSkeleton count={2} />
   }
 
   return (

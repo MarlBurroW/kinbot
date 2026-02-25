@@ -7,6 +7,7 @@ import { Label } from '@/client/components/ui/label'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { api, getErrorMessage } from '@/client/lib/api'
+import { Skeleton } from '@/client/components/ui/skeleton'
 
 interface ProviderModel {
   id: string
@@ -18,6 +19,8 @@ interface ProviderModel {
 
 export function GeneralSettings() {
   const { t } = useTranslation()
+
+  const [isLoading, setIsLoading] = useState(true)
 
   // Global prompt
   const [globalPrompt, setGlobalPrompt] = useState('')
@@ -46,6 +49,8 @@ export function GeneralSettings() {
       setInitialGlobalPrompt(data.globalPrompt)
     } catch {
       // Ignore — will show empty
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -124,6 +129,20 @@ export function GeneralSettings() {
     () => allModels.filter((m) => m.capability === 'embedding'),
     [allModels],
   )
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-4 w-3/4" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-[240px] w-full rounded-md" />
+          <Skeleton className="h-3 w-48" />
+        </div>
+        <Skeleton className="h-9 w-20 rounded-md" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">

@@ -14,6 +14,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus , Plug} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { McpServerCard, type McpServerData } from '@/client/components/mcp/McpServerCard'
 import { McpServerFormDialog } from '@/client/components/mcp/McpServerFormDialog'
@@ -21,6 +22,7 @@ import { McpServerFormDialog } from '@/client/components/mcp/McpServerFormDialog
 export function McpServersSettings() {
   const { t } = useTranslation()
   const [servers, setServers] = useState<McpServerData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
   const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
   const [modalOpen, setModalOpen] = useState(false)
@@ -38,6 +40,8 @@ export function McpServersSettings() {
       setServers(data.servers)
     } catch {
       // Ignore
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -87,6 +91,10 @@ export function McpServersSettings() {
   const openEdit = (server: McpServerData) => {
     setEditingServer(server)
     setModalOpen(true)
+  }
+
+  if (isLoading) {
+    return <SettingsListSkeleton count={2} />
   }
 
   return (
