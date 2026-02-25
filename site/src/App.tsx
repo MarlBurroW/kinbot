@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navbar } from './components/Navbar'
 import { Hero } from './components/Hero'
 import { Features } from './components/Features'
+import { Providers } from './components/Providers'
 import { Architecture } from './components/Architecture'
 import { Install } from './components/Install'
 import { Footer } from './components/Footer'
@@ -24,6 +25,7 @@ export default function App() {
       <main>
         <Hero />
         <Features />
+        <Providers />
         <Architecture />
         <Install />
       </main>

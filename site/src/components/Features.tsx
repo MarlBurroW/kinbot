@@ -54,7 +54,7 @@ const features = [
     icon: Plug,
     title: 'Multi-Provider',
     description:
-      'Anthropic Claude, OpenAI GPT, Google Gemini, Voyage AI (embeddings), Brave Search. Configure once — capabilities auto-detected.',
+      '8 providers out of the box — Anthropic, OpenAI, Gemini, Mistral, Groq, Together AI, Voyage, Brave Search. Add an API key, capabilities auto-detected.',
   },
   {
     icon: MessageSquare,
