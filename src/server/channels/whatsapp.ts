@@ -1,0 +1,210 @@
+import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelPlatform } from '@/shared/types'
+import { getSecretValue } from '@/server/services/vault'
+import { config } from '@/server/config'
+import { createLogger } from '@/server/logger'
+
+const log = createLogger('channel:whatsapp')
+
+const GRAPH_API = 'https://graph.facebook.com/v21.0'
+const MAX_MESSAGE_LENGTH = 4096
+
+export interface WhatsAppChannelConfig {
+  accessTokenVaultKey: string
+  phoneNumberId: string
+  verifyTokenVaultKey: string
+}
+
+/** Split a long message into chunks respecting WhatsApp's limit */
+function splitMessage(text: string): string[] {
+  if (text.length <= MAX_MESSAGE_LENGTH) return [text]
+
+  const chunks: string[] = []
+  let remaining = text
+
+  while (remaining.length > 0) {
+    if (remaining.length <= MAX_MESSAGE_LENGTH) {
+      chunks.push(remaining)
+      break
+    }
+
+    let splitAt = remaining.lastIndexOf('\n\n', MAX_MESSAGE_LENGTH)
+    if (splitAt <= 0) splitAt = remaining.lastIndexOf('\n', MAX_MESSAGE_LENGTH)
+    if (splitAt <= 0) splitAt = remaining.lastIndexOf('. ', MAX_MESSAGE_LENGTH)
+    if (splitAt <= 0) splitAt = MAX_MESSAGE_LENGTH
+
+    chunks.push(remaining.slice(0, splitAt))
+    remaining = remaining.slice(splitAt).trimStart()
+  }
+
+  return chunks
+}
+
+async function resolveSecret(cfg: Record<string, unknown>, key: keyof WhatsAppChannelConfig): Promise<string> {
+  const vaultKey = (cfg as WhatsAppChannelConfig)[key] as string
+  const secret = await getSecretValue(vaultKey)
+  if (!secret) throw new Error(`Vault key "${vaultKey}" not found`)
+  return secret
+}
+
+async function whatsappApi(
+  accessToken: string,
+  phoneNumberId: string,
+  endpoint: string,
+  body?: Record<string, unknown>,
+) {
+  const url = `${GRAPH_API}/${phoneNumberId}/${endpoint}`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = (await resp.json()) as { messages?: Array<{ id: string }>; error?: { message: string } }
+  if (!resp.ok || data.error) {
+    throw new Error(`WhatsApp API ${endpoint} failed: ${data.error?.message ?? `HTTP ${resp.status}`}`)
+  }
+  return data
+}
+
+export class WhatsAppAdapter implements ChannelAdapter {
+  readonly platform: ChannelPlatform = 'whatsapp'
+
+  async start(channelId: string, cfg: Record<string, unknown>): Promise<void> {
+    // WhatsApp Cloud API uses a webhook configured in Meta Developer Console.
+    // We just log that the channel is active — the user must configure the webhook URL
+    // in Meta's dashboard pointing to our endpoint.
+    const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+    const webhookUrl = `${config.publicUrl}/api/channels/whatsapp/webhook/${channelId}`
+    log.info({ channelId, phoneNumberId, webhookUrl }, 'WhatsApp channel started — configure this webhook URL in Meta Developer Console')
+  }
+
+  async stop(channelId: string): Promise<void> {
+    log.info({ channelId }, 'WhatsApp channel stopped')
+  }
+
+  async sendMessage(
+    _channelId: string,
+    cfg: Record<string, unknown>,
+    params: OutboundMessageParams,
+  ): Promise<{ platformMessageId: string }> {
+    const accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
+    const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+    const chunks = splitMessage(params.content)
+
+    let lastMessageId = ''
+    for (let i = 0; i < chunks.length; i++) {
+      const body: Record<string, unknown> = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: params.chatId,
+        type: 'text',
+        text: { body: chunks[i] },
+      }
+
+      // Reply to the original message for the first chunk
+      if (i === 0 && params.replyToMessageId) {
+        body.context = { message_id: params.replyToMessageId }
+      }
+
+      const data = await whatsappApi(accessToken, phoneNumberId, 'messages', body)
+      lastMessageId = data.messages?.[0]?.id ?? ''
+    }
+
+    return { platformMessageId: lastMessageId }
+  }
+
+  async validateConfig(cfg: Record<string, unknown>): Promise<{ valid: boolean; error?: string }> {
+    try {
+      const accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
+      const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+      if (!phoneNumberId) return { valid: false, error: 'phoneNumberId is required' }
+
+      // Verify by fetching phone number info
+      const resp = await fetch(`${GRAPH_API}/${phoneNumberId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!resp.ok) {
+        const data = (await resp.json()) as { error?: { message: string } }
+        return { valid: false, error: data.error?.message ?? `HTTP ${resp.status}` }
+      }
+      return { valid: true }
+    } catch (err) {
+      return { valid: false, error: err instanceof Error ? err.message : 'Invalid configuration' }
+    }
+  }
+
+  async getBotInfo(cfg: Record<string, unknown>): Promise<{ name: string; username?: string } | null> {
+    try {
+      const accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
+      const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+      const resp = await fetch(`${GRAPH_API}/${phoneNumberId}?fields=display_phone_number,verified_name`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!resp.ok) return null
+      const data = (await resp.json()) as { verified_name?: string; display_phone_number?: string }
+      return {
+        name: data.verified_name ?? 'WhatsApp Bot',
+        username: data.display_phone_number,
+      }
+    } catch {
+      return null
+    }
+  }
+
+  async sendTypingIndicator(_channelId: string, _cfg: Record<string, unknown>, _chatId: string): Promise<void> {
+    // WhatsApp Cloud API does not support typing indicators
+  }
+}
+
+/** Handle incoming WhatsApp webhook — called from the route handler */
+export async function handleWhatsAppWebhook(
+  channelId: string,
+  body: Record<string, unknown>,
+  onMessage: (msg: Parameters<IncomingMessageHandler>[0]) => Promise<void>,
+): Promise<void> {
+  // WhatsApp sends webhook payloads with entry[].changes[].value.messages[]
+  const entries = body.entry as Array<Record<string, unknown>> | undefined
+  if (!entries) return
+
+  for (const entry of entries) {
+    const changes = entry.changes as Array<Record<string, unknown>> | undefined
+    if (!changes) continue
+
+    for (const change of changes) {
+      const value = change.value as Record<string, unknown> | undefined
+      if (!value) continue
+
+      const messages = value.messages as Array<Record<string, unknown>> | undefined
+      if (!messages) continue
+
+      const contacts = value.contacts as Array<Record<string, unknown>> | undefined
+
+      for (const message of messages) {
+        if (message.type !== 'text') continue
+
+        const textObj = message.text as { body?: string } | undefined
+        const text = textObj?.body
+        if (!text) continue
+
+        const from = message.from as string
+        const messageId = message.id as string
+
+        // Try to get display name from contacts array
+        const contact = contacts?.find((c) => (c.wa_id as string) === from) as
+          | { profile?: { name?: string }; wa_id?: string }
+          | undefined
+
+        await onMessage({
+          platformUserId: from,
+          platformDisplayName: contact?.profile?.name,
+          platformMessageId: messageId,
+          platformChatId: from, // In WhatsApp, chatId is the sender's phone number
+          content: text,
+        })
+      }
+    }
+  }
+}
