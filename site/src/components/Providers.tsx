@@ -3,91 +3,97 @@ const providers = [
     name: 'Anthropic',
     description: 'Claude models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/anthropic',
+    logo: 'https://cdn.simpleicons.org/anthropic/d4a27f',
   },
   {
     name: 'OpenAI',
     description: 'GPT, DALL·E, Embeddings',
     capabilities: ['LLM', 'Image', 'Embedding'],
-    logo: 'https://cdn.simpleicons.org/openai',
+    logo: 'https://cdn.simpleicons.org/openai/10a37f',
   },
   {
     name: 'Google Gemini',
     description: 'Gemini models',
     capabilities: ['LLM', 'Image'],
-    logo: 'https://cdn.simpleicons.org/googlegemini',
+    logo: 'https://cdn.simpleicons.org/googlegemini/8b6fc0',
   },
   {
     name: 'Mistral AI',
     description: 'European LLMs',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/mistral',
+    logo: 'https://mistral.ai/favicon.ico',
   },
   {
     name: 'DeepSeek',
     description: 'Reasoning models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/deepseek',
+    logo: 'https://cdn.simpleicons.org/deepseek/4d6bfe',
   },
   {
     name: 'Groq',
     description: 'Ultra-fast inference',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/groq',
+    logo: 'https://groq.com/favicon.ico',
   },
   {
     name: 'Ollama',
     description: 'Local models, no API key',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/ollama',
+    logo: 'https://cdn.simpleicons.org/ollama/ffffff',
   },
   {
     name: 'Together AI',
     description: 'Open-source models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/togetherai',
+    logo: 'https://together.ai/favicon.ico',
   },
   {
     name: 'Fireworks AI',
     description: 'Fast open models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/fireship',
+    logo: 'https://fireworks.ai/favicon.ico',
   },
   {
     name: 'Voyage AI',
     description: 'Specialized embeddings',
     capabilities: ['Embedding'],
-    logo: 'https://cdn.simpleicons.org/v',
+    logo: 'https://www.voyageai.com/favicon.ico',
   },
   {
     name: 'OpenRouter',
     description: 'Model aggregator',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/openrouter',
+    logo: 'https://openrouter.ai/favicon.ico',
   },
   {
     name: 'Cohere',
     description: 'LLM + Embeddings + Rerank',
     capabilities: ['LLM', 'Embedding'],
-    logo: 'https://cdn.simpleicons.org/cohere',
+    logo: 'https://cdn.simpleicons.org/cohere/39594d',
   },
   {
     name: 'xAI',
     description: 'Grok models',
     capabilities: ['LLM'],
-    logo: 'https://cdn.simpleicons.org/x',
+    logo: 'https://cdn.simpleicons.org/x/ffffff',
   },
   {
     name: 'Brave Search',
     description: 'Web search API',
     capabilities: ['Search'],
-    logo: 'https://cdn.simpleicons.org/brave',
+    logo: 'https://cdn.simpleicons.org/brave/fb542b',
   },
   {
     name: 'Tavily',
     description: 'AI-optimized search',
     capabilities: ['Search'],
-    logo: 'https://cdn.simpleicons.org/t',
+    logo: 'https://tavily.com/favicon.ico',
+  },
+  {
+    name: 'Jina AI',
+    description: 'Embeddings & reranking',
+    capabilities: ['Embedding'],
+    logo: 'https://jina.ai/favicon.ico',
   },
 ]
 
@@ -125,7 +131,7 @@ export function Providers() {
               <img
                 src={provider.logo}
                 alt={provider.name}
-                className="w-10 h-10 transition-transform duration-300 group-hover:scale-110 dark:invert"
+                className="w-10 h-10 transition-transform duration-300 group-hover:scale-110"
                 loading="lazy"
               />
             </div>
@@ -164,7 +170,7 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        More providers coming soon — Replicate, Stability AI, Jina AI, and more.
+        More providers coming soon — Replicate, Stability AI, Perplexity, and more.
       </p>
     </section>
   )
