@@ -448,6 +448,10 @@
     "regenerate": "Régénérer",
     "mobileInfo": {
       "messages": "messages"
+    },
+    "dateSeparator": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier"
     }
   },
   "quickChat": {

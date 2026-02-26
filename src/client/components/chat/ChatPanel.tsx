@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { MessageBubble } from '@/client/components/chat/MessageBubble'
@@ -22,6 +22,7 @@ import { useFileUpload } from '@/client/hooks/useFileUpload'
 import { useExportConversation } from '@/client/hooks/useExportConversation'
 import { ConversationSearch } from '@/client/components/chat/ConversationSearch'
 import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
+import { DateSeparator } from '@/client/components/chat/DateSeparator'
 import { cn } from '@/client/lib/utils'
 import { ArrowDown, Upload } from 'lucide-react'
 import { toast } from 'sonner'
@@ -359,16 +360,30 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
               />
             ) : (
               <div className="space-y-1">
-                {messages.map((msg) => {
+                {messages.map((msg, idx) => {
+                  // Date separator between messages from different days
+                  let dateSeparator: React.ReactNode = null
+                  if (msg.createdAt) {
+                    const msgDay = new Date(msg.createdAt).toDateString()
+                    const prevDay = idx > 0 && messages[idx - 1].createdAt
+                      ? new Date(messages[idx - 1].createdAt).toDateString()
+                      : null
+                    if (idx === 0 || msgDay !== prevDay) {
+                      dateSeparator = <DateSeparator key={`date-${msg.id}`} date={msg.createdAt} />
+                    }
+                  }
+
                   // Render compacting trace as a dedicated card
                   if (msg.sourceType === 'compacting') {
                     return (
-                      <CompactingCard
-                        key={msg.id}
-                        status="done"
-                        summary={msg.content}
-                        memoriesExtracted={msg.memoriesExtracted}
-                      />
+                      <React.Fragment key={msg.id}>
+                        {dateSeparator}
+                        <CompactingCard
+                          status="done"
+                          summary={msg.content}
+                          memoriesExtracted={msg.memoriesExtracted}
+                        />
+                      </React.Fragment>
                     )
                   }
 
@@ -378,8 +393,9 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   const isSearchMatch = searchQuery.trim().length >= 2 && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
                   const isCurrentMatch = searchHighlightId === msg.id
                   return (
+                    <React.Fragment key={`wrap-${msg.id}`}>
+                    {dateSeparator}
                     <div
-                      key={`wrap-${msg.id}`}
                       data-message-id={msg.id}
                       className={cn(
                         'transition-colors duration-300',
@@ -414,6 +430,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       onQuoteReply={handleQuoteReply}
                     />
                     </div>
+                    </React.Fragment>
                   )
                 })}
                 {streamingMessage && (
