@@ -157,7 +157,9 @@
       "summary": {
         "active": "{{count}} active",
         "pending": "{{count}} pending"
-      }
+      },
+      "search": "Search jobs...",
+      "noResults": "No matching jobs"
     },
     "account": "My account",
     "settings": "Settings",
