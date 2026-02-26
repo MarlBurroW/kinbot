@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { join } from 'path'
 import { mkdir } from 'fs/promises'
@@ -94,15 +94,18 @@ export async function getFilesForMessage(messageId: string) {
 export async function getFilesForMessages(messageIds: string[]) {
   if (messageIds.length === 0) return new Map<string, typeof files.$inferSelect[]>()
 
-  const allFiles = await db.select().from(files).all()
-  const fileMap = new Map<string, typeof files.$inferSelect[]>()
+  const matchedFiles = await db
+    .select()
+    .from(files)
+    .where(inArray(files.messageId, messageIds))
+    .all()
 
-  for (const f of allFiles) {
-    if (f.messageId && messageIds.includes(f.messageId)) {
-      const existing = fileMap.get(f.messageId) ?? []
-      existing.push(f)
-      fileMap.set(f.messageId, existing)
-    }
+  const fileMap = new Map<string, typeof files.$inferSelect[]>()
+  for (const f of matchedFiles) {
+    if (!f.messageId) continue
+    const existing = fileMap.get(f.messageId) ?? []
+    existing.push(f)
+    fileMap.set(f.messageId, existing)
   }
 
   return fileMap

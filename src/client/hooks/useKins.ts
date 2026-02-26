@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { api } from '@/client/lib/api'
-import { useSSE } from '@/client/hooks/useSSE'
+import { useSSE, useSSEStatus } from '@/client/hooks/useSSE'
 import type { KinToolConfig } from '@/shared/types'
 
 interface KinSummary {
@@ -120,6 +120,17 @@ export function useKins() {
     fetchKinOrder()
     fetchCapabilities()
   }, [fetchKins, fetchModels, fetchKinOrder, fetchCapabilities])
+
+  // Refetch when SSE reconnects (kins may have changed while disconnected)
+  const sseStatus = useSSEStatus()
+  const prevStatusRef = useRef(sseStatus)
+  useEffect(() => {
+    const prev = prevStatusRef.current
+    prevStatusRef.current = sseStatus
+    if (prev !== 'connected' && sseStatus === 'connected') {
+      fetchKins()
+    }
+  }, [sseStatus, fetchKins])
 
   // Track which kins are currently processing (queue state from SSE)
   const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number }>>(new Map())

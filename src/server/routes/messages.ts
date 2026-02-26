@@ -107,7 +107,10 @@ messageRoutes.get('/', async (c) => {
   return c.json({
     messages: messageList.map((m) => {
       const kinInfo = (m.sourceType === 'kin' || m.sourceType === 'task') && m.sourceId ? kinInfoMap.get(m.sourceId) : null
-      const meta = m.metadata ? JSON.parse(m.metadata as string) : null
+      let meta: Record<string, unknown> | null = null
+      let toolCalls: unknown = null
+      try { meta = m.metadata ? JSON.parse(m.metadata as string) : null } catch { /* corrupted metadata */ }
+      try { toolCalls = m.toolCalls ? JSON.parse(m.toolCalls as string) : null } catch { /* corrupted toolCalls */ }
       return {
         id: m.id,
         role: m.role,
@@ -117,7 +120,7 @@ messageRoutes.get('/', async (c) => {
         sourceName: kinInfo?.name ?? null,
         sourceAvatarUrl: kinInfo?.avatarUrl ?? null,
         isRedacted: m.isRedacted,
-        toolCalls: m.toolCalls ? JSON.parse(m.toolCalls as string) : null,
+        toolCalls,
         resolvedTaskId: meta?.resolvedTaskId ?? null,
         injectedMemories: meta?.injectedMemories ?? null,
         memoriesExtracted: meta?.memoriesExtracted ?? null,

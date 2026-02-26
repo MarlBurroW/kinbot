@@ -40,7 +40,7 @@ KinBot is different. You create **Kins** — AI agents with:
 Persistent memory (vector + full-text) · Session compacting · Sub-agents · Inter-Kin communication · Continuous sessions that never reset
 
 ### 🔧 Automation & Extensibility
-Cron jobs · Webhooks · Telegram · MCP servers · Custom tools · 19 AI providers (incl. Ollama) · Multi-provider auto-detection
+Cron jobs · Webhooks · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · 22 AI providers (incl. Ollama) · Multi-provider auto-detection
 
 ### 🔒 Security & Privacy
 AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted · Your data never leaves your server
@@ -75,7 +75,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 #### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
-- **Multi-provider** — 19 providers: Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Replicate, Brave Search, and more
+- **Multi-provider** — 22 providers: Anthropic, Anthropic OAuth, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Serper, Perplexity, Replicate, Stability AI, FAL AI, Brave Search
 
 #### Experience
 - **8 color palettes** — Aurora, Ocean, Forest, Sunset, Monochrome, Sakura, Neon, Lavender
@@ -193,7 +193,7 @@ NODE_ENV=production bun run start
 | **Runtime** | [Bun](https://bun.sh) |
 | **Backend** | [Hono](https://hono.dev), [Drizzle ORM](https://orm.drizzle.team), bun:sqlite, [sqlite-vec](https://github.com/asg017/sqlite-vec), [Vercel AI SDK](https://sdk.vercel.ai), [Better Auth](https://www.better-auth.com), [croner](https://github.com/Hexagon/croner) |
 | **Frontend** | [React 19](https://react.dev), [Vite](https://vite.dev), [Tailwind CSS 4](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com), [i18next](https://www.i18next.com) |
-| **AI Providers** | Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Replicate, Brave Search |
+| **AI Providers** | Anthropic, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Serper, Perplexity, Replicate, Stability AI, FAL AI, Brave Search |
 | **Database** | SQLite (single file) + FTS5 + sqlite-vec |
 
 ---

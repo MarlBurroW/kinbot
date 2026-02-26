@@ -104,16 +104,20 @@ taskRoutes.get('/:id', async (c) => {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
     },
-    messages: taskMessages.map((m) => ({
-      id: m.id,
-      role: m.role,
-      content: m.content,
-      sourceType: m.sourceType,
-      sourceId: m.sourceId,
-      isRedacted: m.isRedacted,
-      toolCalls: m.toolCalls ? JSON.parse(m.toolCalls) : null,
-      createdAt: m.createdAt,
-    })),
+    messages: taskMessages.map((m) => {
+      let toolCalls: unknown = null
+      try { toolCalls = m.toolCalls ? JSON.parse(m.toolCalls) : null } catch { /* corrupted */ }
+      return {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        sourceType: m.sourceType,
+        sourceId: m.sourceId,
+        isRedacted: m.isRedacted,
+        toolCalls,
+        createdAt: m.createdAt,
+      }
+    }),
   })
 })
 
