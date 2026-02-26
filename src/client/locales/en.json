@@ -123,7 +123,8 @@
     "kins": {
       "title": "Kins",
       "empty": "No Kins yet",
-      "create": "New Kin"
+      "create": "New Kin",
+      "shortcutHint": "Switch to this Kin ({{key}})"
     },
     "tasks": {
       "title": "Tasks",

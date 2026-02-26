@@ -83,7 +83,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={kinIds} strategy={verticalListSortingStrategy}>
               <div className="space-y-1 px-1">
-                {kins.map((kin) => {
+                {kins.map((kin, index) => {
                   const queueState = kinQueueState.get(kin.id)
                   const modelName = llmModels.find((m) => m.id === kin.model)?.name
                   return (
@@ -98,6 +98,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
                       isProcessing={queueState?.isProcessing}
                       queueSize={queueState?.queueSize}
                       modelUnavailable={unavailableKinIds.has(kin.id)}
+                      shortcutIndex={index + 1}
                       onClick={() => onSelectKin(kin.slug)}
                       onEdit={() => onEditKin(kin.id)}
                     />
