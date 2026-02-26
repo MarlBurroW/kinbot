@@ -807,7 +807,6 @@ case "\${1:-}" in
       rm -f "\$PID_FILE"
       exit 0
     fi
-    local _pid
     _pid="\$(cat "\$PID_FILE")"
     echo "Stopping KinBot (PID \$_pid)..."
     kill "\$_pid"
@@ -1109,9 +1108,10 @@ show_help() {
   echo -e "${BOLD}OPTIONS${NC}"
   echo "  --help          Show this help message"
   echo "  --version       Show installed version and check for updates"
+  echo "  --status        Check current KinBot installation health"
+  echo "  --logs          Tail KinBot logs (works across all platforms)"
   echo "  --dry-run       Show what would happen without making changes"
   echo "  --docker        Docker Compose setup (no Bun/build needed)"
-  echo "  --status        Check current KinBot installation health"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
   echo ""
   echo -e "${BOLD}ENVIRONMENT VARIABLES${NC}"
@@ -1140,6 +1140,9 @@ show_help() {
   echo ""
   echo "  # Check installation health"
   echo "  bash install.sh --status"
+  echo ""
+  echo "  # Tail logs"
+  echo "  bash install.sh --logs"
   echo ""
   echo "  # Preview what would happen"
   echo "  bash install.sh --dry-run"
@@ -1583,6 +1586,52 @@ COMPOSE
   echo ""
 }
 
+# ─── Logs ────────────────────────────────────────────────────────────────────
+show_logs() {
+  # Detect environment (minimal, no banner)
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  # Detect init system
+  if [ "$OS" = "Darwin" ]; then
+    INIT_SYSTEM="launchd"
+  elif command -v systemctl &>/dev/null && systemctl --version &>/dev/null 2>&1; then
+    INIT_SYSTEM="systemd"
+  else
+    INIT_SYSTEM="script"
+  fi
+
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local log_file="$HOME/Library/Logs/kinbot/kinbot.log"
+    if [ -f "$log_file" ]; then
+      exec tail -f "$log_file"
+    else
+      echo "No log file found at $log_file" >&2
+      exit 1
+    fi
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local log_file="$KINBOT_DATA_DIR/kinbot.log"
+    if [ -f "$log_file" ]; then
+      exec tail -f "$log_file"
+    else
+      echo "No log file found at $log_file" >&2
+      exit 1
+    fi
+  elif [ "$IS_ROOT" = true ]; then
+    exec journalctl -u kinbot -f
+  else
+    exec journalctl --user -u kinbot -f
+  fi
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
   # Handle flags
@@ -1601,6 +1650,11 @@ main() {
       --status|status)
         trap - INT TERM
         check_status
+        exit 0
+        ;;
+      --logs|logs)
+        trap - INT TERM
+        show_logs
         exit 0
         ;;
       --version|-v|version)
