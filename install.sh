@@ -25,14 +25,24 @@ KINBOT_REPO="MarlBurroW/kinbot"
 KINBOT_BRANCH="${KINBOT_BRANCH:-main}"
 KINBOT_DRY_RUN=false
 
-# ─── Colors ──────────────────────────────────────────────────────────────────
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-DIM='\033[2m'
-BOLD='\033[1m'
-NC='\033[0m'
+# ─── Colors (auto-detect terminal support) ───────────────────────────────────
+setup_colors() {
+  if [ "${NO_COLOR:-}" = "1" ] || [ "${KINBOT_NO_COLOR:-}" = "true" ]; then
+    RED='' GREEN='' YELLOW='' CYAN='' DIM='' BOLD='' NC=''
+  elif [ -t 1 ] && [ -t 2 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'
+    DIM='\033[2m'
+    BOLD='\033[1m'
+    NC='\033[0m'
+  else
+    # Not a terminal (piped or redirected) — no colors
+    RED='' GREEN='' YELLOW='' CYAN='' DIM='' BOLD='' NC=''
+  fi
+}
+setup_colors
 
 info()    { echo -e "${CYAN}▸${NC} $*"; }
 success() { echo -e "${GREEN}✓${NC} $*"; }
@@ -1203,6 +1213,7 @@ show_help() {
   echo "  --logs          Tail KinBot logs (works across all platforms)"
   echo "  --backup [path] Back up database (and config) to a file"
   echo "  --restore [path] Restore database from a backup (interactive picker if no path)"
+  echo "  --no-color      Disable colored output (also: NO_COLOR=1)"
   echo "  --dry-run       Show what would happen without making changes"
   echo "  --docker        Docker Compose setup (no Bun/build needed)"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
@@ -2089,6 +2100,10 @@ main() {
         trap - INT TERM
         docker_install
         exit 0
+        ;;
+      --no-color)
+        NO_COLOR=1
+        setup_colors
         ;;
     esac
   done
