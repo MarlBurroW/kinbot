@@ -555,7 +555,9 @@
       "typeSlugPlaceholder": "wifi",
       "typeIconPlaceholder": "e.g. Wifi",
       "fieldNamePlaceholder": "field_name",
-      "fieldLabelPlaceholder": "Label"
+      "fieldLabelPlaceholder": "Label",
+      "deleteAttachmentConfirm": "Permanently delete this attachment? This cannot be undone.",
+      "deleteTypeConfirm": "Delete this custom type? Existing entries of this type will be kept but no new ones can be created."
     },
     "files": {
       "title": "Files",
@@ -664,7 +666,9 @@
       "noUserLink": "None",
       "linkedUser": "System user",
       "emptyDescription": "Add contacts so your Kins can recognize and personalize interactions.",
-      "typeOrSearch": "Type or search..."
+      "typeOrSearch": "Type or search...",
+      "revokePlatformIdConfirm": "Revoke this platform access? The contact will no longer be able to interact via this platform.",
+      "deleteNoteConfirm": "Permanently delete this note?"
     },
     "webhooks": {
       "title": "Webhooks",

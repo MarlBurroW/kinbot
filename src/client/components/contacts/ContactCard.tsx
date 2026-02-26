@@ -263,9 +263,11 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
                           <Button variant="ghost" size="icon-xs" onClick={() => startEdit(note)}>
                             <Pencil className="size-2.5" />
                           </Button>
-                          <Button variant="ghost" size="icon-xs" onClick={() => deleteNote(note.id)}>
-                            <Trash2 className="size-2.5" />
-                          </Button>
+                          <ConfirmDeleteButton
+                            onConfirm={() => deleteNote(note.id)}
+                            description={t('settings.contacts.deleteNoteConfirm')}
+                            iconSize="size-2.5"
+                          />
                         </span>
                       )}
                     </div>

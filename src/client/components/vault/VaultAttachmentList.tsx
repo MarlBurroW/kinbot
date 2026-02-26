@@ -4,7 +4,8 @@ import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { api, getErrorMessage } from '@/client/lib/api'
-import { Upload, Download, Trash2, File, Loader2 } from 'lucide-react'
+import { Upload, Download, File, Loader2 } from 'lucide-react'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import type { VaultAttachmentSummary } from '@/shared/types'
 
 interface VaultAttachmentListProps {
@@ -101,9 +102,10 @@ export function VaultAttachmentList({ entryId }: VaultAttachmentListProps) {
               <Button variant="ghost" size="icon-xs" onClick={() => handleDownload(att)}>
                 <Download className="size-3.5" />
               </Button>
-              <Button variant="ghost" size="icon-xs" onClick={() => handleDelete(att.id)}>
-                <Trash2 className="size-3.5 text-destructive" />
-              </Button>
+              <ConfirmDeleteButton
+                onConfirm={() => handleDelete(att.id)}
+                description={t('settings.vault.deleteAttachmentConfirm')}
+              />
             </div>
           ))}
         </div>
