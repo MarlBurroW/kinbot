@@ -176,7 +176,7 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, kinModel, llmMode
                   toolCalls={toolCallsByMessage.get(streamingMessage.id)}
                 />
               )}
-              {(isProcessing || isStreaming) && !streamingMessage && <TypingIndicator />}
+              {(isProcessing || isStreaming) && !streamingMessage && <TypingIndicator kinName={kinName} kinAvatarUrl={kinAvatarUrl} />}
             </div>
           )}
           <div ref={bottomRef} />

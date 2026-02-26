@@ -458,7 +458,9 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     isResponding={isResponding}
                   />
                 ))}
-                {(isStreaming || queueState?.isProcessing) && <TypingIndicator />}
+                {(isStreaming || queueState?.isProcessing) && (
+                  <TypingIndicator kinName={kin.name} kinAvatarUrl={kin.avatarUrl} />
+                )}
               </div>
             )}
             <div ref={bottomRef} />
