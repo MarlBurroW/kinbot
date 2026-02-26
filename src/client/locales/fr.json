@@ -441,7 +441,10 @@
       "copy": "Copier le message",
       "quote": "Citer en réponse"
     },
-    "regenerate": "Régénérer"
+    "regenerate": "Régénérer",
+    "mobileInfo": {
+      "messages": "messages"
+    }
   },
   "quickChat": {
     "title": "Session rapide",

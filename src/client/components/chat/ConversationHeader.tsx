@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarImage, AvatarFallback } from '@/client/components/ui/avatar'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Progress } from '@/client/components/ui/progress'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/client/components/ui/popover'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import {
   DropdownMenu,
@@ -76,9 +78,13 @@ export function ConversationHeader({
 }: ConversationHeaderProps) {
   const { t } = useTranslation()
 
+  const [mobileInfoOpen, setMobileInfoOpen] = useState(false)
+
   const isProcessing = queueState?.isProcessing ?? false
   const queueSize = queueState?.queueSize ?? 0
   const contextPercent = maxTokens > 0 ? Math.min(100, Math.round((estimatedTokens / maxTokens) * 100)) : 0
+
+  const selectedModelName = llmModels.find((m) => m.id === model)?.name ?? model
 
   return (
     <div className="flex items-center gap-3 border-b px-4 py-2.5">
@@ -92,7 +98,7 @@ export function ConversationHeader({
         </AvatarFallback>
       </Avatar>
 
-      {/* Name + role */}
+      {/* Name + role — desktop: static, mobile: tappable to show model & context */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <h2 className="truncate text-sm font-semibold">{name}</h2>
@@ -117,10 +123,71 @@ export function ConversationHeader({
             </span>
           )}
         </div>
-        <p className="truncate text-xs text-muted-foreground">{role}</p>
+
+        {/* Desktop: show role */}
+        <p className="hidden truncate text-xs text-muted-foreground sm:block">{role}</p>
+
+        {/* Mobile: show model name + context % as tappable summary */}
+        <Popover open={mobileInfoOpen} onOpenChange={setMobileInfoOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 truncate text-xs text-muted-foreground sm:hidden"
+            >
+              <span className="truncate">{selectedModelName}</span>
+              <span className="shrink-0 text-[10px]">·</span>
+              <span className="flex shrink-0 items-center gap-1 text-[10px]">
+                <MessageSquare className="size-2.5" />
+                {messageCount}
+              </span>
+              <Progress
+                value={contextPercent}
+                variant={contextPercent > 80 ? 'glow' : 'default'}
+                className="h-1 w-10 shrink-0"
+              />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="start" className="w-72 space-y-3 p-3">
+            {/* Model picker */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-medium text-muted-foreground">{t('kin.create.model')}</p>
+              <ModelPicker
+                models={llmModels}
+                value={model}
+                onValueChange={(v) => {
+                  onModelChange(v)
+                  setMobileInfoOpen(false)
+                }}
+                className="h-8 text-xs"
+              />
+            </div>
+            {/* Context usage */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="size-3" />
+                  {messageCount} {t('chat.mobileInfo.messages')}
+                </span>
+                <span>{formatTokenCount(estimatedTokens)} / {formatTokenCount(maxTokens)}</span>
+              </div>
+              <Progress
+                value={contextPercent}
+                variant={contextPercent > 80 ? 'glow' : 'default'}
+                className="h-2"
+              />
+              <p className="text-[10px] text-muted-foreground/70">
+                {t('chat.contextUsage', {
+                  tokens: formatTokenCount(estimatedTokens),
+                  max: formatTokenCount(maxTokens),
+                  percent: contextPercent,
+                })}
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
-      {/* Right side: model picker + context bar + settings */}
+      {/* Right side: model picker + context bar (desktop only) */}
       <div className="hidden shrink-0 items-center gap-3 sm:flex">
         {/* Model picker (compact) */}
         <ModelPicker
