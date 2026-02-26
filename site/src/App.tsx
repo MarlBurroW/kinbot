@@ -3,6 +3,7 @@ import { Navbar } from './components/Navbar'
 import { Hero } from './components/Hero'
 import { ScrollReveal } from './components/ScrollReveal'
 import { Footer } from './components/Footer'
+import { BackToTop } from './components/BackToTop'
 
 // Lazy-load below-the-fold sections for faster initial paint
 const Stats = lazy(() => import('./components/Stats').then(m => ({ default: m.Stats })))
@@ -101,6 +102,7 @@ export default function App() {
         </Suspense>
       </main>
       <Footer />
+      <BackToTop />
     </div>
   )
 }
