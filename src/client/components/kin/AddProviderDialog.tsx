@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { PROVIDER_CAPABILITIES, PROVIDER_DISPLAY_NAMES, PROVIDER_TYPES, PROVIDERS_WITHOUT_API_KEY } from '@/shared/constants'
@@ -49,6 +49,7 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
   const [providerName, setProviderName] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
+  const [showApiKey, setShowApiKey] = useState(false)
 
   // Populate form when editing
   useEffect(() => {
@@ -73,6 +74,7 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
     setTestPassed(false)
     setIsTesting(false)
     setIsSaving(false)
+    setShowApiKey(false)
   }
 
   const handleClose = () => {
@@ -250,14 +252,28 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
                 </span>
               )}
             </Label>
-            <Input
-              id="apiKey"
-              type={isApiKeyOptional ? 'text' : 'password'}
-              value={apiKey}
-              onChange={(e) => { setApiKey(e.target.value); resetTest() }}
-              autoComplete="off"
-              placeholder={isApiKeyOptional ? '~/.claude/.credentials.json' : isEditing ? '••••••••' : undefined}
-            />
+            <div className="relative">
+              <Input
+                id="apiKey"
+                type={isApiKeyOptional ? 'text' : showApiKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(e) => { setApiKey(e.target.value); resetTest() }}
+                autoComplete="off"
+                placeholder={isApiKeyOptional ? '~/.claude/.credentials.json' : isEditing ? '••••••••' : undefined}
+                className={!isApiKeyOptional ? 'pr-9' : undefined}
+              />
+              {!isApiKeyOptional && (
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  title={t(showApiKey ? 'onboarding.providers.hideApiKey' : 'onboarding.providers.showApiKey')}
+                  aria-label={t(showApiKey ? 'onboarding.providers.hideApiKey' : 'onboarding.providers.showApiKey')}
+                >
+                  {showApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
