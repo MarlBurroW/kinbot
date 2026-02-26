@@ -14,6 +14,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus , Plug} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { McpServerCard, type McpServerData } from '@/client/components/mcp/McpServerCard'
@@ -104,6 +105,17 @@ export function McpServersSettings() {
           {t('settings.mcp.description')}
         </p>
       </div>
+
+      <HelpPanel
+        contentKey="settings.mcp.help.content"
+        bulletKeys={[
+          'settings.mcp.help.bullet1',
+          'settings.mcp.help.bullet2',
+          'settings.mcp.help.bullet3',
+          'settings.mcp.help.bullet4',
+        ]}
+        storageKey="help.mcp.open"
+      />
 
       {servers.length === 0 && (
         <EmptyState

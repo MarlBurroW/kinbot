@@ -14,6 +14,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus , FileUp} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { FileStorageCard, type StoredFileData } from '@/client/components/file-storage/FileStorageCard'
@@ -96,6 +97,16 @@ export function FileStorageSettings() {
           {t('settings.files.description')}
         </p>
       </div>
+
+      <HelpPanel
+        contentKey="settings.files.help.content"
+        bulletKeys={[
+          'settings.files.help.bullet1',
+          'settings.files.help.bullet2',
+          'settings.files.help.bullet3',
+        ]}
+        storageKey="help.files.open"
+      />
 
       {files.length === 0 && (
         <EmptyState
