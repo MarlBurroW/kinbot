@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Installer `--backup` and `--restore` commands for database management
+- Mobile-friendly model picker and context usage display in conversation header
+- Right-click context menu on chat messages (copy, quote reply, regenerate)
+- Language label and line numbers on code blocks
+- Use cases section with 6 scenario cards (landing site)
+- Floating back-to-top button on landing site
+- Ollama-first install messaging and visibility improvements (landing site)
 - InfoTips on MCP server form fields and General Settings
 - Elapsed time counter on typing/thinking indicator
 - Docker Compose tab in install section (landing site)
@@ -21,17 +28,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PR template and SECURITY.md
 
 ### Fixed
+- SSE event handlers for webhooks settings page
 - Provider count updated (19 → 22) and channel list in README
 
 ### Changed
+- Extracted shared LanguageSelector component
+- Upgraded empty states in memories and notification settings to use EmptyState component
 - Replaced hardcoded strings with `t()` calls in channels, webhooks, contacts, vault (i18n)
 - Translated theme palette switcher and notification test button
 
 ### CI
+- Multi-platform Docker builds (amd64 + arm64) with OCI labels
+- Dependabot config for automated dependency updates (npm, GitHub Actions, Docker)
+- Bumped actions/checkout to v6, actions/cache to v5, actions/upload-pages-artifact to v4
 - Added Docker build & push workflow with release changelog output
 - Added build & test workflow on push/PR
 
+### Installer
+- Bun version validation and auto-upgrade
+
 ### Tests
+- Ollama provider tests
 - OpenAI provider (classifyModel, testConnection, listModels)
 - Custom-tools service (path validation, name regex, JSON Schema → Zod)
 
