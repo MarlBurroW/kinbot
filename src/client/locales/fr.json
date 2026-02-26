@@ -123,7 +123,8 @@
     "kins": {
       "title": "Kins",
       "empty": "Aucun Kin",
-      "create": "Nouveau Kin"
+      "create": "Nouveau Kin",
+      "shortcutHint": "Basculer vers ce Kin ({{key}})"
     },
     "tasks": {
       "title": "Tâches",
