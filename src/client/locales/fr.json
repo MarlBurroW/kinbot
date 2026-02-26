@@ -493,7 +493,11 @@
       "approve": "Approuver",
       "createdByKin": "par {{name}}",
       "createdByAdmin": "par l'admin",
-      "emptyDescription": "Les serveurs MCP étendent vos Kins avec des outils et sources de données externes."
+      "emptyDescription": "Les serveurs MCP étendent vos Kins avec des outils et sources de données externes.",
+      "nameTip": "Un nom pour identifier ce serveur dans la liste.",
+      "commandTip": "L'exécutable à lancer. Généralement npx pour les packages npm, ou un chemin absolu vers un binaire.",
+      "argsTip": "Arguments passés au serveur. Mettez chaque argument sur sa propre ligne.",
+      "envTip": "Variables d'environnement passées au processus serveur. Utilisez-les pour les clés API et les secrets."
     },
     "vault": {
       "title": "Coffre-fort",

@@ -493,7 +493,11 @@
       "approve": "Approve",
       "createdByKin": "by {{name}}",
       "createdByAdmin": "by admin",
-      "emptyDescription": "MCP servers extend your Kins with external tools and data sources."
+      "emptyDescription": "MCP servers extend your Kins with external tools and data sources.",
+      "nameTip": "A friendly name to identify this server in the list.",
+      "commandTip": "The executable to run. Usually npx for npm packages, or an absolute path to a binary.",
+      "argsTip": "Command-line arguments passed to the server. Put each argument on its own line.",
+      "envTip": "Environment variables passed to the server process. Use these for API keys and secrets."
     },
     "vault": {
       "title": "Vault",

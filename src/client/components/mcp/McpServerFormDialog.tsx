@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/client/components/ui/dialog'
 import { AlertCircle, Loader2, Plus, Trash2 } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
 import type { McpServerData } from '@/client/components/mcp/McpServerCard'
 
@@ -155,7 +156,7 @@ export function McpServerFormDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="mcp-name">{t('settings.mcp.name')}</Label>
+            <Label htmlFor="mcp-name" className="inline-flex items-center gap-1.5">{t('settings.mcp.name')} <InfoTip content={t('settings.mcp.nameTip')} /></Label>
             <Input
               id="mcp-name"
               value={name}
@@ -165,7 +166,7 @@ export function McpServerFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="mcp-command">{t('settings.mcp.command')}</Label>
+            <Label htmlFor="mcp-command" className="inline-flex items-center gap-1.5">{t('settings.mcp.command')} <InfoTip content={t('settings.mcp.commandTip')} /></Label>
             <Input
               id="mcp-command"
               value={command}
@@ -176,8 +177,8 @@ export function McpServerFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="mcp-args">
-              {t('settings.mcp.args')}
+            <Label htmlFor="mcp-args" className="inline-flex items-center gap-1.5">
+              {t('settings.mcp.args')} <InfoTip content={t('settings.mcp.argsTip')} />
               <span className="ml-1 text-xs text-muted-foreground">
                 ({t('common.optional')})
               </span>
@@ -193,8 +194,8 @@ export function McpServerFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>
-              {t('settings.mcp.env')}
+            <Label className="inline-flex items-center gap-1.5">
+              {t('settings.mcp.env')} <InfoTip content={t('settings.mcp.envTip')} />
               <span className="ml-1 text-xs text-muted-foreground">
                 ({t('common.optional')})
               </span>
