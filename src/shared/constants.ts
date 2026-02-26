@@ -134,6 +134,10 @@ export const TOOL_DOMAIN_MAP: Record<string, ToolDomain> = {
   update_secret: 'vault',
   delete_secret: 'vault',
   search_secrets: 'vault',
+  get_vault_entry: 'vault',
+  create_vault_entry: 'vault',
+  create_vault_type: 'vault',
+  get_vault_attachment: 'vault',
   // Tasks
   spawn_self: 'tasks',
   spawn_kin: 'tasks',
@@ -196,6 +200,76 @@ export const TOOL_DOMAIN_MAP: Record<string, ToolDomain> = {
   // Database
   execute_sql: 'database',
 } as const
+
+// ---------------------------------------------------------------------------
+// Vault — built-in entry types and their field schemas
+// ---------------------------------------------------------------------------
+
+import type { VaultBuiltInEntryType, VaultTypeField } from '@/shared/types'
+
+/** All built-in vault entry type slugs */
+export const VAULT_BUILTIN_TYPES: VaultBuiltInEntryType[] = [
+  'text',
+  'credential',
+  'card',
+  'note',
+  'identity',
+]
+
+/** Field definitions for each built-in vault entry type */
+export const VAULT_TYPE_META: Record<VaultBuiltInEntryType, {
+  icon: string
+  labelKey: string
+  fields: VaultTypeField[]
+}> = {
+  text: {
+    icon: 'KeyRound',
+    labelKey: 'vault.types.text',
+    fields: [
+      { name: 'value', label: 'Value', type: 'password', required: true },
+    ],
+  },
+  credential: {
+    icon: 'Globe',
+    labelKey: 'vault.types.credential',
+    fields: [
+      { name: 'url', label: 'URL', type: 'url' },
+      { name: 'username', label: 'Username', type: 'text', required: true },
+      { name: 'password', label: 'Password', type: 'password', required: true },
+      { name: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+  },
+  card: {
+    icon: 'CreditCard',
+    labelKey: 'vault.types.card',
+    fields: [
+      { name: 'number', label: 'Card Number', type: 'password', required: true },
+      { name: 'expiry', label: 'Expiry (MM/YY)', type: 'text', required: true },
+      { name: 'cvv', label: 'CVV', type: 'password', required: true },
+      { name: 'holderName', label: 'Cardholder Name', type: 'text' },
+      { name: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+  },
+  note: {
+    icon: 'StickyNote',
+    labelKey: 'vault.types.note',
+    fields: [
+      { name: 'title', label: 'Title', type: 'text' },
+      { name: 'content', label: 'Content', type: 'textarea', required: true },
+    ],
+  },
+  identity: {
+    icon: 'UserSquare',
+    labelKey: 'vault.types.identity',
+    fields: [
+      { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'phone', label: 'Phone', type: 'phone' },
+      { name: 'address', label: 'Address', type: 'textarea' },
+      { name: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+  },
+}
 
 /** Suggested labels for contact identifiers (UI combo suggestions, not restrictive).
  *  Platform IDs (telegram, discord, etc.) are now managed via contactPlatformIds. */

@@ -303,10 +303,39 @@ export const vaultSecrets = sqliteTable('vault_secrets', {
   key: text('key').notNull().unique(),
   encryptedValue: text('encrypted_value').notNull(),
   description: text('description'),
+  entryType: text('entry_type').notNull().default('text'), // 'text'|'credential'|'card'|'note'|'identity'|custom slug
+  vaultTypeId: text('vault_type_id').references(() => vaultTypes.id, { onDelete: 'set null' }),
+  isFavorite: integer('is_favorite', { mode: 'boolean' }).notNull().default(false),
   createdByKinId: text('created_by_kin_id').references(() => kins.id),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_vault_secrets_entry_type').on(table.entryType),
+])
+
+export const vaultTypes = sqliteTable('vault_types', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  icon: text('icon'), // Lucide icon name
+  fields: text('fields').notNull(), // JSON: VaultTypeField[]
+  isBuiltIn: integer('is_built_in', { mode: 'boolean' }).notNull().default(false),
+  createdByKinId: text('created_by_kin_id').references(() => kins.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 })
+
+export const vaultAttachments = sqliteTable('vault_attachments', {
+  id: text('id').primaryKey(),
+  entryId: text('entry_id').notNull().references(() => vaultSecrets.id, { onDelete: 'cascade' }),
+  originalName: text('original_name').notNull(),
+  storedPath: text('stored_path').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_vault_attachments_entry').on(table.entryId),
+])
 
 export const queueItems = sqliteTable('queue_items', {
   id: text('id').primaryKey(),

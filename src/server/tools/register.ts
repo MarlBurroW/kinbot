@@ -30,6 +30,10 @@ import {
   updateSecretTool,
   deleteSecretTool,
   searchSecretsTool,
+  getVaultEntryTool,
+  createVaultEntryTool,
+  createVaultTypeTool,
+  getVaultAttachmentTool,
 } from '@/server/tools/vault-tools'
 import {
   spawnSelfTool,
@@ -151,6 +155,10 @@ export function registerAllTools(): void {
   toolRegistry.register('update_secret', updateSecretTool)
   toolRegistry.register('delete_secret', deleteSecretTool)
   toolRegistry.register('search_secrets', searchSecretsTool)
+  toolRegistry.register('get_vault_entry', getVaultEntryTool)
+  toolRegistry.register('create_vault_entry', createVaultEntryTool)
+  toolRegistry.register('create_vault_type', createVaultTypeTool)
+  toolRegistry.register('get_vault_attachment', getVaultAttachmentTool)
 
   // Phase 15: Task tools (parent — main only)
   toolRegistry.register('spawn_self', spawnSelfTool)
