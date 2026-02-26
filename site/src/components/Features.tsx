@@ -54,7 +54,7 @@ const features = [
     icon: Plug,
     title: 'Multi-Provider',
     description:
-      '25+ providers — from Anthropic and OpenAI to Ollama for fully local inference. LLM, embedding, image, and search capabilities auto-detected from a single API key.',
+      '23 providers — from Anthropic and OpenAI to Ollama for fully local inference. LLM, embedding, image, and search capabilities auto-detected from a single API key.',
   },
   {
     icon: MessageSquare,

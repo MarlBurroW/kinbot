@@ -30,7 +30,7 @@ const faqs: FAQItem[] = [
   {
     question: 'What AI providers are supported?',
     answer:
-      'Over 25 providers including Anthropic (Claude), OpenAI (GPT, DALL-E, embeddings), Google Gemini, Mistral, Groq, Together AI, Fireworks AI, DeepSeek, xAI (Grok), OpenRouter, Cohere, Ollama (local models), Replicate, Stability AI, FAL AI, Jina, Nomic, Voyage, Tavily, and Brave Search. New providers are added regularly.',
+      '23 providers including Anthropic (Claude), OpenAI (GPT, DALL-E, embeddings), Google Gemini, Mistral, Groq, Together AI, Fireworks AI, DeepSeek, xAI (Grok), OpenRouter, Cohere, Ollama (local models), Replicate, Stability AI, FAL AI, Jina, Nomic, Voyage, Tavily, Serper, Perplexity, and Brave Search. New providers are added regularly.',
   },
   {
     question: 'Can I use local models with Ollama?',

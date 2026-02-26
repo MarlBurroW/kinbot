@@ -268,7 +268,7 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        22 providers and counting. Missing one?{' '}
+        23 providers and counting. Missing one?{' '}
         <a href="https://github.com/MarlBurroW/kinbot/issues" className="underline" style={{ color: 'var(--color-primary)' }}>Open an issue</a>.
       </p>
     </section>
