@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
@@ -10,7 +10,7 @@ import { TaskResultCard } from '@/client/components/chat/TaskResultCard'
 import { ImageLightbox } from '@/client/components/chat/ImageLightbox'
 import { cn } from '@/client/lib/utils'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
-import { FileIcon, Download, Brain, ChevronDown, Copy, Check } from 'lucide-react'
+import { FileIcon, Download, Brain, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
 import { useRelativeTime } from '@/client/hooks/useRelativeTime'
 import type { MessageFile } from '@/shared/types'
@@ -247,6 +247,84 @@ function RelativeTimestamp({ timestamp, className }: { timestamp: string; classN
   )
 }
 
+// ─── Collapsible long content ─────────────────────────────────────────────
+
+/** Max collapsed height in pixels before showing "Show more" */
+const COLLAPSE_THRESHOLD_PX = 300
+
+function CollapsibleLongContent({
+  children,
+  isUser,
+}: {
+  children: React.ReactNode
+  isUser: boolean
+}) {
+  const { t } = useTranslation()
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    // Check after render whether the content exceeds the threshold
+    setIsOverflowing(el.scrollHeight > COLLAPSE_THRESHOLD_PX)
+  }, [children])
+
+  return (
+    <div className="relative">
+      <div
+        ref={contentRef}
+        className={cn(
+          'overflow-hidden transition-[max-height] duration-300 ease-in-out',
+          !expanded && isOverflowing && 'max-h-[300px]',
+        )}
+        style={expanded ? { maxHeight: contentRef.current?.scrollHeight } : undefined}
+      >
+        {children}
+      </div>
+
+      {/* Gradient fade overlay when collapsed */}
+      {isOverflowing && !expanded && (
+        <div
+          className={cn(
+            'absolute bottom-0 left-0 right-0 h-16 pointer-events-none',
+            isUser
+              ? 'bg-gradient-to-t from-primary to-transparent'
+              : 'bg-gradient-to-t from-muted to-transparent',
+          )}
+        />
+      )}
+
+      {/* Toggle button */}
+      {isOverflowing && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className={cn(
+            'mt-1 flex items-center gap-1 text-xs font-medium transition-colors',
+            isUser
+              ? 'text-primary-foreground/70 hover:text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="size-3" />
+              {t('chat.collapse.showLess')}
+            </>
+          ) : (
+            <>
+              <ChevronDown className="size-3" />
+              {t('chat.collapse.showMore')}
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
 export const MessageBubble = memo(function MessageBubble({
@@ -325,7 +403,9 @@ export const MessageBubble = memo(function MessageBubble({
                 key={`text-${i}`}
                 className={cn('rounded-2xl px-4 py-2.5', bubbleClass, i === 0 && 'rounded-tl-md')}
               >
-                <MarkdownContent content={part.text} isUser={false} />
+                <CollapsibleLongContent isUser={false}>
+                  <MarkdownContent content={part.text} isUser={false} />
+                </CollapsibleLongContent>
               </div>
             ) : (
               <div key={`tools-${i}`} className="space-y-1">
@@ -393,7 +473,9 @@ export const MessageBubble = memo(function MessageBubble({
           </p>
         )}
 
-        <MarkdownContent content={content} isUser={isUser} />
+        <CollapsibleLongContent isUser={isUser}>
+          <MarkdownContent content={content} isUser={isUser} />
+        </CollapsibleLongContent>
 
         {hasFiles && <MessageFiles files={files} isUser={isUser} />}
 

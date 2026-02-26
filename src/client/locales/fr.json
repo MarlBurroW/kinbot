@@ -401,6 +401,10 @@
       "previous": "Résultat précédent",
       "next": "Résultat suivant",
       "close": "Fermer la recherche"
+    },
+    "collapse": {
+      "showMore": "Voir plus",
+      "showLess": "Voir moins"
     }
   },
   "quickChat": {

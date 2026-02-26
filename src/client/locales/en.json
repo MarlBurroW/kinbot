@@ -401,6 +401,10 @@
       "previous": "Previous match",
       "next": "Next match",
       "close": "Close search"
+    },
+    "collapse": {
+      "showMore": "Show more",
+      "showLess": "Show less"
     }
   },
   "quickChat": {
