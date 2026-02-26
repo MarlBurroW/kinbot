@@ -31,7 +31,7 @@ const rows: Row[] = [
   { feature: 'Cron jobs / autonomy', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
   { feature: 'Encrypted vault', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
   { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'Multi-provider (22+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes' },
+  { feature: 'Multi-provider (25+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes' },
   { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
   { feature: 'Chat integrations (6 platforms)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
   { feature: 'RAG / document embedding', kinbot: 'no', chatgpt: 'partial', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes' },
