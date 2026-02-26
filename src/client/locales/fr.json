@@ -356,7 +356,10 @@
       "description": "Les Kins sont des personnalités IA que vous créez et personnalisez. Chaque Kin a son propre caractère, son expertise, ses outils et sa mémoire. Créez votre premier Kin pour commencer !",
       "createFirst": "Créer votre premier Kin"
     },
-    "shortcutHint": "pour trouver un Kin rapidement"
+    "shortcutHint": "pour trouver un Kin rapidement",
+    "copyMessage": "Copier le message",
+    "copied": "Copié dans le presse-papiers",
+    "copyFailed": "Échec de la copie"
   },
   "quickChat": {
     "title": "Session rapide",

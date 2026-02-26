@@ -1,5 +1,6 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Badge } from '@/client/components/ui/badge'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/client/components/ui/collapsible'
@@ -9,7 +10,7 @@ import { TaskResultCard } from '@/client/components/chat/TaskResultCard'
 import { ImageLightbox } from '@/client/components/chat/ImageLightbox'
 import { cn } from '@/client/lib/utils'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
-import { FileIcon, Download, Brain, ChevronDown } from 'lucide-react'
+import { FileIcon, Download, Brain, ChevronDown, Copy, Check } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
 import type { MessageFile } from '@/shared/types'
 
@@ -194,6 +195,40 @@ function InjectedMemoriesIndicator({ memories }: { memories: InjectedMemory[] })
   )
 }
 
+// ─── Copy message button ──────────────────────────────────────────────────────
+
+function CopyMessageButton({ content, isUser }: { content: string; isUser: boolean }) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopied(true)
+      toast.success(t('chat.copied'))
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error(t('chat.copyFailed'))
+    }
+  }, [content, t])
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={cn(
+        'absolute opacity-0 group-hover/msg:opacity-100 transition-opacity',
+        'rounded-md p-1 hover:bg-muted/80 active:scale-95',
+        'text-muted-foreground hover:text-foreground',
+        isUser ? '-left-8 top-1' : '-right-8 top-1',
+      )}
+      title={t('chat.copyMessage')}
+    >
+      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+    </button>
+  )
+}
+
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
 export const MessageBubble = memo(function MessageBubble({
@@ -258,10 +293,12 @@ export const MessageBubble = memo(function MessageBubble({
           )}
         </Avatar>
 
-        <div className="max-w-[80%] space-y-1.5">
+        <div className="group/msg relative max-w-[80%] space-y-1.5">
           {senderName && (
             <p className="text-xs font-medium text-muted-foreground">{senderName}</p>
           )}
+
+          <CopyMessageButton content={content} isUser={false} />
 
           {/* Interleaved content parts */}
           {contentParts.map((part, i) =>
@@ -319,7 +356,7 @@ export const MessageBubble = memo(function MessageBubble({
 
       <div
         className={cn(
-          'max-w-[75%] rounded-2xl px-4 py-2.5',
+          'group/msg relative max-w-[75%] rounded-2xl px-4 py-2.5',
           isUser
             ? 'bg-primary text-primary-foreground rounded-tr-md'
             : isFromOtherKin
@@ -329,6 +366,7 @@ export const MessageBubble = memo(function MessageBubble({
                 : 'bg-muted text-foreground rounded-tl-md',
         )}
       >
+        <CopyMessageButton content={content} isUser={isUser} />
         {senderName && (
           <p className={cn(
             'mb-1 text-xs font-medium flex items-center gap-1.5',

@@ -356,7 +356,10 @@
       "description": "Kins are AI personalities you create and customize. Each Kin has its own character, expertise, tools, and memory. Create your first one to get started!",
       "createFirst": "Create your first Kin"
     },
-    "shortcutHint": "to quickly find a Kin"
+    "shortcutHint": "to quickly find a Kin",
+    "copyMessage": "Copy message",
+    "copied": "Copied to clipboard",
+    "copyFailed": "Failed to copy"
   },
   "quickChat": {
     "title": "Quick Session",
