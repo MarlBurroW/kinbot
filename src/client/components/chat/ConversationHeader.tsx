@@ -11,7 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/client/components/ui/dropdown-menu'
-import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson } from 'lucide-react'
+import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson, Search } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 
 interface LLMModel {
@@ -43,6 +43,7 @@ interface ConversationHeaderProps {
   onQuickSession?: () => void
   onExportMarkdown?: () => void
   onExportJSON?: () => void
+  onSearch?: () => void
 }
 
 function formatTokenCount(n: number): string {
@@ -71,6 +72,7 @@ export function ConversationHeader({
   onQuickSession,
   onExportMarkdown,
   onExportJSON,
+  onSearch,
 }: ConversationHeaderProps) {
   const { t } = useTranslation()
 
@@ -209,6 +211,18 @@ export function ConversationHeader({
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">{t('quickChat.open')}</TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Search button */}
+      {onSearch && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" onClick={onSearch}>
+              <Search className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{t('chat.search.title')}</TooltipContent>
         </Tooltip>
       )}
 
