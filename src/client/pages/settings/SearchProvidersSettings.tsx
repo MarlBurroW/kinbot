@@ -27,11 +27,11 @@ import { api, getErrorMessage } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
 import { SEARCH_PROVIDER_TYPES } from '@/shared/constants'
+import { useProviders } from '@/client/hooks/useProviders'
 
 export function SearchProvidersSettings() {
   const { t } = useTranslation()
-  const [providers, setProviders] = useState<ProviderData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { providers, isLoading, refetch: fetchProviders } = useProviders({ filterTypes: SEARCH_PROVIDER_TYPES })
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderData | null>(null)
   const [deletingProvider, setDeletingProvider] = useState<ProviderData | null>(null)
@@ -39,20 +39,8 @@ export function SearchProvidersSettings() {
   const [defaultProviderId, setDefaultProviderId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchProviders()
     fetchDefaultProvider()
   }, [])
-
-  const fetchProviders = async () => {
-    try {
-      const data = await api.get<{ providers: ProviderData[] }>('/providers')
-      setProviders(data.providers.filter((p) => (SEARCH_PROVIDER_TYPES as readonly string[]).includes(p.type)))
-    } catch {
-      // Ignore
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const fetchDefaultProvider = async () => {
     try {

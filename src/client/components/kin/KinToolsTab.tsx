@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Switch } from '@/client/components/ui/switch'
 import { Label } from '@/client/components/ui/label'
@@ -16,9 +15,8 @@ import { useKinTools, type NativeToolGroup, type McpToolGroup } from '@/client/h
 import { TOOL_DOMAIN_META, SEARCH_PROVIDER_TYPES } from '@/shared/constants'
 import { ChevronRight, Loader2, Plug } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
-import { api } from '@/client/lib/api'
 import type { KinToolConfig, ToolDomain } from '@/shared/types'
-import type { ProviderData } from '@/client/components/kin/ProviderCard'
+import { useProviders } from '@/client/hooks/useProviders'
 
 interface KinToolsTabProps {
   kinId: string | null
@@ -33,18 +31,7 @@ function getEffectiveConfig(config: KinToolConfig | null): KinToolConfig {
 export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsTabProps) {
   const { t } = useTranslation()
   const { nativeTools, mcpTools, isLoading } = useKinTools(kinId)
-  const [searchProviders, setSearchProviders] = useState<ProviderData[]>([])
-
-  useEffect(() => {
-    api.get<{ providers: ProviderData[] }>('/providers')
-      .then((data) => {
-        const valid = data.providers.filter(
-          (p) => p.isValid && (SEARCH_PROVIDER_TYPES as readonly string[]).includes(p.type),
-        )
-        setSearchProviders(valid)
-      })
-      .catch(() => {})
-  }, [])
+  const { providers: searchProviders } = useProviders({ filterTypes: SEARCH_PROVIDER_TYPES, validOnly: true })
 
   const config = getEffectiveConfig(toolConfig)
 

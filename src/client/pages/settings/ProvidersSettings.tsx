@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
@@ -19,38 +19,15 @@ import { api, getErrorMessage } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
 import { AI_PROVIDER_TYPES } from '@/shared/constants'
-import { useSSE } from '@/client/hooks/useSSE'
+import { useProviders } from '@/client/hooks/useProviders'
 
 export function ProvidersSettings() {
   const { t } = useTranslation()
-  const [providers, setProviders] = useState<ProviderData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { providers, isLoading, refetch: fetchProviders } = useProviders({ filterTypes: AI_PROVIDER_TYPES })
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderData | null>(null)
   const [deletingProvider, setDeletingProvider] = useState<ProviderData | null>(null)
   const [testingId, setTestingId] = useState<string | null>(null)
-
-  const fetchProviders = useCallback(async () => {
-    try {
-      const data = await api.get<{ providers: ProviderData[] }>('/providers')
-      setProviders(data.providers.filter((p) => (AI_PROVIDER_TYPES as readonly string[]).includes(p.type)))
-    } catch {
-      // Ignore
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchProviders()
-  }, [fetchProviders])
-
-  // Re-fetch providers list when SSE notifies of changes
-  useSSE({
-    'provider:created': () => fetchProviders(),
-    'provider:updated': () => fetchProviders(),
-    'provider:deleted': () => fetchProviders(),
-  })
 
   const handleTestProvider = async (id: string) => {
     setTestingId(id)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
@@ -7,6 +7,7 @@ import { api } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
 import { SEARCH_PROVIDER_TYPES } from '@/shared/constants'
+import { useProviders } from '@/client/hooks/useProviders'
 
 interface StepSearchProvidersProps {
   onComplete: () => void
@@ -15,25 +16,12 @@ interface StepSearchProvidersProps {
 
 export function StepSearchProviders({ onComplete, onBack }: StepSearchProvidersProps) {
   const { t } = useTranslation()
-  const [providers, setProviders] = useState<ProviderData[]>([])
+  const { providers, refetch: fetchProviders } = useProviders()
   const [modalOpen, setModalOpen] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
 
   const searchProviders = providers.filter((p) => (SEARCH_PROVIDER_TYPES as readonly string[]).includes(p.type))
   const hasSearch = searchProviders.some((p) => p.capabilities.includes('search'))
-
-  useEffect(() => {
-    fetchProviders()
-  }, [])
-
-  const fetchProviders = async () => {
-    try {
-      const data = await api.get<{ providers: ProviderData[] }>('/providers')
-      setProviders(data.providers)
-    } catch {
-      // Ignore errors on initial load
-    }
-  }
 
   const handleTestProvider = async (id: string) => {
     setTestingId(id)

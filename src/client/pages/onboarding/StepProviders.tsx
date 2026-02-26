@@ -9,6 +9,7 @@ import { ProviderCard, type ProviderData } from '@/client/components/kin/Provide
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { AI_PROVIDER_TYPES } from '@/shared/constants'
+import { useProviders } from '@/client/hooks/useProviders'
 
 interface StepProvidersProps {
   onComplete: () => void
@@ -31,7 +32,7 @@ const CAPABILITY_META = {
 
 export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
   const { t } = useTranslation()
-  const [providers, setProviders] = useState<ProviderData[]>([])
+  const { providers, refetch: fetchProviders } = useProviders()
   const [modalOpen, setModalOpen] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
   const [allModels, setAllModels] = useState<ProviderModel[]>([])
@@ -45,23 +46,10 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
   const canFinish = coveredCapabilities.has('llm') && coveredCapabilities.has('embedding')
 
   useEffect(() => {
-    fetchProviders()
-  }, [])
-
-  useEffect(() => {
     if (canFinish) {
       fetchModels()
     }
   }, [canFinish])
-
-  const fetchProviders = async () => {
-    try {
-      const data = await api.get<{ providers: ProviderData[] }>('/providers')
-      setProviders(data.providers)
-    } catch {
-      // Ignore errors on initial load
-    }
-  }
 
   const fetchModels = async () => {
     try {
