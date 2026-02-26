@@ -19,7 +19,8 @@
     "noResults": "Aucun résultat",
     "create": "Créer",
     "copy": "Copier",
-    "copied": "Copié"
+    "copied": "Copié",
+    "test": "Tester"
   },
   "errors": {
     "backendUnavailable": "Impossible de joindre le serveur. Vérifiez que le backend est en cours d'exécution et réessayez.",
@@ -969,5 +970,28 @@
     "showShortcuts": "Afficher les raccourcis clavier",
     "sendMessage": "Envoyer le message",
     "newLine": "Nouvelle ligne"
+  },
+  "theme": {
+    "palette": "Palette",
+    "mode": "Mode",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système",
+    "aurora": "Aurore",
+    "auroraDesc": "Violet → Rose → Pêche",
+    "ocean": "Océan",
+    "oceanDesc": "Bleu → Turquoise → Cyan",
+    "forest": "Forêt",
+    "forestDesc": "Émeraude → Citron vert → Or",
+    "sunset": "Crépuscule",
+    "sunsetDesc": "Cramoisi → Orange → Ambre",
+    "monochrome": "Mono",
+    "monochromeDesc": "Élégance neutre",
+    "sakura": "Sakura",
+    "sakuraDesc": "Rose → Blush → Pétale",
+    "neon": "Néon",
+    "neonDesc": "Cyan → Magenta → Jaune",
+    "lavender": "Lavande",
+    "lavenderDesc": "Violet → Pervenche → Mauve"
   }
 }

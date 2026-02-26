@@ -1,4 +1,5 @@
 import { Sun, Moon, Monitor, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import {
   Popover,
@@ -9,12 +10,13 @@ import { usePalette, useTheme } from '@/client/components/theme-provider'
 import { cn } from '@/client/lib/utils'
 
 const MODE_OPTIONS = [
-  { value: 'light', icon: Sun, label: 'Light' },
-  { value: 'dark', icon: Moon, label: 'Dark' },
-  { value: 'system', icon: Monitor, label: 'System' },
+  { value: 'light', icon: Sun, labelKey: 'theme.light' },
+  { value: 'dark', icon: Moon, labelKey: 'theme.dark' },
+  { value: 'system', icon: Monitor, labelKey: 'theme.system' },
 ] as const
 
 export function PaletteSwitcher() {
+  const { t } = useTranslation()
   const { palette, setPalette, palettes } = usePalette()
   const { theme, setTheme } = useTheme()
 
@@ -42,7 +44,7 @@ export function PaletteSwitcher() {
         {/* Palette grid */}
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Palette
+            {t('theme.palette')}
           </p>
           <div className="grid grid-cols-1 gap-1">
             {palettes.map(p => (
@@ -65,8 +67,8 @@ export function PaletteSwitcher() {
                   ))}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{p.description}</p>
+                  <p className="text-sm font-medium">{t(`theme.${p.id}`)}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{t(`theme.${p.id}Desc`)}</p>
                 </div>
                 {palette === p.id && <Check className="size-3.5 text-primary shrink-0" />}
               </button>
@@ -77,10 +79,10 @@ export function PaletteSwitcher() {
         {/* Mode toggle */}
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Mode
+            {t('theme.mode')}
           </p>
           <div className="flex gap-1 rounded-lg bg-muted p-1">
-            {MODE_OPTIONS.map(({ value, icon: Icon, label }) => (
+            {MODE_OPTIONS.map(({ value, icon: Icon, labelKey }) => (
               <button
                 key={value}
                 onClick={() => setTheme(value)}
@@ -92,7 +94,7 @@ export function PaletteSwitcher() {
                 )}
               >
                 <Icon className="size-3.5" />
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>

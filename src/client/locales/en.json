@@ -19,7 +19,8 @@
     "noResults": "No results found",
     "create": "Create",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "test": "Test"
   },
   "errors": {
     "backendUnavailable": "Unable to reach the server. Please check that the backend is running and try again.",
@@ -969,5 +970,28 @@
     "showShortcuts": "Show keyboard shortcuts",
     "sendMessage": "Send message",
     "newLine": "New line"
+  },
+  "theme": {
+    "palette": "Palette",
+    "mode": "Mode",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "aurora": "Aurora",
+    "auroraDesc": "Purple → Pink → Peach",
+    "ocean": "Ocean",
+    "oceanDesc": "Blue → Teal → Cyan",
+    "forest": "Forest",
+    "forestDesc": "Emerald → Lime → Gold",
+    "sunset": "Sunset",
+    "sunsetDesc": "Crimson → Orange → Amber",
+    "monochrome": "Mono",
+    "monochromeDesc": "Neutral elegance",
+    "sakura": "Sakura",
+    "sakuraDesc": "Rose → Blush → Petal",
+    "neon": "Neon",
+    "neonDesc": "Cyan → Magenta → Yellow",
+    "lavender": "Lavender",
+    "lavenderDesc": "Violet → Periwinkle → Mauve"
   }
 }

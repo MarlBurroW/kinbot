@@ -56,7 +56,7 @@ export function NotificationChannelCard({ channel, onEdit, onDelete, onTest, onT
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon" className="size-7" onClick={onTest} title="Test">
+          <Button variant="ghost" size="icon" className="size-7" onClick={onTest} title={t('common.test')}>
             <Send className="size-3.5" />
           </Button>
           <Button variant="ghost" size="icon" className="size-7" onClick={onEdit}>
