@@ -35,6 +35,9 @@ export type SSEEventType =
   | 'notification:new'
   | 'notification:read'
   | 'notification:read-all'
+  | 'provider:created'
+  | 'provider:updated'
+  | 'provider:deleted'
   | 'connected'
 
 export interface SSEEvent {
