@@ -446,7 +446,8 @@
     "contextMenu": {
       "copy": "Copier le message",
       "quote": "Citer en réponse",
-      "editResend": "Modifier et renvoyer"
+      "editResend": "Modifier et renvoyer",
+      "readAloud": "Lire à voix haute"
     },
     "regenerate": "Régénérer",
     "mobileInfo": {
@@ -456,7 +457,11 @@
       "today": "Aujourd'hui",
       "yesterday": "Hier"
     },
-    "editResend": "Modifier et renvoyer"
+    "editResend": "Modifier et renvoyer",
+    "readAloud": {
+      "start": "Lire à voix haute",
+      "stop": "Arrêter la lecture"
+    }
   },
   "quickChat": {
     "title": "Session rapide",

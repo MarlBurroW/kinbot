@@ -446,7 +446,8 @@
     "contextMenu": {
       "copy": "Copy message",
       "quote": "Quote reply",
-      "editResend": "Edit & resend"
+      "editResend": "Edit & resend",
+      "readAloud": "Read aloud"
     },
     "regenerate": "Regenerate",
     "mobileInfo": {
@@ -456,7 +457,11 @@
       "today": "Today",
       "yesterday": "Yesterday"
     },
-    "editResend": "Edit & resend"
+    "editResend": "Edit & resend",
+    "readAloud": {
+      "start": "Read aloud",
+      "stop": "Stop reading"
+    }
   },
   "quickChat": {
     "title": "Quick Session",

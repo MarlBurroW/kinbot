@@ -17,7 +17,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from '@/client/components/ui/context-menu'
-import { FileIcon, Download, Brain, ChevronDown, ChevronUp, Copy, Check, RefreshCw, Quote, Pencil } from 'lucide-react'
+import { FileIcon, Download, Brain, ChevronDown, ChevronUp, Copy, Check, RefreshCw, Quote, Pencil, Volume2, VolumeX } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
 import { useRelativeTime } from '@/client/hooks/useRelativeTime'
 import type { MessageFile } from '@/shared/types'
@@ -243,6 +243,90 @@ function CopyMessageButton({ content, isUser }: { content: string; isUser: boole
   )
 }
 
+// ─── Read aloud button (Web Speech API) ───────────────────────────────────────
+
+function ReadAloudButton({ content }: { content: string }) {
+  const { t } = useTranslation()
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+
+  // Clean markdown/code artifacts for more natural speech
+  const plainText = useMemo(() => {
+    return content
+      .replace(/```[\s\S]*?```/g, '') // remove code blocks
+      .replace(/`([^`]+)`/g, '$1') // inline code → text
+      .replace(/!\[.*?\]\(.*?\)/g, '') // remove images
+      .replace(/\[([^\]]+)\]\(.*?\)/g, '$1') // links → text
+      .replace(/[#*_~>]/g, '') // strip markdown symbols
+      .replace(/\n{2,}/g, '. ') // paragraph breaks → pauses
+      .replace(/\n/g, ' ')
+      .trim()
+  }, [content])
+
+  // Sync state if speech ends externally
+  useEffect(() => {
+    const handleEnd = () => setIsSpeaking(false)
+    const utt = utteranceRef.current
+    if (utt) {
+      utt.addEventListener('end', handleEnd)
+      utt.addEventListener('error', handleEnd)
+    }
+    return () => {
+      if (utt) {
+        utt.removeEventListener('end', handleEnd)
+        utt.removeEventListener('error', handleEnd)
+      }
+    }
+  })
+
+  const handleToggle = useCallback(() => {
+    if (!('speechSynthesis' in window)) return
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+
+    // Stop any other ongoing speech
+    window.speechSynthesis.cancel()
+
+    const utt = new SpeechSynthesisUtterance(plainText)
+    utt.onend = () => setIsSpeaking(false)
+    utt.onerror = () => setIsSpeaking(false)
+    utteranceRef.current = utt
+    window.speechSynthesis.speak(utt)
+    setIsSpeaking(true)
+  }, [isSpeaking, plainText])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (isSpeaking) window.speechSynthesis.cancel()
+    }
+  }, [isSpeaking])
+
+  // Don't render if Web Speech API is unavailable or content is empty/only code
+  if (!('speechSynthesis' in globalThis) || !plainText) return null
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      className={cn(
+        'opacity-0 group-hover/msg:opacity-100 transition-opacity',
+        'rounded-md p-1 hover:bg-muted/80 active:scale-95',
+        'text-muted-foreground hover:text-foreground',
+        isSpeaking && 'opacity-100 text-primary',
+      )}
+      title={isSpeaking ? t('chat.readAloud.stop') : t('chat.readAloud.start')}
+      aria-label={isSpeaking ? t('chat.readAloud.stop') : t('chat.readAloud.start')}
+    >
+      {isSpeaking ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+    </button>
+  )
+}
+
 // ─── Edit & resend button ─────────────────────────────────────────────────────
 
 function EditResendButton({ content, onEditResend }: { content: string; onEditResend: (text: string) => void }) {
@@ -449,6 +533,27 @@ function MessageContextMenu({
             {t('chat.contextMenu.editResend')}
           </ContextMenuItem>
         )}
+        {!isUser && 'speechSynthesis' in globalThis && (
+          <ContextMenuItem onClick={() => {
+            window.speechSynthesis.cancel()
+            const plainText = content
+              .replace(/```[\s\S]*?```/g, '')
+              .replace(/`([^`]+)`/g, '$1')
+              .replace(/!\[.*?\]\(.*?\)/g, '')
+              .replace(/\[([^\]]+)\]\(.*?\)/g, '$1')
+              .replace(/[#*_~>]/g, '')
+              .replace(/\n{2,}/g, '. ')
+              .replace(/\n/g, ' ')
+              .trim()
+            if (plainText) {
+              const utt = new SpeechSynthesisUtterance(plainText)
+              window.speechSynthesis.speak(utt)
+            }
+          }}>
+            <Volume2 className="size-4" />
+            {t('chat.contextMenu.readAloud')}
+          </ContextMenuItem>
+        )}
         {!isUser && onRegenerate && (
           <>
             <ContextMenuSeparator />
@@ -578,6 +683,7 @@ export const MessageBubble = memo(function MessageBubble({
               <RelativeTimestamp timestamp={timestamp} className="text-[10px] text-muted-foreground/70" />
             )}
             {onRegenerate && <RegenerateButton onRegenerate={onRegenerate} />}
+            <ReadAloudButton content={content} />
           </div>
         </div>
       </div>
@@ -652,6 +758,7 @@ export const MessageBubble = memo(function MessageBubble({
             />
           )}
           {!isUser && onRegenerate && <RegenerateButton onRegenerate={onRegenerate} />}
+          {!isUser && <ReadAloudButton content={content} />}
         </div>
       </div>
     </div>
