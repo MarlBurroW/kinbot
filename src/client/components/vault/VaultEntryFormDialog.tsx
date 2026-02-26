@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/client/components/ui/select'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { VAULT_BUILTIN_TYPES, VAULT_TYPE_META } from '@/shared/constants'
 import type { VaultTypeField, VaultTypeSummary } from '@/shared/types'
@@ -191,7 +192,7 @@ export function VaultEntryFormDialog({
           {/* Entry type selector (only for new entries) */}
           {!isEditing && (
             <div className="space-y-2">
-              <Label>{t('settings.vault.entryType')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('settings.vault.entryType')} <InfoTip content={t('settings.vault.entryTypeTip')} /></Label>
               <Select value={entryType} onValueChange={(v) => { setEntryType(v); setFieldValues({}) }}>
                 <SelectTrigger>
                   <SelectValue />
@@ -209,7 +210,7 @@ export function VaultEntryFormDialog({
 
           {/* Key field */}
           <div className="space-y-2">
-            <Label htmlFor="vault-key">{t('settings.vault.key')}</Label>
+            <Label htmlFor="vault-key" className="inline-flex items-center gap-1.5">{t('settings.vault.key')} <InfoTip content={t('settings.vault.keyTip')} /></Label>
             <Input
               id="vault-key"
               value={key}
@@ -259,8 +260,8 @@ export function VaultEntryFormDialog({
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="vault-description">
-              {t('settings.vault.descriptionLabel')}
+            <Label htmlFor="vault-description" className="inline-flex items-center gap-1.5">
+              {t('settings.vault.descriptionLabel')} <InfoTip content={t('settings.vault.descriptionTip')} />
               <span className="ml-1 text-xs text-muted-foreground">
                 ({t('common.optional')})
               </span>

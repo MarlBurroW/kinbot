@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/client/components/ui/select'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import type { NotificationChannelSummary, AvailableNotificationChannel, ContactForNotification } from '@/shared/types'
 
 interface NotificationChannelFormDialogProps {
@@ -133,7 +134,7 @@ export function NotificationChannelFormDialog({ open, onOpenChange, editChannel,
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Source channel */}
           <div className="space-y-2">
-            <Label>{t('settings.notifications.sourceChannel')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.notifications.sourceChannel')} <InfoTip content={t('settings.notifications.sourceChannelTip')} /></Label>
             {availableChannels.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('settings.notifications.noAvailableChannels')}</p>
             ) : (
@@ -159,7 +160,7 @@ export function NotificationChannelFormDialog({ open, onOpenChange, editChannel,
           {/* Recipient (Contact) */}
           {selectedChannel && (
             <div className="space-y-2">
-              <Label>{t('settings.notifications.recipient')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('settings.notifications.recipient')} <InfoTip content={t('settings.notifications.recipientTip')} /></Label>
               {contacts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {t('settings.notifications.noContactsForPlatform', { platform: selectedChannel.platform })}
@@ -186,7 +187,7 @@ export function NotificationChannelFormDialog({ open, onOpenChange, editChannel,
 
           {/* Label */}
           <div className="space-y-2">
-            <Label>{t('settings.notifications.label')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.notifications.label')} <InfoTip content={t('settings.notifications.labelTip')} /></Label>
             <Input
               value={label}
               onChange={(e) => setLabel(e.target.value)}

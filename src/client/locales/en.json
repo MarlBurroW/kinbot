@@ -596,7 +596,10 @@
       "fieldNamePlaceholder": "field_name",
       "fieldLabelPlaceholder": "Label",
       "deleteAttachmentConfirm": "Permanently delete this attachment? This cannot be undone.",
-      "deleteTypeConfirm": "Delete this custom type? Existing entries of this type will be kept but no new ones can be created."
+      "deleteTypeConfirm": "Delete this custom type? Existing entries of this type will be kept but no new ones can be created.",
+      "keyTip": "A unique identifier for this entry (e.g. GITHUB_TOKEN). Kins reference entries by this key.",
+      "entryTypeTip": "The type determines which fields are available. Choose \"Text\" for simple values or a structured type for multi-field entries.",
+      "descriptionTip": "A short note about what this entry is used for. Helps Kins understand when to use it."
     },
     "files": {
       "title": "Files",
@@ -664,7 +667,11 @@
       "saved": "Memory updated",
       "deleted": "Memory deleted",
       "saveKinFirst": "Save the Kin first to manage its memories.",
-      "count": "{{count}} memories"
+      "count": "{{count}} memories",
+      "kinTip": "Which Kin this memory belongs to. Each Kin has its own memory space.",
+      "contentTip": "The information to remember. Be specific — the Kin will recall this verbatim during conversations.",
+      "categoryTip": "Categorize the memory for better organization and retrieval.",
+      "subjectTip": "Optional tag to group related memories (e.g. a person's name, a project, a topic)."
     },
     "contacts": {
       "title": "Contacts",
@@ -890,7 +897,10 @@
       "errorState": "{{count}} consecutive delivery errors",
       "autoDisabled": "Automatically disabled due to errors",
       "noAvailableChannels": "No active channels available. Create and activate a channel first.",
-      "deleteConfirm": "This will permanently delete this notification channel. You will no longer receive notifications through it."
+      "deleteConfirm": "This will permanently delete this notification channel. You will no longer receive notifications through it.",
+      "sourceChannelTip": "The messaging channel (bot) used to send notifications. Must be active and configured.",
+      "recipientTip": "The contact who will receive notifications via DM. They must have a platform ID matching the selected channel.",
+      "labelTip": "A friendly name to identify this delivery channel in the list."
     },
     "groups": {
       "core": "Core",

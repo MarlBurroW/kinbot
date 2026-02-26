@@ -596,7 +596,10 @@
       "fieldNamePlaceholder": "nom_champ",
       "fieldLabelPlaceholder": "Libellé",
       "deleteAttachmentConfirm": "Supprimer définitivement ce fichier joint ? Cette action est irréversible.",
-      "deleteTypeConfirm": "Supprimer ce type personnalisé ? Les entrées existantes de ce type seront conservées mais ne pourront plus être créées."
+      "deleteTypeConfirm": "Supprimer ce type personnalisé ? Les entrées existantes de ce type seront conservées mais ne pourront plus être créées.",
+      "keyTip": "Un identifiant unique pour cette entrée (ex : GITHUB_TOKEN). Les Kins y accèdent par cette clé.",
+      "entryTypeTip": "Le type détermine les champs disponibles. Choisissez « Texte » pour les valeurs simples ou un type structuré pour les entrées multi-champs.",
+      "descriptionTip": "Une courte note sur l'usage de cette entrée. Aide les Kins à savoir quand l'utiliser."
     },
     "files": {
       "title": "Fichiers",
@@ -664,7 +667,11 @@
       "saved": "Souvenir mis à jour",
       "deleted": "Souvenir supprimé",
       "saveKinFirst": "Enregistrez le Kin d'abord pour gérer ses souvenirs.",
-      "count": "{{count}} souvenirs"
+      "count": "{{count}} souvenirs",
+      "kinTip": "À quel Kin appartient ce souvenir. Chaque Kin a son propre espace mémoire.",
+      "contentTip": "L'information à retenir. Soyez précis, le Kin s'en souviendra tel quel lors des conversations.",
+      "categoryTip": "Catégorisez le souvenir pour une meilleure organisation et recherche.",
+      "subjectTip": "Tag optionnel pour regrouper les souvenirs liés (ex : nom de personne, projet, sujet)."
     },
     "contacts": {
       "title": "Contacts",
@@ -890,7 +897,10 @@
       "errorState": "{{count}} erreurs de livraison consécutives",
       "autoDisabled": "Automatiquement désactivé suite aux erreurs",
       "noAvailableChannels": "Aucun canal actif disponible. Créez et activez un canal d'abord.",
-      "deleteConfirm": "Ce canal de notification sera définitivement supprimé. Vous ne recevrez plus de notifications par ce biais."
+      "deleteConfirm": "Ce canal de notification sera définitivement supprimé. Vous ne recevrez plus de notifications par ce biais.",
+      "sourceChannelTip": "Le canal de messagerie (bot) utilisé pour envoyer les notifications. Doit être actif et configuré.",
+      "recipientTip": "Le contact qui recevra les notifications par DM. Il doit avoir un identifiant correspondant à la plateforme du canal sélectionné.",
+      "labelTip": "Un nom convivial pour identifier ce canal de livraison dans la liste."
     },
     "groups": {
       "core": "Principal",
