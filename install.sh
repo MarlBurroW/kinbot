@@ -859,6 +859,41 @@ create_service() {
   fi
 }
 
+# ─── Post-start health check ─────────────────────────────────────────────────
+KINBOT_HEALTHY=false
+
+verify_running() {
+  header "Verifying KinBot is running..."
+
+  local url="http://localhost:${KINBOT_PORT}"
+  local attempts=0
+  local max_attempts=15
+
+  while [ $attempts -lt $max_attempts ]; do
+    local http_code
+    http_code="$(curl -s -o /dev/null -w '%{http_code}' "${url}/" --max-time 2 2>/dev/null || echo "000")"
+    if [ "$http_code" != "000" ]; then
+      KINBOT_HEALTHY=true
+      success "KinBot is up and responding (HTTP $http_code)"
+      return
+    fi
+    sleep 2
+    attempts=$((attempts + 1))
+  done
+
+  warn "KinBot hasn't responded after ${max_attempts} attempts"
+  warn "It may still be starting up. Check the logs:"
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    echo -e "  ${DIM}tail -f ~/Library/Logs/kinbot/kinbot.log${NC}"
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    echo -e "  ${DIM}$KINBOT_DIR/kinbot logs${NC}"
+  elif [ "$IS_ROOT" = true ]; then
+    echo -e "  ${DIM}sudo journalctl -u kinbot -f${NC}"
+  else
+    echo -e "  ${DIM}journalctl --user -u kinbot -f${NC}"
+  fi
+}
+
 # ─── Summary ─────────────────────────────────────────────────────────────────
 print_summary() {
   ACTION="installed"
@@ -883,10 +918,24 @@ print_summary() {
   if [ -n "${BACKUP_DB_PATH:-}" ] && [ -f "${BACKUP_DB_PATH:-}" ]; then
     echo -e "  ${CYAN}DB backup:${NC}    $(basename "$BACKUP_DB_PATH")"
   fi
+  if [ "$KINBOT_HEALTHY" = true ]; then
+    echo -e "  ${GREEN}●${NC} ${BOLD}Status:${NC}       Running"
+  else
+    echo -e "  ${YELLOW}●${NC} ${BOLD}Status:${NC}       Starting (check logs if it doesn't come up)"
+  fi
   echo ""
-  echo -e "  Visit the URL above to complete the setup wizard."
-  echo -e "  You will need at least one AI provider API key"
-  echo -e "  (Anthropic, OpenAI, or Google Gemini)."
+
+  if [ "${IS_UPDATE:-false}" != true ]; then
+    echo -e "  ${BOLD}Getting started:${NC}"
+    echo -e "  1. Open ${CYAN}$KINBOT_PUBLIC_URL${NC} in your browser"
+    echo -e "  2. Create your admin account"
+    echo -e "  3. Add an AI provider (Anthropic, OpenAI, or Google Gemini)"
+    echo -e "  4. Create your first agent and start chatting!"
+    echo ""
+    echo -e "  ${DIM}You'll need at least one AI provider API key.${NC}"
+  else
+    echo -e "  Visit ${CYAN}$KINBOT_PUBLIC_URL${NC} to continue using KinBot."
+  fi
   echo ""
 
   if [ "$INIT_SYSTEM" = "script" ]; then
@@ -1699,6 +1748,7 @@ main() {
   setup_system_user
   resolve_bun_path
   create_service
+  verify_running
 
   # Disable rollback trap — we made it!
   trap - EXIT
