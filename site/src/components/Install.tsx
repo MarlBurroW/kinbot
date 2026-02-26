@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 
-type Tab = 'script' | 'docker' | 'manual'
+type Tab = 'script' | 'docker' | 'compose' | 'manual'
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'script', label: 'One-liner' },
   { id: 'docker', label: 'Docker' },
+  { id: 'compose', label: 'Compose' },
   { id: 'manual', label: 'Manual' },
 ]
 
@@ -25,6 +26,23 @@ const code: Record<Tab, string> = {
   --restart unless-stopped \\
   ghcr.io/MarlBurroW/kinbot:latest`,
 
+  compose: `# docker-compose.yml
+services:
+  kinbot:
+    image: ghcr.io/marlburrow/kinbot:latest
+    container_name: kinbot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - kinbot-data:/app/data
+    environment:
+      - NODE_ENV=production
+      # - PUBLIC_URL=https://kinbot.example.com
+
+volumes:
+  kinbot-data:`,
+
   manual: `git clone https://github.com/MarlBurroW/kinbot.git
 cd kinbot
 bun install
@@ -36,6 +54,7 @@ NODE_ENV=production bun run start`,
 const descriptions: Record<Tab, string> = {
   script: 'Installs Bun if needed, clones the repo, builds, runs migrations, and creates a system service (systemd on Linux, launchd on macOS). Idempotent — re-run to update.',
   docker: 'Runs KinBot in a container with a persistent volume for the data directory. The official image is published to GitHub Container Registry on every release.',
+  compose: 'Drop this into a docker-compose.yml, run docker compose up -d, and you\'re set. Easy to add a reverse proxy (Traefik, Caddy, nginx) later.',
   manual: 'Clone, install dependencies, build the frontend, run migrations, and start the server. Open http://localhost:3333 to complete the setup wizard.',
 }
 
