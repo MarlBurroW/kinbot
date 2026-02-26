@@ -1,6 +1,22 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   SidebarGroup,
   SidebarGroupContent,
 } from '@/client/components/ui/sidebar'
@@ -15,7 +31,7 @@ import { CronDetailModal } from '@/client/components/sidebar/CronDetailModal'
 import { useCrons } from '@/client/hooks/useCrons'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
-import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search } from 'lucide-react'
+import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search, GripVertical } from 'lucide-react'
 import type { CronSummary } from '@/shared/types'
 
 const STORAGE_KEY = 'sidebar.crons.open'
@@ -124,6 +140,49 @@ function CronCard({
   )
 }
 
+function SortableCronCard({
+  cron,
+  onClick,
+  onToggleActive,
+}: {
+  cron: CronSummary
+  onClick: () => void
+  onToggleActive?: (isActive: boolean) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: cron.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-0 top-0 z-10 flex h-full w-5 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="size-3 text-muted-foreground" />
+      </div>
+      <CronCard
+        cron={cron}
+        onClick={onClick}
+        onToggleActive={onToggleActive}
+      />
+    </div>
+  )
+}
+
 export function CronList({ kins, llmModels }: CronListProps) {
   const { t } = useTranslation()
   const {
@@ -133,6 +192,7 @@ export function CronList({ kins, llmModels }: CronListProps) {
     updateCron,
     deleteCron,
     approveCron,
+    reorderCrons,
   } = useCrons()
 
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -187,6 +247,29 @@ export function CronList({ kins, llmModels }: CronListProps) {
     () => (detailCron ? crons.find((c) => c.id === detailCron.id) ?? detailCron : null),
     [detailCron, crons],
   )
+
+  // DnD
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = regularCrons.findIndex((c) => c.id === active.id)
+    const newIndex = regularCrons.findIndex((c) => c.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = [...regularCrons]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+    reorderCrons(reordered.map((c) => c.id))
+  }, [regularCrons, reorderCrons])
+
+  const regularCronIds = regularCrons.map((c) => c.id)
+  const isDraggable = !searchQuery.trim()
 
   return (
     <SidebarGroup>
@@ -258,7 +341,7 @@ export function CronList({ kins, llmModels }: CronListProps) {
             ) : (
               <div className="max-h-[25vh] overflow-y-auto">
                 <div className="space-y-1 px-1">
-                  {/* Pending approval */}
+                  {/* Pending approval — not sortable */}
                   {pendingCrons.map((cron) => (
                     <CronCard
                       key={cron.id}
@@ -270,15 +353,30 @@ export function CronList({ kins, llmModels }: CronListProps) {
                   {pendingCrons.length > 0 && regularCrons.length > 0 && (
                     <div className="my-2 h-px bg-border/50" />
                   )}
-                  {/* Active + inactive */}
-                  {regularCrons.map((cron) => (
-                    <CronCard
-                      key={cron.id}
-                      cron={cron}
-                      onClick={() => setDetailCron(cron)}
-                      onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
-                    />
-                  ))}
+                  {/* Active + inactive — sortable by drag-and-drop (unless searching) */}
+                  {isDraggable ? (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={regularCronIds} strategy={verticalListSortingStrategy}>
+                        {regularCrons.map((cron) => (
+                          <SortableCronCard
+                            key={cron.id}
+                            cron={cron}
+                            onClick={() => setDetailCron(cron)}
+                            onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  ) : (
+                    regularCrons.map((cron) => (
+                      <CronCard
+                        key={cron.id}
+                        cron={cron}
+                        onClick={() => setDetailCron(cron)}
+                        onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
             )}

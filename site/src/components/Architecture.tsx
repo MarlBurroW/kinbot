@@ -1,10 +1,10 @@
 import { Server, Database, Layout, Cpu, Wifi, Bot, Shield, ArrowRight } from 'lucide-react'
 
 // ── Animated connector dots (horizontal) ──────────────────────────────
-function HorizontalConnector({ color, reverse = false }: { color: string; reverse?: boolean }) {
+function HorizontalConnector({ color, reverse = false, className = '' }: { color: string; reverse?: boolean; className?: string }) {
   const dotCount = 3
   return (
-    <div className="hidden lg:flex items-center justify-center w-12 relative">
+    <div className={`hidden lg:flex items-center justify-center w-12 relative ${className}`}>
       <div
         className="absolute inset-y-[45%] left-0 right-0"
         style={{
@@ -28,9 +28,9 @@ function HorizontalConnector({ color, reverse = false }: { color: string; revers
 }
 
 // ── Mobile vertical connector ─────────────────────────────────────────
-function VerticalConnector({ color }: { color: string }) {
+function VerticalConnector({ color, className = '' }: { color: string; className?: string }) {
   return (
-    <div className="flex lg:hidden items-center justify-center h-8 relative">
+    <div className={`flex lg:hidden items-center justify-center h-8 relative ${className}`}>
       <div
         className="absolute inset-x-[49%] top-0 bottom-0"
         style={{
@@ -133,7 +133,7 @@ export function Architecture() {
 
         <div className="relative flex flex-col lg:flex-row items-stretch gap-0">
           {/* Left sidebar: Integrations */}
-          <div className="order-3 lg:order-1 glass-strong gradient-border rounded-2xl p-5 w-full lg:w-52 flex-shrink-0">
+          <div className="order-5 lg:order-1 glass-strong gradient-border rounded-2xl p-5 w-full lg:w-52 flex-shrink-0">
             <p
               className="text-xs font-bold uppercase tracking-widest mb-4"
               style={{ color: 'var(--color-gradient-mid, var(--color-primary))' }}
@@ -163,12 +163,12 @@ export function Architecture() {
           </div>
 
           {/* Left connector */}
-          <VerticalConnector color="var(--color-gradient-mid, var(--color-primary))" />
-          <HorizontalConnector color="var(--color-gradient-mid, var(--color-primary))" reverse />
+          <VerticalConnector color="var(--color-gradient-mid, var(--color-primary))" className="order-4" />
+          <HorizontalConnector color="var(--color-gradient-mid, var(--color-primary))" reverse className="lg:order-2" />
 
           {/* Main process box */}
           <div
-            className="order-2 lg:order-2 flex-1 glass-strong gradient-border rounded-3xl p-6 sm:p-8"
+            className="order-3 lg:order-3 flex-1 glass-strong gradient-border rounded-3xl p-6 sm:p-8"
             style={{
               animation: 'arch-pulse 4s ease-in-out infinite',
             }}
@@ -239,8 +239,8 @@ export function Architecture() {
           </div>
 
           {/* Right connector */}
-          <VerticalConnector color="var(--color-primary)" />
-          <HorizontalConnector color="var(--color-primary)" />
+          <VerticalConnector color="var(--color-primary)" className="order-2" />
+          <HorizontalConnector color="var(--color-primary)" className="lg:order-4" />
 
           {/* Right sidebar: AI Providers */}
           <div className="order-1 lg:order-5 glass-strong gradient-border rounded-2xl p-5 w-full lg:w-52 flex-shrink-0">

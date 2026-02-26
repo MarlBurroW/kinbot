@@ -28,6 +28,7 @@ type UpdateCronData = Partial<{
 export function useCrons() {
   const [crons, setCrons] = useState<CronSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [cronOrder, setCronOrder] = useState<string[]>([])
 
   const fetchCrons = useCallback(async () => {
     try {
@@ -40,9 +41,21 @@ export function useCrons() {
     }
   }, [])
 
+  const fetchCronOrder = useCallback(async () => {
+    try {
+      const profile = await api.get<{ cronOrder: string | null }>('/me')
+      if (profile.cronOrder) {
+        setCronOrder(JSON.parse(profile.cronOrder) as string[])
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [])
+
   useEffect(() => {
     fetchCrons()
-  }, [fetchCrons])
+    fetchCronOrder()
+  }, [fetchCrons, fetchCronOrder])
 
   const createCron = useCallback(async (data: CreateCronData) => {
     const result = await api.post<{ cron: CronSummary }>('/crons', data)
@@ -59,6 +72,7 @@ export function useCrons() {
   const deleteCron = useCallback(async (id: string) => {
     await api.delete(`/crons/${id}`)
     setCrons((prev) => prev.filter((c) => c.id !== id))
+    setCronOrder((prev) => prev.filter((cronId) => cronId !== id))
   }, [])
 
   const approveCron = useCallback(async (id: string) => {
@@ -66,6 +80,16 @@ export function useCrons() {
     setCrons((prev) => prev.map((c) => (c.id === id ? result.cron : c)))
     return result.cron
   }, [])
+
+  const reorderCrons = useCallback(async (newOrder: string[]) => {
+    setCronOrder(newOrder)
+    try {
+      await api.patch('/me', { cronOrder: JSON.stringify(newOrder) })
+    } catch {
+      // Revert on failure
+      fetchCronOrder()
+    }
+  }, [fetchCronOrder])
 
   // SSE: real-time cron updates
   useSSE({
@@ -88,19 +112,35 @@ export function useCrons() {
     'cron:deleted': (data) => {
       const cronId = data.cronId as string
       setCrons((prev) => prev.filter((c) => c.id !== cronId))
+      setCronOrder((prev) => prev.filter((id) => id !== cronId))
     },
   })
 
-  // Sort: pending-approval first, then active, then inactive, newest first
-  const sortedCrons = useMemo(
-    () =>
-      [...crons].sort((a, b) => {
-        if (a.requiresApproval !== b.requiresApproval) return a.requiresApproval ? -1 : 1
+  // Sort: pending-approval first (newest first), then regular crons by user-defined order
+  const sortedCrons = useMemo(() => {
+    const pending = crons
+      .filter((c) => c.requiresApproval)
+      .sort((a, b) => b.createdAt - a.createdAt)
+
+    const regular = crons.filter((c) => !c.requiresApproval)
+
+    if (cronOrder.length === 0) {
+      // Fallback: active first, then inactive, newest first within each group
+      const sorted = [...regular].sort((a, b) => {
         if (a.isActive !== b.isActive) return a.isActive ? -1 : 1
         return b.createdAt - a.createdAt
-      }),
-    [crons],
-  )
+      })
+      return [...pending, ...sorted]
+    }
+
+    const orderMap = new Map(cronOrder.map((id, i) => [id, i]))
+    const sorted = [...regular].sort((a, b) => {
+      const ia = orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER
+      const ib = orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER
+      return ia - ib
+    })
+    return [...pending, ...sorted]
+  }, [crons, cronOrder])
 
   return {
     crons: sortedCrons,
@@ -109,6 +149,7 @@ export function useCrons() {
     updateCron,
     deleteCron,
     approveCron,
+    reorderCrons,
     refetch: fetchCrons,
   }
 }
