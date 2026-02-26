@@ -408,7 +408,18 @@
       "showMore": "Show more",
       "showLess": "Show less"
     },
-    "charCount": "{{count}} characters"
+    "charCount": "{{count}} characters",
+    "emptyState": {
+      "greeting": "Chat with {{name}}",
+      "defaultRole": "Your AI assistant, ready to help.",
+      "suggestions": [
+        "What can you help me with?",
+        "Tell me about yourself",
+        "Help me brainstorm ideas",
+        "Explain a complex topic simply"
+      ],
+      "hint": "Type a message below or pick a suggestion to get started"
+    }
   },
   "quickChat": {
     "title": "Quick Session",

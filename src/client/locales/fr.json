@@ -408,7 +408,18 @@
       "showMore": "Voir plus",
       "showLess": "Voir moins"
     },
-    "charCount": "{{count}} caractères"
+    "charCount": "{{count}} caractères",
+    "emptyState": {
+      "greeting": "Discuter avec {{name}}",
+      "defaultRole": "Votre assistant IA, prêt à vous aider.",
+      "suggestions": [
+        "Comment peux-tu m'aider ?",
+        "Parle-moi de toi",
+        "Aide-moi à trouver des idées",
+        "Explique-moi un sujet complexe simplement"
+      ],
+      "hint": "Écrivez un message ou choisissez une suggestion pour commencer"
+    }
   },
   "quickChat": {
     "title": "Session rapide",

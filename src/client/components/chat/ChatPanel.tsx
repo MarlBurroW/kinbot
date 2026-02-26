@@ -21,8 +21,9 @@ import { useDraftMessage } from '@/client/hooks/useDraftMessage'
 import { useFileUpload } from '@/client/hooks/useFileUpload'
 import { useExportConversation } from '@/client/hooks/useExportConversation'
 import { ConversationSearch } from '@/client/components/chat/ConversationSearch'
+import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
 import { cn } from '@/client/lib/utils'
-import { MessageSquare, ArrowDown } from 'lucide-react'
+import { ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 
@@ -245,12 +246,12 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto max-w-3xl py-4">
             {messages.length === 0 && liveTasks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
-                <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10">
-                  <MessageSquare className="size-7 text-primary" />
-                </div>
-                <p className="text-sm text-muted-foreground">{t('chat.empty')}</p>
-              </div>
+              <ChatEmptyState
+                kinName={kin.name}
+                kinRole={kin.role}
+                kinAvatarUrl={kin.avatarUrl}
+                onSendMessage={(content) => handleSend(content)}
+              />
             ) : (
               <div className="space-y-1">
                 {messages.map((msg) => {
