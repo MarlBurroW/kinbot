@@ -169,6 +169,10 @@
       "commandPalette": "Command palette",
       "shortcuts": "Keyboard shortcuts",
       "settings": "Settings"
+    },
+    "health": {
+      "providers": "{{healthy}}/{{total}} providers connected",
+      "channels": "{{active}}/{{total}} channels active"
     }
   },
   "kin": {

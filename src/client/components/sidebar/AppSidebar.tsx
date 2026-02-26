@@ -10,6 +10,7 @@ import { KinList } from '@/client/components/sidebar/KinList'
 import { TaskList } from '@/client/components/sidebar/TaskList'
 import { CronList } from '@/client/components/sidebar/CronList'
 import { SidebarFooterContent } from '@/client/components/sidebar/SidebarFooterContent'
+import { SystemHealthBar } from '@/client/components/sidebar/SystemHealthBar'
 
 interface KinSummary {
   id: string
@@ -58,6 +59,9 @@ export function AppSidebar({
           KinBot
         </h1>
       </SidebarHeader>
+
+      {/* System health indicators */}
+      <SystemHealthBar onOpenSettings={onOpenSettings} />
 
       <SidebarSeparator />
 
