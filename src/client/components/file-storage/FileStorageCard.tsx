@@ -72,7 +72,7 @@ export function FileStorageCard({ file, kinName, kinAvatarUrl, onEdit, onDelete 
       await navigator.clipboard.writeText(file.url)
       toast.success(t('settings.files.urlCopied'))
     } catch {
-      toast.error('Failed to copy URL')
+      toast.error(t('errors.copyFailed'))
     }
   }
 

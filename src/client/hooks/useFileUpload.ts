@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface PendingFile {
   /** Client-side unique ID for React keys and removal */
@@ -23,6 +24,7 @@ export interface PendingFile {
  * are passed alongside the message content on send.
  */
 export function useFileUpload(kinId: string) {
+  const { t } = useTranslation()
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
   const kinIdRef = useRef(kinId)
   kinIdRef.current = kinId
@@ -107,7 +109,7 @@ async function uploadSingleFile(
 
     if (!res.ok) {
       const data = await res.json().catch(() => null)
-      const message = data?.error?.message ?? 'Upload failed'
+      const message = data?.error?.message ?? t('errors.uploadFailed')
       setPendingFiles((prev) =>
         prev.map((f) =>
           f.localId === entry.localId ? { ...f, status: 'error' as const, error: message } : f,
@@ -128,7 +130,7 @@ async function uploadSingleFile(
   } catch {
     setPendingFiles((prev) =>
       prev.map((f) =>
-        f.localId === entry.localId ? { ...f, status: 'error' as const, error: 'Upload failed' } : f,
+        f.localId === entry.localId ? { ...f, status: 'error' as const, error: t('errors.uploadFailed') } : f,
       ),
     )
   }

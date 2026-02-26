@@ -43,12 +43,12 @@ export function VaultAttachmentList({ entryId }: VaultAttachmentListProps) {
       })
       if (!response.ok) {
         const err = await response.json()
-        throw new Error(err?.error?.message ?? 'Upload failed')
+        throw new Error(err?.error?.message ?? t('errors.uploadFailed'))
       }
       await fetchAttachments()
       toast.success(t('settings.vault.attachmentUploaded'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed')
+      toast.error(err instanceof Error ? err.message : t('errors.uploadFailed'))
     } finally {
       setIsUploading(false)
     }

@@ -123,7 +123,7 @@ export function FileStorageFormDialog({
 
         if (!response.ok) {
           const err = await response.json()
-          throw new Error(err?.error?.message || 'Upload failed')
+          throw new Error(err?.error?.message || t('errors.uploadFailed'))
         }
       }
       onSaved()

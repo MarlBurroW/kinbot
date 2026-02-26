@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
@@ -50,6 +51,7 @@ interface MessagesResponse {
 const STREAMING_BATCH_MS = 50
 
 export function useChat(kinId: string | null) {
+  const { t } = useTranslation()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [liveTasks, setLiveTasks] = useState<LiveTask[]>([])
@@ -104,7 +106,7 @@ export function useChat(kinId: string | null) {
         )
       }
     } catch {
-      toast.error('Failed to load messages')
+      toast.error(t('errors.loadMessagesFailed'))
     } finally {
       setIsLoading(false)
     }

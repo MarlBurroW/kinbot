@@ -24,7 +24,10 @@
   },
   "errors": {
     "backendUnavailable": "Unable to reach the server. Please check that the backend is running and try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "uploadFailed": "Upload failed",
+    "copyFailed": "Failed to copy URL",
+    "loadMessagesFailed": "Failed to load messages"
   },
   "login": {
     "title": "Welcome back",

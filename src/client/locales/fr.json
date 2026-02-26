@@ -24,7 +24,10 @@
   },
   "errors": {
     "backendUnavailable": "Impossible de joindre le serveur. Vérifiez que le backend est en cours d'exécution et réessayez.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "uploadFailed": "Échec de l'envoi",
+    "copyFailed": "Échec de la copie de l'URL",
+    "loadMessagesFailed": "Échec du chargement des messages"
   },
   "login": {
     "title": "Bon retour",
