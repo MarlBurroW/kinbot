@@ -5,6 +5,7 @@ import {
   SidebarGroupContent,
 } from '@/client/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
+import { Input } from '@/client/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Badge } from '@/client/components/ui/badge'
 import { Button } from '@/client/components/ui/button'
@@ -14,7 +15,7 @@ import { CronDetailModal } from '@/client/components/sidebar/CronDetailModal'
 import { useCrons } from '@/client/hooks/useCrons'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
-import { Plus, Clock, CheckCircle2, Loader2, ChevronRight } from 'lucide-react'
+import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search } from 'lucide-react'
 import type { CronSummary } from '@/shared/types'
 
 const STORAGE_KEY = 'sidebar.crons.open'
@@ -137,6 +138,7 @@ export function CronList({ kins, llmModels }: CronListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editCron, setEditCron] = useState<CronSummary | null>(null)
   const [detailCron, setDetailCron] = useState<CronSummary | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Collapsible state persisted in localStorage
   const [isOpen, setIsOpen] = useState(() => {
@@ -155,11 +157,23 @@ export function CronList({ kins, llmModels }: CronListProps) {
     } catch { /* ignore */ }
   }, [])
 
-  // Split pending-approval from the rest
-  const pendingCrons = useMemo(() => crons.filter((c) => c.requiresApproval), [crons])
-  const regularCrons = useMemo(() => crons.filter((c) => !c.requiresApproval), [crons])
+  // Filter by search query
+  const filteredCrons = useMemo(() => {
+    if (!searchQuery.trim()) return crons
+    const q = searchQuery.toLowerCase()
+    return crons.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.kinName.toLowerCase().includes(q) ||
+        c.schedule.toLowerCase().includes(q),
+    )
+  }, [crons, searchQuery])
 
-  const isEmpty = crons.length === 0 && !isLoading
+  // Split pending-approval from the rest
+  const pendingCrons = useMemo(() => filteredCrons.filter((c) => c.requiresApproval), [filteredCrons])
+  const regularCrons = useMemo(() => filteredCrons.filter((c) => !c.requiresApproval), [filteredCrons])
+
+  const isEmpty = filteredCrons.length === 0 && !isLoading
 
   // Summary counts for collapsed state
   const activeCount = useMemo(
@@ -218,13 +232,28 @@ export function CronList({ kins, llmModels }: CronListProps) {
 
         <CollapsibleContent>
           <SidebarGroupContent>
+            {/* Search input */}
+            {crons.length > 0 && (
+              <div className="px-1 pb-2 pt-1">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('sidebar.crons.search')}
+                    className="h-8 pl-8 text-xs"
+                  />
+                </div>
+              </div>
+            )}
+
             {isLoading ? (
               <div className="flex justify-center py-4">
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               </div>
             ) : isEmpty ? (
               <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-                {t('sidebar.crons.empty')}
+                {searchQuery ? t('sidebar.crons.noResults') : t('sidebar.crons.empty')}
               </p>
             ) : (
               <div className="max-h-[25vh] overflow-y-auto">
