@@ -14,6 +14,7 @@ import {
 } from '@/client/components/ui/alert-dialog'
 import { Plus, Lock, Settings2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { VaultSecretCard, type VaultSecretData } from '@/client/components/vault/VaultSecretCard'
@@ -151,6 +152,17 @@ export function VaultSettings() {
           <Settings2 className="size-4" />
         </Button>
       </div>
+
+      <HelpPanel
+        contentKey="settings.vault.help.content"
+        bulletKeys={[
+          'settings.vault.help.bullet1',
+          'settings.vault.help.bullet2',
+          'settings.vault.help.bullet3',
+          'settings.vault.help.bullet4',
+        ]}
+        storageKey="help.vault.open"
+      />
 
       {/* Type filter tabs */}
       <div className="flex flex-wrap gap-1.5">

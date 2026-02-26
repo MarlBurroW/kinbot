@@ -20,7 +20,8 @@
     "create": "Créer",
     "copy": "Copier",
     "copied": "Copié",
-    "test": "Tester"
+    "test": "Tester",
+    "whatIsThis": "Qu'est-ce que c'est ?"
   },
   "errors": {
     "backendUnavailable": "Impossible de joindre le serveur. Vérifiez que le backend est en cours d'exécution et réessayez.",
@@ -570,7 +571,14 @@
       "nameTip": "Un nom pour identifier ce serveur dans la liste.",
       "commandTip": "L'exécutable à lancer. Généralement npx pour les packages npm, ou un chemin absolu vers un binaire.",
       "argsTip": "Arguments passés au serveur. Mettez chaque argument sur sa propre ligne.",
-      "envTip": "Variables d'environnement passées au processus serveur. Utilisez-les pour les clés API et les secrets."
+      "envTip": "Variables d'environnement passées au processus serveur. Utilisez-les pour les clés API et les secrets.",
+      "help": {
+        "content": "Les serveurs MCP (Model Context Protocol) sont des programmes externes qui donnent a vos Kins des capacites supplementaires au-dela de leurs outils integres. Ils tournent comme des processus separes et communiquent via un protocole standard.",
+        "bullet1": "Chaque serveur MCP fournit un ou plusieurs outils (ex: recherche de fichiers, requetes base de donnees, integrations API)",
+        "bullet2": "Les serveurs sont demarres automatiquement quand un Kin en a besoin et arretes quand inactifs",
+        "bullet3": "Les variables d'environnement permettent de passer des cles API et secrets au processus serveur",
+        "bullet4": "Les Kins peuvent aussi decouvrir et ajouter des serveurs MCP eux-memes (affiches comme \"En attente d'approbation\")"
+      }
     },
     "vault": {
       "title": "Coffre-fort",
@@ -626,7 +634,14 @@
       "deleteTypeConfirm": "Supprimer ce type personnalisé ? Les entrées existantes de ce type seront conservées mais ne pourront plus être créées.",
       "keyTip": "Un identifiant unique pour cette entrée (ex : GITHUB_TOKEN). Les Kins y accèdent par cette clé.",
       "entryTypeTip": "Le type détermine les champs disponibles. Choisissez « Texte » pour les valeurs simples ou un type structuré pour les entrées multi-champs.",
-      "descriptionTip": "Une courte note sur l'usage de cette entrée. Aide les Kins à savoir quand l'utiliser."
+      "descriptionTip": "Une courte note sur l'usage de cette entrée. Aide les Kins à savoir quand l'utiliser.",
+      "help": {
+        "content": "Le Coffre-fort est un stockage securise cle-valeur ou vous pouvez enregistrer des identifiants, cles API et autres secrets. Les Kins peuvent acceder aux entrees du coffre via leurs outils sans que les valeurs apparaissent dans les conversations.",
+        "bullet1": "Les secrets sont chiffres au repos et dechiffres uniquement quand un Kin en a besoin",
+        "bullet2": "Vous pouvez organiser les secrets par type (cle API, mot de passe, token, etc.) et creer des types personnalises",
+        "bullet3": "Attachez des fichiers aux entrees pour des certificats, fichiers de config ou autres documents sensibles",
+        "bullet4": "Marquez des entrees comme favoris pour un acces rapide"
+      }
     },
     "files": {
       "title": "Fichiers",
@@ -662,7 +677,13 @@
       "deleted": "Fichier supprimé",
       "createdByKin": "par {{name}}",
       "createdByAdmin": "par l'admin",
-      "emptyDescription": "Uploadez des fichiers que vos Kins pourront consulter pendant les conversations."
+      "emptyDescription": "Uploadez des fichiers que vos Kins pourront consulter pendant les conversations.",
+      "help": {
+        "content": "Le Stockage de fichiers permet a vos Kins de sauvegarder, lire et partager des fichiers pendant les conversations. Les fichiers uploades par les utilisateurs ou generes par les Kins sont stockes ici et peuvent etre references entre les sessions.",
+        "bullet1": "Chaque Kin a son propre espace de fichiers pour eviter les conflits",
+        "bullet2": "Supporte les images, documents, fichiers de code et tout autre type de fichier",
+        "bullet3": "Les fichiers peuvent etre partages dans les messages de channels et les payloads de webhooks"
+      }
     },
     "memories": {
       "title": "Souvenirs",
@@ -786,7 +807,14 @@
       "emptyDescription": "Créez des webhooks pour déclencher des actions ou envoyer des données à des services externes.",
       "tokenLabel": "Token",
       "nameTip": "Un nom descriptif pour ce webhook. Aide à le distinguer quand vous en avez plusieurs.",
-      "descriptionTip": "Note optionnelle expliquant à quoi sert ce webhook. Visible uniquement dans le tableau de bord."
+      "descriptionTip": "Note optionnelle expliquant à quoi sert ce webhook. Visible uniquement dans le tableau de bord.",
+      "help": {
+        "content": "Les webhooks permettent aux services externes d'envoyer des evenements directement a vos Kins via des requetes HTTP POST. Chaque webhook obtient une URL unique et un token a configurer dans le service externe.",
+        "bullet1": "Utilisez les webhooks pour connecter des pipelines CI/CD, alertes de monitoring, soumissions de formulaires, ou tout service capable de faire du HTTP",
+        "bullet2": "Chaque webhook est lie a un Kin specifique qui traitera les evenements entrants",
+        "bullet3": "Le token du webhook doit etre inclus comme Bearer token dans le header Authorization",
+        "bullet4": "Le corps de la requete (JSON ou texte) est transmis comme message au Kin cible"
+      }
     },
     "users": {
       "title": "Utilisateurs",

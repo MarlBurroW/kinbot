@@ -24,6 +24,7 @@ import { Input } from '@/client/components/ui/input'
 import { Label } from '@/client/components/ui/label'
 import { Plus, Copy, Eye, EyeOff , Webhook} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
@@ -172,6 +173,17 @@ export function WebhooksSettings() {
           {t('settings.webhooks.description')}
         </p>
       </div>
+
+      <HelpPanel
+        contentKey="settings.webhooks.help.content"
+        bulletKeys={[
+          'settings.webhooks.help.bullet1',
+          'settings.webhooks.help.bullet2',
+          'settings.webhooks.help.bullet3',
+          'settings.webhooks.help.bullet4',
+        ]}
+        storageKey="help.webhooks.open"
+      />
 
       {webhooks.length === 0 && (
         <EmptyState
