@@ -240,7 +240,7 @@ export const createVaultEntryTool: ToolRegistration = {
       inputSchema: z.object({
         key: z.string().describe('Unique key for the entry (SCREAMING_SNAKE_CASE recommended)'),
         entry_type: z.string().describe('Entry type: text, credential, card, note, identity, or a custom type slug'),
-        value: z.union([z.string(), z.record(z.unknown())]).describe(
+        value: z.union([z.string(), z.record(z.string(), z.unknown())]).describe(
           'For text type: a string value. For other types: an object with the type\'s fields (e.g. { url, username, password })',
         ),
         description: z.string().optional().describe('Optional description of the entry'),

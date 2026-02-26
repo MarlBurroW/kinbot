@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/client/components/ui/dialog'
 import { Input } from '@/client/components/ui/input'
 import { PasswordInput } from '@/client/components/ui/password-input'
 import { Button } from '@/client/components/ui/button'

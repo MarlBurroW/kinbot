@@ -48,7 +48,7 @@ export function KinSelector({
           <SelectValue placeholder={placeholder} />
         )}
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position="popper">
         {noneLabel != null && <SelectItem value="none">{noneLabel}</SelectItem>}
         {kins.map((kin) => (
           <SelectItem key={kin.id} value={kin.id} className="py-2">
