@@ -25,6 +25,7 @@ import {
   FileText,
   UserCheck,
   Cpu,
+  Copy,
 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
@@ -51,6 +52,7 @@ interface CronDetailModalProps {
   cron: CronSummary
   llmModels: LLMModel[]
   onEdit: () => void
+  onDuplicate?: () => void
   onApprove: (id: string) => Promise<CronSummary>
   onToggleActive: (id: string, isActive: boolean) => Promise<CronSummary>
 }
@@ -91,6 +93,7 @@ export function CronDetailModal({
   cron,
   llmModels,
   onEdit,
+  onDuplicate,
   onApprove,
   onToggleActive,
 }: CronDetailModalProps) {
@@ -323,6 +326,17 @@ export function CronDetailModal({
               <Pencil className="mr-1.5 size-3.5" />
               {t('common.edit')}
             </Button>
+            {onDuplicate && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => { onOpenChange(false); onDuplicate() }}
+              >
+                <Copy className="mr-1.5 size-3.5" />
+                {t('cron.detail.duplicate')}
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"

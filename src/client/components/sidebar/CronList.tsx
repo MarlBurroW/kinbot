@@ -198,6 +198,7 @@ export function CronList({ kins, llmModels }: CronListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editCron, setEditCron] = useState<CronSummary | null>(null)
   const [detailCron, setDetailCron] = useState<CronSummary | null>(null)
+  const [duplicateDefaults, setDuplicateDefaults] = useState<Partial<CronSummary> | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   // Collapsible state persisted in localStorage
@@ -387,9 +388,13 @@ export function CronList({ kins, llmModels }: CronListProps) {
       {/* Create modal */}
       <CronFormModal
         open={showCreateModal}
-        onOpenChange={setShowCreateModal}
+        onOpenChange={(open) => {
+          setShowCreateModal(open)
+          if (!open) setDuplicateDefaults(null)
+        }}
         kins={kins}
         llmModels={llmModels}
+        defaults={duplicateDefaults}
         onCreate={createCron}
       />
 
@@ -414,6 +419,14 @@ export function CronList({ kins, llmModels }: CronListProps) {
           onEdit={() => {
             setDetailCron(null)
             setEditCron(currentDetailCron)
+          }}
+          onDuplicate={() => {
+            setDetailCron(null)
+            setDuplicateDefaults({
+              ...currentDetailCron,
+              name: `${currentDetailCron.name} (${t('cron.detail.copy')})`,
+            })
+            setShowCreateModal(true)
           }}
           onApprove={approveCron}
           onToggleActive={(id, isActive) => updateCron(id, { isActive })}

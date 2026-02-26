@@ -326,7 +326,9 @@
       "modelInherited": "Inherited from parent Kin",
       "history": "Execution history",
       "historyEmpty": "No executions yet",
-      "executions": "{{count}} execution(s)"
+      "executions": "{{count}} execution(s)",
+      "duplicate": "Duplicate",
+      "copy": "copy"
     }
   },
   "chat": {

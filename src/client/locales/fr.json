@@ -326,7 +326,9 @@
       "modelInherited": "Hérité du Kin parent",
       "history": "Historique d'exécutions",
       "historyEmpty": "Aucune exécution",
-      "executions": "{{count}} exécution(s)"
+      "executions": "{{count}} exécution(s)",
+      "duplicate": "Dupliquer",
+      "copy": "copie"
     }
   },
   "chat": {

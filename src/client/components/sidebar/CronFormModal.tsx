@@ -46,6 +46,8 @@ interface CronFormModalProps {
   kins: KinOption[]
   llmModels: LLMModel[]
   cron?: CronSummary | null
+  /** Pre-fill values for create mode (used when duplicating). */
+  defaults?: Partial<CronSummary> | null
   onCreate?: (data: {
     kinId: string
     name: string
@@ -76,6 +78,7 @@ export function CronFormModal({
   kins,
   llmModels,
   cron,
+  defaults,
   onCreate,
   onUpdate,
   onDelete,
@@ -102,6 +105,13 @@ export function CronFormModal({
         setTaskDescription(cron.taskDescription)
         setTargetKinId(cron.targetKinId ?? '')
         setModel(cron.model ?? '')
+      } else if (defaults) {
+        setName(defaults.name ?? '')
+        setKinId(defaults.kinId ?? (kins.length === 1 ? kins[0]!.id : ''))
+        setSchedule(defaults.schedule ?? '')
+        setTaskDescription(defaults.taskDescription ?? '')
+        setTargetKinId(defaults.targetKinId ?? '')
+        setModel(defaults.model ?? '')
       } else {
         setName('')
         setKinId(kins.length === 1 ? kins[0]!.id : '')
@@ -112,7 +122,7 @@ export function CronFormModal({
       }
       setError(null)
     }
-  }, [open, cron, kins])
+  }, [open, cron, defaults, kins])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
