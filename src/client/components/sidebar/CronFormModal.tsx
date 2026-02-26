@@ -20,16 +20,10 @@ import {
 import { Input } from '@/client/components/ui/input'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/client/components/ui/select'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { KinSelector } from '@/client/components/common/KinSelector'
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { AlertCircle, Loader2, Trash2 } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
@@ -210,22 +204,13 @@ export function CronFormModal({
                   {selectedKin && <KinSelectItem kin={selectedKin} />}
                 </div>
               ) : (
-                <Select value={kinId} onValueChange={setKinId} required>
-                  <SelectTrigger className="w-full h-auto min-h-9">
-                    {kinId && selectedKin ? (
-                      <KinSelectItem kin={selectedKin} />
-                    ) : (
-                      <SelectValue placeholder={t('cron.create.kinPlaceholder')} />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {kins.map((kin) => (
-                      <SelectItem key={kin.id} value={kin.id} className="py-2">
-                        <KinSelectItem kin={kin} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <KinSelector
+                  value={kinId}
+                  onValueChange={setKinId}
+                  kins={kins}
+                  placeholder={t('cron.create.kinPlaceholder')}
+                  required
+                />
               )}
             </div>
 
@@ -278,26 +263,13 @@ export function CronFormModal({
             {/* Target Kin (optional) */}
             <div className="space-y-2">
               <Label className="inline-flex items-center gap-1.5">{t('cron.create.targetKin')} <InfoTip content={t('cron.create.targetKinTip')} /></Label>
-              <Select value={targetKinId} onValueChange={setTargetKinId}>
-                <SelectTrigger className="w-full h-auto min-h-9">
-                  {targetKinId && targetKinId !== 'none' ? (
-                    (() => {
-                      const targetKin = kins.find((k) => k.id === targetKinId)
-                      return targetKin ? <KinSelectItem kin={targetKin} /> : <SelectValue placeholder="—" />
-                    })()
-                  ) : (
-                    <SelectValue placeholder="—" />
-                  )}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">—</SelectItem>
-                  {kins.map((kin) => (
-                    <SelectItem key={kin.id} value={kin.id} className="py-2">
-                      <KinSelectItem kin={kin} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <KinSelector
+                value={targetKinId}
+                onValueChange={setTargetKinId}
+                kins={kins}
+                placeholder="—"
+                noneLabel="—"
+              />
               <p className="text-[11px] text-muted-foreground">{t('cron.create.targetKinHint')}</p>
             </div>
 

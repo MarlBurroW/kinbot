@@ -11,14 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/client/components/ui/select'
-import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
+import { KinSelector } from '@/client/components/common/KinSelector'
+import type { KinOption } from '@/client/components/common/KinSelectItem'
 import { Loader2 } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import type { WebhookSummary } from '@/shared/types'
@@ -104,18 +98,12 @@ export function WebhookFormDialog({
           {!isEdit && (
             <div className="space-y-2">
               <Label>{t('settings.webhooks.kin')}</Label>
-              <Select value={selectedKinId} onValueChange={setSelectedKinId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('settings.webhooks.kinPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {kins.map((k) => (
-                    <SelectItem key={k.id} value={k.id} className="py-2">
-                      <KinSelectItem kin={k} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <KinSelector
+                value={selectedKinId}
+                onValueChange={setSelectedKinId}
+                kins={kins}
+                placeholder={t('settings.webhooks.kinPlaceholder')}
+              />
             </div>
           )}
 
