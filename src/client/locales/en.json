@@ -679,7 +679,9 @@
       "kinTip": "Which Kin this memory belongs to. Each Kin has its own memory space.",
       "contentTip": "The information to remember. Be specific — the Kin will recall this verbatim during conversations.",
       "categoryTip": "Categorize the memory for better organization and retrieval.",
-      "subjectTip": "Optional tag to group related memories (e.g. a person's name, a project, a topic)."
+      "subjectTip": "Optional tag to group related memories (e.g. a person's name, a project, a topic).",
+      "emptyDescription": "Memories help your Kins remember important information across conversations. Add one manually or let your Kins create them automatically.",
+      "noResults": "No memories match your filters"
     },
     "contacts": {
       "title": "Contacts",
@@ -908,7 +910,8 @@
       "deleteConfirm": "This will permanently delete this notification channel. You will no longer receive notifications through it.",
       "sourceChannelTip": "The messaging channel (bot) used to send notifications. Must be active and configured.",
       "recipientTip": "The contact who will receive notifications via DM. They must have a platform ID matching the selected channel.",
-      "labelTip": "A friendly name to identify this delivery channel in the list."
+      "labelTip": "A friendly name to identify this delivery channel in the list.",
+      "noChannelsDescription": "Add a delivery channel to receive notifications on Telegram, Discord, email, or other platforms."
     },
     "groups": {
       "core": "Core",

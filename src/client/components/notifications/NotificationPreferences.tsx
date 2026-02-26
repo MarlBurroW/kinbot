@@ -6,6 +6,7 @@ import { Label } from '@/client/components/ui/label'
 import { Button } from '@/client/components/ui/button'
 import { Separator } from '@/client/components/ui/separator'
 import { Plus, Radio, Volume2 } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import {
   getNotificationSoundEnabled,
   setNotificationSoundEnabled,
@@ -135,10 +136,13 @@ export function NotificationPreferences() {
       </div>
 
       {channels.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed py-8 text-muted-foreground">
-          <Radio className="size-8 opacity-40" />
-          <p className="text-sm">{t('settings.notifications.noChannels')}</p>
-        </div>
+        <EmptyState
+          icon={Radio}
+          title={t('settings.notifications.noChannels')}
+          description={t('settings.notifications.noChannelsDescription')}
+          actionLabel={t('settings.notifications.addChannel')}
+          onAction={() => { setEditChannel(null); setFormOpen(true) }}
+        />
       ) : (
         <div className="space-y-2">
           {channels.map((ch) => (

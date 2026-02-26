@@ -20,7 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Plus, Search } from 'lucide-react'
+import { Brain, Plus, Search } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { useMemories } from '@/client/hooks/useMemories'
 import { MemoryCard } from '@/client/components/memory/MemoryCard'
@@ -185,9 +186,19 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
           {t('common.loading')}
         </div>
       ) : filteredMemories.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {t('settings.memories.empty')}
-        </div>
+        searchQuery || categoryFilter !== 'all' || kinFilter !== 'all' ? (
+          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+            {t('settings.memories.noResults')}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Brain}
+            title={t('settings.memories.empty')}
+            description={t('settings.memories.emptyDescription')}
+            actionLabel={t('settings.memories.add')}
+            onAction={openAdd}
+          />
+        )
       ) : (
         <div className="space-y-2">
           {filteredMemories.map((memory) => (
