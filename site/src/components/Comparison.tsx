@@ -8,23 +8,25 @@ interface Row {
   chatgpt: Support
   openwebui: Support
   librechat: Support
+  anythingllm: Support
 }
 
 const rows: Row[] = [
-  { feature: 'Self-hosted / your data', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes' },
-  { feature: 'Persistent agent identity', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', librechat: 'no' },
-  { feature: 'Long-term memory', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', librechat: 'no' },
-  { feature: 'Session compacting', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'Inter-agent communication', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'Sub-tasks / delegation', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'Cron jobs / autonomy', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'Encrypted vault', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'no' },
-  { feature: 'Multi-provider (25+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes' },
-  { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'Chat integrations (Telegram, Discord, Slack, WhatsApp, Signal, Matrix)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no' },
-  { feature: 'Multi-user with roles', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', librechat: 'yes' },
-  { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes' },
+  { feature: 'Self-hosted / your data', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes', anythingllm: 'yes' },
+  { feature: 'Persistent agent identity', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', librechat: 'no', anythingllm: 'partial' },
+  { feature: 'Long-term memory', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', librechat: 'no', anythingllm: 'partial' },
+  { feature: 'Session compacting', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no', anythingllm: 'no' },
+  { feature: 'Inter-agent communication', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no', anythingllm: 'no' },
+  { feature: 'Sub-tasks / delegation', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no', anythingllm: 'no' },
+  { feature: 'Cron jobs / autonomy', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no', anythingllm: 'no' },
+  { feature: 'Encrypted vault', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no', anythingllm: 'no' },
+  { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'no', anythingllm: 'no' },
+  { feature: 'Multi-provider (25+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes', anythingllm: 'yes' },
+  { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no', anythingllm: 'no' },
+  { feature: 'Chat integrations (6 platforms)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', librechat: 'no', anythingllm: 'no' },
+  { feature: 'RAG / document embedding', kinbot: 'no', chatgpt: 'partial', openwebui: 'yes', librechat: 'no', anythingllm: 'yes' },
+  { feature: 'Multi-user with roles', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', librechat: 'yes', anythingllm: 'yes' },
+  { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes', anythingllm: 'yes' },
 ]
 
 function Cell({ value }: { value: Support }) {
@@ -105,6 +107,12 @@ export function Comparison() {
                 >
                   LibreChat
                 </th>
+                <th
+                  className="py-4 px-4 text-center font-medium"
+                  style={{ color: 'var(--color-muted-foreground)' }}
+                >
+                  AnythingLLM
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -140,6 +148,9 @@ export function Comparison() {
                   </td>
                   <td className="py-3 px-4 text-center">
                     <Cell value={row.librechat} />
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <Cell value={row.anythingllm} />
                   </td>
                 </tr>
               ))}
