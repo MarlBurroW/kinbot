@@ -28,7 +28,15 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     shortcuts: [
       { keys: [MOD, 'K'], labelKey: 'shortcuts.commandPalette' },
       { keys: [MOD, 'B'], labelKey: 'shortcuts.toggleSidebar' },
+      { keys: [MOD, ','], labelKey: 'shortcuts.openSettings' },
       { keys: ['?'], labelKey: 'shortcuts.showShortcuts' },
+    ],
+  },
+  {
+    titleKey: 'shortcuts.group.kins',
+    shortcuts: [
+      { keys: [MOD, '1-9'], labelKey: 'shortcuts.switchKin' },
+      { keys: [MOD, 'Shift', 'N'], labelKey: 'shortcuts.createKin' },
     ],
   },
   {

@@ -1057,11 +1057,15 @@
     "hint": "Appuyez sur ? pour afficher ce dialogue",
     "group": {
       "navigation": "Navigation",
+      "kins": "Kins",
       "chat": "Chat"
     },
     "commandPalette": "Palette de commandes",
     "toggleSidebar": "Afficher/masquer la barre latérale",
+    "openSettings": "Ouvrir les paramètres",
     "showShortcuts": "Afficher les raccourcis clavier",
+    "switchKin": "Basculer vers un Kin par position",
+    "createKin": "Créer un nouveau Kin",
     "sendMessage": "Envoyer le message",
     "newLine": "Nouvelle ligne"
   },

@@ -1057,11 +1057,15 @@
     "hint": "Press ? anywhere to show this dialog",
     "group": {
       "navigation": "Navigation",
+      "kins": "Kins",
       "chat": "Chat"
     },
     "commandPalette": "Command palette",
     "toggleSidebar": "Toggle sidebar",
+    "openSettings": "Open settings",
     "showShortcuts": "Show keyboard shortcuts",
+    "switchKin": "Switch to Kin by position",
+    "createKin": "Create new Kin",
     "sendMessage": "Send message",
     "newLine": "New line"
   },

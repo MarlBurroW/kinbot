@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/client/components/ui/sidebar'
@@ -103,6 +103,42 @@ export function ChatPage() {
   }, [updateKin])
 
   const selectedKin = kins.find((k) => k.slug === selectedKinSlug)
+
+  // Global keyboard shortcuts for kin navigation & actions
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod) return
+
+      // Cmd/Ctrl + 1-9 → switch to kin by index
+      const digit = parseInt(e.key, 10)
+      if (digit >= 1 && digit <= 9 && !e.shiftKey && !e.altKey) {
+        const kin = kins[digit - 1]
+        if (kin) {
+          e.preventDefault()
+          navigate(`/kin/${kin.slug}`)
+        }
+        return
+      }
+
+      // Cmd/Ctrl + Shift + N → create new kin
+      if (e.key.toLowerCase() === 'n' && e.shiftKey && !e.altKey) {
+        e.preventDefault()
+        handleOpenCreateModal()
+        return
+      }
+
+      // Cmd/Ctrl + , → open settings
+      if (e.key === ',' && !e.shiftKey && !e.altKey) {
+        e.preventDefault()
+        handleOpenSettings()
+        return
+      }
+    }
+
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [kins, navigate, handleOpenSettings])
 
   return (
     <SidebarProvider>
