@@ -1,4 +1,5 @@
-import { Check, X, Minus } from 'lucide-react'
+import { useState } from 'react'
+import { Check, X, Minus, ChevronDown } from 'lucide-react'
 
 type Support = 'yes' | 'no' | 'partial'
 
@@ -10,6 +11,15 @@ interface Row {
   librechat: Support
   anythingllm: Support
 }
+
+type Competitor = 'chatgpt' | 'openwebui' | 'librechat' | 'anythingllm'
+
+const competitors: { id: Competitor; label: string }[] = [
+  { id: 'chatgpt', label: 'ChatGPT' },
+  { id: 'openwebui', label: 'Open WebUI' },
+  { id: 'librechat', label: 'LibreChat' },
+  { id: 'anythingllm', label: 'AnythingLLM' },
+]
 
 const rows: Row[] = [
   { feature: 'Self-hosted / your data', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', librechat: 'yes', anythingllm: 'yes' },
@@ -60,6 +70,194 @@ function Cell({ value }: { value: Support }) {
   )
 }
 
+function CellLabel({ value }: { value: Support }) {
+  if (value === 'yes') return <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>Yes</span>
+  if (value === 'partial') return <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Partial</span>
+  return <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)', opacity: 0.5 }}>No</span>
+}
+
+/** Mobile: compare KinBot vs one selected competitor, card-style */
+function MobileComparison() {
+  const [selected, setSelected] = useState<Competitor>('chatgpt')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const competitor = competitors.find(c => c.id === selected)!
+
+  const kinbotWins = rows.filter(r => {
+    const k = r.kinbot
+    const c = r[selected]
+    if (k === 'yes' && c !== 'yes') return true
+    if (k === 'yes' && c === 'partial') return true
+    return false
+  }).length
+
+  return (
+    <div className="md:hidden">
+      {/* Competitor selector */}
+      <div className="relative mb-6">
+        <button
+          onClick={() => setDropdownOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl glass-strong text-sm font-medium"
+          style={{ color: 'var(--color-foreground)' }}
+        >
+          <span>
+            <span className="gradient-text font-semibold">KinBot</span>
+            <span style={{ color: 'var(--color-muted-foreground)' }}> vs </span>
+            <span>{competitor.label}</span>
+          </span>
+          <ChevronDown
+            size={16}
+            className="transition-transform duration-200"
+            style={{
+              color: 'var(--color-muted-foreground)',
+              transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+          />
+        </button>
+        {dropdownOpen && (
+          <div
+            className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-10 glass-strong"
+            style={{ border: '1px solid var(--color-border)' }}
+          >
+            {competitors.map(c => (
+              <button
+                key={c.id}
+                onClick={() => { setSelected(c.id); setDropdownOpen(false) }}
+                className="w-full text-left px-4 py-2.5 text-sm transition-colors duration-150"
+                style={{
+                  color: c.id === selected ? 'var(--color-primary)' : 'var(--color-foreground)',
+                  background: c.id === selected ? 'color-mix(in oklch, var(--color-glow-1) 8%, transparent)' : 'transparent',
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Score summary */}
+      <div
+        className="flex items-center justify-center gap-2 mb-6 px-4 py-2.5 rounded-xl text-sm font-medium"
+        style={{
+          background: 'color-mix(in oklch, var(--color-glow-1) 8%, transparent)',
+          color: 'var(--color-primary)',
+          border: '1px solid color-mix(in oklch, var(--color-glow-1) 20%, transparent)',
+        }}
+      >
+        KinBot leads on {kinbotWins} of {rows.length} features
+      </div>
+
+      {/* Feature cards */}
+      <div className="space-y-2">
+        {rows.map((row) => {
+          const kinbotVal = row.kinbot
+          const competitorVal = row[selected]
+          const kinbotBetter = kinbotVal === 'yes' && competitorVal !== 'yes'
+
+          return (
+            <div
+              key={row.feature}
+              className="flex items-center justify-between px-4 py-3 rounded-xl transition-colors duration-150"
+              style={{
+                background: kinbotBetter
+                  ? 'color-mix(in oklch, var(--color-glow-1) 5%, transparent)'
+                  : 'color-mix(in oklch, var(--color-muted-foreground) 3%, transparent)',
+                border: kinbotBetter
+                  ? '1px solid color-mix(in oklch, var(--color-glow-1) 12%, transparent)'
+                  : '1px solid color-mix(in oklch, var(--color-border) 30%, transparent)',
+              }}
+            >
+              <span className="text-sm flex-1 pr-4" style={{ color: 'var(--color-foreground)' }}>
+                {row.feature}
+              </span>
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <div className="flex flex-col items-center gap-0.5 w-14">
+                  <Cell value={kinbotVal} />
+                  <span className="text-[10px] font-medium gradient-text">KinBot</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5 w-14">
+                  <Cell value={competitorVal} />
+                  <CellLabel value={competitorVal} />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** Desktop: full comparison table */
+function DesktopComparison() {
+  return (
+    <div
+      className="hidden md:block glass-strong gradient-border rounded-2xl overflow-hidden"
+      style={{ boxShadow: 'var(--shadow-md)' }}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}>
+              <th
+                className="text-left py-4 px-5 font-semibold"
+                style={{ color: 'var(--color-foreground)' }}
+              >
+                Feature
+              </th>
+              <th className="py-4 px-4 text-center font-semibold">
+                <span className="gradient-text">KinBot</span>
+              </th>
+              {competitors.map(c => (
+                <th
+                  key={c.id}
+                  className="py-4 px-4 text-center font-medium"
+                  style={{ color: 'var(--color-muted-foreground)' }}
+                >
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr
+                key={row.feature}
+                className="transition-colors duration-150"
+                style={{
+                  borderBottom:
+                    i < rows.length - 1
+                      ? '1px solid color-mix(in oklch, var(--color-border) 30%, transparent)'
+                      : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    'color-mix(in oklch, var(--color-glow-1) 5%, transparent)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                <td className="py-3 px-5" style={{ color: 'var(--color-foreground)' }}>
+                  {row.feature}
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Cell value={row.kinbot} />
+                </td>
+                {competitors.map(c => (
+                  <td key={c.id} className="py-3 px-4 text-center">
+                    <Cell value={row[c.id]} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export function Comparison() {
   return (
     <section id="comparison" className="px-6 py-24 max-w-5xl mx-auto">
@@ -72,92 +270,8 @@ export function Comparison() {
         </p>
       </div>
 
-      <div
-        className="glass-strong gradient-border rounded-2xl overflow-hidden"
-        style={{ boxShadow: 'var(--shadow-md)' }}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}>
-                <th
-                  className="text-left py-4 px-5 font-semibold"
-                  style={{ color: 'var(--color-foreground)' }}
-                >
-                  Feature
-                </th>
-                <th className="py-4 px-4 text-center font-semibold">
-                  <span className="gradient-text">KinBot</span>
-                </th>
-                <th
-                  className="py-4 px-4 text-center font-medium"
-                  style={{ color: 'var(--color-muted-foreground)' }}
-                >
-                  ChatGPT
-                </th>
-                <th
-                  className="py-4 px-4 text-center font-medium"
-                  style={{ color: 'var(--color-muted-foreground)' }}
-                >
-                  Open WebUI
-                </th>
-                <th
-                  className="py-4 px-4 text-center font-medium"
-                  style={{ color: 'var(--color-muted-foreground)' }}
-                >
-                  LibreChat
-                </th>
-                <th
-                  className="py-4 px-4 text-center font-medium"
-                  style={{ color: 'var(--color-muted-foreground)' }}
-                >
-                  AnythingLLM
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr
-                  key={row.feature}
-                  className="transition-colors duration-150"
-                  style={{
-                    borderBottom:
-                      i < rows.length - 1
-                        ? '1px solid color-mix(in oklch, var(--color-border) 30%, transparent)'
-                        : undefined,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background =
-                      'color-mix(in oklch, var(--color-glow-1) 5%, transparent)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
-                >
-                  <td className="py-3 px-5" style={{ color: 'var(--color-foreground)' }}>
-                    {row.feature}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <Cell value={row.kinbot} />
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <Cell value={row.chatgpt} />
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <Cell value={row.openwebui} />
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <Cell value={row.librechat} />
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <Cell value={row.anythingllm} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <MobileComparison />
+      <DesktopComparison />
 
       <p className="text-center mt-6 text-xs" style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}>
         Comparison based on default capabilities as of February 2026. Some features may be available via plugins.
