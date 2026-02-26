@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@/client/components/ui/input'
+import { PasswordInput } from '@/client/components/ui/password-input'
 import { Textarea } from '@/client/components/ui/textarea'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
@@ -209,8 +210,7 @@ export function McpServerFormDialog({
                     placeholder={t('settings.mcp.envKeyPlaceholder')}
                     className="font-mono text-sm flex-[2]"
                   />
-                  <Input
-                    type="password"
+                  <PasswordInput
                     value={v.value}
                     onChange={(e) => updateEnvVar(i, 'value', e.target.value)}
                     placeholder={isEditing ? '••••••••' : t('settings.mcp.envValuePlaceholder')}

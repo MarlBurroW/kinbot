@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@/client/components/ui/input'
+import { PasswordInput } from '@/client/components/ui/password-input'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
@@ -200,8 +201,7 @@ export function FileStorageFormDialog({
               {t('settings.files.password')}
               <span className="ml-1 text-xs text-muted-foreground">({t('common.optional')})</span>
             </Label>
-            <Input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={isEditing ? '••••••••' : t('settings.files.passwordPlaceholder')}

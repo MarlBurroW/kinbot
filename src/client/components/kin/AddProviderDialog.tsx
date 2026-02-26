@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@/client/components/ui/input'
+import { PasswordInput } from '@/client/components/ui/password-input'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select'
@@ -13,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
@@ -50,7 +51,6 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
   const [providerName, setProviderName] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
-  const [showApiKey, setShowApiKey] = useState(false)
 
   // Populate form when editing
   useEffect(() => {
@@ -254,28 +254,24 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
                 </span>
               )}
             </Label>
-            <div className="relative">
+            {isApiKeyOptional ? (
               <Input
                 id="apiKey"
-                type={isApiKeyOptional ? 'text' : showApiKey ? 'text' : 'password'}
+                type="text"
                 value={apiKey}
                 onChange={(e) => { setApiKey(e.target.value); resetTest() }}
                 autoComplete="off"
-                placeholder={isApiKeyOptional ? '~/.claude/.credentials.json' : isEditing ? '••••••••' : undefined}
-                className={!isApiKeyOptional ? 'pr-9' : undefined}
+                placeholder="~/.claude/.credentials.json"
               />
-              {!isApiKeyOptional && (
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey((v) => !v)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  title={t(showApiKey ? 'onboarding.providers.hideApiKey' : 'onboarding.providers.showApiKey')}
-                  aria-label={t(showApiKey ? 'onboarding.providers.hideApiKey' : 'onboarding.providers.showApiKey')}
-                >
-                  {showApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              )}
-            </div>
+            ) : (
+              <PasswordInput
+                id="apiKey"
+                value={apiKey}
+                onChange={(e) => { setApiKey(e.target.value); resetTest() }}
+                autoComplete="off"
+                placeholder={isEditing ? '••••••••' : undefined}
+              />
+            )}
           </div>
 
           <div className="space-y-2">
