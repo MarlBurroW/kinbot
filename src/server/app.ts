@@ -1,6 +1,9 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { count } from 'drizzle-orm'
 import { createLogger } from '@/server/logger'
+import { db } from '@/server/db/index'
+import { kins, providers, channels, crons, memories, mcpServers, contacts, user } from '@/server/db/schema'
 import { authMiddleware } from '@/server/auth/middleware'
 import { authRoutes } from '@/server/routes/auth'
 import { meRoutes } from '@/server/routes/me'
@@ -70,6 +73,45 @@ app.use('/api/*', authMiddleware)
 // Health check
 app.get('/api/health', (c) => {
   return c.json({ status: 'ok', timestamp: Date.now() })
+})
+
+// System info (authenticated — stats about the instance)
+const startedAt = Date.now()
+app.get('/api/info', async (c) => {
+  const [
+    [kinCount],
+    [providerCount],
+    [channelCount],
+    [cronCount],
+    [memoryCount],
+    [mcpCount],
+    [contactCount],
+    [userCount],
+  ] = await Promise.all([
+    db.select({ value: count() }).from(kins),
+    db.select({ value: count() }).from(providers),
+    db.select({ value: count() }).from(channels),
+    db.select({ value: count() }).from(crons),
+    db.select({ value: count() }).from(memories),
+    db.select({ value: count() }).from(mcpServers),
+    db.select({ value: count() }).from(contacts),
+    db.select({ value: count() }).from(user),
+  ])
+  return c.json({
+    version: process.env.npm_package_version ?? '0.1.0',
+    startedAt,
+    uptimeMs: Date.now() - startedAt,
+    stats: {
+      kins: kinCount!.value,
+      providers: providerCount!.value,
+      channels: channelCount!.value,
+      crons: cronCount!.value,
+      memories: memoryCount!.value,
+      mcpServers: mcpCount!.value,
+      contacts: contactCount!.value,
+      users: userCount!.value,
+    },
+  })
 })
 
 // Mount routes

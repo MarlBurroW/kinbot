@@ -44,7 +44,14 @@ import {
   FolderOpen,
   Webhook,
   Radio,
+  Bot,
+  Plug,
+  Clock,
+  Timer,
+  Contact,
 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/client/components/ui/tooltip'
+import { api } from '@/client/lib/api'
 
 interface SectionItem {
   id: string
@@ -115,6 +122,84 @@ interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialSection?: string
+}
+
+interface SystemInfo {
+  version: string
+  uptimeMs: number
+  stats: {
+    kins: number
+    providers: number
+    channels: number
+    crons: number
+    memories: number
+    mcpServers: number
+    contacts: number
+    users: number
+  }
+}
+
+function formatUptime(ms: number, t: (key: string) => string): string {
+  const totalMinutes = Math.floor(ms / 60_000)
+  const days = Math.floor(totalMinutes / 1440)
+  const hours = Math.floor((totalMinutes % 1440) / 60)
+  const minutes = totalMinutes % 60
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days}${t('settings.info.days')}`)
+  if (hours > 0) parts.push(`${hours}${t('settings.info.hours')}`)
+  if (days === 0) parts.push(`${minutes}${t('settings.info.minutes')}`)
+  return parts.join(' ')
+}
+
+function SettingsFooter() {
+  const { t } = useTranslation()
+  const [info, setInfo] = useState<SystemInfo | null>(null)
+
+  useEffect(() => {
+    api.get<SystemInfo>('/info').then(setInfo).catch(() => {})
+  }, [])
+
+  if (!info) return null
+
+  const stats = [
+    { icon: Bot, label: t('settings.info.kins'), value: info.stats.kins },
+    { icon: BrainCircuit, label: t('settings.info.providers'), value: info.stats.providers },
+    { icon: Radio, label: t('settings.info.channels'), value: info.stats.channels },
+    { icon: Timer, label: t('settings.info.crons'), value: info.stats.crons },
+    { icon: Brain, label: t('settings.info.memories'), value: info.stats.memories },
+    { icon: Plug, label: t('settings.info.mcpServers'), value: info.stats.mcpServers },
+    { icon: Contact, label: t('settings.info.contacts'), value: info.stats.contacts },
+    { icon: Users, label: t('settings.info.users'), value: info.stats.users },
+  ]
+
+  return (
+    <div className="shrink-0 border-t px-6 py-2.5 flex items-center justify-between text-[11px] text-muted-foreground/60">
+      <div className="flex items-center gap-3">
+        <span className="font-medium">KinBot v{info.version}</span>
+        <span className="flex items-center gap-1">
+          <Clock className="size-3" />
+          {formatUptime(info.uptimeMs, t)}
+        </span>
+      </div>
+      <TooltipProvider>
+        <div className="flex items-center gap-2">
+          {stats.filter((s) => s.value > 0).map(({ icon: Icon, label, value }) => (
+            <Tooltip key={label}>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-0.5">
+                  <Icon className="size-3" />
+                  {value}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {value} {label}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </TooltipProvider>
+    </div>
+  )
 }
 
 export function SettingsModal({ open, onOpenChange, initialSection }: SettingsModalProps) {
@@ -213,6 +298,9 @@ export function SettingsModal({ open, onOpenChange, initialSection }: SettingsMo
             </div>
           </div>
         </div>
+
+        {/* Version + stats footer */}
+        <SettingsFooter />
       </DialogContent>
     </Dialog>
   )

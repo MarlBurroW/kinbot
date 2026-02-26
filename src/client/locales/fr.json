@@ -890,6 +890,21 @@
       "extensions": "Extensions",
       "connections": "Connexions",
       "access": "Accès"
+    },
+    "info": {
+      "version": "Version",
+      "uptime": "Uptime",
+      "kins": "Kins",
+      "providers": "Providers",
+      "channels": "Canaux",
+      "crons": "Crons",
+      "memories": "Mémoires",
+      "mcpServers": "Serveurs MCP",
+      "contacts": "Contacts",
+      "users": "Utilisateurs",
+      "days": "j",
+      "hours": "h",
+      "minutes": "m"
     }
   },
   "notifications": {
