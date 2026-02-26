@@ -381,7 +381,8 @@
       "hoursAgo": "il y a {{count}}h",
       "yesterday": "hier",
       "daysAgo": "il y a {{count}}j"
-    }
+    },
+    "scrollToBottom": "Aller en bas"
   },
   "quickChat": {
     "title": "Session rapide",

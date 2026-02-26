@@ -19,7 +19,7 @@ import { useQuickSession } from '@/client/hooks/useQuickSession'
 import { useAuth } from '@/client/hooks/useAuth'
 import { useDraftMessage } from '@/client/hooks/useDraftMessage'
 import { useFileUpload } from '@/client/hooks/useFileUpload'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 
@@ -61,7 +61,9 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const { activeSession, isOpen: isQuickOpen, setIsOpen: setQuickOpen, createSession, closeSession } = useQuickSession(kin.id)
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
+  const [showScrollBottom, setShowScrollBottom] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
   const isCompacting = liveCompacting?.status === 'running'
@@ -100,11 +102,35 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     [messages],
   )
 
+  // Track whether user has scrolled away from bottom
+  const isNearBottomRef = useRef(true)
+
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea) return
+    const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
+    if (!viewport) return
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport
+      const nearBottom = scrollHeight - scrollTop - clientHeight < 100
+      isNearBottomRef.current = nearBottom
+      setShowScrollBottom(!nearBottom)
+    }
+    viewport.addEventListener('scroll', handleScroll)
+    return () => viewport.removeEventListener('scroll', handleScroll)
+  }, [])
+
   // Auto-scroll to bottom on new messages / streaming tokens / processing start / live tasks
   const isProcessing = queueState?.isProcessing ?? false
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+    if (isNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+    }
   }, [messages, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts])
+
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+  }, [])
 
   // Resolve kin info for the currently open task detail modal
   const detailTask = detailTaskId ? liveTasks.find((t) => t.taskId === detailTaskId) : null
@@ -161,6 +187,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       {/* Middle: messages + optional tool calls panel */}
       <div className="flex min-h-0 flex-1">
         {/* Messages area */}
+        <div ref={scrollAreaRef} className="relative min-h-0 flex-1 flex flex-col">
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto max-w-3xl py-4">
             {messages.length === 0 && liveTasks.length === 0 ? (
@@ -264,6 +291,17 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
             <div ref={bottomRef} />
           </div>
         </ScrollArea>
+          {showScrollBottom && (
+            <button
+              onClick={scrollToBottom}
+              className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
+              title={t('chat.scrollToBottom')}
+            >
+              <ArrowDown className="size-3.5" />
+              {t('chat.scrollToBottom')}
+            </button>
+          )}
+        </div>
 
         {/* Tool calls side panel — animated width wrapper */}
         <div

@@ -381,7 +381,8 @@
       "hoursAgo": "{{count}}h ago",
       "yesterday": "yesterday",
       "daysAgo": "{{count}}d ago"
-    }
+    },
+    "scrollToBottom": "Scroll to bottom"
   },
   "quickChat": {
     "title": "Quick Session",
