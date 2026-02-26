@@ -431,7 +431,10 @@
       "embeddingModelPlaceholder": "Select an embedding model",
       "embeddingModelHint": "Model used to generate semantic embeddings for memory search.",
       "embeddingModelWarning": "Warning: changing the embedding model requires regenerating all existing memories.",
-      "modelSaved": "Model saved"
+      "modelSaved": "Model saved",
+      "globalPromptTip": "Instructions injected into every Kin's system prompt. Use this for rules or guidelines all your Kins should follow.",
+      "extractionModelTip": "The LLM used to extract key facts from conversations for long-term memory. If unset, each Kin uses its own model.",
+      "embeddingModelTip": "Converts text into vectors for semantic memory search. Changing this requires re-embedding all existing memories."
     },
     "providers": {
       "title": "AI Providers",
@@ -813,6 +816,12 @@
       "autoDisabled": "Automatically disabled due to errors",
       "noAvailableChannels": "No active channels available. Create and activate a channel first.",
       "deleteConfirm": "This will permanently delete this notification channel. You will no longer receive notifications through it."
+    },
+    "groups": {
+      "core": "Core",
+      "extensions": "Extensions",
+      "connections": "Connections",
+      "access": "Access"
     }
   },
   "notifications": {

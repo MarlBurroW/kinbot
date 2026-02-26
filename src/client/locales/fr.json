@@ -431,7 +431,10 @@
       "embeddingModelPlaceholder": "Sélectionner un modèle d'embedding",
       "embeddingModelHint": "Modèle utilisé pour générer les embeddings sémantiques lors de la recherche mémorielle.",
       "embeddingModelWarning": "Attention : changer le modèle d'embedding nécessite de régénérer tous les souvenirs existants.",
-      "modelSaved": "Modèle sauvegardé"
+      "modelSaved": "Modèle sauvegardé",
+      "globalPromptTip": "Instructions injectées dans le prompt système de chaque Kin. Utilisez-le pour des règles ou directives communes.",
+      "extractionModelTip": "Le LLM utilisé pour extraire les faits clés des conversations en mémoire long terme. Si vide, chaque Kin utilise son propre modèle.",
+      "embeddingModelTip": "Convertit le texte en vecteurs pour la recherche sémantique en mémoire. Changer ce modèle nécessite de recalculer tous les embeddings existants."
     },
     "providers": {
       "title": "Fournisseurs IA",
@@ -813,6 +816,12 @@
       "autoDisabled": "Automatiquement désactivé suite aux erreurs",
       "noAvailableChannels": "Aucun canal actif disponible. Créez et activez un canal d'abord.",
       "deleteConfirm": "Ce canal de notification sera définitivement supprimé. Vous ne recevrez plus de notifications par ce biais."
+    },
+    "groups": {
+      "core": "Principal",
+      "extensions": "Extensions",
+      "connections": "Connexions",
+      "access": "Accès"
     }
   },
   "notifications": {

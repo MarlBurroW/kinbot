@@ -8,6 +8,7 @@ import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { Skeleton } from '@/client/components/ui/skeleton'
+import { InfoTip } from '@/client/components/common/InfoTip'
 
 interface ProviderModel {
   id: string
@@ -152,8 +153,9 @@ export function GeneralSettings() {
 
       {/* Global prompt */}
       <div className="space-y-2">
-        <Label htmlFor="global-prompt">
+        <Label htmlFor="global-prompt" className="inline-flex items-center gap-1.5">
           {t('settings.general.globalPrompt')}
+          <InfoTip content={t('settings.general.globalPromptTip')} />
         </Label>
         <MarkdownEditor
           value={globalPrompt}
@@ -188,7 +190,7 @@ export function GeneralSettings() {
 
         {/* Extraction model */}
         <div className="space-y-2">
-          <Label>{t('settings.general.extractionModel')}</Label>
+          <Label className="inline-flex items-center gap-1.5">{t('settings.general.extractionModel')} <InfoTip content={t('settings.general.extractionModelTip')} /></Label>
           <ModelPicker
             models={llmModels}
             value={extractionModel}
@@ -210,7 +212,7 @@ export function GeneralSettings() {
 
         {/* Embedding model */}
         <div className="space-y-2">
-          <Label>{t('settings.general.embeddingModel')}</Label>
+          <Label className="inline-flex items-center gap-1.5">{t('settings.general.embeddingModel')} <InfoTip content={t('settings.general.embeddingModelTip')} /></Label>
           <ModelPicker
             models={embeddingModels}
             value={embeddingModel}

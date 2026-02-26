@@ -39,24 +39,57 @@ import {
   Radio,
 } from 'lucide-react'
 
-const sections = [
-  { id: 'general', icon: Settings2, labelKey: 'settings.general.title' },
-  { id: 'providers', icon: BrainCircuit, labelKey: 'settings.providers.title' },
-  { id: 'search', icon: Search, labelKey: 'settings.searchProviders.title' },
-  { id: 'mcp', icon: Puzzle, labelKey: 'settings.mcp.title' },
-  { id: 'vault', icon: Lock, labelKey: 'settings.vault.title' },
-  { id: 'memories', icon: Brain, labelKey: 'settings.memories.title' },
-  { id: 'contacts', icon: Users, labelKey: 'settings.contacts.title' },
-  { id: 'users', icon: UserPlus, labelKey: 'settings.users.title' },
-  { id: 'files', icon: FolderOpen, labelKey: 'settings.files.title' },
-  { id: 'webhooks', icon: Webhook, labelKey: 'settings.webhooks.title' },
-  { id: 'channels', icon: Radio, labelKey: 'settings.channels.title' },
-  { id: 'notifications', icon: Bell, labelKey: 'settings.notifications.title' },
-] as const
+interface SectionItem {
+  id: string
+  icon: typeof Settings2
+  labelKey: string
+}
 
-type SectionId = (typeof sections)[number]['id']
+interface SectionGroup {
+  groupKey: string
+  items: SectionItem[]
+}
 
-const sectionComponents: Record<SectionId, React.FC> = {
+const sectionGroups: SectionGroup[] = [
+  {
+    groupKey: 'settings.groups.core',
+    items: [
+      { id: 'general', icon: Settings2, labelKey: 'settings.general.title' },
+      { id: 'providers', icon: BrainCircuit, labelKey: 'settings.providers.title' },
+      { id: 'search', icon: Search, labelKey: 'settings.searchProviders.title' },
+    ],
+  },
+  {
+    groupKey: 'settings.groups.extensions',
+    items: [
+      { id: 'mcp', icon: Puzzle, labelKey: 'settings.mcp.title' },
+      { id: 'vault', icon: Lock, labelKey: 'settings.vault.title' },
+      { id: 'memories', icon: Brain, labelKey: 'settings.memories.title' },
+      { id: 'files', icon: FolderOpen, labelKey: 'settings.files.title' },
+    ],
+  },
+  {
+    groupKey: 'settings.groups.connections',
+    items: [
+      { id: 'channels', icon: Radio, labelKey: 'settings.channels.title' },
+      { id: 'webhooks', icon: Webhook, labelKey: 'settings.webhooks.title' },
+      { id: 'contacts', icon: Users, labelKey: 'settings.contacts.title' },
+    ],
+  },
+  {
+    groupKey: 'settings.groups.access',
+    items: [
+      { id: 'users', icon: UserPlus, labelKey: 'settings.users.title' },
+      { id: 'notifications', icon: Bell, labelKey: 'settings.notifications.title' },
+    ],
+  },
+]
+
+const allSections = sectionGroups.flatMap((g) => g.items)
+
+type SectionId = string
+
+const sectionComponents: Record<string, React.FC> = {
   general: GeneralSettings,
   providers: ProvidersSettings,
   search: SearchProvidersSettings,
@@ -83,7 +116,7 @@ export function SettingsModal({ open, onOpenChange, initialSection }: SettingsMo
 
   // Navigate to requested section when modal opens
   useEffect(() => {
-    if (open && initialSection && sections.some((s) => s.id === initialSection)) {
+    if (open && initialSection && allSections.some((s) => s.id === initialSection)) {
       setActiveSection(initialSection as SectionId)
     }
   }, [open, initialSection])
@@ -105,20 +138,27 @@ export function SettingsModal({ open, onOpenChange, initialSection }: SettingsMo
         <div className="flex min-h-0 flex-1">
           {/* Settings sidebar */}
           <nav className="w-56 shrink-0 border-r surface-sidebar overflow-y-auto py-4 px-3">
-            <SidebarMenu>
-              {sections.map(({ id, icon: Icon, labelKey }) => (
-                <SidebarMenuItem key={id}>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection(id)}
-                    isActive={activeSection === id}
-                    tooltip={t(labelKey)}
-                  >
-                    <Icon className="size-4" />
-                    <span>{t(labelKey)}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {sectionGroups.map((group, gi) => (
+              <div key={group.groupKey} className={gi > 0 ? 'mt-4' : ''}>
+                <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {t(group.groupKey)}
+                </p>
+                <SidebarMenu>
+                  {group.items.map(({ id, icon: Icon, labelKey }) => (
+                    <SidebarMenuItem key={id}>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection(id)}
+                        isActive={activeSection === id}
+                        tooltip={t(labelKey)}
+                      >
+                        <Icon className="size-4" />
+                        <span>{t(labelKey)}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </div>
+            ))}
           </nav>
 
           {/* Main content */}
