@@ -163,7 +163,12 @@
     },
     "account": "My account",
     "settings": "Settings",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "footer": {
+      "commandPalette": "Command palette",
+      "shortcuts": "Keyboard shortcuts",
+      "settings": "Settings"
+    }
   },
   "kin": {
     "edit": {

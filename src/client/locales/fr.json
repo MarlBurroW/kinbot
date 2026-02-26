@@ -163,7 +163,12 @@
     },
     "account": "Mon compte",
     "settings": "Paramètres",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "footer": {
+      "commandPalette": "Palette de commandes",
+      "shortcuts": "Raccourcis clavier",
+      "settings": "Paramètres"
+    }
   },
   "kin": {
     "edit": {

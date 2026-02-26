@@ -152,6 +152,7 @@ export function ChatPage() {
         onCreateKin={handleOpenCreateModal}
         onEditKin={handleOpenEditModal}
         onReorderKins={reorderKins}
+        onOpenSettings={handleOpenSettings}
       />
 
       <SidebarInset>

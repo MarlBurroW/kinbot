@@ -2,12 +2,14 @@ import { useNavigate } from 'react-router-dom'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarSeparator,
 } from '@/client/components/ui/sidebar'
 import { KinList } from '@/client/components/sidebar/KinList'
 import { TaskList } from '@/client/components/sidebar/TaskList'
 import { CronList } from '@/client/components/sidebar/CronList'
+import { SidebarFooterContent } from '@/client/components/sidebar/SidebarFooterContent'
 
 interface KinSummary {
   id: string
@@ -28,6 +30,7 @@ interface AppSidebarProps {
   onCreateKin: () => void
   onEditKin: (id: string) => void
   onReorderKins: (newOrder: string[]) => void
+  onOpenSettings?: (section?: string) => void
 }
 
 export function AppSidebar({
@@ -40,6 +43,7 @@ export function AppSidebar({
   onCreateKin,
   onEditKin,
   onReorderKins,
+  onOpenSettings,
 }: AppSidebarProps) {
   const navigate = useNavigate()
 
@@ -83,6 +87,10 @@ export function AppSidebar({
         />
       </SidebarContent>
 
+      {/* Footer */}
+      <SidebarFooter>
+        <SidebarFooterContent onOpenSettings={onOpenSettings} />
+      </SidebarFooter>
     </Sidebar>
   )
 }
