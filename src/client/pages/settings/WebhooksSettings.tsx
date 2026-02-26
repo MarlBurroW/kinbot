@@ -28,6 +28,7 @@ import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
+import { useKinList } from '@/client/hooks/useKinList'
 import { WebhookCard } from '@/client/components/webhook/WebhookCard'
 import { WebhookFormDialog } from '@/client/components/webhook/WebhookFormDialog'
 import { WebhookLogDialog } from '@/client/components/webhook/WebhookLogDialog'
@@ -42,7 +43,8 @@ export function WebhooksSettings() {
   const { t } = useTranslation()
   const [webhooks, setWebhooks] = useState<WebhookSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [kins, setKins] = useState<KinOption[]>([])
+  const { kins: kinList } = useKinList()
+  const kins: KinOption[] = kinList.map((k) => ({ id: k.id, name: k.name, role: k.role ?? '', avatarUrl: k.avatarUrl }))
   const [modalOpen, setModalOpen] = useState(false)
   const [editingWebhook, setEditingWebhook] = useState<WebhookSummary | null>(null)
   const [deletingWebhook, setDeletingWebhook] = useState<WebhookSummary | null>(null)
@@ -64,19 +66,9 @@ export function WebhooksSettings() {
     }
   }, [])
 
-  const fetchKins = useCallback(async () => {
-    try {
-      const data = await api.get<{ kins: { id: string; name: string; role: string; avatarUrl: string | null }[] }>('/kins')
-      setKins(data.kins.map((k) => ({ id: k.id, name: k.name, role: k.role, avatarUrl: k.avatarUrl })))
-    } catch {
-      // Ignore
-    }
-  }, [])
-
   useEffect(() => {
     fetchWebhooks()
-    fetchKins()
-  }, [fetchWebhooks, fetchKins])
+  }, [fetchWebhooks])
 
   // Re-fetch webhooks list when SSE notifies of changes
   useSSE({

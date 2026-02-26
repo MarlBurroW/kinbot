@@ -17,6 +17,7 @@ import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
+import { useKinList } from '@/client/hooks/useKinList'
 import { VaultSecretCard, type VaultSecretData } from '@/client/components/vault/VaultSecretCard'
 import { VaultEntryFormDialog } from '@/client/components/vault/VaultEntryFormDialog'
 import { VaultTypeManagerDialog } from '@/client/components/vault/VaultTypeManagerDialog'
@@ -31,8 +32,7 @@ export function VaultSettings() {
   const [entries, setEntries] = useState<VaultSecretData[]>([])
   const [customTypes, setCustomTypes] = useState<VaultTypeSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
-  const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
+  const { kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<VaultSecretData | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<VaultSecretData | null>(null)
@@ -41,7 +41,6 @@ export function VaultSettings() {
 
   useEffect(() => {
     fetchEntries()
-    fetchKinNames()
     fetchCustomTypes()
   }, [])
 
@@ -60,16 +59,6 @@ export function VaultSettings() {
     try {
       const data = await api.get<{ types: VaultTypeSummary[] }>('/vault/types')
       setCustomTypes(data.types)
-    } catch {
-      // Ignore
-    }
-  }
-
-  const fetchKinNames = async () => {
-    try {
-      const data = await api.get<{ kins: { id: string; name: string; avatarUrl: string | null }[] }>('/kins')
-      setKinNames(new Map(data.kins.map((k) => [k.id, k.name])))
-      setKinAvatars(new Map(data.kins.map((k) => [k.id, k.avatarUrl])))
     } catch {
       // Ignore
     }

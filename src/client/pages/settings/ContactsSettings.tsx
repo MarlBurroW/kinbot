@@ -16,6 +16,7 @@ import { Plus , Users} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
+import { useKinList } from '@/client/hooks/useKinList'
 import { ContactCard, type ContactData, type KinInfo } from '@/client/components/contacts/ContactCard'
 import { ContactFormDialog } from '@/client/components/contacts/ContactFormDialog'
 
@@ -23,14 +24,14 @@ export function ContactsSettings() {
   const { t } = useTranslation()
   const [contacts, setContacts] = useState<ContactData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [kinInfo, setKinInfo] = useState<Map<string, KinInfo>>(new Map())
+  const { kins: kinList } = useKinList()
+  const kinInfo = new Map<string, KinInfo>(kinList.map((k) => [k.id, { name: k.name, avatarUrl: k.avatarUrl }]))
   const [modalOpen, setModalOpen] = useState(false)
   const [editingContact, setEditingContact] = useState<ContactData | null>(null)
   const [deletingContact, setDeletingContact] = useState<ContactData | null>(null)
 
   useEffect(() => {
     fetchContacts()
-    fetchKinInfo()
   }, [])
 
   const fetchContacts = async () => {
@@ -41,15 +42,6 @@ export function ContactsSettings() {
       // Ignore
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const fetchKinInfo = async () => {
-    try {
-      const data = await api.get<{ kins: { id: string; name: string; avatarUrl: string | null }[] }>('/kins')
-      setKinInfo(new Map(data.kins.map((k) => [k.id, { name: k.name, avatarUrl: k.avatarUrl }])))
-    } catch {
-      // Ignore
     }
   }
 

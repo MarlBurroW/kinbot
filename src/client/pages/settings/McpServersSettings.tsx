@@ -17,6 +17,7 @@ import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
+import { useKinList } from '@/client/hooks/useKinList'
 import { McpServerCard, type McpServerData } from '@/client/components/mcp/McpServerCard'
 import { McpServerFormDialog } from '@/client/components/mcp/McpServerFormDialog'
 
@@ -24,15 +25,13 @@ export function McpServersSettings() {
   const { t } = useTranslation()
   const [servers, setServers] = useState<McpServerData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
-  const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
+  const { kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<McpServerData | null>(null)
   const [deletingServer, setDeletingServer] = useState<McpServerData | null>(null)
 
   useEffect(() => {
     fetchServers()
-    fetchKinNames()
   }, [])
 
   const fetchServers = async () => {
@@ -43,16 +42,6 @@ export function McpServersSettings() {
       // Ignore
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const fetchKinNames = async () => {
-    try {
-      const data = await api.get<{ kins: { id: string; name: string; avatarUrl: string | null }[] }>('/kins')
-      setKinNames(new Map(data.kins.map((k) => [k.id, k.name])))
-      setKinAvatars(new Map(data.kins.map((k) => [k.id, k.avatarUrl])))
-    } catch {
-      // Ignore
     }
   }
 

@@ -18,6 +18,7 @@ import { EmptyState } from '@/client/components/common/EmptyState'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
+import { useKinList } from '@/client/hooks/useKinList'
 import { ChannelCard } from '@/client/components/channel/ChannelCard'
 import { ChannelFormDialog } from '@/client/components/channel/ChannelFormDialog'
 import { ChannelUserMappings } from '@/client/components/channel/ChannelUserMappings'
@@ -28,7 +29,8 @@ export function ChannelsSettings() {
   const { t } = useTranslation()
   const [channels, setChannels] = useState<ChannelSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [kins, setKins] = useState<KinOption[]>([])
+  const { kins: kinList } = useKinList()
+  const kins: KinOption[] = kinList.map((k) => ({ id: k.id, name: k.name, role: k.role ?? '', avatarUrl: k.avatarUrl }))
   const [modalOpen, setModalOpen] = useState(false)
   const [editingChannel, setEditingChannel] = useState<ChannelSummary | null>(null)
   const [deletingChannel, setDeletingChannel] = useState<ChannelSummary | null>(null)
@@ -47,19 +49,9 @@ export function ChannelsSettings() {
     }
   }, [])
 
-  const fetchKins = useCallback(async () => {
-    try {
-      const data = await api.get<{ kins: { id: string; name: string; role: string; avatarUrl: string | null }[] }>('/kins')
-      setKins(data.kins.map((k) => ({ id: k.id, name: k.name, role: k.role, avatarUrl: k.avatarUrl })))
-    } catch {
-      // Ignore
-    }
-  }, [])
-
   useEffect(() => {
     fetchChannels()
-    fetchKins()
-  }, [fetchChannels, fetchKins])
+  }, [fetchChannels])
 
   // SSE: react to channel changes from other tabs/users
   useSSE({

@@ -17,6 +17,7 @@ import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
+import { useKinList } from '@/client/hooks/useKinList'
 import { FileStorageCard, type StoredFileData } from '@/client/components/file-storage/FileStorageCard'
 import { FileStorageFormDialog } from '@/client/components/file-storage/FileStorageFormDialog'
 
@@ -24,16 +25,13 @@ export function FileStorageSettings() {
   const { t } = useTranslation()
   const [files, setFiles] = useState<StoredFileData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [kins, setKins] = useState<{ id: string; name: string }[]>([])
-  const [kinNames, setKinNames] = useState<Map<string, string>>(new Map())
-  const [kinAvatars, setKinAvatars] = useState<Map<string, string | null>>(new Map())
+  const { kins, kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingFile, setEditingFile] = useState<StoredFileData | null>(null)
   const [deletingFile, setDeletingFile] = useState<StoredFileData | null>(null)
 
   useEffect(() => {
     fetchFiles()
-    fetchKins()
   }, [])
 
   const fetchFiles = async () => {
@@ -44,17 +42,6 @@ export function FileStorageSettings() {
       // Ignore
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const fetchKins = async () => {
-    try {
-      const data = await api.get<{ kins: { id: string; name: string; avatarUrl: string | null }[] }>('/kins')
-      setKins(data.kins)
-      setKinNames(new Map(data.kins.map((k) => [k.id, k.name])))
-      setKinAvatars(new Map(data.kins.map((k) => [k.id, k.avatarUrl])))
-    } catch {
-      // Ignore
     }
   }
 
