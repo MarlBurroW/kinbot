@@ -26,6 +26,7 @@ import { Plus, Copy, Eye, EyeOff , Webhook} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
+import { useSSE } from '@/client/hooks/useSSE'
 import { WebhookCard } from '@/client/components/webhook/WebhookCard'
 import { WebhookFormDialog } from '@/client/components/webhook/WebhookFormDialog'
 import { WebhookLogDialog } from '@/client/components/webhook/WebhookLogDialog'
@@ -75,6 +76,16 @@ export function WebhooksSettings() {
     fetchWebhooks()
     fetchKins()
   }, [fetchWebhooks, fetchKins])
+
+  // Re-fetch webhooks list when SSE notifies of changes
+  useSSE({
+    'webhook:created': () => fetchWebhooks(),
+    'webhook:updated': () => fetchWebhooks(),
+    'webhook:deleted': (data) => {
+      const webhookId = data.webhookId as string
+      setWebhooks((prev) => prev.filter((w) => w.id !== webhookId))
+    },
+  })
 
   const handleCreate = async (kinId: string, data: { name: string; description?: string }) => {
     const result = await api.post<{ webhook: WebhookWithToken }>('/webhooks', {
