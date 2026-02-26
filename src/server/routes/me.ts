@@ -22,6 +22,7 @@ meRoutes.get('/', async (c) => {
       role: userProfiles.role,
       avatarUrl: user.image,
       kinOrder: userProfiles.kinOrder,
+      cronOrder: userProfiles.cronOrder,
     })
     .from(user)
     .leftJoin(userProfiles, eq(user.id, userProfiles.userId))
@@ -49,6 +50,7 @@ meRoutes.patch('/', async (c) => {
   if (body.pseudonym !== undefined) updates.pseudonym = body.pseudonym
   if (body.language !== undefined) updates.language = body.language
   if (body.kinOrder !== undefined) updates.kinOrder = body.kinOrder
+  if (body.cronOrder !== undefined) updates.cronOrder = body.cronOrder
 
   if (Object.keys(updates).length > 0) {
     await db
@@ -87,6 +89,7 @@ meRoutes.patch('/', async (c) => {
       role: userProfiles.role,
       avatarUrl: user.image,
       kinOrder: userProfiles.kinOrder,
+      cronOrder: userProfiles.cronOrder,
     })
     .from(user)
     .leftJoin(userProfiles, eq(user.id, userProfiles.userId))

@@ -54,6 +54,7 @@ export const userProfiles = sqliteTable('user_profiles', {
   language: text('language').notNull().default('fr'),
   role: text('role').notNull().default('member'),
   kinOrder: text('kin_order'), // JSON array of kin IDs, e.g. '["id1","id2","id3"]'
+  cronOrder: text('cron_order'), // JSON array of cron IDs, e.g. '["id1","id2","id3"]'
 })
 
 export const providers = sqliteTable('providers', {
