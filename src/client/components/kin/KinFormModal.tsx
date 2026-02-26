@@ -808,7 +808,7 @@ export function KinFormModal({
       <AvatarPickerModal
         open={showAvatarPicker}
         onOpenChange={setShowAvatarPicker}
-        currentAvatar={isEdit ? kin?.avatarUrl ?? null : null}
+        currentAvatar={avatarPreview}
         kinName={name}
         kinId={isEdit ? kin?.id ?? null : null}
         hasImageCapability={hasImageCapability}
