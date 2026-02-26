@@ -7,6 +7,7 @@ export type SSEEventType =
   | 'chat:tool-result'
   | 'task:status'
   | 'task:done'
+  | 'task:deleted'
   | 'cron:triggered'
   | 'cron:created'
   | 'cron:updated'

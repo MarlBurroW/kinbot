@@ -242,6 +242,7 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   // Gather IDs of tasks and crons belonging to this kin to handle cross-kin FK references
   const kinTaskIds = db.select({ id: tasks.id }).from(tasks).where(eq(tasks.parentKinId, kinId)).all().map((t) => t.id)
   const kinCronIds = db.select({ id: crons.id }).from(crons).where(eq(crons.kinId, kinId)).all().map((c) => c.id)
+  const kinWebhookIds = db.select({ id: webhooks.id }).from(webhooks).where(eq(webhooks.kinId, kinId)).all().map((w) => w.id)
 
   // Clean up all related records — topological order (leaves first)
   // humanPrompts must come before messages and tasks (references both)
@@ -294,7 +295,17 @@ export async function deleteKin(kinId: string): Promise<boolean> {
 
   log.info({ kinId, name: existing.name, slug: existing.slug }, 'Kin deleted')
 
-  // Notify all clients
+  // Notify all clients about cascade-deleted children first, then the kin itself
+  for (const taskId of kinTaskIds) {
+    sseManager.broadcast({ type: 'task:deleted', kinId, data: { taskId, kinId } })
+  }
+  for (const cronId of kinCronIds) {
+    sseManager.broadcast({ type: 'cron:deleted', kinId, data: { cronId, kinId } })
+  }
+  for (const webhookId of kinWebhookIds) {
+    sseManager.broadcast({ type: 'webhook:deleted', kinId, data: { webhookId, kinId } })
+  }
+
   sseManager.broadcast({
     type: 'kin:deleted',
     kinId,

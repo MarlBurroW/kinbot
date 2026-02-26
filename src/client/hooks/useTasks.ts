@@ -117,6 +117,11 @@ export function useTasks() {
         prev.map((t) => (t.id === taskId ? { ...t, status, updatedAt: now } : t)),
       )
     },
+    'task:deleted': (data) => {
+      const taskId = data.taskId as string
+      setActiveTasks((prev) => prev.filter((t) => t.id !== taskId))
+      setHistoryTasks((prev) => prev.filter((t) => t.id !== taskId))
+    },
     'task:done': (data) => {
       const taskId = data.taskId as string
       const status = data.status as TaskStatus
