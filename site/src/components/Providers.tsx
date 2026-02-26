@@ -16,6 +16,7 @@ import Jina from '@lobehub/icons/es/Jina'
 import Replicate from '@lobehub/icons/es/Replicate'
 import Stability from '@lobehub/icons/es/Stability'
 import Fal from '@lobehub/icons/es/Fal'
+import Perplexity from '@lobehub/icons/es/Perplexity'
 
 import type { ComponentType, SVGProps } from 'react'
 
@@ -173,6 +174,12 @@ const providers: {
     Icon: Fal,
   },
   {
+    name: 'Perplexity',
+    description: 'Search + AI synthesis',
+    capabilities: ['Search'],
+    Icon: Perplexity.Color,
+  },
+  {
     name: 'Serper',
     description: 'Google SERP API',
     capabilities: ['Search'],
@@ -261,7 +268,7 @@ export function Providers() {
         className="text-center mt-8 text-sm"
         style={{ color: 'var(--color-muted-foreground)' }}
       >
-        21 providers and counting. Missing one?{' '}
+        22 providers and counting. Missing one?{' '}
         <a href="https://github.com/MarlBurroW/kinbot/issues" className="underline" style={{ color: 'var(--color-primary)' }}>Open an issue</a>.
       </p>
     </section>
