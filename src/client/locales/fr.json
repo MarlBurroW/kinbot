@@ -381,6 +381,11 @@
     "copyMessage": "Copier le message",
     "copied": "Copié dans le presse-papiers",
     "copyFailed": "Échec de la copie",
+    "codeBlock": {
+      "copy": "Copier le code",
+      "copied": "Code copié dans le presse-papiers",
+      "copyFailed": "Échec de la copie du code"
+    },
     "sendFailed": "Échec de l'envoi du message",
     "shortcutsHint": "pour voir tous les raccourcis clavier",
     "time": {

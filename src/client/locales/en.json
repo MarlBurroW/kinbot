@@ -381,6 +381,11 @@
     "copyMessage": "Copy message",
     "copied": "Copied to clipboard",
     "copyFailed": "Failed to copy",
+    "codeBlock": {
+      "copy": "Copy code",
+      "copied": "Code copied to clipboard",
+      "copyFailed": "Failed to copy code"
+    },
     "sendFailed": "Failed to send message",
     "shortcutsHint": "to view all keyboard shortcuts",
     "time": {
