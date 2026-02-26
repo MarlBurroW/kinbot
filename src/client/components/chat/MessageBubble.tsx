@@ -17,7 +17,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from '@/client/components/ui/context-menu'
-import { FileIcon, Download, Brain, ChevronDown, ChevronUp, Copy, Check, RefreshCw, Quote } from 'lucide-react'
+import { FileIcon, Download, Brain, ChevronDown, ChevronUp, Copy, Check, RefreshCw, Quote, Pencil } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
 import { useRelativeTime } from '@/client/hooks/useRelativeTime'
 import type { MessageFile } from '@/shared/types'
@@ -42,6 +42,7 @@ interface MessageBubbleProps {
   onOpenTaskDetail?: () => void
   onRegenerate?: () => void
   onQuoteReply?: (text: string) => void
+  onEditResend?: (text: string) => void
 }
 
 /** A content part is either a text segment or a group of tool calls at the same offset. */
@@ -240,6 +241,33 @@ function CopyMessageButton({ content, isUser }: { content: string; isUser: boole
   )
 }
 
+// ─── Edit & resend button ─────────────────────────────────────────────────────
+
+function EditResendButton({ content, onEditResend }: { content: string; onEditResend: (text: string) => void }) {
+  const { t } = useTranslation()
+
+  const handleClick = useCallback(() => {
+    onEditResend(content)
+  }, [content, onEditResend])
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={cn(
+        'absolute opacity-0 group-hover/msg:opacity-100 transition-opacity',
+        'rounded-md p-1 hover:bg-muted/80 active:scale-95',
+        'text-muted-foreground hover:text-foreground',
+        '-left-8 top-7',
+      )}
+      title={t('chat.editResend')}
+      aria-label={t('chat.editResend')}
+    >
+      <Pencil className="size-3.5" />
+    </button>
+  )
+}
+
 // ─── Regenerate button ────────────────────────────────────────────────────────
 
 function RegenerateButton({ onRegenerate }: { onRegenerate: () => void }) {
@@ -370,6 +398,7 @@ function MessageContextMenu({
   isUser: boolean
   onRegenerate?: () => void
   onQuoteReply?: (text: string) => void
+  onEditResend?: (text: string) => void
 }) {
   const { t } = useTranslation()
 
@@ -392,6 +421,12 @@ function MessageContextMenu({
     }
   }, [content, onQuoteReply])
 
+  const handleEditResend = useCallback(() => {
+    if (onEditResend) {
+      onEditResend(content)
+    }
+  }, [content, onEditResend])
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
@@ -404,6 +439,12 @@ function MessageContextMenu({
           <ContextMenuItem onClick={handleQuote}>
             <Quote className="size-4" />
             {t('chat.contextMenu.quote')}
+          </ContextMenuItem>
+        )}
+        {isUser && onEditResend && (
+          <ContextMenuItem onClick={handleEditResend}>
+            <Pencil className="size-4" />
+            {t('chat.contextMenu.editResend')}
           </ContextMenuItem>
         )}
         {!isUser && onRegenerate && (
@@ -435,6 +476,7 @@ export const MessageBubble = memo(function MessageBubble({
   onOpenTaskDetail,
   onRegenerate,
   onQuoteReply,
+  onEditResend,
 }: MessageBubbleProps) {
   const isUser = role === 'user' && sourceType === 'user'
   const isFromOtherKin = sourceType === 'kin' && role === 'user'
@@ -477,7 +519,7 @@ export const MessageBubble = memo(function MessageBubble({
   // Assistant messages with tool calls: interleaved layout
   if (!isUser && contentParts) {
     return (
-      <MessageContextMenu content={content} isUser={false} onRegenerate={onRegenerate} onQuoteReply={onQuoteReply}>
+      <MessageContextMenu content={content} isUser={false} onRegenerate={onRegenerate} onQuoteReply={onQuoteReply} onEditResend={onEditResend}>
       <div className="flex gap-3 px-4 py-2 animate-fade-in-up">
         <Avatar className="size-8 shrink-0">
           {avatarUrl ? (
@@ -538,7 +580,7 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Standard message (user or assistant without tool calls)
   return (
-    <MessageContextMenu content={content} isUser={isUser} onRegenerate={isUser ? undefined : onRegenerate} onQuoteReply={onQuoteReply}>
+    <MessageContextMenu content={content} isUser={isUser} onRegenerate={isUser ? undefined : onRegenerate} onQuoteReply={onQuoteReply} onEditResend={isUser ? onEditResend : undefined}>
     <div
       className={cn(
         'flex gap-3 px-4 py-2 animate-fade-in-up',
@@ -566,6 +608,7 @@ export const MessageBubble = memo(function MessageBubble({
         )}
       >
         <CopyMessageButton content={content} isUser={isUser} />
+        {isUser && onEditResend && <EditResendButton content={content} onEditResend={onEditResend} />}
         {senderName && (
           <p className={cn(
             'mb-1 text-xs font-medium flex items-center gap-1.5',

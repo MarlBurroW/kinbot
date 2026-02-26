@@ -443,7 +443,8 @@
     },
     "contextMenu": {
       "copy": "Copier le message",
-      "quote": "Citer en réponse"
+      "quote": "Citer en réponse",
+      "editResend": "Modifier et renvoyer"
     },
     "regenerate": "Régénérer",
     "mobileInfo": {
@@ -452,7 +453,8 @@
     "dateSeparator": {
       "today": "Aujourd'hui",
       "yesterday": "Hier"
-    }
+    },
+    "editResend": "Modifier et renvoyer"
   },
   "quickChat": {
     "title": "Session rapide",

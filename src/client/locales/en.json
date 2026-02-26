@@ -443,7 +443,8 @@
     },
     "contextMenu": {
       "copy": "Copy message",
-      "quote": "Quote reply"
+      "quote": "Quote reply",
+      "editResend": "Edit & resend"
     },
     "regenerate": "Regenerate",
     "mobileInfo": {
@@ -452,7 +453,8 @@
     "dateSeparator": {
       "today": "Today",
       "yesterday": "Yesterday"
-    }
+    },
+    "editResend": "Edit & resend"
   },
   "quickChat": {
     "title": "Quick Session",

@@ -211,6 +211,12 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     setTimeout(() => inputRef.current?.focus(), 50)
   }, [setDraftContent, draftContent])
 
+  // Edit & resend: populate input with the message content for editing
+  const handleEditResend = useCallback((text: string) => {
+    setDraftContent(text)
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }, [setDraftContent])
+
   // Full-area drag-and-drop for file upload
   const handlePanelDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -428,6 +434,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       injectedMemories={msg.injectedMemories}
                       onOpenTaskDetail={isTask && msg.resolvedTaskId ? () => setDetailTaskId(msg.resolvedTaskId) : undefined}
                       onQuoteReply={handleQuoteReply}
+                      onEditResend={handleEditResend}
                     />
                     </div>
                     </React.Fragment>
