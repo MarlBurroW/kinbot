@@ -267,7 +267,7 @@ export function WebhooksSettings() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Token</Label>
+                <Label>{t('settings.webhooks.tokenLabel')}</Label>
                 <div className="flex gap-2">
                   <Input
                     value={showToken ? revealedToken.token : '•'.repeat(32)}

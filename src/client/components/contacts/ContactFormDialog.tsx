@@ -93,7 +93,7 @@ function LabelCombo({
                 setOpen(false)
               }
             }}
-            placeholder="Type or search..."
+            placeholder={t('settings.contacts.typeOrSearch')}
             className="w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
           />
         </div>

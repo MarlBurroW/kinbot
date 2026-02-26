@@ -539,7 +539,12 @@
       "createType": "Créer le type",
       "typeCreated": "Type personnalisé créé",
       "typeDeleted": "Type personnalisé supprimé",
-      "typeFormIncomplete": "Nom, slug et au moins un champ avec nom et libellé sont requis"
+      "typeFormIncomplete": "Nom, slug et au moins un champ avec nom et libellé sont requis",
+      "typeNamePlaceholder": "ex. Réseau WiFi",
+      "typeSlugPlaceholder": "wifi",
+      "typeIconPlaceholder": "ex. Wifi",
+      "fieldNamePlaceholder": "nom_champ",
+      "fieldLabelPlaceholder": "Libellé"
     },
     "files": {
       "title": "Fichiers",
@@ -647,7 +652,8 @@
       "linkToUser": "Lier à un utilisateur",
       "noUserLink": "Aucun",
       "linkedUser": "Utilisateur système",
-      "emptyDescription": "Ajoutez des contacts pour que vos Kins puissent reconnaître et personnaliser les interactions."
+      "emptyDescription": "Ajoutez des contacts pour que vos Kins puissent reconnaître et personnaliser les interactions.",
+      "typeOrSearch": "Saisir ou rechercher..."
     },
     "webhooks": {
       "title": "Webhooks",
@@ -684,7 +690,8 @@
       "logsEmpty": "Aucun déclenchement pour le moment",
       "payload": "Payload",
       "sourceIp": "IP source",
-      "emptyDescription": "Créez des webhooks pour déclencher des actions ou envoyer des données à des services externes."
+      "emptyDescription": "Créez des webhooks pour déclencher des actions ou envoyer des données à des services externes.",
+      "tokenLabel": "Token"
     },
     "users": {
       "title": "Utilisateurs",
@@ -792,7 +799,9 @@
           ],
           "tip": "Assurez-vous que le Message Content intent est active, sinon votre bot ne recevra pas le contenu des messages."
         }
-      }
+      },
+      "kinLabel": "Kin",
+      "kinPlaceholder": "Sélectionner un Kin..."
     },
     "notifications": {
       "title": "Notifications",

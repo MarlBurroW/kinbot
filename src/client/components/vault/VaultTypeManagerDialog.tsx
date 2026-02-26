@@ -184,7 +184,7 @@ export function VaultTypeManagerDialog({
                   <Input
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="WiFi Network"
+                    placeholder={t('settings.vault.typeNamePlaceholder')}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -193,7 +193,7 @@ export function VaultTypeManagerDialog({
                   <Input
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    placeholder="wifi"
+                    placeholder={t('settings.vault.typeSlugPlaceholder')}
                     className="h-8 text-sm font-mono"
                   />
                 </div>
@@ -207,7 +207,7 @@ export function VaultTypeManagerDialog({
                 <Input
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
-                  placeholder="Wifi"
+                  placeholder={t('settings.vault.typeIconPlaceholder')}
                   className="h-8 text-sm"
                 />
               </div>
@@ -221,13 +221,13 @@ export function VaultTypeManagerDialog({
                       <Input
                         value={field.name}
                         onChange={(e) => updateField(i, { name: e.target.value })}
-                        placeholder="field_name"
+                        placeholder={t('settings.vault.fieldNamePlaceholder')}
                         className="h-8 text-xs font-mono flex-1"
                       />
                       <Input
                         value={field.label}
                         onChange={(e) => updateField(i, { label: e.target.value })}
-                        placeholder="Label"
+                        placeholder={t('settings.vault.fieldLabelPlaceholder')}
                         className="h-8 text-xs flex-1"
                       />
                       <Select

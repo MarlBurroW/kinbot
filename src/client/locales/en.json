@@ -539,7 +539,12 @@
       "createType": "Create type",
       "typeCreated": "Custom type created",
       "typeDeleted": "Custom type deleted",
-      "typeFormIncomplete": "Name, slug, and at least one field with name and label are required"
+      "typeFormIncomplete": "Name, slug, and at least one field with name and label are required",
+      "typeNamePlaceholder": "e.g. WiFi Network",
+      "typeSlugPlaceholder": "wifi",
+      "typeIconPlaceholder": "e.g. Wifi",
+      "fieldNamePlaceholder": "field_name",
+      "fieldLabelPlaceholder": "Label"
     },
     "files": {
       "title": "Files",
@@ -647,7 +652,8 @@
       "linkToUser": "Link to system user",
       "noUserLink": "None",
       "linkedUser": "System user",
-      "emptyDescription": "Add contacts so your Kins can recognize and personalize interactions."
+      "emptyDescription": "Add contacts so your Kins can recognize and personalize interactions.",
+      "typeOrSearch": "Type or search..."
     },
     "webhooks": {
       "title": "Webhooks",
@@ -684,7 +690,8 @@
       "logsEmpty": "No triggers yet",
       "payload": "Payload",
       "sourceIp": "Source IP",
-      "emptyDescription": "Create webhooks to trigger actions or send data to external services."
+      "emptyDescription": "Create webhooks to trigger actions or send data to external services.",
+      "tokenLabel": "Token"
     },
     "users": {
       "title": "Users",
@@ -792,7 +799,9 @@
           ],
           "tip": "Make sure the Message Content intent is enabled, or your bot won't receive message text."
         }
-      }
+      },
+      "kinLabel": "Kin",
+      "kinPlaceholder": "Select a Kin..."
     },
     "notifications": {
       "title": "Notifications",

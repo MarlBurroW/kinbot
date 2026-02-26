@@ -176,10 +176,10 @@ export function ChannelFormDialog({
           </div>
           {/* Kin selector */}
           <div className="space-y-2">
-            <Label>Kin</Label>
+            <Label>{t('settings.channels.kinLabel')}</Label>
             <Select value={selectedKinId} onValueChange={setSelectedKinId}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a Kin..." />
+                <SelectValue placeholder={t('settings.channels.kinPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {kins.map((k) => (
