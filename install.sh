@@ -131,6 +131,12 @@ detect_os() {
   OS="$(uname -s)"
   ARCH="$(uname -m)"
 
+  # Detect WSL
+  IS_WSL=false
+  if [ -f /proc/version ] && grep -qi 'microsoft\|wsl' /proc/version 2>/dev/null; then
+    IS_WSL=true
+  fi
+
   case "$OS" in
     Linux)
       if [ -f /etc/os-release ]; then
@@ -142,7 +148,12 @@ detect_os() {
         DISTRO="unknown"
         DISTRO_LIKE=""
       fi
-      INIT_SYSTEM="systemd"
+      # Check if systemd is actually available (WSL1 and some containers don't have it)
+      if command -v systemctl &>/dev/null && systemctl --version &>/dev/null 2>&1; then
+        INIT_SYSTEM="systemd"
+      else
+        INIT_SYSTEM="script"
+      fi
       ;;
     Darwin)
       DISTRO="macos"
@@ -154,10 +165,22 @@ detect_os() {
       ;;
   esac
 
+  local os_label="$OS ($DISTRO, $ARCH)"
+  if [ "$IS_WSL" = true ]; then
+    os_label="$OS ($DISTRO, $ARCH, WSL)"
+  fi
+
   if [ "$IS_ROOT" = true ]; then
-    success "Detected OS: $OS ($DISTRO, $ARCH) — running as root (system install)"
+    success "Detected OS: $os_label — running as root (system install)"
   else
-    success "Detected OS: $OS ($DISTRO, $ARCH) — running as $USER (user install)"
+    success "Detected OS: $os_label — running as $USER (user install)"
+  fi
+
+  if [ "$INIT_SYSTEM" = "script" ]; then
+    warn "systemd not available — will use a start/stop script instead"
+    if [ "$IS_WSL" = true ]; then
+      info "WSL detected. Service won't auto-start on boot; use the kinbot script to start manually."
+    fi
   fi
 }
 
@@ -454,6 +477,9 @@ rollback() {
         if [ "${INIT_SYSTEM:-}" = "launchd" ]; then
           local plist="$HOME/Library/LaunchAgents/io.kinbot.server.plist"
           [ -f "$plist" ] && launchctl load "$plist" 2>/dev/null
+        elif [ "${INIT_SYSTEM:-}" = "script" ]; then
+          local script_path="$KINBOT_DIR/kinbot"
+          [ -x "$script_path" ] && "$script_path" start 2>/dev/null || true
         elif [ "${IS_ROOT:-false}" = true ]; then
           systemctl start kinbot 2>/dev/null || true
         else
@@ -674,12 +700,98 @@ PLIST
   success "launchd service loaded"
 }
 
+# ─── Service: start/stop script (WSL / no-systemd fallback) ──────────────────
+create_script_service() {
+  local env_file="$KINBOT_DATA_DIR/kinbot.env"
+  local script_path="$KINBOT_DIR/kinbot"
+  local pid_file="$KINBOT_DATA_DIR/kinbot.pid"
+  local log_file="$KINBOT_DATA_DIR/kinbot.log"
+
+  cat > "$script_path" << SCRIPT
+#!/usr/bin/env bash
+# KinBot service manager (for systems without systemd)
+set -euo pipefail
+
+KINBOT_DIR="$KINBOT_DIR"
+DATA_DIR="$KINBOT_DATA_DIR"
+ENV_FILE="$env_file"
+PID_FILE="$pid_file"
+LOG_FILE="$log_file"
+BUN_BIN="$BUN_BIN"
+
+is_running() {
+  [ -f "\$PID_FILE" ] && kill -0 "\$(cat "\$PID_FILE")" 2>/dev/null
+}
+
+case "\${1:-}" in
+  start)
+    if is_running; then
+      echo "KinBot is already running (PID \$(cat "\$PID_FILE"))"
+      exit 0
+    fi
+    echo "Starting KinBot..."
+    cd "\$KINBOT_DIR"
+    set -a
+    # shellcheck disable=SC1090
+    [ -f "\$ENV_FILE" ] && . "\$ENV_FILE"
+    set +a
+    nohup "\$BUN_BIN" src/server/index.ts >> "\$LOG_FILE" 2>&1 &
+    echo \$! > "\$PID_FILE"
+    echo "KinBot started (PID \$!)"
+    echo "Logs: tail -f \$LOG_FILE"
+    ;;
+  stop)
+    if ! is_running; then
+      echo "KinBot is not running"
+      rm -f "\$PID_FILE"
+      exit 0
+    fi
+    local _pid
+    _pid="\$(cat "\$PID_FILE")"
+    echo "Stopping KinBot (PID \$_pid)..."
+    kill "\$_pid"
+    rm -f "\$PID_FILE"
+    echo "KinBot stopped"
+    ;;
+  restart)
+    "\$0" stop
+    sleep 1
+    "\$0" start
+    ;;
+  status)
+    if is_running; then
+      echo "KinBot is running (PID \$(cat "\$PID_FILE"))"
+    else
+      echo "KinBot is not running"
+      rm -f "\$PID_FILE"
+      exit 1
+    fi
+    ;;
+  logs)
+    tail -f "\$LOG_FILE"
+    ;;
+  *)
+    echo "Usage: \$0 {start|stop|restart|status|logs}"
+    exit 1
+    ;;
+esac
+SCRIPT
+
+  chmod +x "$script_path"
+
+  # Start KinBot
+  "$script_path" start
+  success "KinBot started via $script_path"
+}
+
 # ─── Create service (dispatch) ───────────────────────────────────────────────
 create_service() {
   header "Creating service..."
 
   if [ "$INIT_SYSTEM" = "launchd" ]; then
     create_launchd_service
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    create_script_service
   elif [ "$IS_ROOT" = true ]; then
     create_systemd_system_service
   else
@@ -714,7 +826,18 @@ print_summary() {
   echo -e "  (Anthropic, OpenAI, or Google Gemini)."
   echo ""
 
-  if [ "$INIT_SYSTEM" = "systemd" ]; then
+  if [ "$INIT_SYSTEM" = "script" ]; then
+    echo -e "  ${BOLD}Service commands:${NC}"
+    echo -e "    $KINBOT_DIR/kinbot status"
+    echo -e "    $KINBOT_DIR/kinbot restart"
+    echo -e "    $KINBOT_DIR/kinbot logs"
+    if [ "$IS_WSL" = true ]; then
+      echo ""
+      echo -e "  ${YELLOW}Note:${NC} On WSL, KinBot won't auto-start on boot."
+      echo -e "  Add to your ~/.bashrc or ~/.profile:"
+      echo -e "    ${DIM}$KINBOT_DIR/kinbot start${NC}"
+    fi
+  elif [ "$INIT_SYSTEM" = "systemd" ]; then
     if [ "$IS_ROOT" = true ]; then
       echo -e "  ${BOLD}Service commands:${NC}"
       echo -e "    sudo systemctl status kinbot"
@@ -739,6 +862,8 @@ print_summary() {
     local restart_cmd="systemctl --user restart kinbot"
     [ "$IS_ROOT" = true ] && restart_cmd="sudo systemctl restart kinbot"
     echo -e "  then run: $restart_cmd${NC}"
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    echo -e "  then run: $KINBOT_DIR/kinbot restart${NC}"
   fi
   echo ""
 }
@@ -761,6 +886,20 @@ uninstall() {
       success "launchd service removed"
     else
       info "No launchd service found"
+    fi
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local script_path="$KINBOT_DIR/kinbot"
+    if [ -x "$script_path" ]; then
+      "$script_path" stop 2>/dev/null || true
+      success "KinBot stopped"
+    else
+      # Try killing by PID file
+      local pid_file="$KINBOT_DATA_DIR/kinbot.pid"
+      if [ -f "$pid_file" ]; then
+        kill "$(cat "$pid_file")" 2>/dev/null || true
+        rm -f "$pid_file"
+      fi
+      info "No service script found"
     fi
   elif [ "$IS_ROOT" = true ]; then
     if systemctl is-active --quiet kinbot 2>/dev/null; then
@@ -1014,6 +1153,20 @@ check_status() {
       warn "launchd service not loaded"
       has_issues=true
     fi
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local script_path="$KINBOT_DIR/kinbot"
+    local pid_file="$KINBOT_DATA_DIR/kinbot.pid"
+    if [ -x "$script_path" ]; then
+      if [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null; then
+        success "KinBot is running (PID $(cat "$pid_file"), managed by script)"
+      else
+        warn "KinBot is not running (start with: $script_path start)"
+        has_issues=true
+      fi
+    else
+      warn "Service script not found at $script_path"
+      has_issues=true
+    fi
   elif [ "$IS_ROOT" = true ]; then
     if systemctl is-active --quiet kinbot 2>/dev/null; then
       success "systemd service is running"
@@ -1168,6 +1321,11 @@ dry_run() {
   fi
   if [ "$INIT_SYSTEM" = "launchd" ]; then
     info "Will create launchd service: ~/Library/LaunchAgents/io.kinbot.server.plist"
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    info "Will create start/stop script: $KINBOT_DIR/kinbot"
+    if [ "$IS_WSL" = true ]; then
+      warn "WSL detected — service won't auto-start on boot"
+    fi
   elif [ "$IS_ROOT" = true ]; then
     info "Will create systemd system service: /etc/systemd/system/kinbot.service"
   else
