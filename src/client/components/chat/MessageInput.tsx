@@ -256,6 +256,22 @@ export function MessageInput({
             </Button>
           )}
         </div>
+
+        {/* Character count */}
+        {value.length > 0 && (
+          <div className="mt-1 flex justify-end px-1">
+            <span className={cn(
+              'text-[10px] tabular-nums transition-colors',
+              value.length > 4000
+                ? 'text-destructive'
+                : value.length > 2000
+                  ? 'text-warning'
+                  : 'text-muted-foreground/50',
+            )}>
+              {t('chat.charCount', { count: value.length })}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -405,7 +405,8 @@
     "collapse": {
       "showMore": "Show more",
       "showLess": "Show less"
-    }
+    },
+    "charCount": "{{count}} characters"
   },
   "quickChat": {
     "title": "Quick Session",
