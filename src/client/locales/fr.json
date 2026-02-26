@@ -555,7 +555,9 @@
       "typeSlugPlaceholder": "wifi",
       "typeIconPlaceholder": "ex. Wifi",
       "fieldNamePlaceholder": "nom_champ",
-      "fieldLabelPlaceholder": "Libellé"
+      "fieldLabelPlaceholder": "Libellé",
+      "deleteAttachmentConfirm": "Supprimer définitivement ce fichier joint ? Cette action est irréversible.",
+      "deleteTypeConfirm": "Supprimer ce type personnalisé ? Les entrées existantes de ce type seront conservées mais ne pourront plus être créées."
     },
     "files": {
       "title": "Fichiers",
@@ -664,7 +666,9 @@
       "noUserLink": "Aucun",
       "linkedUser": "Utilisateur système",
       "emptyDescription": "Ajoutez des contacts pour que vos Kins puissent reconnaître et personnaliser les interactions.",
-      "typeOrSearch": "Saisir ou rechercher..."
+      "typeOrSearch": "Saisir ou rechercher...",
+      "revokePlatformIdConfirm": "Révoquer cet accès plateforme ? Le contact ne pourra plus interagir via cette plateforme.",
+      "deleteNoteConfirm": "Supprimer définitivement cette note ?"
     },
     "webhooks": {
       "title": "Webhooks",

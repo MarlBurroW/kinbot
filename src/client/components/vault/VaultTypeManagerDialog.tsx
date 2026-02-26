@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/client/components/ui/select'
 import { AlertCircle, Loader2, Plus, Trash2, GripVertical } from 'lucide-react'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import type { VaultTypeSummary, VaultTypeField, VaultFieldType } from '@/shared/types'
 
@@ -160,9 +161,10 @@ export function VaultTypeManagerDialog({
                       {ct.fields.length} {t('settings.vault.fields')} &middot; {ct.slug}
                     </p>
                   </div>
-                  <Button variant="ghost" size="icon-xs" onClick={() => handleDeleteType(ct.id)}>
-                    <Trash2 className="size-3.5 text-destructive" />
-                  </Button>
+                  <ConfirmDeleteButton
+                    onConfirm={() => handleDeleteType(ct.id)}
+                    description={t('settings.vault.deleteTypeConfirm')}
+                  />
                 </div>
               ))}
             </div>
