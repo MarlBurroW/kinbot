@@ -371,6 +371,21 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     }
                   }
 
+                  // Message grouping: consecutive messages from the same sender
+                  // within 2 minutes are visually grouped (no avatar/name repeat)
+                  const GROUPING_WINDOW_MS = 2 * 60 * 1000
+                  const prev = idx > 0 ? messages[idx - 1] : null
+                  const isGrouped = !dateSeparator
+                    && prev !== null
+                    && prev.role === msg.role
+                    && prev.sourceType === msg.sourceType
+                    && msg.sourceType !== 'system'
+                    && msg.sourceType !== 'cron'
+                    && msg.sourceType !== 'compacting'
+                    && msg.sourceType !== 'task'
+                    && msg.createdAt && prev.createdAt
+                    && (new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime()) < GROUPING_WINDOW_MS
+
                   // Render compacting trace as a dedicated card
                   if (msg.sourceType === 'compacting') {
                     return (
@@ -424,6 +439,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       timestamp={msg.createdAt}
                       toolCalls={toolCallsByMessage.get(msg.id)}
                       injectedMemories={msg.injectedMemories}
+                      isGrouped={!!isGrouped}
                       onOpenTaskDetail={isTask && msg.resolvedTaskId ? () => setDetailTaskId(msg.resolvedTaskId) : undefined}
                       onQuoteReply={handleQuoteReply}
                       onEditResend={handleEditResend}

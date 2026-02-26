@@ -39,6 +39,8 @@ interface MessageBubbleProps {
   toolCalls?: ToolCallViewItem[]
   injectedMemories?: InjectedMemory[] | null
   files?: MessageFile[]
+  /** When true, the message is part of a consecutive group from the same sender — avatar and name are hidden, spacing is tighter. */
+  isGrouped?: boolean
   onOpenTaskDetail?: () => void
   onRegenerate?: () => void
   onQuoteReply?: (text: string) => void
@@ -473,6 +475,7 @@ export const MessageBubble = memo(function MessageBubble({
   toolCalls,
   injectedMemories,
   files,
+  isGrouped = false,
   onOpenTaskDetail,
   onRegenerate,
   onQuoteReply,
@@ -520,17 +523,21 @@ export const MessageBubble = memo(function MessageBubble({
   if (!isUser && contentParts) {
     return (
       <MessageContextMenu content={content} isUser={false} onRegenerate={onRegenerate} onQuoteReply={onQuoteReply} onEditResend={onEditResend}>
-      <div className="flex gap-3 px-4 py-2 animate-fade-in-up">
-        <Avatar className="size-8 shrink-0">
-          {avatarUrl ? (
-            <AvatarImage src={avatarUrl} alt={senderName ?? ''} />
-          ) : (
-            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-          )}
-        </Avatar>
+      <div className={cn('flex gap-3 px-4 animate-fade-in-up', isGrouped ? 'py-0.5' : 'py-2')}>
+        {isGrouped ? (
+          <div className="size-8 shrink-0" />
+        ) : (
+          <Avatar className="size-8 shrink-0">
+            {avatarUrl ? (
+              <AvatarImage src={avatarUrl} alt={senderName ?? ''} />
+            ) : (
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+            )}
+          </Avatar>
+        )}
 
         <div className="group/msg relative max-w-[80%] space-y-1.5">
-          {senderName && (
+          {!isGrouped && senderName && (
             <p className="text-xs font-medium text-muted-foreground">{senderName}</p>
           )}
 
@@ -583,33 +590,39 @@ export const MessageBubble = memo(function MessageBubble({
     <MessageContextMenu content={content} isUser={isUser} onRegenerate={isUser ? undefined : onRegenerate} onQuoteReply={onQuoteReply} onEditResend={isUser ? onEditResend : undefined}>
     <div
       className={cn(
-        'flex gap-3 px-4 py-2 animate-fade-in-up',
+        'flex gap-3 px-4 animate-fade-in-up',
         isUser ? 'flex-row-reverse' : 'flex-row',
+        isGrouped ? 'py-0.5' : 'py-2',
       )}
     >
-      <Avatar className="size-8 shrink-0">
-        {avatarUrl ? (
-          <AvatarImage src={avatarUrl} alt={senderName ?? ''} />
-        ) : (
-          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-        )}
-      </Avatar>
+      {isGrouped ? (
+        /* Invisible spacer preserving alignment with the avatar column */
+        <div className="size-8 shrink-0" />
+      ) : (
+        <Avatar className="size-8 shrink-0">
+          {avatarUrl ? (
+            <AvatarImage src={avatarUrl} alt={senderName ?? ''} />
+          ) : (
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          )}
+        </Avatar>
+      )}
 
       <div
         className={cn(
           'group/msg relative max-w-[75%] rounded-2xl px-4 py-2.5',
           isUser
-            ? 'bg-primary text-primary-foreground rounded-tr-md'
+            ? cn('bg-primary text-primary-foreground', !isGrouped && 'rounded-tr-md')
             : isFromOtherKin
-              ? 'bg-accent text-accent-foreground rounded-tl-md border border-border'
+              ? cn('bg-accent text-accent-foreground border border-border', !isGrouped && 'rounded-tl-md')
               : isFromChannel
-                ? 'bg-accent text-accent-foreground rounded-tl-md border border-chart-4/30'
-                : 'bg-muted text-foreground rounded-tl-md',
+                ? cn('bg-accent text-accent-foreground border border-chart-4/30', !isGrouped && 'rounded-tl-md')
+                : cn('bg-muted text-foreground', !isGrouped && 'rounded-tl-md'),
         )}
       >
         <CopyMessageButton content={content} isUser={isUser} />
         {isUser && onEditResend && <EditResendButton content={content} onEditResend={onEditResend} />}
-        {senderName && (
+        {!isGrouped && senderName && (
           <p className={cn(
             'mb-1 text-xs font-medium flex items-center gap-1.5',
             isUser ? 'text-primary-foreground/70' : 'text-muted-foreground',
