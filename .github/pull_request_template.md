@@ -4,13 +4,18 @@
 
 ## Type of change
 
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Refactor / code improvement
-- [ ] Documentation
-- [ ] CI / DevOps
+- [ ] 🐛 Bug fix
+- [ ] ✨ New feature
+- [ ] 💥 Breaking change
+- [ ] 🔧 Refactor / code improvement
+- [ ] 📝 Documentation
+- [ ] 🔨 CI / DevOps
+- [ ] 🧪 Tests
 - [ ] Other: <!-- describe -->
+
+## Related issues
+
+<!-- Link any related issues: Fixes #123, Closes #456 -->
 
 ## Checklist
 
