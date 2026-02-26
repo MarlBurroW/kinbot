@@ -7,6 +7,7 @@ import { Providers } from './components/Providers'
 import { Architecture } from './components/Architecture'
 import { Install } from './components/Install'
 import { FAQ } from './components/FAQ'
+import { Channels } from './components/Channels'
 import { Changelog } from './components/Changelog'
 import { GitHubCTA } from './components/GitHubCTA'
 import { Footer } from './components/Footer'
@@ -45,6 +46,9 @@ export default function App() {
         </ScrollReveal>
         <ScrollReveal>
           <Providers />
+        </ScrollReveal>
+        <ScrollReveal>
+          <Channels />
         </ScrollReveal>
         <ScrollReveal>
           <Architecture />
