@@ -779,7 +779,7 @@
       "emptyDescription": "Invitez d'autres personnes à collaborer et utiliser vos Kins."
     },
     "channels": {
-      "title": "Channels",
+      "title": "Canaux",
       "description": "Connectez vos Kins à des plateformes de messagerie externes. Les messages seront routés vers le Kin sélectionné, et les réponses renvoyées automatiquement.",
       "empty": "Aucun channel configuré",
       "add": "Ajouter un channel",
@@ -954,7 +954,7 @@
       "kin-management": "Gestion des Kins",
       "webhooks": "Webhooks",
       "system": "Système",
-      "channels": "Channels",
+      "channels": "Canaux",
       "users": "Utilisateurs",
       "database": "Base de données"
     },
