@@ -8,6 +8,7 @@ import { Footer } from './components/Footer'
 const Stats = lazy(() => import('./components/Stats').then(m => ({ default: m.Stats })))
 const WhatIsKin = lazy(() => import('./components/WhatIsKin').then(m => ({ default: m.WhatIsKin })))
 const Features = lazy(() => import('./components/Features').then(m => ({ default: m.Features })))
+const UseCases = lazy(() => import('./components/UseCases').then(m => ({ default: m.UseCases })))
 const Comparison = lazy(() => import('./components/Comparison').then(m => ({ default: m.Comparison })))
 const Providers = lazy(() => import('./components/Providers').then(m => ({ default: m.Providers })))
 const Channels = lazy(() => import('./components/Channels').then(m => ({ default: m.Channels })))
@@ -51,6 +52,11 @@ export default function App() {
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Features />
+          </ScrollReveal>
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <ScrollReveal>
+            <UseCases />
           </ScrollReveal>
         </Suspense>
         <Suspense fallback={<SectionFallback />}>
