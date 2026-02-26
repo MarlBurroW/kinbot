@@ -16,6 +16,12 @@ RUN bun run build
 FROM oven/bun:1 AS production
 WORKDIR /app
 
+LABEL org.opencontainers.image.title="KinBot" \
+      org.opencontainers.image.description="Self-hosted AI agents with persistent memory, real identity, and collaboration" \
+      org.opencontainers.image.url="https://github.com/MarlBurroW/kinbot" \
+      org.opencontainers.image.source="https://github.com/MarlBurroW/kinbot" \
+      org.opencontainers.image.licenses="AGPL-3.0"
+
 # Install production dependencies only
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
