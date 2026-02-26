@@ -68,7 +68,10 @@ export function buildSystemPrompt(params: PromptParams): string {
 
   if (params.isSubKin && params.taskDescription) {
     // Sub-Kin prompt
-    blocks.push(`You are ${params.kin.name}, executing a specific task.`)
+    blocks.push(
+      `You are ${params.kin.name}, a specialized AI agent on KinBot, executing a delegated task.\n` +
+      `KinBot is a self-hosted platform of expert AI agents (Kins) that collaborate to assist users.`,
+    )
     blocks.push(`## Your mission\n\n${params.taskDescription}`)
     const isCronTask = params.previousCronRuns !== undefined
     const cronJournalInstruction = isCronTask
@@ -118,6 +121,16 @@ export function buildSystemPrompt(params: PromptParams): string {
       blocks.push(`## Platform directives\n\n${params.globalPrompt}`)
     }
   } else {
+    // [0] Platform context
+    blocks.push(
+      `## Platform context\n\n` +
+      `You are a specialized AI agent (Kin) on KinBot, a self-hosted platform of expert AI agents serving a small group of users.\n\n` +
+      `Key facts about your environment:\n` +
+      `- Your session is continuous and permanent — there is no "new conversation". You maintain context across all interactions through memory and compacted summaries of older exchanges.\n` +
+      `- Multiple users may talk to you. Each message is prefixed with the sender's identity.\n` +
+      `- Messages are processed one at a time through a queue. You see the full conversation history (or a compacted summary for older parts).`,
+    )
+
     // [1] Identity (with slug)
     const slugSuffix = params.kin.slug ? ` (slug: ${params.kin.slug})` : ''
     blocks.push(`You are ${params.kin.name}${slugSuffix}, ${params.kin.role}.`)
@@ -202,15 +215,20 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [4.5] Kin directory (main agent only)
+  // [4.5] Kin directory + collaboration instructions (main agent only)
   if (!params.isSubKin && params.kinDirectory.length > 0) {
     const directoryLines = params.kinDirectory
       .map((k) => `- ${k.name} (slug: ${k.slug}) — ${k.role}`)
       .join('\n')
     blocks.push(
       `## Kin directory\n\n` +
-      `These are the other Kins on the platform. Use their slug with send_message(slug, ...) to communicate.\n\n` +
-      directoryLines,
+      `These are the other specialized Kins on the platform:\n\n` +
+      directoryLines + `\n\n` +
+      `### Collaboration and delegation\n` +
+      `- When a request falls outside your expertise, delegate to the most appropriate Kin via send_message(slug, message, "request") rather than providing a mediocre answer. Inform the user that you are delegating.\n` +
+      `- For complex tasks that benefit from parallel or focused execution, spawn sub-tasks via spawn_self() (your own expertise) or spawn_kin(slug) (another Kin's expertise).\n` +
+      `- Use type "request" when you need a response back, "inform" for one-way notifications.\n` +
+      `- When you receive an inter-kin request, use reply(request_id, message) to respond.`,
     )
   }
 
@@ -259,12 +277,13 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- The messages in this conversation are your EXACT transcript — the verbatim record of everything said. You can read and quote them word for word.\n` +
       `- When someone asks about recent messages, simply look at the messages above. They are not a summary — they are the real messages, exactly as written.\n` +
       `- Use search_history() only to search further back beyond what is visible in your current context.\n\n` +
-      `### Inter-Kin communication\n` +
-      `- The Kin directory above lists all available Kins with their slugs.\n` +
-      `- Use send_message(slug, message, type) to contact a Kin by its slug.\n` +
-      `- Use type "request" when you expect a reply, "inform" for one-way messages.\n` +
-      `- When you receive an inter-kin request (indicated by a system note), use the reply(request_id, message) tool to respond.\n` +
-      `- You can also use list_kins() to refresh the list of available Kins if needed.\n\n` +
+      `### Initiative and proactivity\n` +
+      `- You are not a passive Q&A bot. You are an expert assistant who should take initiative when the context calls for it.\n` +
+      `- Proactively suggest relevant actions, flag important information, and offer recommendations — even when not explicitly asked.\n` +
+      `- When you detect a recurring need, suggest creating a cron job (create_cron) so the task runs automatically.\n` +
+      `- For complex multi-step requests, break the work into sub-tasks (spawn_self/spawn_kin) rather than doing everything in a single turn.\n` +
+      `- Use your memory tools actively: memorize important facts as you learn them, and recall() before guessing.\n` +
+      `- Use list_kins() to refresh the Kin directory if the directory above seems incomplete or if a new Kin may have been added.\n\n` +
       `### File storage\n` +
       `- Use store_file() to create shareable files for the user. You can provide text/base64 content directly (source: "content"), reference a file from your workspace (source: "workspace"), or download from a URL (source: "url").\n` +
       `- Files get a shareable URL. Use isPublic=true (default) for public access, or set a password for protected files.\n` +

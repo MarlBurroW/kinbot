@@ -21,6 +21,24 @@ function makeParams(overrides: Record<string, unknown> = {}) {
 }
 
 describe('buildSystemPrompt', () => {
+  // --- Platform context ---
+
+  it('includes platform context block for main agent', () => {
+    const result = buildSystemPrompt(makeParams())
+    expect(result).toContain('## Platform context')
+    expect(result).toContain('specialized AI agent (Kin) on KinBot')
+    expect(result).toContain('session is continuous and permanent')
+    expect(result).toContain('Multiple users may talk to you')
+  })
+
+  it('omits platform context block for sub-kins', () => {
+    const result = buildSystemPrompt(makeParams({
+      isSubKin: true,
+      taskDescription: 'Do something',
+    }))
+    expect(result).not.toContain('## Platform context')
+  })
+
   it('includes kin identity with slug', () => {
     const result = buildSystemPrompt(makeParams())
     expect(result).toContain('You are TestBot (slug: test-bot)')
@@ -82,7 +100,7 @@ describe('buildSystemPrompt', () => {
     expect(result).not.toContain('Dark mode (subject:')
   })
 
-  it('includes kin directory for main agent', () => {
+  it('includes kin directory with collaboration instructions for main agent', () => {
     const result = buildSystemPrompt(makeParams({
       kinDirectory: [
         { slug: 'helper', name: 'Helper', role: 'research assistant' },
@@ -90,6 +108,9 @@ describe('buildSystemPrompt', () => {
     }))
     expect(result).toContain('## Kin directory')
     expect(result).toContain('Helper (slug: helper)')
+    expect(result).toContain('### Collaboration and delegation')
+    expect(result).toContain('delegate to the most appropriate Kin')
+    expect(result).toContain('spawn sub-tasks')
   })
 
   it('omits kin directory for sub-kins', () => {
@@ -119,14 +140,25 @@ describe('buildSystemPrompt', () => {
     expect(result).toContain('Platform: KinBot')
   })
 
+  // --- Initiative ---
+
+  it('includes initiative and proactivity instructions for main agent', () => {
+    const result = buildSystemPrompt(makeParams())
+    expect(result).toContain('### Initiative and proactivity')
+    expect(result).toContain('not a passive Q&A bot')
+    expect(result).toContain('suggest creating a cron job')
+    expect(result).toContain('spawn_self/spawn_kin')
+  })
+
   // --- Sub-Kin prompts ---
 
-  it('builds sub-kin prompt with task description', () => {
+  it('builds sub-kin prompt with task description and platform awareness', () => {
     const result = buildSystemPrompt(makeParams({
       isSubKin: true,
       taskDescription: 'Analyze the data and report findings.',
     }))
-    expect(result).toContain('executing a specific task')
+    expect(result).toContain('specialized AI agent on KinBot')
+    expect(result).toContain('executing a delegated task')
     expect(result).toContain('## Your mission')
     expect(result).toContain('Analyze the data and report findings.')
     expect(result).toContain('## Constraints')
