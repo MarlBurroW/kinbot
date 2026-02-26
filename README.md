@@ -40,7 +40,7 @@ KinBot is different. You create **Kins** — AI agents with:
 Persistent memory (vector + full-text) · Session compacting · Sub-agents · Inter-Kin communication · Continuous sessions that never reset
 
 ### 🔧 Automation & Extensibility
-Cron jobs · Webhooks · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · 22 AI providers (incl. Ollama) · Multi-provider auto-detection
+Cron jobs · Webhooks · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · Contacts · Notifications · Human-in-the-loop prompts · 22 AI providers (incl. Ollama) · Multi-provider auto-detection
 
 ### 🔒 Security & Privacy
 AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted · Your data never leaves your server
@@ -63,9 +63,11 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 - **Inter-Kin communication** — request/reply pattern with correlation IDs; rate-limited; replies are always informational (no ping-pong)
 
 #### Automation
-- **Cron jobs** — in-process scheduler (croner); Kins can create their own crons (with user approval); cron results appear in the main session
+- **Cron jobs** — in-process scheduler (croner); Kins can create their own crons (with user approval); searchable/filterable cron list; cron results appear in the main session
 - **Webhooks** — inbound webhooks to trigger Kins from external systems; configurable per-Kin
-- **Channels** — Telegram integration; receive and send messages through external platforms
+- **Channels** — 6 platforms: Telegram, Discord, Slack, WhatsApp, Signal, Matrix
+- **Notifications** — Kins can send push notifications to users via the `notify` tool
+- **Human-in-the-loop** — Kins can prompt users for approval before sensitive actions (cron creation, MCP server management, etc.)
 
 #### Security & Privacy
 - **Vault** — AES-256-GCM encrypted secrets; never exposed in prompts or logs; message redaction prevents leaking into compacted summaries
@@ -73,8 +75,9 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 - **Self-hosted** — your data never leaves your server
 
 #### Extensibility
-- **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools
+- **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools; Kins can manage their own MCP connections
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
+- **Contacts** — manage contacts that Kins can reference and interact with
 - **Multi-provider** — 22 providers: Anthropic, Anthropic OAuth, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Serper, Perplexity, Replicate, Stability AI, FAL AI, Brave Search
 
 #### Experience
@@ -83,6 +86,8 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 - **Internationalization** — English and French
 - **File uploads** — share files with Kins; image generation supported
 - **Real-time streaming** — SSE-based, multiplexed across all Kins on a single connection
+- **Responsive UI** — mobile-friendly settings, contextual info tips, suggestion chips in empty chat states
+- **System info** — version, uptime, and stats visible in settings
 
 </details>
 
