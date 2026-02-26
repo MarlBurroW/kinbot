@@ -42,8 +42,11 @@ jobs:
             CHANGELOG=$(git log --pretty=format:"- %s" --no-merges | head -30)
           fi
 
-          # Write changelog to a file to avoid shell escaping issues
-          echo "$CHANGELOG" > /tmp/changelog.txt
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
