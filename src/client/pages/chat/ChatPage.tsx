@@ -20,6 +20,7 @@ import { CommandPalette } from '@/client/components/common/CommandPalette'
 import { KeyboardShortcutsDialog } from '@/client/components/common/KeyboardShortcutsDialog'
 import { Button } from '@/client/components/ui/button'
 import { GettingStartedChecklist } from '@/client/components/common/GettingStartedChecklist'
+import { useDocumentTitle } from '@/client/hooks/useDocumentTitle'
 import { Bot, Command, MessageSquare, Plus, Sparkles } from 'lucide-react'
 
 export function ChatPage() {
@@ -104,6 +105,12 @@ export function ChatPage() {
   }, [updateKin])
 
   const selectedKin = kins.find((k) => k.slug === selectedKinSlug)
+
+  // Dynamic browser tab title — shows selected Kin name + processing state
+  const selectedKinProcessing = selectedKin
+    ? kinQueueState.get(selectedKin.id)?.isProcessing ?? false
+    : false
+  useDocumentTitle(selectedKin?.name, selectedKinProcessing)
 
   // Global keyboard shortcuts for kin navigation & actions
   useEffect(() => {
