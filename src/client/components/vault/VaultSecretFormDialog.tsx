@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@/client/components/ui/input'
+import { PasswordInput } from '@/client/components/ui/password-input'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
@@ -126,9 +127,8 @@ export function VaultSecretFormDialog({
                 </span>
               )}
             </Label>
-            <Input
+            <PasswordInput
               id="vault-value"
-              type="password"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder={isEditing ? '••••••••' : t('settings.vault.valuePlaceholder')}

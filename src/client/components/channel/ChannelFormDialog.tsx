@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Input } from '@/client/components/ui/input'
+import { PasswordInput } from '@/client/components/ui/password-input'
 import { Label } from '@/client/components/ui/label'
 import {
   Dialog,
@@ -220,8 +221,7 @@ export function ChannelFormDialog({
           {!isEdit && (
             <div className="space-y-2">
               <Label>{t('settings.channels.botToken')}</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={botToken}
                 onChange={(e) => setBotToken(e.target.value)}
                 placeholder={t('settings.channels.botTokenPlaceholder')}
