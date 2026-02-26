@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Translated theme palette switcher and notification test button
 
 ### CI
+- Added TypeScript type-checking step (`bun run typecheck`) to CI pipeline
 - Multi-platform Docker builds (amd64 + arm64) with OCI labels
 - Dependabot config for automated dependency updates (npm, GitHub Actions, Docker)
 - Bumped actions/checkout to v6, actions/cache to v5, actions/upload-pages-artifact to v4

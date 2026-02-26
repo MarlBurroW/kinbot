@@ -32,7 +32,8 @@
     "start": "bun src/server/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
