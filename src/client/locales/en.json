@@ -362,7 +362,15 @@
     "copied": "Copied to clipboard",
     "copyFailed": "Failed to copy",
     "sendFailed": "Failed to send message",
-    "shortcutsHint": "to view all keyboard shortcuts"
+    "shortcutsHint": "to view all keyboard shortcuts",
+    "time": {
+      "justNow": "just now",
+      "secondsAgo": "{{count}}s ago",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "yesterday": "yesterday",
+      "daysAgo": "{{count}}d ago"
+    }
   },
   "quickChat": {
     "title": "Quick Session",

@@ -12,6 +12,7 @@ import { cn } from '@/client/lib/utils'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
 import { FileIcon, Download, Brain, ChevronDown, Copy, Check } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
+import { useRelativeTime } from '@/client/hooks/useRelativeTime'
 import type { MessageFile } from '@/shared/types'
 
 interface InjectedMemory {
@@ -230,6 +231,22 @@ function CopyMessageButton({ content, isUser }: { content: string; isUser: boole
   )
 }
 
+// ─── Relative timestamp ───────────────────────────────────────────────────────
+
+function RelativeTimestamp({ timestamp, className }: { timestamp: string; className?: string }) {
+  const relative = useRelativeTime(timestamp)
+  const absolute = new Date(timestamp).toLocaleString([], {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+
+  return (
+    <p className={className} title={absolute}>
+      {relative}
+    </p>
+  )
+}
+
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
 export const MessageBubble = memo(function MessageBubble({
@@ -330,9 +347,7 @@ export const MessageBubble = memo(function MessageBubble({
           {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
 
           {timestamp && (
-            <p className="text-[10px] text-muted-foreground/70">
-              {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
+            <RelativeTimestamp timestamp={timestamp} className="text-[10px] text-muted-foreground/70" />
           )}
         </div>
       </div>
@@ -386,12 +401,13 @@ export const MessageBubble = memo(function MessageBubble({
         {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
 
         {timestamp && (
-          <p className={cn(
-            'mt-1 text-[10px]',
-            isUser ? 'text-primary-foreground/50' : 'text-muted-foreground/70',
-          )}>
-            {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
+          <RelativeTimestamp
+            timestamp={timestamp}
+            className={cn(
+              'mt-1 text-[10px]',
+              isUser ? 'text-primary-foreground/50' : 'text-muted-foreground/70',
+            )}
+          />
         )}
       </div>
     </div>
