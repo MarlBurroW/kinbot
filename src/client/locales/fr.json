@@ -359,7 +359,8 @@
     "shortcutHint": "pour trouver un Kin rapidement",
     "copyMessage": "Copier le message",
     "copied": "Copié dans le presse-papiers",
-    "copyFailed": "Échec de la copie"
+    "copyFailed": "Échec de la copie",
+    "shortcutsHint": "pour voir tous les raccourcis clavier"
   },
   "quickChat": {
     "title": "Session rapide",
@@ -954,5 +955,18 @@
     "settings": "Paramètres",
     "createKin": "Créer un nouveau Kin",
     "toggleTheme": "Basculer thème clair/sombre"
+  },
+  "shortcuts": {
+    "title": "Raccourcis clavier",
+    "hint": "Appuyez sur ? pour afficher ce dialogue",
+    "group": {
+      "navigation": "Navigation",
+      "chat": "Chat"
+    },
+    "commandPalette": "Palette de commandes",
+    "toggleSidebar": "Afficher/masquer la barre latérale",
+    "showShortcuts": "Afficher les raccourcis clavier",
+    "sendMessage": "Envoyer le message",
+    "newLine": "Nouvelle ligne"
   }
 }

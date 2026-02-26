@@ -16,6 +16,7 @@ import { UserMenu } from '@/client/components/common/UserMenu'
 import { NotificationBell } from '@/client/components/notifications/NotificationBell'
 import { SSEStatusIndicator } from '@/client/components/common/SSEStatusIndicator'
 import { CommandPalette } from '@/client/components/common/CommandPalette'
+import { KeyboardShortcutsDialog } from '@/client/components/common/KeyboardShortcutsDialog'
 import { Button } from '@/client/components/ui/button'
 import { Bot, Command, MessageSquare, Plus, Sparkles } from 'lucide-react'
 
@@ -198,11 +199,19 @@ export function ChatPage() {
                         <p className="text-muted-foreground">
                           {t('chat.selectKin')}
                         </p>
-                        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/60">
-                          <kbd className="inline-flex items-center gap-0.5 rounded border border-border/60 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px]">
-                            <Command className="size-2.5" />K
-                          </kbd>
-                          <span>{t('chat.shortcutHint')}</span>
+                        <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground/60">
+                          <div className="flex items-center gap-1.5">
+                            <kbd className="inline-flex items-center gap-0.5 rounded border border-border/60 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px]">
+                              <Command className="size-2.5" />K
+                            </kbd>
+                            <span>{t('chat.shortcutHint')}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <kbd className="inline-flex items-center rounded border border-border/60 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px]">
+                              ?
+                            </kbd>
+                            <span>{t('chat.shortcutsHint')}</span>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -253,6 +262,9 @@ export function ChatPage() {
         onCreateKin={handleOpenCreateModal}
         onOpenSettings={handleOpenSettings}
       />
+
+      {/* Keyboard shortcuts help (?) */}
+      <KeyboardShortcutsDialog />
     </SidebarProvider>
   )
 }

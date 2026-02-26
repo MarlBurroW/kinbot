@@ -359,7 +359,8 @@
     "shortcutHint": "to quickly find a Kin",
     "copyMessage": "Copy message",
     "copied": "Copied to clipboard",
-    "copyFailed": "Failed to copy"
+    "copyFailed": "Failed to copy",
+    "shortcutsHint": "to view all keyboard shortcuts"
   },
   "quickChat": {
     "title": "Quick Session",
@@ -954,5 +955,18 @@
     "settings": "Settings",
     "createKin": "Create new Kin",
     "toggleTheme": "Toggle dark/light theme"
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "hint": "Press ? anywhere to show this dialog",
+    "group": {
+      "navigation": "Navigation",
+      "chat": "Chat"
+    },
+    "commandPalette": "Command palette",
+    "toggleSidebar": "Toggle sidebar",
+    "showShortcuts": "Show keyboard shortcuts",
+    "sendMessage": "Send message",
+    "newLine": "New line"
   }
 }
