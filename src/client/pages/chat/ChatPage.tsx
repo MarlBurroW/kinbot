@@ -18,6 +18,7 @@ import { SSEStatusIndicator } from '@/client/components/common/SSEStatusIndicato
 import { CommandPalette } from '@/client/components/common/CommandPalette'
 import { KeyboardShortcutsDialog } from '@/client/components/common/KeyboardShortcutsDialog'
 import { Button } from '@/client/components/ui/button'
+import { GettingStartedChecklist } from '@/client/components/common/GettingStartedChecklist'
 import { Bot, Command, MessageSquare, Plus, Sparkles } from 'lucide-react'
 
 export function ChatPage() {
@@ -170,26 +171,12 @@ export function ChatPage() {
                 ) : (
                   <div className="surface-chat flex flex-1 flex-col items-center justify-center p-6">
                     {kins.length === 0 ? (
-                      /* ── First-time: no Kins yet ── */
-                      <div className="text-center animate-fade-in-up max-w-md space-y-6">
-                        <div className="mx-auto flex size-20 items-center justify-center rounded-3xl bg-primary/10">
-                          <Sparkles className="size-10 text-primary" />
-                        </div>
-                        <div className="space-y-2">
-                          <h2 className="text-xl font-semibold">{t('chat.welcome.title')}</h2>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {t('chat.welcome.description')}
-                          </p>
-                        </div>
-                        <Button
-                          size="lg"
-                          className="btn-shine gradient-primary text-white"
-                          onClick={handleOpenCreateModal}
-                        >
-                          <Plus className="size-4" />
-                          {t('chat.welcome.createFirst')}
-                        </Button>
-                      </div>
+                      /* ── First-time: getting started checklist ── */
+                      <GettingStartedChecklist
+                        hasKins={false}
+                        onCreateKin={handleOpenCreateModal}
+                        onOpenSettings={handleOpenSettings}
+                      />
                     ) : (
                       /* ── Has Kins, none selected ── */
                       <div className="text-center animate-fade-in-up space-y-4">

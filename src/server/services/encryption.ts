@@ -42,6 +42,45 @@ export async function decrypt(encrypted: string): Promise<string> {
   return new TextDecoder().decode(decrypted)
 }
 
+/**
+ * Encrypts a raw binary buffer using AES-256-GCM.
+ * Returns a Uint8Array containing IV + ciphertext + auth tag.
+ */
+export async function encryptBuffer(data: Uint8Array): Promise<Uint8Array> {
+  const key = await getKey()
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    data,
+  )
+
+  const combined = new Uint8Array(iv.length + ciphertext.byteLength)
+  combined.set(iv)
+  combined.set(new Uint8Array(ciphertext), iv.length)
+
+  return combined
+}
+
+/**
+ * Decrypts a binary buffer produced by encryptBuffer().
+ */
+export async function decryptBuffer(encrypted: Uint8Array): Promise<Uint8Array> {
+  const key = await getKey()
+
+  const iv = encrypted.slice(0, 12)
+  const ciphertext = encrypted.slice(12)
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext,
+  )
+
+  return new Uint8Array(decrypted)
+}
+
 let cachedKey: CryptoKey | null = null
 
 async function getKey(): Promise<CryptoKey> {

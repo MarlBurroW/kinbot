@@ -8,7 +8,11 @@ import {
   updateSecretValueByKey,
   deleteSecret,
   searchSecrets,
+  getEntryValue,
+  createEntry,
+  getAttachment,
 } from '@/server/services/vault'
+import { createType } from '@/server/services/vault-types'
 import { createLogger } from '@/server/logger'
 import type { ToolRegistration } from '@/server/tools/types'
 
@@ -186,6 +190,146 @@ export const searchSecretsTool: ToolRegistration = {
         log.debug({ query, kinId: ctx.kinId }, 'search_secrets invoked')
         const results = await searchSecrets(query)
         return { secrets: results }
+      },
+    }),
+}
+
+// ─── Typed Entry Tools ────────────────────────────────────────────────────────
+
+/**
+ * get_vault_entry — retrieve a typed vault entry by key.
+ * Returns structured data based on entry type (credential, card, note, etc.).
+ */
+export const getVaultEntryTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Retrieve a typed vault entry by key. Returns the entry type and structured fields ' +
+        '(e.g. for credentials: url, username, password). For plain text entries, returns ' +
+        'the value string. Never include sensitive values in your visible responses.',
+      inputSchema: z.object({
+        key: z.string().describe('The unique key of the vault entry'),
+      }),
+      execute: async ({ key }) => {
+        log.debug({ key, kinId: ctx.kinId }, 'get_vault_entry invoked')
+        const secret = await getSecretByKey(key)
+        if (!secret) {
+          return { error: 'Entry not found' }
+        }
+        const result = await getEntryValue(secret.id)
+        if (!result) {
+          return { error: 'Entry not found' }
+        }
+        return { entryType: result.entryType, fields: result.value }
+      },
+    }),
+}
+
+/**
+ * create_vault_entry — create a typed vault entry.
+ */
+export const createVaultEntryTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Create a typed vault entry in the Vault. Supports types: text, credential, card, note, identity, ' +
+        'or any custom type slug. The value is encrypted at rest. ' +
+        'For "text" type, pass a string value. For other types, pass a JSON object with the type\'s fields.',
+      inputSchema: z.object({
+        key: z.string().describe('Unique key for the entry (SCREAMING_SNAKE_CASE recommended)'),
+        entry_type: z.string().describe('Entry type: text, credential, card, note, identity, or a custom type slug'),
+        value: z.union([z.string(), z.record(z.unknown())]).describe(
+          'For text type: a string value. For other types: an object with the type\'s fields (e.g. { url, username, password })',
+        ),
+        description: z.string().optional().describe('Optional description of the entry'),
+      }),
+      execute: async ({ key, entry_type, value, description }) => {
+        log.debug({ key, entry_type, kinId: ctx.kinId }, 'create_vault_entry invoked')
+        const existing = await getSecretByKey(key)
+        if (existing) {
+          return { error: `Entry with key "${key}" already exists` }
+        }
+        const entry = await createEntry({
+          key,
+          entryType: entry_type,
+          value,
+          description,
+          createdByKinId: ctx.kinId,
+        })
+        return { id: entry.id, key: entry.key, entryType: entry.entryType }
+      },
+    }),
+}
+
+/**
+ * create_vault_type — create a custom vault entry type.
+ */
+export const createVaultTypeTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Create a custom vault entry type with a defined field schema. This allows storing ' +
+        'structured data beyond the built-in types (text, credential, card, note, identity). ' +
+        'Example: create a "wifi" type with fields [ssid, password, security_type].',
+      inputSchema: z.object({
+        name: z.string().describe('Display name for the type (e.g. "WiFi Network")'),
+        slug: z.string().describe('Machine name (lowercase, no spaces, e.g. "wifi")'),
+        icon: z.string().optional().describe('Lucide icon name (e.g. "Wifi")'),
+        fields: z.array(z.object({
+          name: z.string().describe('Field machine name (e.g. "ssid")'),
+          label: z.string().describe('Display label (e.g. "Network Name")'),
+          type: z.enum(['text', 'password', 'textarea', 'url', 'email', 'phone', 'date', 'number']),
+          required: z.boolean().optional().describe('Whether the field is required'),
+        })).describe('Array of field definitions'),
+      }),
+      execute: async ({ name, slug, icon, fields }) => {
+        log.debug({ slug, kinId: ctx.kinId }, 'create_vault_type invoked')
+        try {
+          const type = await createType({
+            name,
+            slug,
+            icon,
+            fields,
+            createdByKinId: ctx.kinId,
+          })
+          return { id: type.id, slug: type.slug, name: type.name }
+        } catch (err) {
+          return { error: err instanceof Error ? err.message : 'Failed to create type' }
+        }
+      },
+    }),
+}
+
+/**
+ * get_vault_attachment — download a vault attachment as base64.
+ */
+export const getVaultAttachmentTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Download a vault attachment by its ID. Returns the file content as base64-encoded data. ' +
+        'Use this to access files attached to vault entries (documents, certificates, etc.).',
+      inputSchema: z.object({
+        attachment_id: z.string().describe('The ID of the attachment to download'),
+      }),
+      execute: async ({ attachment_id }) => {
+        log.debug({ attachment_id, kinId: ctx.kinId }, 'get_vault_attachment invoked')
+        const result = await getAttachment(attachment_id)
+        if (!result) {
+          return { error: 'Attachment not found' }
+        }
+        // Convert to base64 for safe transport in tool result
+        const base64 = btoa(String.fromCharCode(...result.data))
+        return {
+          name: result.name,
+          mimeType: result.mimeType,
+          base64,
+          size: result.data.byteLength,
+        }
       },
     }),
 }

@@ -91,6 +91,9 @@ export const config = {
 
   vault: {
     algorithm: 'aes-256-gcm' as const,
+    attachmentDir: process.env.VAULT_ATTACHMENT_DIR ?? `${dataDir}/vault`,
+    maxAttachmentSizeMb: Number(process.env.VAULT_MAX_ATTACHMENT_SIZE ?? 50),
+    maxAttachmentsPerEntry: Number(process.env.VAULT_MAX_ATTACHMENTS_PER_ENTRY ?? 10),
   },
 
   workspace: {

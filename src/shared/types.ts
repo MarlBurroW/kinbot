@@ -314,6 +314,60 @@ export interface InvitationSummary {
   createdAt: number
 }
 
+// ─── Vault types ────────────────────────────────────────────────────────────
+
+/** Built-in vault entry types */
+export type VaultBuiltInEntryType = 'text' | 'credential' | 'card' | 'note' | 'identity'
+
+/** Entry type — built-in or custom slug */
+export type VaultEntryType = VaultBuiltInEntryType | (string & {})
+
+/** Field data types for vault type definitions */
+export type VaultFieldType = 'text' | 'password' | 'textarea' | 'url' | 'email' | 'phone' | 'date' | 'number'
+
+/** Single field definition within a vault type */
+export interface VaultTypeField {
+  name: string        // machine name (e.g. "username")
+  label: string       // display label (e.g. "Username")
+  type: VaultFieldType
+  required?: boolean
+  placeholder?: string
+}
+
+/** Vault type summary for list views */
+export interface VaultTypeSummary {
+  id: string
+  slug: string
+  name: string
+  icon: string | null
+  fields: VaultTypeField[]
+  isBuiltIn: boolean
+  createdByKinId: string | null
+  createdAt: number
+}
+
+/** Vault entry summary (list view — no decrypted value) */
+export interface VaultEntrySummary {
+  id: string
+  key: string
+  description: string | null
+  entryType: VaultEntryType
+  isFavorite: boolean
+  attachmentCount: number
+  createdByKinId: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+/** Vault attachment metadata */
+export interface VaultAttachmentSummary {
+  id: string
+  name: string
+  mimeType: string
+  size: number
+  createdAt: number
+}
+
 /** Tool domain categories for UI grouping and color coding */
 export type ToolDomain =
   | 'search'
