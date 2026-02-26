@@ -40,6 +40,62 @@ warn()    { echo -e "${YELLOW}⚠${NC} $*"; }
 error()   { echo -e "${RED}✗ ERROR:${NC} $*" >&2; exit 1; }
 header()  { echo -e "\n${BOLD}$*${NC}"; }
 
+# ─── Spinner for long-running commands ───────────────────────────────────────
+# Usage: run_with_spinner "Installing dependencies..." command arg1 arg2
+SPINNER_PID=""
+
+run_with_spinner() {
+  local label="$1"
+  shift
+
+  # If not a terminal, just run normally with a simple message
+  if [ ! -t 1 ] && [ ! -t 2 ]; then
+    info "$label"
+    "$@"
+    return
+  fi
+
+  local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  local frame_count=${#frames[@]}
+  local i=0
+  local log_file
+  log_file="$(mktemp)"
+
+  # Start the command in background, capturing output
+  "$@" > "$log_file" 2>&1 &
+  local cmd_pid=$!
+  SPINNER_PID=$cmd_pid
+
+  # Animate spinner while command runs
+  while kill -0 "$cmd_pid" 2>/dev/null; do
+    printf "\r  ${CYAN}%s${NC} %s" "${frames[$((i % frame_count))]}" "$label" >&2
+    i=$((i + 1))
+    sleep 0.1
+  done
+
+  # Get exit code
+  wait "$cmd_pid"
+  local exit_code=$?
+  SPINNER_PID=""
+
+  # Clear spinner line
+  printf "\r\033[K" >&2
+
+  if [ $exit_code -eq 0 ]; then
+    success "$label"
+  else
+    echo -e "${RED}✗${NC} $label" >&2
+    echo "" >&2
+    echo -e "${DIM}Command output:${NC}" >&2
+    tail -20 "$log_file" >&2
+    rm -f "$log_file"
+    return $exit_code
+  fi
+
+  rm -f "$log_file"
+  return 0
+}
+
 # ─── OS detection ────────────────────────────────────────────────────────────
 detect_os() {
   OS="$(uname -s)"
@@ -267,7 +323,7 @@ ensure_bun() {
   fi
 
   info "Installing Bun..."
-  curl -fsSL https://bun.sh/install | bash
+  run_with_spinner "Downloading and installing Bun..." bash -c 'curl -fsSL https://bun.sh/install | bash'
   export PATH="$BUN_INSTALL/bin:$PATH"
 
   command -v bun &>/dev/null || error "Bun installation failed. Install manually: https://bun.sh"
@@ -295,10 +351,8 @@ install_or_update() {
     success "Updated to latest"
     IS_UPDATE=true
   else
-    info "Cloning KinBot to $KINBOT_DIR..."
     mkdir -p "$(dirname "$KINBOT_DIR")"
-    git clone "https://github.com/$KINBOT_REPO.git" "$KINBOT_DIR" --branch "$KINBOT_BRANCH" --depth 1
-    success "Cloned"
+    run_with_spinner "Cloning KinBot to $KINBOT_DIR..." git clone "https://github.com/$KINBOT_REPO.git" "$KINBOT_DIR" --branch "$KINBOT_BRANCH" --depth 1
     IS_UPDATE=false
   fi
 }
@@ -368,10 +422,8 @@ build_kinbot() {
   header "Installing dependencies and building..."
 
   cd "$KINBOT_DIR"
-  bun install --frozen-lockfile
-  bun run build
-
-  success "Build complete"
+  run_with_spinner "Installing dependencies..." bun install --frozen-lockfile
+  run_with_spinner "Building KinBot..." bun run build
 }
 
 # ─── Database ────────────────────────────────────────────────────────────────
@@ -381,11 +433,7 @@ setup_database() {
   mkdir -p "$KINBOT_DATA_DIR"
 
   cd "$KINBOT_DIR"
-  KINBOT_DATA_DIR="$KINBOT_DATA_DIR" \
-  DB_PATH="$KINBOT_DATA_DIR/kinbot.db" \
-    bun run db:migrate
-
-  success "Migrations applied"
+  run_with_spinner "Running database migrations..." env KINBOT_DATA_DIR="$KINBOT_DATA_DIR" DB_PATH="$KINBOT_DATA_DIR/kinbot.db" bun run db:migrate
 }
 
 # ─── System user + ownership (root only) ─────────────────────────────────────
@@ -584,8 +632,12 @@ print_summary() {
   [ "${IS_UPDATE:-false}" = true ] && ACTION="updated"
 
   echo ""
+  local msg="KinBot ${ACTION} successfully!"
+  local pad_len=$(( 40 - ${#msg} ))
+  local padding=""
+  for (( i=0; i<pad_len; i++ )); do padding+=" "; done
   echo -e "${BOLD}╔════════════════════════════════════════════╗${NC}"
-  echo -e "${BOLD}║   KinBot ${ACTION} successfully!          ${NC}"
+  echo -e "${BOLD}║  ${msg}${padding}║${NC}"
   echo -e "${BOLD}╚════════════════════════════════════════════╝${NC}"
   echo ""
   echo -e "  ${CYAN}Access URL:${NC}   $KINBOT_PUBLIC_URL"
