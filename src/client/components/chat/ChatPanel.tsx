@@ -24,7 +24,7 @@ import { ConversationSearch } from '@/client/components/chat/ConversationSearch'
 import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
 import { DateSeparator } from '@/client/components/chat/DateSeparator'
 import { cn } from '@/client/lib/utils'
-import { ArrowDown, Upload } from 'lucide-react'
+import { ArrowDown, Upload, Pin, PinOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 
@@ -66,6 +66,22 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
+  const [autoScroll, setAutoScroll] = useState(() => {
+    try {
+      const stored = localStorage.getItem('chat.autoScroll')
+      return stored === null ? true : stored === 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const toggleAutoScroll = useCallback(() => {
+    setAutoScroll((prev) => {
+      const next = !prev
+      try { localStorage.setItem('chat.autoScroll', String(next)) } catch { /* ignore */ }
+      return next
+    })
+  }, [])
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchHighlightId, setSearchHighlightId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -188,10 +204,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   // Auto-scroll to bottom on new messages / streaming tokens / processing start / live tasks
   const isProcessing = queueState?.isProcessing ?? false
   useEffect(() => {
-    if (isNearBottomRef.current) {
+    if (autoScroll && isNearBottomRef.current) {
       bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
     }
-  }, [messages, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts])
+  }, [messages, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts, autoScroll])
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
@@ -508,6 +524,19 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
               {t('chat.scrollToBottom')}
             </button>
           )}
+          {/* Auto-scroll toggle — pinned bottom-right */}
+          <button
+            onClick={toggleAutoScroll}
+            className={cn(
+              'absolute bottom-4 right-4 z-10 flex items-center justify-center size-8 rounded-full shadow-lg transition-colors',
+              autoScroll
+                ? 'bg-primary text-primary-foreground hover:opacity-90'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+            title={autoScroll ? t('chat.autoScroll.on') : t('chat.autoScroll.off')}
+          >
+            {autoScroll ? <Pin className="size-3.5" /> : <PinOff className="size-3.5" />}
+          </button>
         </div>
 
         {/* Tool calls side panel — animated width wrapper */}

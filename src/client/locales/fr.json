@@ -412,6 +412,10 @@
       "daysAgo": "il y a {{count}}j"
     },
     "scrollToBottom": "Aller en bas",
+    "autoScroll": {
+      "on": "Défilement auto activé — cliquer pour désactiver",
+      "off": "Défilement auto désactivé — cliquer pour activer"
+    },
     "export": {
       "title": "Exporter la conversation",
       "markdown": "Exporter en Markdown",
