@@ -20,6 +20,7 @@ import {
 } from '@/client/components/ui/select'
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { Loader2 } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import type { WebhookSummary } from '@/shared/types'
 
 interface WebhookFormDialogProps {
@@ -120,7 +121,7 @@ export function WebhookFormDialog({
 
           {/* Name */}
           <div className="space-y-2">
-            <Label>{t('settings.webhooks.name')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.webhooks.name')} <InfoTip content={t('settings.webhooks.nameTip')} /></Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -131,7 +132,7 @@ export function WebhookFormDialog({
 
           {/* Description */}
           <div className="space-y-2">
-            <Label>{t('settings.webhooks.descriptionLabel')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.webhooks.descriptionLabel')} <InfoTip content={t('settings.webhooks.descriptionTip')} /></Label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}

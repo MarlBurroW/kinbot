@@ -25,6 +25,7 @@ import {
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
 import { ChevronRight, HelpCircle, Lightbulb, Loader2 } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { cn } from '@/client/lib/utils'
 import type { ChannelSummary, ChannelPlatform } from '@/shared/types'
 import { CHANNEL_PLATFORMS } from '@/shared/constants'
@@ -166,7 +167,7 @@ export function ChannelFormDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div className="space-y-2">
-            <Label>{t('settings.channels.name')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.channels.name')} <InfoTip content={t('settings.channels.nameTip')} /></Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -176,7 +177,7 @@ export function ChannelFormDialog({
           </div>
           {/* Kin selector */}
           <div className="space-y-2">
-            <Label>{t('settings.channels.kinLabel')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.channels.kinLabel')} <InfoTip content={t('settings.channels.kinTip')} /></Label>
             <Select value={selectedKinId} onValueChange={setSelectedKinId}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('settings.channels.kinPlaceholder')} />

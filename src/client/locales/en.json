@@ -107,7 +107,9 @@
       "finish": "Finish setup",
       "cannotFinish": "Configure providers to cover LLM and Embedding capabilities",
       "modelConfig": "Model Configuration",
-      "modelConfigHint": "Choose the models used for memory extraction and semantic search"
+      "modelConfigHint": "Choose the models used for memory extraction and semantic search",
+      "nameTip": "A friendly label to identify this provider in your dashboard. If left empty, the provider type name is used.",
+      "baseUrlTip": "Override the default API endpoint. Useful for self-hosted instances, proxies, or compatible third-party APIs."
     },
     "searchProviders": {
       "title": "Search Providers",
@@ -698,7 +700,10 @@
       "emptyDescription": "Add contacts so your Kins can recognize and personalize interactions.",
       "typeOrSearch": "Type or search...",
       "revokePlatformIdConfirm": "Revoke this platform access? The contact will no longer be able to interact via this platform.",
-      "deleteNoteConfirm": "Permanently delete this note?"
+      "deleteNoteConfirm": "Permanently delete this note?",
+      "typeTip": "\"Human\" for real people, \"Kin\" for other AI agents. This helps Kins understand who they are talking to.",
+      "linkToUserTip": "Link this contact to an existing KinBot user account. Lets Kins recognize them across channels.",
+      "identifiersTip": "Platform-specific identifiers (email, Telegram ID, Discord username, etc.) so Kins can recognize this contact on different channels."
     },
     "webhooks": {
       "title": "Webhooks",
@@ -736,7 +741,9 @@
       "payload": "Payload",
       "sourceIp": "Source IP",
       "emptyDescription": "Create webhooks to trigger actions or send data to external services.",
-      "tokenLabel": "Token"
+      "tokenLabel": "Token",
+      "nameTip": "A descriptive name for this webhook. Helps you identify it when you have multiple webhooks.",
+      "descriptionTip": "Optional note explaining what this webhook is used for. Visible only to you in the dashboard."
     },
     "users": {
       "title": "Users",
@@ -849,7 +856,9 @@
         }
       },
       "kinLabel": "Kin",
-      "kinPlaceholder": "Select a Kin..."
+      "kinPlaceholder": "Select a Kin...",
+      "nameTip": "A friendly name for this channel connection. Helps distinguish multiple channels of the same platform.",
+      "kinTip": "The Kin that will respond to messages on this channel. Each channel is handled by exactly one Kin."
     },
     "notifications": {
       "title": "Notifications",

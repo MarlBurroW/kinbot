@@ -15,6 +15,7 @@ import {
 } from '@/client/components/ui/dialog'
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { PROVIDER_CAPABILITIES, PROVIDER_DISPLAY_NAMES, PROVIDER_TYPES, PROVIDERS_WITHOUT_API_KEY } from '@/shared/constants'
 import type { ProviderType } from '@/shared/types'
@@ -229,9 +230,10 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="providerName">
+            <Label htmlFor="providerName" className="inline-flex items-center gap-1.5">
               {t('onboarding.providers.name')}
-              <span className="ml-1 text-xs text-muted-foreground">
+              <InfoTip content={t('onboarding.providers.nameTip')} />
+              <span className="text-xs text-muted-foreground">
                 ({t('common.optional')})
               </span>
             </Label>
@@ -277,9 +279,10 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="baseUrl">
+            <Label htmlFor="baseUrl" className="inline-flex items-center gap-1.5">
               {t('onboarding.providers.baseUrl')}
-              <span className="ml-1 text-xs text-muted-foreground">
+              <InfoTip content={t('onboarding.providers.baseUrlTip')} />
+              <span className="text-xs text-muted-foreground">
                 ({t('common.optional')})
               </span>
             </Label>

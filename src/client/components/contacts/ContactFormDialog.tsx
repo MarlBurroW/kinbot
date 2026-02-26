@@ -25,6 +25,7 @@ import {
   PopoverTrigger,
 } from '@/client/components/ui/popover'
 import { AlertCircle, Check, ChevronsUpDown, Loader2, Plus, X } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { CONTACT_IDENTIFIER_SUGGESTIONS } from '@/shared/constants'
 import type { ContactData } from '@/client/components/contacts/ContactCard'
@@ -278,7 +279,7 @@ export function ContactFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contact-type">{t('settings.contacts.type')}</Label>
+            <Label htmlFor="contact-type" className="inline-flex items-center gap-1.5">{t('settings.contacts.type')} <InfoTip content={t('settings.contacts.typeTip')} /></Label>
             <Select value={type} onValueChange={(v) => setType(v as 'human' | 'kin')}>
               <SelectTrigger id="contact-type">
                 <SelectValue />
@@ -292,7 +293,7 @@ export function ContactFormDialog({
 
           {type === 'human' && users.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="contact-linked-user">{t('settings.contacts.linkToUser')}</Label>
+              <Label htmlFor="contact-linked-user" className="inline-flex items-center gap-1.5">{t('settings.contacts.linkToUser')} <InfoTip content={t('settings.contacts.linkToUserTip')} /></Label>
               <Select
                 value={linkedUserId ?? '_none'}
                 onValueChange={(v) => setLinkedUserId(v === '_none' ? null : v)}
@@ -313,7 +314,7 @@ export function ContactFormDialog({
           )}
 
           <div className="space-y-2">
-            <Label>{t('settings.contacts.identifiers')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.contacts.identifiers')} <InfoTip content={t('settings.contacts.identifiersTip')} /></Label>
             <div className="space-y-2">
               {identifiers.map((ident, index) => (
                 <div key={index} className="flex items-center gap-2">

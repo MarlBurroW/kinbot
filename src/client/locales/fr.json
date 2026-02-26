@@ -107,7 +107,9 @@
       "finish": "Terminer la configuration",
       "cannotFinish": "Configurez des fournisseurs couvrant les capacités LLM et Embedding",
       "modelConfig": "Configuration des modèles",
-      "modelConfigHint": "Choisissez les modèles utilisés pour l'extraction mémorielle et la recherche sémantique"
+      "modelConfigHint": "Choisissez les modèles utilisés pour l'extraction mémorielle et la recherche sémantique",
+      "nameTip": "Un nom pour identifier ce provider dans votre tableau de bord. Si vide, le nom du type de provider est utilisé.",
+      "baseUrlTip": "Remplace l'URL par défaut de l'API. Utile pour les instances auto-hébergées, proxies, ou API tierces compatibles."
     },
     "searchProviders": {
       "title": "Fournisseurs de recherche",
@@ -698,7 +700,10 @@
       "emptyDescription": "Ajoutez des contacts pour que vos Kins puissent reconnaître et personnaliser les interactions.",
       "typeOrSearch": "Saisir ou rechercher...",
       "revokePlatformIdConfirm": "Révoquer cet accès plateforme ? Le contact ne pourra plus interagir via cette plateforme.",
-      "deleteNoteConfirm": "Supprimer définitivement cette note ?"
+      "deleteNoteConfirm": "Supprimer définitivement cette note ?",
+      "typeTip": "\"Humain\" pour les vraies personnes, \"Kin\" pour les autres agents IA. Aide les Kins à comprendre à qui ils parlent.",
+      "linkToUserTip": "Lie ce contact à un compte utilisateur KinBot existant. Permet aux Kins de le reconnaître sur tous les canaux.",
+      "identifiersTip": "Identifiants par plateforme (email, ID Telegram, pseudo Discord, etc.) pour que les Kins reconnaissent ce contact sur différents canaux."
     },
     "webhooks": {
       "title": "Webhooks",
@@ -736,7 +741,9 @@
       "payload": "Payload",
       "sourceIp": "IP source",
       "emptyDescription": "Créez des webhooks pour déclencher des actions ou envoyer des données à des services externes.",
-      "tokenLabel": "Token"
+      "tokenLabel": "Token",
+      "nameTip": "Un nom descriptif pour ce webhook. Aide à le distinguer quand vous en avez plusieurs.",
+      "descriptionTip": "Note optionnelle expliquant à quoi sert ce webhook. Visible uniquement dans le tableau de bord."
     },
     "users": {
       "title": "Utilisateurs",
@@ -849,7 +856,9 @@
         }
       },
       "kinLabel": "Kin",
-      "kinPlaceholder": "Sélectionner un Kin..."
+      "kinPlaceholder": "Sélectionner un Kin...",
+      "nameTip": "Un nom pour cette connexion. Aide à distinguer plusieurs canaux de la même plateforme.",
+      "kinTip": "Le Kin qui répondra aux messages sur ce canal. Chaque canal est géré par un seul Kin."
     },
     "notifications": {
       "title": "Notifications",
