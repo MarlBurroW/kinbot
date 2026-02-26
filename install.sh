@@ -40,10 +40,39 @@ warn()    { echo -e "${YELLOW}⚠${NC} $*"; }
 error()   { echo -e "${RED}✗ ERROR:${NC} $*" >&2; exit 1; }
 header()  { echo -e "\n${BOLD}$*${NC}"; }
 
+# ─── Cleanup & signal handling ───────────────────────────────────────────────
+SPINNER_PID=""
+SPINNER_LOG=""
+INTERRUPTED=false
+
+cleanup_on_signal() {
+  INTERRUPTED=true
+  echo "" >&2
+
+  # Kill any running spinner background command
+  if [ -n "$SPINNER_PID" ] && kill -0 "$SPINNER_PID" 2>/dev/null; then
+    kill "$SPINNER_PID" 2>/dev/null
+    wait "$SPINNER_PID" 2>/dev/null || true
+  fi
+  SPINNER_PID=""
+
+  # Clean spinner line
+  printf "\r\033[K" >&2
+
+  # Remove temp log file
+  [ -n "$SPINNER_LOG" ] && rm -f "$SPINNER_LOG"
+  SPINNER_LOG=""
+
+  warn "Interrupted by user"
+
+  # EXIT trap will fire next and handle rollback
+  exit 130
+}
+
+trap cleanup_on_signal INT TERM
+
 # ─── Spinner for long-running commands ───────────────────────────────────────
 # Usage: run_with_spinner "Installing dependencies..." command arg1 arg2
-SPINNER_PID=""
-
 run_with_spinner() {
   local label="$1"
   shift
@@ -58,11 +87,10 @@ run_with_spinner() {
   local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
   local frame_count=${#frames[@]}
   local i=0
-  local log_file
-  log_file="$(mktemp)"
+  SPINNER_LOG="$(mktemp)"
 
   # Start the command in background, capturing output
-  "$@" > "$log_file" 2>&1 &
+  "$@" > "$SPINNER_LOG" 2>&1 &
   local cmd_pid=$!
   SPINNER_PID=$cmd_pid
 
@@ -87,12 +115,14 @@ run_with_spinner() {
     echo -e "${RED}✗${NC} $label" >&2
     echo "" >&2
     echo -e "${DIM}Command output:${NC}" >&2
-    tail -20 "$log_file" >&2
-    rm -f "$log_file"
+    tail -20 "$SPINNER_LOG" >&2
+    rm -f "$SPINNER_LOG"
+    SPINNER_LOG=""
     return $exit_code
   fi
 
-  rm -f "$log_file"
+  rm -f "$SPINNER_LOG"
+  SPINNER_LOG=""
   return 0
 }
 
@@ -365,7 +395,11 @@ rollback() {
   fi
 
   echo ""
-  echo -e "${RED}${BOLD}Installation failed!${NC}"
+  if [ "$INTERRUPTED" = true ]; then
+    echo -e "${RED}${BOLD}Installation interrupted!${NC}"
+  else
+    echo -e "${RED}${BOLD}Installation failed!${NC}"
+  fi
 
   # Rollback git to previous commit on update
   if [ -n "${ROLLBACK_COMMIT:-}" ] && [ -d "$KINBOT_DIR/.git" ]; then
@@ -1048,14 +1082,17 @@ main() {
   for arg in "$@"; do
     case "$arg" in
       --help|-h|help)
+        trap - INT TERM
         show_help
         exit 0
         ;;
       --uninstall|uninstall)
+        trap - INT TERM
         uninstall
         exit 0
         ;;
       --status|status)
+        trap - INT TERM
         check_status
         exit 0
         ;;
@@ -1066,6 +1103,7 @@ main() {
   done
 
   if [ "$KINBOT_DRY_RUN" = true ]; then
+    trap - INT TERM
     dry_run
     exit 0
   fi
