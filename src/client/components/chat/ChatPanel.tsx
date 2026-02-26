@@ -2,7 +2,7 @@ import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { MessageBubble } from '@/client/components/chat/MessageBubble'
-import { MessageInput } from '@/client/components/chat/MessageInput'
+import { MessageInput, type MessageInputHandle } from '@/client/components/chat/MessageInput'
 import { TypingIndicator } from '@/client/components/chat/TypingIndicator'
 import { ConversationHeader } from '@/client/components/chat/ConversationHeader'
 import { ToolCallsViewer } from '@/client/components/chat/ToolCallsViewer'
@@ -72,6 +72,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const [searchQuery, setSearchQuery] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<MessageInputHandle>(null)
 
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
   const toggleSearch = useCallback(() => {
@@ -144,6 +145,32 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  // Auto-focus message input when switching kins
+  useEffect(() => {
+    // Small delay to ensure the input is mounted and ready
+    const timer = setTimeout(() => inputRef.current?.focus(), 50)
+    return () => clearTimeout(timer)
+  }, [kin.id])
+
+  // Escape key to refocus the message input
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Don't hijack Escape from modals, dialogs, or search
+      if (isSearchOpen || detailTaskId || isQuickOpen) return
+      const tag = (e.target as HTMLElement)?.tagName
+      const isInInput = tag === 'INPUT' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable
+      // If in the message textarea, blur it (standard Escape behavior)
+      // If elsewhere, focus the message input
+      if (tag === 'TEXTAREA') return
+      if (isInInput) return
+      e.preventDefault()
+      inputRef.current?.focus()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isSearchOpen, detailTaskId, isQuickOpen])
 
   // Track whether user has scrolled away from bottom
   const isNearBottomRef = useRef(true)
@@ -406,6 +433,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
 
       {/* Input */}
       <MessageInput
+        ref={inputRef}
         value={draftContent}
         onChange={setDraftContent}
         onSend={handleSend}

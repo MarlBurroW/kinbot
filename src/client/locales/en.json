@@ -1134,7 +1134,8 @@
     "switchKin": "Switch to Kin by position",
     "createKin": "Create new Kin",
     "sendMessage": "Send message",
-    "newLine": "New line"
+    "newLine": "New line",
+    "focusInput": "Focus message input"
   },
   "theme": {
     "palette": "Palette",

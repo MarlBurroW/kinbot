@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Textarea } from '@/client/components/ui/textarea'
@@ -6,6 +6,10 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/
 import { cn } from '@/client/lib/utils'
 import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2 } from 'lucide-react'
 import type { PendingFile } from '@/client/hooks/useFileUpload'
+
+export interface MessageInputHandle {
+  focus: () => void
+}
 
 interface MessageInputProps {
   onSend: (content: string, fileIds?: string[]) => void
@@ -27,7 +31,7 @@ interface MessageInputProps {
   onRemoveFile?: (localId: string) => void
 }
 
-export function MessageInput({
+export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(function MessageInput({
   onSend,
   onStop,
   isStreaming = false,
@@ -39,11 +43,16 @@ export function MessageInput({
   isUploading,
   onAddFiles,
   onRemoveFile,
-}: MessageInputProps) {
+}, ref) {
   const { t } = useTranslation()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const dragCounterRef = useRef(0)
+
+  useImperativeHandle(ref, () => ({
+    focus: () => textareaRef.current?.focus(),
+  }))
 
   const hasPendingFiles = pendingFiles && pendingFiles.length > 0
   const readyFileIds = pendingFiles?.filter((f) => f.status === 'done').map((f) => f.serverId!)
@@ -218,6 +227,7 @@ export function MessageInput({
           )}
 
           <Textarea
+            ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -275,4 +285,4 @@ export function MessageInput({
       </div>
     </div>
   )
-}
+})

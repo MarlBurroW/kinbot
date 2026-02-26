@@ -44,6 +44,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     shortcuts: [
       { keys: ['Enter'], labelKey: 'shortcuts.sendMessage' },
       { keys: ['Shift', 'Enter'], labelKey: 'shortcuts.newLine' },
+      { keys: ['Esc'], labelKey: 'shortcuts.focusInput' },
     ],
   },
 ]
