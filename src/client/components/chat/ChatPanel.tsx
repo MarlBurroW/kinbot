@@ -20,6 +20,8 @@ import { useAuth } from '@/client/hooks/useAuth'
 import { useDraftMessage } from '@/client/hooks/useDraftMessage'
 import { useFileUpload } from '@/client/hooks/useFileUpload'
 import { useExportConversation } from '@/client/hooks/useExportConversation'
+import { ConversationSearch } from '@/client/components/chat/ConversationSearch'
+import { cn } from '@/client/lib/utils'
 import { MessageSquare, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
@@ -64,10 +66,36 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchHighlightId, setSearchHighlightId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
+  const toggleSearch = useCallback(() => {
+    setIsSearchOpen((prev) => {
+      if (prev) {
+        setSearchHighlightId(null)
+        setSearchQuery('')
+      }
+      return !prev
+    })
+  }, [])
+
+  const handleSearchChange = useCallback((query: string, matchIndex: number, matchCount: number) => {
+    setSearchQuery(query)
+    if (query.trim().length < 2 || matchCount === 0) {
+      setSearchHighlightId(null)
+      return
+    }
+    // Find the matching message id
+    const lowerQuery = query.toLowerCase()
+    const matchingMessages = messages.filter((m) => m.content.toLowerCase().includes(lowerQuery))
+    if (matchingMessages[matchIndex]) {
+      setSearchHighlightId(matchingMessages[matchIndex].id)
+    }
+  }, [messages])
   const isCompacting = liveCompacting?.status === 'running'
 
   const handleQuickSession = useCallback(() => {
@@ -103,6 +131,18 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     () => messages.reduce((sum, m) => sum + Math.ceil(m.content.length / 4), 0),
     [messages],
   )
+
+  // Ctrl+F to open search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Track whether user has scrolled away from bottom
   const isNearBottomRef = useRef(true)
@@ -186,7 +226,17 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onQuickSession={handleQuickSession}
         onExportMarkdown={exportAsMarkdown}
         onExportJSON={exportAsJSON}
+        onSearch={toggleSearch}
       />
+
+      {/* Search bar */}
+      {isSearchOpen && (
+        <ConversationSearch
+          onClose={toggleSearch}
+          onSearchChange={handleSearchChange}
+          messages={messages}
+        />
+      )}
 
       {/* Middle: messages + optional tool calls panel */}
       <div className="flex min-h-0 flex-1">
@@ -219,7 +269,18 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   const isFromUser = msg.role === 'user' && msg.sourceType === 'user'
                   const isFromKin = msg.sourceType === 'kin' && msg.role === 'user'
                   const isTask = msg.sourceType === 'task'
+                  const isSearchMatch = searchQuery.trim().length >= 2 && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+                  const isCurrentMatch = searchHighlightId === msg.id
                   return (
+                    <div
+                      key={`wrap-${msg.id}`}
+                      data-message-id={msg.id}
+                      className={cn(
+                        'transition-colors duration-300',
+                        isCurrentMatch && 'bg-primary/10 rounded-lg',
+                        isSearchMatch && !isCurrentMatch && 'bg-primary/5 rounded-lg',
+                      )}
+                    >
                     <MessageBubble
                       key={msg.id}
                       role={msg.role}
@@ -245,6 +306,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       injectedMemories={msg.injectedMemories}
                       onOpenTaskDetail={isTask && msg.resolvedTaskId ? () => setDetailTaskId(msg.resolvedTaskId) : undefined}
                     />
+                    </div>
                   )
                 })}
                 {streamingMessage && (

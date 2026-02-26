@@ -392,6 +392,15 @@
       "json": "Export as JSON",
       "success": "Conversation exported",
       "empty": "No messages to export"
+    },
+    "search": {
+      "title": "Search messages",
+      "placeholder": "Search in conversation...",
+      "noResults": "No matches",
+      "results": "{{current}} of {{total}}",
+      "previous": "Previous match",
+      "next": "Next match",
+      "close": "Close search"
     }
   },
   "quickChat": {
