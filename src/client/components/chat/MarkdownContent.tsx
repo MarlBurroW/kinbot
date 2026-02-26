@@ -66,12 +66,84 @@ function extractTextContent(node: React.ReactNode): string {
   return ''
 }
 
+/** Extract the language from the <code> child's className (hljs adds `language-xxx` or `hljs language-xxx`). */
+function extractLanguage(children: React.ReactNode): string | null {
+  if (!children) return null
+  const child = Array.isArray(children) ? children[0] : children
+  if (typeof child === 'object' && child !== null && 'props' in child) {
+    const className: string = (child as React.ReactElement<{ className?: string }>).props.className ?? ''
+    const match = className.match(/language-(\S+)/)
+    if (match) {
+      const lang = match[1]
+      // Skip hljs's "undefined" or empty
+      if (lang && lang !== 'undefined') return lang
+    }
+  }
+  return null
+}
+
+/** Human-friendly display names for common languages. */
+const LANG_DISPLAY: Record<string, string> = {
+  js: 'JavaScript', javascript: 'JavaScript', jsx: 'JSX',
+  ts: 'TypeScript', typescript: 'TypeScript', tsx: 'TSX',
+  py: 'Python', python: 'Python',
+  rb: 'Ruby', ruby: 'Ruby',
+  rs: 'Rust', rust: 'Rust',
+  go: 'Go', golang: 'Go',
+  sh: 'Shell', bash: 'Bash', zsh: 'Zsh', fish: 'Fish',
+  json: 'JSON', yaml: 'YAML', yml: 'YAML', toml: 'TOML', xml: 'XML',
+  html: 'HTML', css: 'CSS', scss: 'SCSS', less: 'LESS',
+  sql: 'SQL', graphql: 'GraphQL',
+  md: 'Markdown', markdown: 'Markdown',
+  dockerfile: 'Dockerfile', docker: 'Docker',
+  cpp: 'C++', c: 'C', cs: 'C#', csharp: 'C#',
+  java: 'Java', kotlin: 'Kotlin', swift: 'Swift',
+  php: 'PHP', lua: 'Lua', perl: 'Perl', r: 'R',
+  diff: 'Diff', plaintext: 'Text', text: 'Text',
+  ini: 'INI', nginx: 'Nginx', makefile: 'Makefile',
+}
+
+function langDisplayName(lang: string): string {
+  return LANG_DISPLAY[lang.toLowerCase()] ?? lang.toUpperCase()
+}
+
+/** Minimum number of lines before showing line numbers. */
+const LINE_NUMBER_THRESHOLD = 4
+
 function PreBlock({ children, ...props }: HTMLAttributes<HTMLPreElement>) {
   const code = extractTextContent(children).replace(/\n$/, '')
+  const language = extractLanguage(children)
+  const lines = code.split('\n')
+  const showLineNumbers = lines.length >= LINE_NUMBER_THRESHOLD
 
   return (
     <div className="group/codeblock relative">
-      <pre {...props}>{children}</pre>
+      {/* Language label */}
+      {language && (
+        <div className="flex items-center justify-between rounded-t-md border border-b-0 border-border bg-muted/60 px-3 py-1">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+            {langDisplayName(language)}
+          </span>
+        </div>
+      )}
+      <div className={cn('relative', language && '[&>pre]:rounded-t-none [&>pre]:mt-0')}>
+        {showLineNumbers && (
+          <div
+            className="absolute left-0 top-0 bottom-0 flex flex-col items-end select-none pointer-events-none py-[0.75em] pr-2 pl-2 text-[0.85em] leading-[1.5] font-mono text-muted-foreground/30 border-r border-border/30"
+            aria-hidden="true"
+          >
+            {lines.map((_, i) => (
+              <span key={i}>{i + 1}</span>
+            ))}
+          </div>
+        )}
+        <pre
+          {...props}
+          className={cn(props.className, showLineNumbers && 'code-with-line-numbers')}
+        >
+          {children}
+        </pre>
+      </div>
       {code && <CodeBlockCopyButton code={code} />}
     </div>
   )

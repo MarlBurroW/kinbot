@@ -449,6 +449,11 @@ body {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 }
 
+/* Code blocks with line numbers — add left padding for the gutter */
+.markdown-content pre.code-with-line-numbers code {
+  padding-left: 2.5em;
+}
+
 .dark .markdown-content pre {
   background: color-mix(in oklch, var(--color-foreground) 5%, transparent);
 }
