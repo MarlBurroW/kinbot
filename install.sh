@@ -1209,6 +1209,7 @@ show_help() {
   echo -e "${BOLD}OPTIONS${NC}"
   echo "  --help          Show this help message"
   echo "  --version       Show installed version and check for updates"
+  echo "  --update        Check for updates and apply if available"
   echo "  --status        Check current KinBot installation health"
   echo "  --logs          Tail KinBot logs (works across all platforms)"
   echo "  --backup [path] Back up database (and config) to a file"
@@ -1238,6 +1239,9 @@ show_help() {
   echo ""
   echo "  # Update existing installation (just run again)"
   echo "  bash install.sh"
+  echo ""
+  echo "  # Check for updates and apply"
+  echo "  bash install.sh --update"
   echo ""
   echo "  # Docker install (no Bun required)"
   echo "  bash install.sh --docker"
@@ -2053,6 +2057,117 @@ do_restore() {
   echo ""
 }
 
+# ─── Update (check + apply) ──────────────────────────────────────────────────
+do_update() {
+  echo ""
+  echo -e "${BOLD}KinBot Updater${NC}"
+  echo ""
+
+  # Minimal env setup
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+    KINBOT_USER="${KINBOT_USER:-kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  if [ ! -d "$KINBOT_DIR/.git" ]; then
+    error "KinBot is not installed at $KINBOT_DIR. Run the installer first: bash install.sh"
+  fi
+
+  local branch
+  branch="$(git -C "$KINBOT_DIR" branch --show-current 2>/dev/null || echo "main")"
+
+  # Fetch latest from remote
+  info "Checking for updates on branch ${BOLD}${branch}${NC}..."
+  git -C "$KINBOT_DIR" fetch origin "$branch" --quiet 2>/dev/null || \
+    error "Could not reach GitHub. Check your internet connection."
+
+  local local_head remote_head
+  local_head="$(git -C "$KINBOT_DIR" rev-parse HEAD)"
+  remote_head="$(git -C "$KINBOT_DIR" rev-parse "origin/$branch" 2>/dev/null || echo "")"
+
+  if [ -z "$remote_head" ]; then
+    error "Could not resolve remote branch origin/$branch"
+  fi
+
+  if [ "$local_head" = "$remote_head" ]; then
+    local version
+    version="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD)"
+    echo ""
+    echo -e "  ${GREEN}✓ Already up to date${NC} ($version)"
+    echo ""
+    exit 0
+  fi
+
+  # Show what's new
+  local behind
+  behind="$(git -C "$KINBOT_DIR" rev-list HEAD.."origin/$branch" --count 2>/dev/null || echo "?")"
+  local current_version new_version
+  current_version="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD)"
+  new_version="$(git -C "$KINBOT_DIR" describe --tags "origin/$branch" 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short "origin/$branch")"
+
+  echo ""
+  echo -e "  ${CYAN}Current:${NC}  $current_version"
+  echo -e "  ${CYAN}Latest:${NC}   $new_version"
+  echo -e "  ${CYAN}Changes:${NC}  $behind commit(s)"
+  echo ""
+
+  # Show recent commits
+  local changes
+  changes="$(git -C "$KINBOT_DIR" log --oneline "HEAD..origin/$branch" 2>/dev/null | head -15)"
+  if [ -n "$changes" ]; then
+    echo -e "  ${DIM}What's new:${NC}"
+    echo "$changes" | while IFS= read -r line; do
+      echo -e "  ${DIM}  $line${NC}"
+    done
+    if [ "$behind" -gt 15 ] 2>/dev/null; then
+      echo -e "  ${DIM}  ... and $((behind - 15)) more${NC}"
+    fi
+    echo ""
+  fi
+
+  # Confirm
+  if [ "${KINBOT_NO_PROMPT:-}" != "true" ] && [ "${CI:-}" != "true" ]; then
+    local confirm="y"
+    echo -en "  ${CYAN}?${NC} ${BOLD}Apply update?${NC} ${DIM}[Y/n]${NC}: " >/dev/tty
+    read -r confirm </dev/tty || confirm="y"
+    [ -z "$confirm" ] && confirm="y"
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+      info "Update cancelled"
+      exit 0
+    fi
+  fi
+
+  echo ""
+
+  # Detect OS fully for the install flow
+  detect_os
+  ensure_bun
+
+  # Enable rollback
+  trap rollback EXIT
+
+  install_or_update
+  configure
+  build_kinbot
+  setup_database
+  setup_system_user
+  resolve_bun_path
+  create_service
+  verify_running
+
+  trap - EXIT
+  ROLLBACK_COMMIT=""
+
+  print_summary
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
   # Handle flags
@@ -2086,6 +2201,11 @@ main() {
       --restore|restore)
         trap - INT TERM
         do_restore "$@"
+        exit 0
+        ;;
+      --update|update)
+        trap - INT TERM
+        do_update
         exit 0
         ;;
       --version|-v|version)
