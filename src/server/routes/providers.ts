@@ -10,6 +10,7 @@ import {
   listModelsForProvider,
 } from '@/server/providers/index'
 import { createLogger } from '@/server/logger'
+import { sseManager } from '@/server/sse/index'
 
 const log = createLogger('routes:providers')
 const providerRoutes = new Hono()
@@ -87,6 +88,11 @@ providerRoutes.post('/', async (c) => {
 
   log.info({ providerId: id, name, type, capabilities, isValid: testResult.valid }, 'Provider created')
 
+  sseManager.broadcast({
+    type: 'provider:created',
+    data: { providerId: id, name, providerType: type, capabilities, isValid: testResult.valid },
+  })
+
   return c.json(
     {
       provider: { id, name, type, capabilities, isValid: testResult.valid },
@@ -124,6 +130,18 @@ providerRoutes.patch('/:id', async (c) => {
   await db.update(providers).set(updates).where(eq(providers.id, id))
 
   const updated = await db.select().from(providers).where(eq(providers.id, id)).get()
+
+  sseManager.broadcast({
+    type: 'provider:updated',
+    data: {
+      providerId: updated!.id,
+      name: updated!.name,
+      providerType: updated!.type,
+      capabilities: JSON.parse(updated!.capabilities),
+      isValid: updated!.isValid,
+    },
+  })
+
   return c.json({
     provider: {
       id: updated!.id,
@@ -177,6 +195,12 @@ providerRoutes.delete('/:id', async (c) => {
 
   await db.delete(providers).where(eq(providers.id, id))
   log.info({ providerId: id, name: existing.name, type: existing.type }, 'Provider deleted')
+
+  sseManager.broadcast({
+    type: 'provider:deleted',
+    data: { providerId: id },
+  })
+
   return c.json({ success: true })
 })
 
@@ -214,6 +238,17 @@ providerRoutes.post('/:id/test', async (c) => {
     .update(providers)
     .set({ isValid: result.valid, updatedAt: new Date() })
     .where(eq(providers.id, id))
+
+  sseManager.broadcast({
+    type: 'provider:updated',
+    data: {
+      providerId: id,
+      name: existing.name,
+      providerType: existing.type,
+      capabilities: JSON.parse(existing.capabilities),
+      isValid: result.valid,
+    },
+  })
 
   return c.json({
     valid: result.valid,
