@@ -89,6 +89,8 @@
       "baseUrl": "Base URL",
       "baseUrlHint": "Leave empty for default",
       "apiKeyEditHint": "Leave empty to keep current",
+      "showApiKey": "Show API key",
+      "hideApiKey": "Hide API key",
       "credentialsPath": "Credentials file",
       "credentialsPathHint": "Auto-detected - override only if needed",
       "testing": "Testing connection...",
