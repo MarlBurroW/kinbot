@@ -907,6 +907,7 @@ show_help() {
   echo "  --help          Show this help message"
   echo "  --version       Show installed version and check for updates"
   echo "  --dry-run       Show what would happen without making changes"
+  echo "  --docker        Docker Compose setup (no Bun/build needed)"
   echo "  --status        Check current KinBot installation health"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
   echo ""
@@ -930,6 +931,9 @@ show_help() {
   echo ""
   echo "  # Update existing installation (just run again)"
   echo "  bash install.sh"
+  echo ""
+  echo "  # Docker install (no Bun required)"
+  echo "  bash install.sh --docker"
   echo ""
   echo "  # Check installation health"
   echo "  bash install.sh --status"
@@ -1182,6 +1186,170 @@ dry_run() {
   echo ""
 }
 
+# ─── Docker Compose install ──────────────────────────────────────────────────
+docker_install() {
+  echo ""
+  echo -e "${BOLD}KinBot Docker Setup${NC}"
+  echo -e "Generates a docker-compose.yml for running KinBot in Docker"
+  echo ""
+
+  OS="$(uname -s)"
+
+  # Check Docker is available
+  if ! command -v docker &>/dev/null; then
+    error "Docker is not installed. Install it from https://docs.docker.com/get-docker/"
+  fi
+  success "Docker $(docker --version | awk '{print $3}' | tr -d ',')"
+
+  # Check Docker Compose (v2 plugin or standalone)
+  local compose_cmd=""
+  if docker compose version &>/dev/null 2>&1; then
+    compose_cmd="docker compose"
+    success "Docker Compose $(docker compose version --short 2>/dev/null)"
+  elif command -v docker-compose &>/dev/null; then
+    compose_cmd="docker-compose"
+    success "docker-compose $(docker-compose --version | awk '{print $NF}')"
+  else
+    error "Docker Compose is not installed. Install it from https://docs.docker.com/compose/install/"
+  fi
+
+  # Choose output directory
+  local output_dir="${KINBOT_DOCKER_DIR:-./kinbot}"
+
+  if [ "${KINBOT_NO_PROMPT:-}" != "true" ] && [ "${CI:-}" != "true" ]; then
+    echo ""
+    echo -e "${BOLD}Configuration${NC}"
+    echo -e "${DIM}Press Enter to accept the default value shown in brackets.${NC}"
+    echo ""
+    prompt_value output_dir "Output directory" "$output_dir"
+    prompt_value KINBOT_PORT "Port" "$KINBOT_PORT"
+
+    local local_ip
+    local_ip="$(detect_local_ip)"
+    local default_url="http://${local_ip}:${KINBOT_PORT}"
+    [ -n "$KINBOT_PUBLIC_URL" ] && default_url="$KINBOT_PUBLIC_URL"
+    prompt_value KINBOT_PUBLIC_URL "Public URL (for webhooks & invite links)" "$default_url"
+  fi
+
+  if [ -z "$KINBOT_PUBLIC_URL" ]; then
+    local local_ip
+    local_ip="$(detect_local_ip)"
+    KINBOT_PUBLIC_URL="http://${local_ip}:${KINBOT_PORT}"
+  fi
+
+  mkdir -p "$output_dir"
+
+  # Generate encryption key
+  local enc_key
+  enc_key="$(openssl rand -hex 32 2>/dev/null || head -c 64 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+
+  # Write .env
+  cat > "$output_dir/.env" << ENV
+# KinBot Docker configuration
+# Edit these values, then run: docker compose up -d
+
+PORT=${KINBOT_PORT}
+PUBLIC_URL=${KINBOT_PUBLIC_URL}
+ENCRYPTION_KEY=${enc_key}
+LOG_LEVEL=info
+ENV
+  chmod 600 "$output_dir/.env"
+
+  # Write docker-compose.yml
+  cat > "$output_dir/docker-compose.yml" << 'COMPOSE'
+# KinBot — Self-hosted AI agent platform
+# Docs: https://github.com/MarlBurroW/kinbot
+
+services:
+  kinbot:
+    image: ghcr.io/marlburrow/kinbot:latest
+    build:
+      context: https://github.com/MarlBurroW/kinbot.git
+      dockerfile: docker/Dockerfile
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - kinbot-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - KINBOT_DATA_DIR=/app/data
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:3000}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/api/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  kinbot-data:
+COMPOSE
+
+  success "Created $output_dir/docker-compose.yml"
+  success "Created $output_dir/.env"
+
+  # Ask if user wants to start now
+  local start_now="y"
+  if [ "${KINBOT_NO_PROMPT:-}" != "true" ] && [ "${CI:-}" != "true" ]; then
+    echo ""
+    echo -en "  ${CYAN}?${NC} ${BOLD}Start KinBot now?${NC} ${DIM}[Y/n]${NC}: " >/dev/tty
+    read -r start_now </dev/tty || start_now="y"
+    [ -z "$start_now" ] && start_now="y"
+  fi
+
+  if [[ "$start_now" =~ ^[Yy]$ ]]; then
+    header "Starting KinBot..."
+    cd "$output_dir"
+    run_with_spinner "Building and starting container..." $compose_cmd up -d --build
+    success "KinBot is starting!"
+
+    # Wait a moment for health check
+    info "Waiting for KinBot to be ready..."
+    local attempts=0
+    while [ $attempts -lt 30 ]; do
+      if curl -sf "http://localhost:${KINBOT_PORT}/api/health" --max-time 2 &>/dev/null; then
+        success "KinBot is ready!"
+        break
+      fi
+      sleep 2
+      attempts=$((attempts + 1))
+    done
+
+    if [ $attempts -ge 30 ]; then
+      warn "KinBot hasn't responded yet. It may still be building."
+      info "Check status with: cd $output_dir && $compose_cmd logs -f"
+    fi
+  fi
+
+  # Summary
+  echo ""
+  echo -e "${BOLD}╔════════════════════════════════════════════╗${NC}"
+  echo -e "${BOLD}║  KinBot Docker setup complete!             ║${NC}"
+  echo -e "${BOLD}╚════════════════════════════════════════════╝${NC}"
+  echo ""
+  echo -e "  ${CYAN}Access URL:${NC}   $KINBOT_PUBLIC_URL"
+  echo -e "  ${CYAN}Directory:${NC}    $(cd "$output_dir" && pwd)"
+  echo -e "  ${CYAN}Config:${NC}       $output_dir/.env"
+  echo ""
+  echo -e "  Visit the URL above to complete the setup wizard."
+  echo -e "  You will need at least one AI provider API key"
+  echo -e "  (Anthropic, OpenAI, or Google Gemini)."
+  echo ""
+  echo -e "  ${BOLD}Docker commands:${NC}"
+  echo -e "    cd $(cd "$output_dir" && pwd)"
+  echo -e "    $compose_cmd logs -f          ${DIM}# View logs${NC}"
+  echo -e "    $compose_cmd restart           ${DIM}# Restart${NC}"
+  echo -e "    $compose_cmd pull && $compose_cmd up -d  ${DIM}# Update${NC}"
+  echo -e "    $compose_cmd down              ${DIM}# Stop${NC}"
+  echo -e "    $compose_cmd down -v           ${DIM}# Stop & remove data${NC}"
+  echo ""
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
   # Handle flags
@@ -1209,6 +1377,11 @@ main() {
         ;;
       --dry-run|dry-run)
         KINBOT_DRY_RUN=true
+        ;;
+      --docker|docker)
+        trap - INT TERM
+        docker_install
+        exit 0
         ;;
     esac
   done
