@@ -90,8 +90,8 @@
       "baseUrl": "URL de base",
       "baseUrlHint": "Laisser vide pour la valeur par défaut",
       "apiKeyEditHint": "Laisser vide pour conserver l'actuelle",
-      "showApiKey": "Afficher la cle API",
-      "hideApiKey": "Masquer la cle API",
+      "showApiKey": "Afficher la clé API",
+      "hideApiKey": "Masquer la clé API",
       "credentialsPath": "Fichier de credentials",
       "credentialsPathHint": "Auto-détecté - ne remplir que si nécessaire",
       "testing": "Test de connexion...",
@@ -573,11 +573,11 @@
       "argsTip": "Arguments passés au serveur. Mettez chaque argument sur sa propre ligne.",
       "envTip": "Variables d'environnement passées au processus serveur. Utilisez-les pour les clés API et les secrets.",
       "help": {
-        "content": "Les serveurs MCP (Model Context Protocol) sont des programmes externes qui donnent a vos Kins des capacites supplementaires au-dela de leurs outils integres. Ils tournent comme des processus separes et communiquent via un protocole standard.",
-        "bullet1": "Chaque serveur MCP fournit un ou plusieurs outils (ex: recherche de fichiers, requetes base de donnees, integrations API)",
-        "bullet2": "Les serveurs sont demarres automatiquement quand un Kin en a besoin et arretes quand inactifs",
-        "bullet3": "Les variables d'environnement permettent de passer des cles API et secrets au processus serveur",
-        "bullet4": "Les Kins peuvent aussi decouvrir et ajouter des serveurs MCP eux-memes (affiches comme \"En attente d'approbation\")"
+        "content": "Les serveurs MCP (Model Context Protocol) sont des programmes externes qui donnent à vos Kins des capacités supplémentaires au-delà de leurs outils intégrés. Ils tournent comme des processus séparés et communiquent via un protocole standard.",
+        "bullet1": "Chaque serveur MCP fournit un ou plusieurs outils (ex : recherche de fichiers, requêtes base de données, intégrations API)",
+        "bullet2": "Les serveurs sont démarrés automatiquement quand un Kin en a besoin et arrêtés quand inactifs",
+        "bullet3": "Les variables d'environnement permettent de passer des clés API et secrets au processus serveur",
+        "bullet4": "Les Kins peuvent aussi découvrir et ajouter des serveurs MCP eux-mêmes (affichés comme \"En attente d'approbation\")"
       }
     },
     "vault": {
@@ -636,11 +636,11 @@
       "entryTypeTip": "Le type détermine les champs disponibles. Choisissez « Texte » pour les valeurs simples ou un type structuré pour les entrées multi-champs.",
       "descriptionTip": "Une courte note sur l'usage de cette entrée. Aide les Kins à savoir quand l'utiliser.",
       "help": {
-        "content": "Le Coffre-fort est un stockage securise cle-valeur ou vous pouvez enregistrer des identifiants, cles API et autres secrets. Les Kins peuvent acceder aux entrees du coffre via leurs outils sans que les valeurs apparaissent dans les conversations.",
-        "bullet1": "Les secrets sont chiffres au repos et dechiffres uniquement quand un Kin en a besoin",
-        "bullet2": "Vous pouvez organiser les secrets par type (cle API, mot de passe, token, etc.) et creer des types personnalises",
-        "bullet3": "Attachez des fichiers aux entrees pour des certificats, fichiers de config ou autres documents sensibles",
-        "bullet4": "Marquez des entrees comme favoris pour un acces rapide"
+        "content": "Le Coffre-fort est un stockage sécurisé clé-valeur où vous pouvez enregistrer des identifiants, clés API et autres secrets. Les Kins peuvent accéder aux entrées du coffre via leurs outils sans que les valeurs apparaissent dans les conversations.",
+        "bullet1": "Les secrets sont chiffrés au repos et déchiffrés uniquement quand un Kin en a besoin",
+        "bullet2": "Vous pouvez organiser les secrets par type (clé API, mot de passe, token, etc.) et créer des types personnalisés",
+        "bullet3": "Attachez des fichiers aux entrées pour des certificats, fichiers de config ou autres documents sensibles",
+        "bullet4": "Marquez des entrées comme favoris pour un accès rapide"
       }
     },
     "files": {
@@ -679,10 +679,10 @@
       "createdByAdmin": "par l'admin",
       "emptyDescription": "Uploadez des fichiers que vos Kins pourront consulter pendant les conversations.",
       "help": {
-        "content": "Le Stockage de fichiers permet a vos Kins de sauvegarder, lire et partager des fichiers pendant les conversations. Les fichiers uploades par les utilisateurs ou generes par les Kins sont stockes ici et peuvent etre references entre les sessions.",
-        "bullet1": "Chaque Kin a son propre espace de fichiers pour eviter les conflits",
+        "content": "Le Stockage de fichiers permet à vos Kins de sauvegarder, lire et partager des fichiers pendant les conversations. Les fichiers uploadés par les utilisateurs ou générés par les Kins sont stockés ici et peuvent être référencés entre les sessions.",
+        "bullet1": "Chaque Kin a son propre espace de fichiers pour éviter les conflits",
         "bullet2": "Supporte les images, documents, fichiers de code et tout autre type de fichier",
-        "bullet3": "Les fichiers peuvent etre partages dans les messages de channels et les payloads de webhooks"
+        "bullet3": "Les fichiers peuvent être partagés dans les messages de canaux et les payloads de webhooks"
       }
     },
     "memories": {
@@ -720,8 +720,8 @@
       "contentTip": "L'information à retenir. Soyez précis, le Kin s'en souviendra tel quel lors des conversations.",
       "categoryTip": "Catégorisez le souvenir pour une meilleure organisation et recherche.",
       "subjectTip": "Tag optionnel pour regrouper les souvenirs liés (ex : nom de personne, projet, sujet).",
-      "emptyDescription": "Memories help your Kins remember important information across conversations. Add one manually or let your Kins create them automatically.",
-      "noResults": "No memories match your filters"
+      "emptyDescription": "Les souvenirs aident vos Kins à retenir les informations importantes d'une conversation à l'autre. Ajoutez-en manuellement ou laissez vos Kins les créer automatiquement.",
+      "noResults": "Aucun souvenir ne correspond à vos filtres"
     },
     "contacts": {
       "title": "Contacts",
@@ -809,11 +809,11 @@
       "nameTip": "Un nom descriptif pour ce webhook. Aide à le distinguer quand vous en avez plusieurs.",
       "descriptionTip": "Note optionnelle expliquant à quoi sert ce webhook. Visible uniquement dans le tableau de bord.",
       "help": {
-        "content": "Les webhooks permettent aux services externes d'envoyer des evenements directement a vos Kins via des requetes HTTP POST. Chaque webhook obtient une URL unique et un token a configurer dans le service externe.",
+        "content": "Les webhooks permettent aux services externes d'envoyer des événements directement à vos Kins via des requêtes HTTP POST. Chaque webhook obtient une URL unique et un token à configurer dans le service externe.",
         "bullet1": "Utilisez les webhooks pour connecter des pipelines CI/CD, alertes de monitoring, soumissions de formulaires, ou tout service capable de faire du HTTP",
-        "bullet2": "Chaque webhook est lie a un Kin specifique qui traitera les evenements entrants",
-        "bullet3": "Le token du webhook doit etre inclus comme Bearer token dans le header Authorization",
-        "bullet4": "Le corps de la requete (JSON ou texte) est transmis comme message au Kin cible"
+        "bullet2": "Chaque webhook est lié à un Kin spécifique qui traitera les événements entrants",
+        "bullet3": "Le token du webhook doit être inclus comme Bearer token dans le header Authorization",
+        "bullet4": "Le corps de la requête (JSON ou texte) est transmis comme message au Kin cible"
       }
     },
     "users": {
@@ -918,12 +918,12 @@
           "title": "Configuration Discord",
           "steps": [
             "Allez sur discord.com/developers/applications et cliquez \"New Application\"",
-            "Allez dans l onglet Bot et cliquez \"Reset Token\" pour obtenir votre token",
+            "Allez dans l'onglet Bot et cliquez \"Reset Token\" pour obtenir votre token",
             "Activez le Message Content intent dans Privileged Gateway Intents",
-            "Allez dans OAuth2 > URL Generator, selectionnez le scope \"bot\" avec la permission Send Messages",
-            "Utilisez l URL generee pour inviter le bot sur votre serveur"
+            "Allez dans OAuth2 > URL Generator, sélectionnez le scope \"bot\" avec la permission Send Messages",
+            "Utilisez l'URL générée pour inviter le bot sur votre serveur"
           ],
-          "tip": "Assurez-vous que le Message Content intent est active, sinon votre bot ne recevra pas le contenu des messages."
+          "tip": "Assurez-vous que le Message Content intent est activé, sinon votre bot ne recevra pas le contenu des messages."
         }
       },
       "kinLabel": "Kin",
@@ -958,7 +958,7 @@
       "sourceChannelTip": "Le canal de messagerie (bot) utilisé pour envoyer les notifications. Doit être actif et configuré.",
       "recipientTip": "Le contact qui recevra les notifications par DM. Il doit avoir un identifiant correspondant à la plateforme du canal sélectionné.",
       "labelTip": "Un nom convivial pour identifier ce canal de livraison dans la liste.",
-      "noChannelsDescription": "Add a delivery channel to receive notifications on Telegram, Discord, email, or other platforms."
+      "noChannelsDescription": "Ajoutez un canal de livraison pour recevoir les notifications sur Telegram, Discord, email ou d'autres plateformes."
     },
     "groups": {
       "core": "Principal",
