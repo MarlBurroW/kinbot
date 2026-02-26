@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 
 interface FAQItem {
@@ -72,6 +72,21 @@ const faqs: FAQItem[] = [
     answer:
       'If you used the install script, just run it again. It\'s idempotent and will pull the latest changes, rebuild, and restart the service. For Docker, pull the latest image and recreate the container.',
   },
+  {
+    question: 'Why SQLite instead of Postgres?',
+    answer:
+      'Deliberate trade-off: one file means zero ops. No Postgres to configure, no Redis to babysit, no migrations headaches. Just cp kinbot.db backup.db and you\'re backed up. SQLite with WAL mode handles millions of rows and concurrent reads comfortably. A typical single-user instance stays under 500MB for months. For the target audience — self-hosters on a Pi or VPS — simplicity is a feature.',
+  },
+  {
+    question: 'Why AGPL-3.0 and not MIT?',
+    answer:
+      'AGPL only matters if you plan to offer KinBot as a hosted service without sharing modifications. For self-hosters running it on their own server, it works exactly like GPL — modify it however you want. AGPL prevents a cloud provider from taking KinBot, wrapping it in a SaaS, and contributing nothing back. Your freedom to use, modify, and self-host is fully preserved.',
+  },
+  {
+    question: 'Can agents create their own tools?',
+    answer:
+      'Yes. Kins can create custom tools at runtime (with user approval). Combined with MCP server support, this means your agents can extend their own capabilities — connecting to databases, calling APIs, running code, or interacting with any system you expose. No code changes needed.',
+  },
 ]
 
 function FAQEntry({ item }: { item: FAQItem }) {
@@ -120,6 +135,28 @@ function FAQEntry({ item }: { item: FAQItem }) {
 }
 
 export function FAQ() {
+  useEffect(() => {
+    const id = 'faq-jsonld'
+    if (document.getElementById(id)) return
+    const script = document.createElement('script')
+    script.id = id
+    script.type = 'application/ld+json'
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(f => ({
+        '@type': 'Question',
+        name: f.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: f.answer,
+        },
+      })),
+    })
+    document.head.appendChild(script)
+    return () => { document.getElementById(id)?.remove() }
+  }, [])
+
   return (
     <section id="faq" className="px-6 py-24 max-w-3xl mx-auto">
       <div className="text-center mb-12">
