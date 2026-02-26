@@ -15,7 +15,7 @@ import {
 import { Plus, Cpu } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
-import { api } from '@/client/lib/api'
+import { api, getErrorMessage } from '@/client/lib/api'
 import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
 import { AI_PROVIDER_TYPES } from '@/shared/constants'
