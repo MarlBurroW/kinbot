@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/client/components/ui/select'
 import { Loader2 } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { MEMORY_CATEGORIES } from '@/shared/constants'
 import type { MemorySummary, MemoryCategory } from '@/shared/types'
@@ -109,7 +110,7 @@ export function MemoryFormDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           {showKinPicker && kins && kins.length > 0 && (
             <div className="space-y-2">
-              <Label>{t('settings.memories.kin')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('settings.memories.kin')} <InfoTip content={t('settings.memories.kinTip')} /></Label>
               <Select value={selectedKinId} onValueChange={setSelectedKinId}>
                 <SelectTrigger className="h-auto min-h-9">
                   {selectedKinId && selectedKin ? (
@@ -130,7 +131,7 @@ export function MemoryFormDialog({
           )}
 
           <div className="space-y-2">
-            <Label>{t('settings.memories.content')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.memories.content')} <InfoTip content={t('settings.memories.contentTip')} /></Label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -142,7 +143,7 @@ export function MemoryFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t('settings.memories.categoryLabel')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('settings.memories.categoryLabel')} <InfoTip content={t('settings.memories.categoryTip')} /></Label>
               <Select value={category} onValueChange={(v) => setCategory(v as MemoryCategory)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -158,7 +159,7 @@ export function MemoryFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>{t('settings.memories.subject')}</Label>
+              <Label className="inline-flex items-center gap-1.5">{t('settings.memories.subject')} <InfoTip content={t('settings.memories.subjectTip')} /></Label>
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
