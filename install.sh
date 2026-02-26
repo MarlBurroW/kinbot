@@ -1201,6 +1201,8 @@ show_help() {
   echo "  --version       Show installed version and check for updates"
   echo "  --status        Check current KinBot installation health"
   echo "  --logs          Tail KinBot logs (works across all platforms)"
+  echo "  --backup [path] Back up database (and config) to a file"
+  echo "  --restore [path] Restore database from a backup (interactive picker if no path)"
   echo "  --dry-run       Show what would happen without making changes"
   echo "  --docker        Docker Compose setup (no Bun/build needed)"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
@@ -1228,6 +1230,14 @@ show_help() {
   echo ""
   echo "  # Docker install (no Bun required)"
   echo "  bash install.sh --docker"
+  echo ""
+  echo "  # Back up your database"
+  echo "  bash install.sh --backup"
+  echo "  bash install.sh --backup /tmp/kinbot-backup.db"
+  echo ""
+  echo "  # Restore from a backup (interactive picker)"
+  echo "  bash install.sh --restore"
+  echo "  bash install.sh --restore /tmp/kinbot-backup.db"
   echo ""
   echo "  # Check installation health"
   echo "  bash install.sh --status"
@@ -1736,6 +1746,302 @@ show_logs() {
   fi
 }
 
+# ─── Backup (standalone) ─────────────────────────────────────────────────────
+do_backup() {
+  echo ""
+  echo -e "${BOLD}KinBot Backup${NC}"
+  echo ""
+
+  # Minimal env setup
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  local db_file="$KINBOT_DATA_DIR/kinbot.db"
+  local env_file="$KINBOT_DATA_DIR/kinbot.env"
+
+  if [ ! -f "$db_file" ]; then
+    error "No database found at $db_file — nothing to back up"
+  fi
+
+  # Determine output path
+  local timestamp
+  timestamp="$(date +%Y%m%d-%H%M%S)"
+  local version_tag="manual"
+  if [ -d "$KINBOT_DIR/.git" ]; then
+    version_tag="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "manual")"
+    version_tag="$(echo "$version_tag" | tr '/' '-')"
+  fi
+
+  local output="${2:-}"
+  if [ -z "$output" ]; then
+    local backup_dir="$KINBOT_DATA_DIR/backups"
+    mkdir -p "$backup_dir"
+    output="$backup_dir/kinbot-${version_tag}-${timestamp}.db"
+  fi
+
+  # Create parent directory if needed
+  mkdir -p "$(dirname "$output")"
+
+  # Backup using sqlite3 .backup if available (safe even while running)
+  if command -v sqlite3 &>/dev/null; then
+    if sqlite3 "$db_file" ".backup '$output'" 2>/dev/null; then
+      success "Database backed up (sqlite3 safe copy)"
+    else
+      cp "$db_file" "$output"
+      [ -f "${db_file}-wal" ] && cp "${db_file}-wal" "${output}-wal"
+      [ -f "${db_file}-shm" ] && cp "${db_file}-shm" "${output}-shm"
+      success "Database backed up (file copy)"
+    fi
+  else
+    cp "$db_file" "$output"
+    [ -f "${db_file}-wal" ] && cp "${db_file}-wal" "${output}-wal"
+    [ -f "${db_file}-shm" ] && cp "${db_file}-shm" "${output}-shm"
+    success "Database backed up (file copy)"
+  fi
+
+  # Also back up env file alongside
+  if [ -f "$env_file" ]; then
+    cp "$env_file" "${output%.db}.env"
+    success "Config backed up: $(basename "${output%.db}.env")"
+  fi
+
+  local db_size
+  db_size="$(du -h "$output" 2>/dev/null | awk '{print $1}')"
+
+  echo ""
+  echo -e "  ${CYAN}Backup:${NC}  $output ($db_size)"
+  if [ -f "${output%.db}.env" ]; then
+    echo -e "  ${CYAN}Config:${NC}  ${output%.db}.env"
+  fi
+  echo ""
+
+  # Verify backup integrity if sqlite3 is available
+  if command -v sqlite3 &>/dev/null; then
+    local result
+    result="$(sqlite3 "$output" "PRAGMA integrity_check;" 2>/dev/null || echo "error")"
+    if [ "$result" = "ok" ]; then
+      success "Backup integrity verified"
+    else
+      warn "Backup integrity check returned: $result"
+    fi
+  fi
+
+  # List existing backups
+  local backup_dir="$KINBOT_DATA_DIR/backups"
+  if [ -d "$backup_dir" ]; then
+    local count
+    count="$(find "$backup_dir" -maxdepth 1 -name 'kinbot-*.db' -type f 2>/dev/null | wc -l)"
+    if [ "$count" -gt 0 ] 2>/dev/null; then
+      echo ""
+      info "$count backup(s) in $backup_dir"
+    fi
+  fi
+  echo ""
+}
+
+# ─── Restore ─────────────────────────────────────────────────────────────────
+do_restore() {
+  echo ""
+  echo -e "${BOLD}KinBot Restore${NC}"
+  echo ""
+
+  # Minimal env setup
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  # Detect init system for service control
+  if [ "$OS" = "Darwin" ]; then
+    INIT_SYSTEM="launchd"
+  elif command -v systemctl &>/dev/null && systemctl --version &>/dev/null 2>&1; then
+    INIT_SYSTEM="systemd"
+  else
+    INIT_SYSTEM="script"
+  fi
+
+  local backup_file="${2:-}"
+
+  # If no file given, list available backups and let user pick
+  if [ -z "$backup_file" ]; then
+    local backup_dir="$KINBOT_DATA_DIR/backups"
+    if [ ! -d "$backup_dir" ] || [ -z "$(find "$backup_dir" -maxdepth 1 -name 'kinbot-*.db' -type f 2>/dev/null)" ]; then
+      error "No backup file specified and no backups found in $backup_dir"
+    fi
+
+    echo -e "  ${BOLD}Available backups:${NC}"
+    echo ""
+    local i=1
+    local -a backup_list=()
+    while IFS= read -r f; do
+      backup_list+=("$f")
+      local fname size
+      fname="$(basename "$f")"
+      size="$(du -h "$f" 2>/dev/null | awk '{print $1}')"
+      local mtime
+      mtime="$(date -r "$f" '+%Y-%m-%d %H:%M' 2>/dev/null || stat -c '%y' "$f" 2>/dev/null | cut -d. -f1 || echo "unknown")"
+      echo -e "  ${CYAN}$i)${NC} $fname ($size, $mtime)"
+      i=$((i + 1))
+    done < <(find "$backup_dir" -maxdepth 1 -name 'kinbot-*.db' -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | awk '{print $2}')
+
+    if [ ${#backup_list[@]} -eq 0 ]; then
+      error "No backups found in $backup_dir"
+    fi
+
+    echo ""
+    local choice
+    echo -en "  ${CYAN}?${NC} ${BOLD}Which backup to restore?${NC} ${DIM}[1-${#backup_list[@]}]${NC}: " >/dev/tty
+    read -r choice </dev/tty || choice=""
+
+    if [[ ! "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt ${#backup_list[@]} ] 2>/dev/null; then
+      error "Invalid selection"
+    fi
+    backup_file="${backup_list[$((choice - 1))]}"
+  fi
+
+  if [ ! -f "$backup_file" ]; then
+    error "Backup file not found: $backup_file"
+  fi
+
+  # Verify backup integrity before restoring
+  if command -v sqlite3 &>/dev/null; then
+    local result
+    result="$(sqlite3 "$backup_file" "PRAGMA integrity_check;" 2>/dev/null || echo "error")"
+    if [ "$result" = "ok" ]; then
+      success "Backup integrity OK"
+    else
+      warn "Backup integrity check returned: $result"
+      echo -en "  ${YELLOW}?${NC} ${BOLD}Continue anyway?${NC} ${DIM}[y/N]${NC}: " >/dev/tty
+      local cont
+      read -r cont </dev/tty || cont="n"
+      [[ ! "$cont" =~ ^[Yy]$ ]] && exit 1
+    fi
+  fi
+
+  local db_file="$KINBOT_DATA_DIR/kinbot.db"
+  local backup_size
+  backup_size="$(du -h "$backup_file" 2>/dev/null | awk '{print $1}')"
+
+  echo ""
+  echo -e "  ${YELLOW}⚠ This will replace your current database with:${NC}"
+  echo -e "  ${CYAN}$(basename "$backup_file")${NC} ($backup_size)"
+  echo ""
+
+  if [ "${KINBOT_NO_PROMPT:-}" != "true" ] && [ "${CI:-}" != "true" ]; then
+    echo -en "  ${YELLOW}?${NC} ${BOLD}Continue?${NC} ${DIM}[y/N]${NC}: " >/dev/tty
+    local confirm
+    read -r confirm </dev/tty || confirm="n"
+    [[ ! "$confirm" =~ ^[Yy]$ ]] && { info "Cancelled"; exit 0; }
+  fi
+
+  # Back up current database first
+  if [ -f "$db_file" ]; then
+    local safety_backup="$KINBOT_DATA_DIR/backups/kinbot-pre-restore-$(date +%Y%m%d-%H%M%S).db"
+    mkdir -p "$(dirname "$safety_backup")"
+    cp "$db_file" "$safety_backup"
+    [ -f "${db_file}-wal" ] && cp "${db_file}-wal" "${safety_backup}-wal"
+    [ -f "${db_file}-shm" ] && cp "${db_file}-shm" "${safety_backup}-shm"
+    success "Current database saved to $(basename "$safety_backup")"
+  fi
+
+  # Stop service before replacing database
+  header "Stopping KinBot..."
+  local was_running=false
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local plist="$HOME/Library/LaunchAgents/io.kinbot.server.plist"
+    if [ -f "$plist" ] && launchctl list 2>/dev/null | grep -q io.kinbot.server; then
+      was_running=true
+      launchctl unload "$plist" 2>/dev/null || true
+      success "Service stopped"
+    fi
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local script_path="$KINBOT_DIR/kinbot"
+    local pid_file="$KINBOT_DATA_DIR/kinbot.pid"
+    if [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null; then
+      was_running=true
+      "$script_path" stop 2>/dev/null || kill "$(cat "$pid_file")" 2>/dev/null || true
+      success "Service stopped"
+    fi
+  elif [ "$IS_ROOT" = true ]; then
+    if systemctl is-active --quiet kinbot 2>/dev/null; then
+      was_running=true
+      systemctl stop kinbot
+      success "Service stopped"
+    fi
+  else
+    if systemctl --user is-active --quiet kinbot 2>/dev/null; then
+      was_running=true
+      systemctl --user stop kinbot
+      success "Service stopped"
+    fi
+  fi
+
+  # Replace database
+  header "Restoring database..."
+  cp "$backup_file" "$db_file"
+  # Remove WAL/SHM from current (will be recreated) and copy from backup if they exist
+  rm -f "${db_file}-wal" "${db_file}-shm"
+  [ -f "${backup_file}-wal" ] && cp "${backup_file}-wal" "${db_file}-wal"
+  [ -f "${backup_file}-shm" ] && cp "${backup_file}-shm" "${db_file}-shm"
+
+  # Fix ownership if running as root
+  if [ "$IS_ROOT" = true ] && id "${KINBOT_USER:-kinbot}" &>/dev/null; then
+    chown "${KINBOT_USER}:${KINBOT_USER}" "$db_file" "${db_file}-wal" "${db_file}-shm" 2>/dev/null || true
+  fi
+
+  success "Database restored from $(basename "$backup_file")"
+
+  # Also restore env file if it exists alongside the backup
+  local env_backup="${backup_file%.db}.env"
+  if [ -f "$env_backup" ]; then
+    echo ""
+    echo -en "  ${CYAN}?${NC} ${BOLD}Also restore config file?${NC} ${DIM}[y/N]${NC}: " >/dev/tty
+    local restore_env
+    read -r restore_env </dev/tty || restore_env="n"
+    if [[ "$restore_env" =~ ^[Yy]$ ]]; then
+      cp "$env_backup" "$KINBOT_DATA_DIR/kinbot.env"
+      chmod 600 "$KINBOT_DATA_DIR/kinbot.env"
+      success "Config restored"
+    fi
+  fi
+
+  # Restart service if it was running
+  if [ "$was_running" = true ]; then
+    header "Restarting KinBot..."
+    if [ "$INIT_SYSTEM" = "launchd" ]; then
+      launchctl load "$HOME/Library/LaunchAgents/io.kinbot.server.plist" 2>/dev/null
+    elif [ "$INIT_SYSTEM" = "script" ]; then
+      "$KINBOT_DIR/kinbot" start 2>/dev/null || true
+    elif [ "$IS_ROOT" = true ]; then
+      systemctl start kinbot
+    else
+      systemctl --user start kinbot
+    fi
+    success "Service restarted"
+  fi
+
+  echo ""
+  echo -e "${GREEN}${BOLD}Restore complete!${NC}"
+  if [ "$was_running" != true ]; then
+    echo -e "  ${DIM}Start KinBot to use the restored database.${NC}"
+  fi
+  echo ""
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
   # Handle flags
@@ -1759,6 +2065,16 @@ main() {
       --logs|logs)
         trap - INT TERM
         show_logs
+        exit 0
+        ;;
+      --backup|backup)
+        trap - INT TERM
+        do_backup "$@"
+        exit 0
+        ;;
+      --restore|restore)
+        trap - INT TERM
+        do_restore "$@"
         exit 0
         ;;
       --version|-v|version)
