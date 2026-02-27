@@ -7,6 +7,7 @@ import { BackToTop } from './components/BackToTop'
 
 // Lazy-load below-the-fold sections for faster initial paint
 const Stats = lazy(() => import('./components/Stats').then(m => ({ default: m.Stats })))
+const HowItWorks = lazy(() => import('./components/HowItWorks').then(m => ({ default: m.HowItWorks })))
 const WhatIsKin = lazy(() => import('./components/WhatIsKin').then(m => ({ default: m.WhatIsKin })))
 const Features = lazy(() => import('./components/Features').then(m => ({ default: m.Features })))
 const UseCases = lazy(() => import('./components/UseCases').then(m => ({ default: m.UseCases })))
@@ -47,6 +48,11 @@ export default function App() {
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Stats />
+          </ScrollReveal>
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <ScrollReveal>
+            <HowItWorks />
           </ScrollReveal>
         </Suspense>
         <Suspense fallback={<SectionFallback />}>
