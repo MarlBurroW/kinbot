@@ -194,6 +194,7 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, kinModel, llmMode
         isUploading={isUploading}
         onAddFiles={addFiles}
         onRemoveFile={removeFile}
+        kinId={kinId}
       />
 
       {/* Close confirmation dialog */}
