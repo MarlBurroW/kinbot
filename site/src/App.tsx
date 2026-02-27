@@ -19,6 +19,7 @@ const Providers = lazy(() => import('./components/Providers').then(m => ({ defau
 const Channels = lazy(() => import('./components/Channels').then(m => ({ default: m.Channels })))
 const Architecture = lazy(() => import('./components/Architecture').then(m => ({ default: m.Architecture })))
 const Install = lazy(() => import('./components/Install').then(m => ({ default: m.Install })))
+const Pricing = lazy(() => import('./components/Pricing').then(m => ({ default: m.Pricing })))
 const FAQ = lazy(() => import('./components/FAQ').then(m => ({ default: m.FAQ })))
 const Changelog = lazy(() => import('./components/Changelog').then(m => ({ default: m.Changelog })))
 const GitHubCTA = lazy(() => import('./components/GitHubCTA').then(m => ({ default: m.GitHubCTA })))
@@ -110,6 +111,11 @@ export default function App() {
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Install />
+          </ScrollReveal>
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <ScrollReveal>
+            <Pricing />
           </ScrollReveal>
         </Suspense>
         <Suspense fallback={<SectionFallback />}>
