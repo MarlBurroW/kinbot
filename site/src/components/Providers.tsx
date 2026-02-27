@@ -195,9 +195,48 @@ const capabilityColors: Record<string, string> = {
   Search: 'var(--color-accent, var(--color-glow-1))',
 }
 
+const allCapabilities = ['All', 'LLM', 'Image', 'Embedding', 'Search'] as const
+type FilterCap = (typeof allCapabilities)[number]
+
+function CapabilityFilter({ active, onChange }: { active: FilterCap; onChange: (c: FilterCap) => void }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-2 mb-10">
+      {allCapabilities.map((cap) => {
+        const isActive = active === cap
+        const color = cap === 'All' ? 'var(--color-primary)' : (capabilityColors[cap] || 'var(--color-glow-1)')
+        return (
+          <button
+            key={cap}
+            onClick={() => onChange(cap)}
+            className="text-sm font-medium px-4 py-2 rounded-full transition-all duration-200"
+            style={{
+              background: isActive
+                ? `color-mix(in oklch, ${color} 20%, transparent)`
+                : 'color-mix(in oklch, var(--color-muted-foreground) 8%, transparent)',
+              color: isActive ? color : 'var(--color-muted-foreground)',
+              border: isActive
+                ? `1px solid color-mix(in oklch, ${color} 40%, transparent)`
+                : '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)',
+              transform: isActive ? 'scale(1.05)' : 'scale(1)',
+            }}
+          >
+            {cap}
+            {cap !== 'All' && (
+              <span className="ml-1.5 text-xs opacity-60">
+                {providers.filter(p => p.capabilities.includes(cap)).length}
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function ProvidersGrid() {
   const gridRef = useRef<HTMLDivElement>(null)
   const [visibleSet, setVisibleSet] = useState<Set<number>>(new Set())
+  const [filter, setFilter] = useState<FilterCap>('All')
   const observedRef = useRef(false)
 
   useEffect(() => {
@@ -223,68 +262,76 @@ function ProvidersGrid() {
     return () => observer.disconnect()
   }, [])
 
+  const filtered = filter === 'All'
+    ? providers
+    : providers.filter(p => p.capabilities.includes(filter))
+
   return (
-    <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-      {providers.map((provider, i) => {
-        const visible = visibleSet.has(i)
-        return (
-          <div
-            key={provider.name}
-            className="glass-strong gradient-border rounded-2xl p-5 transition-all duration-300 hover:scale-[1.03] hover:shadow-lg group text-center"
-            style={{
-              boxShadow: 'var(--shadow-md)',
-              opacity: visible ? 1 : 0,
-              transform: visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.96)',
-              transition: 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, scale 0.3s',
-            }}
-          >
-            <div className="flex justify-center mb-3">
-              {provider.imgFallback ? (
-                <img
-                  src={provider.imgFallback}
-                  alt={provider.name}
-                  className="w-10 h-10 transition-transform duration-300 group-hover:scale-110"
-                  loading="lazy"
-                />
-              ) : (
-                <provider.Icon
-                  size={40}
-                  className="transition-transform duration-300 group-hover:scale-110"
-                  {...(provider.color ? { color: provider.color } : {})}
-                />
-              )}
-            </div>
-            <h3
-              className="font-semibold text-sm mb-1"
-              style={{ color: 'var(--color-foreground)' }}
+    <>
+      <CapabilityFilter active={filter} onChange={setFilter} />
+      <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filtered.map((provider) => {
+          const origIndex = providers.indexOf(provider)
+          const visible = visibleSet.has(origIndex)
+          return (
+            <div
+              key={provider.name}
+              className="glass-strong gradient-border rounded-2xl p-5 transition-all duration-300 hover:scale-[1.03] hover:shadow-lg group text-center"
+              style={{
+                boxShadow: 'var(--shadow-md)',
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.96)',
+                transition: 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, scale 0.3s',
+              }}
             >
-              {provider.name}
-            </h3>
-            <p
-              className="text-xs mb-3"
-              style={{ color: 'var(--color-muted-foreground)' }}
-            >
-              {provider.description}
-            </p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {provider.capabilities.map((cap) => (
-                <span
-                  key={cap}
-                  className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                  style={{
-                    background: `color-mix(in oklch, ${capabilityColors[cap] || 'var(--color-glow-1)'} 15%, transparent)`,
-                    color: capabilityColors[cap] || 'var(--color-glow-1)',
-                    border: `1px solid color-mix(in oklch, ${capabilityColors[cap] || 'var(--color-glow-1)'} 25%, transparent)`,
-                  }}
-                >
-                  {cap}
-                </span>
-              ))}
+              <div className="flex justify-center mb-3">
+                {provider.imgFallback ? (
+                  <img
+                    src={provider.imgFallback}
+                    alt={provider.name}
+                    className="w-10 h-10 transition-transform duration-300 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                ) : (
+                  <provider.Icon
+                    size={40}
+                    className="transition-transform duration-300 group-hover:scale-110"
+                    {...(provider.color ? { color: provider.color } : {})}
+                  />
+                )}
+              </div>
+              <h3
+                className="font-semibold text-sm mb-1"
+                style={{ color: 'var(--color-foreground)' }}
+              >
+                {provider.name}
+              </h3>
+              <p
+                className="text-xs mb-3"
+                style={{ color: 'var(--color-muted-foreground)' }}
+              >
+                {provider.description}
+              </p>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {provider.capabilities.map((cap) => (
+                  <span
+                    key={cap}
+                    className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                    style={{
+                      background: `color-mix(in oklch, ${capabilityColors[cap] || 'var(--color-glow-1)'} 15%, transparent)`,
+                      color: capabilityColors[cap] || 'var(--color-glow-1)',
+                      border: `1px solid color-mix(in oklch, ${capabilityColors[cap] || 'var(--color-glow-1)'} 25%, transparent)`,
+                    }}
+                  >
+                    {cap}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )
-      })}
-    </div>
+          )
+        })}
+      </div>
+    </>
   )
 }
 
