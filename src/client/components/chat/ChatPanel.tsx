@@ -24,6 +24,7 @@ import { useExportConversation } from '@/client/hooks/useExportConversation'
 import { ConversationSearch } from '@/client/components/chat/ConversationSearch'
 import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
 import { DateSeparator } from '@/client/components/chat/DateSeparator'
+import { TimeGapIndicator } from '@/client/components/chat/TimeGapIndicator'
 import { SearchHighlightProvider } from '@/client/components/chat/SearchHighlightContext'
 import { cn } from '@/client/lib/utils'
 import { ArrowDown, ArrowUp, Upload, Pin, PinOff } from 'lucide-react'
@@ -434,11 +435,24 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     && msg.createdAt && prev!.createdAt
                     && (new Date(msg.createdAt).getTime() - new Date(prev!.createdAt).getTime()) < GROUPING_WINDOW_MS
 
+                  // Time gap indicator: show between same-day messages >30min apart
+                  let timeGap: React.ReactNode = null
+                  if (!dateSeparator && idx > 0 && msg.createdAt && messages[idx - 1]?.createdAt) {
+                    timeGap = (
+                      <TimeGapIndicator
+                        key={`gap-${msg.id}`}
+                        prevTimestamp={messages[idx - 1]!.createdAt}
+                        currentTimestamp={msg.createdAt}
+                      />
+                    )
+                  }
+
                   // Render compacting trace as a dedicated card
                   if (msg.sourceType === 'compacting') {
                     return (
                       <React.Fragment key={msg.id}>
                         {dateSeparator}
+                        {timeGap}
                         <CompactingCard
                           status="done"
                           summary={msg.content}
@@ -456,6 +470,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   return (
                     <React.Fragment key={`wrap-${msg.id}`}>
                     {dateSeparator}
+                    {timeGap}
                     <div
                       data-message-id={msg.id}
                       className={cn(

@@ -527,6 +527,11 @@
     "dateNav": {
       "title": "Aller à une date",
       "subtitle": "{{count}} jours de conversation"
+    },
+    "timeGap": {
+      "minutes": "{{count}} min plus tard",
+      "hours": "{{count}}h plus tard",
+      "hoursMinutes": "{{hours}}h {{minutes}}min plus tard"
     }
   },
   "quickChat": {
