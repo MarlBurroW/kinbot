@@ -33,6 +33,7 @@ export interface KinCardProps extends HTMLAttributes<HTMLDivElement> {
   isSelected?: boolean
   isDragging?: boolean
   modelUnavailable?: boolean
+  unreadCount?: number
   shortcutIndex?: number
   onClick: () => void
   onEdit?: () => void
@@ -50,6 +51,7 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
   isSelected = false,
   isDragging = false,
   modelUnavailable = false,
+  unreadCount = 0,
   shortcutIndex,
   onClick,
   onEdit,
@@ -155,6 +157,11 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
 
       {/* Right actions */}
       <div className="flex shrink-0 items-center gap-1">
+        {unreadCount > 0 && !isSelected && (
+          <Badge variant="default" className="size-4.5 p-0 text-[9px] flex items-center justify-center rounded-full animate-in fade-in zoom-in-50 duration-200">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </Badge>
+        )}
         {isProcessing && (
           <Loader2 className="size-3.5 text-primary animate-spin" />
         )}

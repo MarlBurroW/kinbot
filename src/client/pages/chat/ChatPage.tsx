@@ -28,6 +28,7 @@ import { useFaviconBadge } from '@/client/hooks/useFaviconBadge'
 import { Bot, Command, Maximize2, MessageSquare, Minimize2, Plus, Sparkles } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { useFocusMode } from '@/client/hooks/useFocusMode'
+import { useUnreadPerKin } from '@/client/hooks/useUnreadPerKin'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 
 export function ChatPage() {
@@ -78,6 +79,8 @@ export function ChatPage() {
   }, [])
 
   const handleSelectKin = (slug: string) => {
+    const kin = kins.find((k) => k.slug === slug)
+    if (kin) clearKinUnread(kin.id)
     navigate(`/kin/${slug}`)
   }
 
@@ -120,6 +123,7 @@ export function ChatPage() {
     ? kinQueueState.get(selectedKin.id)?.isProcessing ?? false
     : false
   const unreadCount = useUnreadWhileHidden(selectedKin?.id ?? null)
+  const { unreadCounts: unreadPerKin, clearUnread: clearKinUnread } = useUnreadPerKin(selectedKin?.id ?? null)
   useDocumentTitle(selectedKin?.name, selectedKinProcessing, unreadCount)
   useFaviconBadge(unreadCount)
 
