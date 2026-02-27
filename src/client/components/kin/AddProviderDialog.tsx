@@ -14,11 +14,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ExternalLink, Loader2, RefreshCw } from 'lucide-react'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
-import { PROVIDER_CAPABILITIES, PROVIDER_DISPLAY_NAMES, PROVIDER_TYPES, PROVIDERS_WITHOUT_API_KEY } from '@/shared/constants'
+import { PROVIDER_API_KEY_URLS, PROVIDER_CAPABILITIES, PROVIDER_DISPLAY_NAMES, PROVIDER_TYPES, PROVIDERS_WITHOUT_API_KEY } from '@/shared/constants'
 import type { ProviderType } from '@/shared/types'
 
 interface EditProvider {
@@ -93,6 +93,7 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
   }
 
   const isApiKeyOptional = (PROVIDERS_WITHOUT_API_KEY as readonly string[]).includes(providerType)
+  const apiKeyUrl = PROVIDER_API_KEY_URLS[providerType] as string | undefined
 
   const handleTestConnection = async () => {
     setError('')
@@ -271,6 +272,17 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
                 autoComplete="off"
                 placeholder={isEditing ? '••••••••' : undefined}
               />
+            )}
+            {apiKeyUrl && !isEditing && (
+              <a
+                href={apiKeyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                {t('onboarding.providers.getApiKey', { provider: PROVIDER_DISPLAY_NAMES[providerType] ?? providerType })}
+                <ExternalLink className="size-3" />
+              </a>
             )}
           </div>
 

@@ -117,7 +117,8 @@
       "modelConfig": "Configuration des modèles",
       "modelConfigHint": "Choisissez les modèles utilisés pour l'extraction mémorielle et la recherche sémantique",
       "nameTip": "Un nom pour identifier ce provider dans votre tableau de bord. Si vide, le nom du type de provider est utilisé.",
-      "baseUrlTip": "Remplace l'URL par défaut de l'API. Utile pour les instances auto-hébergées, proxies, ou API tierces compatibles."
+      "baseUrlTip": "Remplace l'URL par défaut de l'API. Utile pour les instances auto-hébergées, proxies, ou API tierces compatibles.",
+      "getApiKey": "Obtenir votre clé API {{provider}}"
     },
     "searchProviders": {
       "title": "Fournisseurs de recherche",

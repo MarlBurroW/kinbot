@@ -117,7 +117,8 @@
       "modelConfig": "Model Configuration",
       "modelConfigHint": "Choose the models used for memory extraction and semantic search",
       "nameTip": "A friendly label to identify this provider in your dashboard. If left empty, the provider type name is used.",
-      "baseUrlTip": "Override the default API endpoint. Useful for self-hosted instances, proxies, or compatible third-party APIs."
+      "baseUrlTip": "Override the default API endpoint. Useful for self-hosted instances, proxies, or compatible third-party APIs.",
+      "getApiKey": "Get your {{provider}} API key"
     },
     "searchProviders": {
       "title": "Search Providers",

@@ -33,6 +33,11 @@ export const PROVIDER_DISPLAY_NAMES: Record<string, string> = Object.fromEntries
   metaEntries.map(([t, m]) => [t, m.displayName]),
 )
 
+/** URLs where users can obtain or manage their API keys */
+export const PROVIDER_API_KEY_URLS: Record<string, string> = Object.fromEntries(
+  metaEntries.filter(([, m]) => m.apiKeyUrl).map(([t, m]) => [t, m.apiKeyUrl!]),
+)
+
 /** Provider types where the API key field is optional (auto-detected credentials) */
 export const PROVIDERS_WITHOUT_API_KEY = metaEntries
   .filter(([, m]) => m.noApiKey)
