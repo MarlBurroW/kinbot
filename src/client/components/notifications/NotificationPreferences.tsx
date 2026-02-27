@@ -5,8 +5,9 @@ import { Switch } from '@/client/components/ui/switch'
 import { Label } from '@/client/components/ui/label'
 import { Button } from '@/client/components/ui/button'
 import { Separator } from '@/client/components/ui/separator'
-import { Plus, Radio, Volume2 } from 'lucide-react'
+import { AlertTriangle, Bell, Clock, MessageCircle, Plus, Radio, ShieldAlert, UserCheck, Volume2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { HelpPanel } from '@/client/components/common/HelpPanel'
 import {
   getNotificationSoundEnabled,
   setNotificationSoundEnabled,
@@ -16,6 +17,15 @@ import { NOTIFICATION_TYPES } from '@/shared/constants'
 import { NotificationChannelCard } from './NotificationChannelCard'
 import { NotificationChannelFormDialog } from './NotificationChannelFormDialog'
 import type { NotificationType, NotificationChannelSummary } from '@/shared/types'
+
+const NOTIFICATION_TYPE_ICONS: Record<string, React.ElementType> = {
+  'kin:alert': Bell,
+  'kin:error': AlertTriangle,
+  'prompt:pending': MessageCircle,
+  'cron:pending-approval': Clock,
+  'mcp:pending-approval': ShieldAlert,
+  'channel:user-pending': UserCheck,
+}
 
 export function NotificationPreferences() {
   const { t } = useTranslation()
@@ -88,6 +98,17 @@ export function NotificationPreferences() {
         <p className="mt-1 text-sm text-muted-foreground">{t('settings.notifications.description')}</p>
       </div>
 
+      <HelpPanel
+        contentKey="settings.notifications.help.content"
+        bulletKeys={[
+          'settings.notifications.help.bullet1',
+          'settings.notifications.help.bullet2',
+          'settings.notifications.help.bullet3',
+          'settings.notifications.help.bullet4',
+        ]}
+        storageKey="help.notifications.open"
+      />
+
       <div className="flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
         <Label htmlFor="notif-sound" className="flex-1 cursor-pointer">
           <span className="text-sm font-medium flex items-center gap-1.5">
@@ -111,10 +132,14 @@ export function NotificationPreferences() {
       <div className="space-y-4">
         {NOTIFICATION_TYPES.map((type) => {
           const enabled = preferences[type] !== false
+          const TypeIcon = NOTIFICATION_TYPE_ICONS[type.replace(/:/g, ':')] ?? Bell
           return (
             <div key={type} className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
               <Label htmlFor={`notif-${type}`} className="flex-1 cursor-pointer">
-                <span className="text-sm font-medium">{t(`notifications.types.${type.replace(/:/g, '-')}`)}</span>
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  <TypeIcon className="size-3.5 text-muted-foreground" />
+                  {t(`notifications.types.${type.replace(/:/g, '-')}`)}
+                </span>
                 <p className="mt-0.5 text-xs font-normal text-muted-foreground">{t(`notifications.descriptions.${type.replace(/:/g, '-')}`)}</p>
               </Label>
               <Switch

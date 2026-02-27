@@ -1091,7 +1091,14 @@
       "sourceChannelTip": "The messaging channel (bot) used to send notifications. Must be active and configured.",
       "recipientTip": "The contact who will receive notifications via DM. They must have a platform ID matching the selected channel.",
       "labelTip": "A friendly name to identify this delivery channel in the list.",
-      "noChannelsDescription": "Add a delivery channel to receive notifications on Telegram, Discord, email, or other platforms."
+      "noChannelsDescription": "Add a delivery channel to receive notifications on Telegram, Discord, email, or other platforms.",
+      "help": {
+        "content": "Notifications keep you informed about important events in KinBot. You can toggle individual notification types on or off, and set up external delivery channels to receive them on platforms like Telegram, Discord, or email.",
+        "bullet1": "Toggle notification types to control what you see in the notification bell",
+        "bullet2": "External delivery channels forward notifications to your preferred platforms",
+        "bullet3": "Each delivery channel can filter by notification type for fine-grained control",
+        "bullet4": "Use the test button on delivery channels to verify they work correctly"
+      }
     },
     "groups": {
       "core": "Core",

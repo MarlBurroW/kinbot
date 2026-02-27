@@ -1091,7 +1091,14 @@
       "sourceChannelTip": "Le canal de messagerie (bot) utilisé pour envoyer les notifications. Doit être actif et configuré.",
       "recipientTip": "Le contact qui recevra les notifications par DM. Il doit avoir un identifiant correspondant à la plateforme du canal sélectionné.",
       "labelTip": "Un nom convivial pour identifier ce canal de livraison dans la liste.",
-      "noChannelsDescription": "Ajoutez un canal de livraison pour recevoir les notifications sur Telegram, Discord, email ou d'autres plateformes."
+      "noChannelsDescription": "Ajoutez un canal de livraison pour recevoir les notifications sur Telegram, Discord, email ou d'autres plateformes.",
+      "help": {
+        "content": "Les notifications vous tiennent informé des événements importants dans KinBot. Vous pouvez activer ou désactiver chaque type de notification, et configurer des canaux de livraison externes pour les recevoir sur des plateformes comme Telegram, Discord ou par email.",
+        "bullet1": "Activez/désactivez les types de notifications pour contrôler ce qui apparaît dans la cloche",
+        "bullet2": "Les canaux de livraison externes envoient les notifications vers vos plateformes préférées",
+        "bullet3": "Chaque canal peut filtrer par type de notification pour un contrôle précis",
+        "bullet4": "Utilisez le bouton test sur les canaux pour vérifier qu'ils fonctionnent"
+      }
     },
     "groups": {
       "core": "Principal",
