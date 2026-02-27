@@ -23,6 +23,7 @@ import { useExportConversation } from '@/client/hooks/useExportConversation'
 import { ConversationSearch } from '@/client/components/chat/ConversationSearch'
 import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
 import { DateSeparator } from '@/client/components/chat/DateSeparator'
+import { SearchHighlightProvider } from '@/client/components/chat/SearchHighlightContext'
 import { cn } from '@/client/lib/utils'
 import { ArrowDown, Upload, Pin, PinOff } from 'lucide-react'
 import { toast } from 'sonner'
@@ -364,6 +365,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         {/* Messages area */}
         <div ref={scrollAreaRef} className="relative min-h-0 flex-1 flex flex-col">
         <ScrollArea className="min-h-0 flex-1">
+          <SearchHighlightProvider value={searchQuery}>
           <div className="mx-auto max-w-3xl py-4">
             {messages.length === 0 && liveTasks.length === 0 ? (
               <ChatEmptyState
@@ -513,6 +515,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
             )}
             <div ref={bottomRef} />
           </div>
+          </SearchHighlightProvider>
         </ScrollArea>
           {showScrollBottom && (
             <button

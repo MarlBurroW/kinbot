@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/client/lib/utils'
+import { HighlightText } from '@/client/components/chat/HighlightText'
 
 interface MarkdownContentProps {
   content: string
@@ -149,8 +150,41 @@ function PreBlock({ children, ...props }: HTMLAttributes<HTMLPreElement>) {
   )
 }
 
+// Recursively walk React children and wrap string nodes with HighlightText
+function highlightChildren(children: React.ReactNode): React.ReactNode {
+  if (typeof children === 'string') return <HighlightText text={children} />
+  if (typeof children === 'number') return <HighlightText text={String(children)} />
+  if (Array.isArray(children)) return children.map((child, i) => {
+    if (typeof child === 'string') return <HighlightText key={i} text={child} />
+    return child
+  })
+  return children
+}
+
+/** HOC that wraps an HTML element to apply search highlighting to its text children. */
+function withHighlight(Tag: string) {
+  return function HighlightedElement({ children, ...props }: HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
+    return <Tag {...props}>{highlightChildren(children)}</Tag>
+  }
+}
+
 const markdownComponents = {
   pre: PreBlock,
+  p: withHighlight('p'),
+  li: withHighlight('li'),
+  td: withHighlight('td'),
+  th: withHighlight('th'),
+  strong: withHighlight('strong'),
+  em: withHighlight('em'),
+  del: withHighlight('del'),
+  a: withHighlight('a'),
+  h1: withHighlight('h1'),
+  h2: withHighlight('h2'),
+  h3: withHighlight('h3'),
+  h4: withHighlight('h4'),
+  h5: withHighlight('h5'),
+  h6: withHighlight('h6'),
+  blockquote: withHighlight('blockquote'),
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -169,7 +203,7 @@ export const MarkdownContent = memo(function MarkdownContent({
   if (isPlainText) {
     return (
       <div className={cn('text-sm whitespace-pre-wrap break-words leading-relaxed', className)}>
-        {content}
+        <HighlightText text={content} />
       </div>
     )
   }
