@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Focus mode for distraction-free chat with hidden sidebar & header (`Ctrl+Shift+F`)
+- Conversation statistics popover with message breakdown, tool calls, duration, and response time
+- Markdown formatting toolbar with keyboard shortcuts (Bold, Italic, Strikethrough, Code)
+- Input history: press Up/Down arrow to cycle through previously sent messages
+- New message count badge on scroll-to-bottom button when scrolled up
+- Highlight matching text within messages during conversation search
+- Wrap/unwrap toggle for long code blocks
+- Clear conversation button with confirmation dialog
+- "Get API key" help links in provider setup dialog
+- Contextual help panels to Providers, Memories, Contacts, Users, Channels, and Search Providers settings
+- Step progress indicators to install flow
+- `--config` flag to installer for reconfiguring port and URL interactively
+- Retry with exponential backoff for network operations in installer
+- Vault field type label translations (i18n)
+
+### Fixed
+- Docker: remove unsupported `--production=false` flag from `bun install`
+- Installer: fix shellcheck warnings and backup/restore arg parsing
+
+### Changed
+- Use `PasswordInput` in VaultEntryFormDialog for consistency
+- Extract shared `useCopyToClipboard` hook
+- Consolidate duplicate PR templates
+- Improve docker-compose with image default, comments, and `PUBLIC_URL` hint
+
+### Tests
+- Add tests for Mistral, Together AI, Fireworks AI providers and Telegram channel adapter
+
+### Site
+- Add screenshots gallery section with lightbox viewer (keyboard nav, touch swipe, image preloading)
+- Add accessibility improvements (reduced motion, skip-to-content, ARIA)
+- Add rotating tagline animation to Hero section
+- Staggered scroll animations for Features & Providers grids
+- SEO: robots.txt, sitemap.xml, refined meta description and structured data
+- Add OpenClaw to comparison table with new feature rows
+
 ---
 
 ## [0.2.24] - 2026-02-27
