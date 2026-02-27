@@ -2,6 +2,9 @@
 FROM oven/bun:1 AS deps
 WORKDIR /app
 
+# better-sqlite3 needs native build tools for node-gyp
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
@@ -22,10 +25,11 @@ LABEL org.opencontainers.image.title="KinBot" \
       org.opencontainers.image.source="https://github.com/MarlBurroW/kinbot" \
       org.opencontainers.image.licenses="AGPL-3.0"
 
-# Install production dependencies (better-sqlite3 needs build tools)
+# Install production dependencies (better-sqlite3 needs build tools for node-gyp)
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile --production && \
+    apt-get purge -y python3 make g++ && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 # Copy built frontend
 COPY --from=build /app/dist ./dist
