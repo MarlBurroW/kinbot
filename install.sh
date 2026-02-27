@@ -1245,6 +1245,7 @@ show_help() {
   echo "  --backup [path] Back up database (and config) to a file"
   echo "  --restore [path] Restore database from a backup (interactive picker if no path)"
   echo "  --no-color      Disable colored output (also: NO_COLOR=1)"
+  echo "  --config        Re-run the configuration wizard (change port, URL)"
   echo "  --dry-run       Show what would happen without making changes"
   echo "  --docker        Docker Compose setup (no Bun/build needed)"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
@@ -1269,6 +1270,9 @@ show_help() {
   echo ""
   echo "  # Update existing installation (just run again)"
   echo "  bash install.sh"
+  echo ""
+  echo "  # Reconfigure (change port, URL)"
+  echo "  bash install.sh --config"
   echo ""
   echo "  # Check for updates and apply"
   echo "  bash install.sh --update"
@@ -2089,6 +2093,159 @@ do_restore() {
   echo ""
 }
 
+# ─── Reconfigure ─────────────────────────────────────────────────────────────
+do_config() {
+  echo ""
+  echo -e "${BOLD}KinBot Configuration${NC}"
+  echo ""
+
+  # Minimal env setup
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  local env_file="$KINBOT_DATA_DIR/kinbot.env"
+
+  if [ ! -f "$env_file" ]; then
+    error "No config file found at $env_file. Run the installer first: bash install.sh"
+  fi
+
+  # Read current values
+  local current_port current_url current_host
+  # shellcheck disable=SC1090
+  . "$env_file" 2>/dev/null || true
+  current_port="${PORT:-3000}"
+  current_url="${PUBLIC_URL:-}"
+  current_host="${HOST:-0.0.0.0}"
+
+  echo -e "  ${DIM}Current config: $env_file${NC}"
+  echo -e "  ${DIM}Edit values below. Press Enter to keep current value.${NC}"
+  echo ""
+
+  local new_port new_url
+  prompt_value new_port "Port" "$current_port"
+  prompt_value new_url "Public URL" "$current_url"
+
+  # Check if anything changed
+  if [ "$new_port" = "$current_port" ] && [ "$new_url" = "$current_url" ]; then
+    echo ""
+    info "No changes made."
+    echo ""
+    exit 0
+  fi
+
+  # If port changed, check availability (unless it's our own service)
+  if [ "$new_port" != "$current_port" ]; then
+    local port_in_use=false
+    if command -v ss &>/dev/null; then
+      ss -tlnp 2>/dev/null | grep -q ":${new_port} " && port_in_use=true
+    elif command -v lsof &>/dev/null; then
+      lsof -i ":${new_port}" -sTCP:LISTEN &>/dev/null && port_in_use=true
+    fi
+    if [ "$port_in_use" = true ]; then
+      warn "Port $new_port is already in use. The service may fail to start."
+      echo -en "  ${YELLOW}?${NC} ${BOLD}Continue anyway?${NC} ${DIM}[y/N]${NC}: " >/dev/tty
+      local cont
+      read -r cont </dev/tty || cont="n"
+      [[ ! "$cont" =~ ^[Yy]$ ]] && { info "Cancelled"; exit 0; }
+    fi
+  fi
+
+  # Rewrite the env file preserving any extra user-added vars
+  local tmp_env
+  tmp_env="$(mktemp)"
+
+  # Update known keys, pass through everything else
+  while IFS= read -r line; do
+    case "$line" in
+      PORT=*)           echo "PORT=${new_port}" ;;
+      PUBLIC_URL=*)     echo "PUBLIC_URL=${new_url}" ;;
+      *)                echo "$line" ;;
+    esac
+  done < "$env_file" > "$tmp_env"
+
+  mv "$tmp_env" "$env_file"
+  chmod 600 "$env_file"
+
+  echo ""
+  if [ "$new_port" != "$current_port" ]; then
+    success "Port: $current_port → $new_port"
+  fi
+  if [ "$new_url" != "$current_url" ]; then
+    success "Public URL: $current_url → $new_url"
+  fi
+  success "Config updated: $env_file"
+
+  # Detect init system and offer restart
+  if [ "$OS" = "Darwin" ]; then
+    INIT_SYSTEM="launchd"
+  elif command -v systemctl &>/dev/null && systemctl --version &>/dev/null 2>&1; then
+    INIT_SYSTEM="systemd"
+  else
+    INIT_SYSTEM="script"
+  fi
+
+  local is_running=false
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    launchctl list 2>/dev/null | grep -q io.kinbot.server && is_running=true
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local pid_file="$KINBOT_DATA_DIR/kinbot.pid"
+    [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null && is_running=true
+  elif [ "$IS_ROOT" = true ]; then
+    systemctl is-active --quiet kinbot 2>/dev/null && is_running=true
+  else
+    systemctl --user is-active --quiet kinbot 2>/dev/null && is_running=true
+  fi
+
+  if [ "$is_running" = true ]; then
+    echo ""
+    local do_restart="y"
+    echo -en "  ${CYAN}?${NC} ${BOLD}Restart KinBot now to apply changes?${NC} ${DIM}[Y/n]${NC}: " >/dev/tty
+    read -r do_restart </dev/tty || do_restart="y"
+    [ -z "$do_restart" ] && do_restart="y"
+
+    if [[ "$do_restart" =~ ^[Yy]$ ]]; then
+      if [ "$INIT_SYSTEM" = "launchd" ]; then
+        local plist="$HOME/Library/LaunchAgents/io.kinbot.server.plist"
+        launchctl unload "$plist" 2>/dev/null || true
+        launchctl load "$plist" 2>/dev/null
+      elif [ "$INIT_SYSTEM" = "script" ]; then
+        "$KINBOT_DIR/kinbot" restart 2>/dev/null || true
+      elif [ "$IS_ROOT" = true ]; then
+        systemctl restart kinbot
+      else
+        systemctl --user restart kinbot
+      fi
+      success "KinBot restarted"
+
+      # Quick health check
+      sleep 3
+      local http_code
+      http_code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${new_port}/" --max-time 5 2>/dev/null || echo "000")"
+      if [ "$http_code" != "000" ]; then
+        success "KinBot is responding on port $new_port"
+      else
+        warn "KinBot hasn't responded yet on port $new_port. Give it a moment."
+      fi
+    else
+      echo ""
+      info "Remember to restart KinBot for changes to take effect."
+    fi
+  else
+    echo ""
+    info "KinBot is not currently running. Changes will apply on next start."
+  fi
+
+  echo ""
+}
+
 # ─── Update (check + apply) ──────────────────────────────────────────────────
 do_update() {
   echo ""
@@ -2250,6 +2407,11 @@ main() {
           [[ "$a" = "--restore" || "$a" = "restore" ]] && found_flag=true
         done
         do_restore "$restore_path"
+        exit 0
+        ;;
+      --config|config)
+        trap - INT TERM
+        do_config
         exit 0
         ;;
       --update|update)
