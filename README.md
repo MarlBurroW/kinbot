@@ -35,7 +35,6 @@ KinBot is different. You create **Kins** — AI agents with:
 
 ---
 
-## 📸 Demo
 
 <div align="center">
 
