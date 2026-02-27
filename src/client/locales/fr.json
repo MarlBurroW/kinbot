@@ -133,7 +133,8 @@
       "title": "Kins",
       "empty": "Aucun Kin",
       "create": "Nouveau Kin",
-      "shortcutHint": "Basculer vers ce Kin ({{key}})"
+      "shortcutHint": "Basculer vers ce Kin ({{key}})",
+      "emptyDescription": "Créez votre premier assistant IA pour commencer"
     },
     "tasks": {
       "title": "Tâches",
@@ -152,7 +153,8 @@
         "completed": "Terminée",
         "failed": "Échouée",
         "cancelled": "Annulée"
-      }
+      },
+      "emptyDescription": "Les tâches apparaîtront ici quand vos Kins travaillent"
     },
     "crons": {
       "title": "Tâches planifiées",
@@ -169,7 +171,8 @@
         "pending": "{{count}} à approuver"
       },
       "search": "Rechercher...",
-      "noResults": "Aucun job trouvé"
+      "noResults": "Aucun job trouvé",
+      "emptyDescription": "Planifiez des tâches récurrentes pour vos Kins"
     },
     "account": "Mon compte",
     "settings": "Paramètres",
