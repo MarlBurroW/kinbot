@@ -110,14 +110,14 @@ describe('memory extraction JSON parsing', () => {
     const input = '[{"content":"Nicolas likes coffee","category":"preference","subject":"Nicolas"}]'
     const result = parseExtractedMemories(input)
     expect(result).toHaveLength(1)
-    expect(result![0].content).toBe('Nicolas likes coffee')
+    expect(result![0]!.content).toBe('Nicolas likes coffee')
   })
 
   it('extracts JSON from surrounding text', () => {
     const input = 'Here are the memories:\n[{"content":"test","category":"fact","subject":"general"}]\nDone!'
     const result = parseExtractedMemories(input)
     expect(result).toHaveLength(1)
-    expect(result![0].category).toBe('fact')
+    expect(result![0]!.category).toBe('fact')
   })
 
   it('handles empty array', () => {
@@ -145,7 +145,7 @@ describe('memory extraction JSON parsing', () => {
     const input = '[{"content":"list: [a, b, c]","category":"fact","subject":"general"}]'
     const result = parseExtractedMemories(input)
     expect(result).toHaveLength(1)
-    expect(result![0].content).toBe('list: [a, b, c]')
+    expect(result![0]!.content).toBe('list: [a, b, c]')
   })
 })
 

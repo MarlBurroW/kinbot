@@ -9,7 +9,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as typeof fetch
 }
 
 describe('mistralProvider', () => {
@@ -41,7 +41,7 @@ describe('mistralProvider', () => {
     })
 
     it('returns invalid with error on network failure', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
       const { mistralProvider } = await import('@/server/providers/mistral')
       const result = await mistralProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -178,7 +178,7 @@ describe('mistralProvider', () => {
     })
 
     it('returns empty array on network failure', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
       const { mistralProvider } = await import('@/server/providers/mistral')
       const models = await mistralProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])

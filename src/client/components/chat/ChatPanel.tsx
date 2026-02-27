@@ -422,14 +422,15 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   const prev = idx > 0 ? messages[idx - 1] : null
                   const isGrouped = !dateSeparator
                     && prev !== null
+                    && prev !== undefined
                     && prev.role === msg.role
                     && prev.sourceType === msg.sourceType
                     && msg.sourceType !== 'system'
                     && msg.sourceType !== 'cron'
                     && msg.sourceType !== 'compacting'
                     && msg.sourceType !== 'task'
-                    && msg.createdAt && prev.createdAt
-                    && (new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime()) < GROUPING_WINDOW_MS
+                    && msg.createdAt && prev!.createdAt
+                    && (new Date(msg.createdAt).getTime() - new Date(prev!.createdAt).getTime()) < GROUPING_WINDOW_MS
 
                   // Render compacting trace as a dedicated card
                   if (msg.sourceType === 'compacting') {

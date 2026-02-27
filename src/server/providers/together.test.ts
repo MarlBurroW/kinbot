@@ -9,7 +9,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as typeof fetch
 }
 
 describe('togetherProvider', () => {
@@ -35,7 +35,7 @@ describe('togetherProvider', () => {
     it('returns invalid with error on HTTP failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { togetherProvider } = await import('@/server/providers/together')
       const result = await togetherProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -43,7 +43,7 @@ describe('togetherProvider', () => {
     })
 
     it('returns invalid on network error', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
       const { togetherProvider } = await import('@/server/providers/together')
       const result = await togetherProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -147,7 +147,7 @@ describe('togetherProvider', () => {
     })
 
     it('returns empty array on fetch error', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
       const { togetherProvider } = await import('@/server/providers/together')
       const models = await togetherProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -160,10 +160,10 @@ describe('togetherProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { togetherProvider } = await import('@/server/providers/together')
       await togetherProvider.listModels({ apiKey: 'test-key', baseUrl: 'https://custom.api.com/v1' })
-      expect(fetchMock.mock.calls[0][0]).toBe('https://custom.api.com/v1/models')
+      expect((fetchMock as any).mock.calls[0][0]).toBe('https://custom.api.com/v1/models')
     })
 
     it('defaults to together API base URL', async () => {
@@ -173,10 +173,10 @@ describe('togetherProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { togetherProvider } = await import('@/server/providers/together')
       await togetherProvider.listModels({ apiKey: 'test-key' })
-      expect(fetchMock.mock.calls[0][0]).toBe('https://api.together.xyz/v1/models')
+      expect((fetchMock as any).mock.calls[0][0]).toBe('https://api.together.xyz/v1/models')
     })
 
     it('falls back to LLM for unknown model types', async () => {
@@ -187,7 +187,7 @@ describe('togetherProvider', () => {
       })
       const { togetherProvider } = await import('@/server/providers/together')
       const models = await togetherProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies yi models as LLM', async () => {
@@ -196,7 +196,7 @@ describe('togetherProvider', () => {
       })
       const { togetherProvider } = await import('@/server/providers/together')
       const models = await togetherProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies command models as LLM', async () => {
@@ -205,7 +205,7 @@ describe('togetherProvider', () => {
       })
       const { togetherProvider } = await import('@/server/providers/together')
       const models = await togetherProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies mixtral as LLM', async () => {
@@ -214,7 +214,7 @@ describe('togetherProvider', () => {
       })
       const { togetherProvider } = await import('@/server/providers/together')
       const models = await togetherProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('image type takes priority over LLM id patterns', async () => {
@@ -224,7 +224,7 @@ describe('togetherProvider', () => {
       })
       const { togetherProvider } = await import('@/server/providers/together')
       const models = await togetherProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('image')
+      expect(models[0]!.capability).toBe('image')
     })
   })
 })

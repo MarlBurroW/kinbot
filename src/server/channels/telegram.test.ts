@@ -109,7 +109,7 @@ describe('splitMessage', () => {
     const chunks = splitMessage(text)
     // The second chunk should have leading whitespace trimmed
     if (chunks.length > 1) {
-      expect(chunks[1].startsWith(' ')).toBe(false)
+      expect(chunks[1]!.startsWith(' ')).toBe(false)
     }
   })
 })

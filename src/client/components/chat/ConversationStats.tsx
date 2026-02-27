@@ -63,8 +63,8 @@ export function ConversationStats({ messages, toolCallCount }: ConversationStats
     // Conversation duration
     let duration = 0
     if (messages.length >= 2) {
-      const first = new Date(messages[0].createdAt).getTime()
-      const last = new Date(messages[messages.length - 1].createdAt).getTime()
+      const first = new Date(messages[0]!.createdAt).getTime()
+      const last = new Date(messages[messages.length - 1]!.createdAt).getTime()
       duration = last - first
     }
 
@@ -72,8 +72,8 @@ export function ConversationStats({ messages, toolCallCount }: ConversationStats
     let totalResponseTime = 0
     let responseCount = 0
     for (let i = 1; i < messages.length; i++) {
-      if (messages[i].role === 'assistant' && messages[i - 1].role === 'user') {
-        const diff = new Date(messages[i].createdAt).getTime() - new Date(messages[i - 1].createdAt).getTime()
+      if (messages[i]!.role === 'assistant' && messages[i - 1]!.role === 'user') {
+        const diff = new Date(messages[i]!.createdAt).getTime() - new Date(messages[i - 1]!.createdAt).getTime()
         if (diff > 0 && diff < 600_000) { // ignore gaps > 10min
           totalResponseTime += diff
           responseCount++

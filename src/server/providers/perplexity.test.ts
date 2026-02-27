@@ -5,10 +5,7 @@ import type { ProviderConfig } from '@/server/providers/types'
 const originalFetch = globalThis.fetch
 
 const baseConfig: ProviderConfig = {
-  id: 'test-perplexity',
-  type: 'perplexity',
   apiKey: 'pplx-test-key-123',
-  enabled: true,
 }
 
 describe('perplexityProvider', () => {
@@ -39,7 +36,7 @@ describe('perplexityProvider', () => {
             { status: 200 }
           )
         )
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await perplexityProvider.testConnection(baseConfig)
       expect(result.valid).toBe(true)
@@ -50,7 +47,7 @@ describe('perplexityProvider', () => {
         Promise.resolve(
           new Response(JSON.stringify({ data: [] }), { status: 200 })
         )
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await perplexityProvider.testConnection(baseConfig)
       expect(result.valid).toBe(false)
@@ -59,7 +56,7 @@ describe('perplexityProvider', () => {
     it('returns valid:false with error on HTTP error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 }))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await perplexityProvider.testConnection(baseConfig)
       expect(result.valid).toBe(false)
@@ -69,7 +66,7 @@ describe('perplexityProvider', () => {
     it('returns valid:false with error on network failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('ECONNREFUSED'))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await perplexityProvider.testConnection(baseConfig)
       expect(result.valid).toBe(false)
@@ -83,7 +80,7 @@ describe('perplexityProvider', () => {
         return Promise.resolve(
           new Response(JSON.stringify({ data: [{ id: 'sonar', object: 'model' }] }), { status: 200 })
         )
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await perplexityProvider.testConnection(baseConfig)
       expect(capturedHeaders?.get('Authorization')).toBe('Bearer pplx-test-key-123')
@@ -96,7 +93,7 @@ describe('perplexityProvider', () => {
         return Promise.resolve(
           new Response(JSON.stringify({ data: [{ id: 'sonar', object: 'model' }] }), { status: 200 })
         )
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await perplexityProvider.testConnection({ ...baseConfig, baseUrl: 'https://custom.api.com' })
       expect(capturedUrl).toBe('https://custom.api.com/models')
@@ -109,7 +106,7 @@ describe('perplexityProvider', () => {
         return Promise.resolve(
           new Response(JSON.stringify({ data: [{ id: 'sonar', object: 'model' }] }), { status: 200 })
         )
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await perplexityProvider.testConnection(baseConfig)
       expect(capturedUrl).toBe('https://api.perplexity.ai/models')
@@ -134,7 +131,7 @@ describe('perplexityProvider', () => {
             { status: 200 }
           )
         )
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await perplexityProvider.listModels(baseConfig)
       expect(models).toHaveLength(4)
@@ -162,7 +159,7 @@ describe('perplexityProvider', () => {
             { status: 200 }
           )
         )
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await perplexityProvider.listModels(baseConfig)
       const ids = models.map(m => m.id)
@@ -177,16 +174,16 @@ describe('perplexityProvider', () => {
             { status: 200 }
           )
         )
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await perplexityProvider.listModels(baseConfig)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('returns empty array on API error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Server Error', { status: 500 }))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await perplexityProvider.listModels(baseConfig)
       expect(models).toEqual([])
@@ -195,7 +192,7 @@ describe('perplexityProvider', () => {
     it('returns empty array on network failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Network error'))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await perplexityProvider.listModels(baseConfig)
       expect(models).toEqual([])
@@ -214,7 +211,7 @@ describe('perplexityProvider', () => {
             { status: 200 }
           )
         )
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await perplexityProvider.listModels(baseConfig)
       expect(models).toEqual([])

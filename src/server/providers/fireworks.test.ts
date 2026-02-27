@@ -9,7 +9,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as unknown as typeof fetch
 }
 
 describe('fireworksProvider', () => {
@@ -35,7 +35,7 @@ describe('fireworksProvider', () => {
     it('returns invalid with error on HTTP failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 })),
-      ) as typeof fetch
+      ) as unknown as unknown as typeof fetch
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const result = await fireworksProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -43,7 +43,7 @@ describe('fireworksProvider', () => {
     })
 
     it('returns invalid on network error', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const result = await fireworksProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -112,7 +112,7 @@ describe('fireworksProvider', () => {
       })
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const models = await fireworksProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies mythomax as LLM', async () => {
@@ -121,7 +121,7 @@ describe('fireworksProvider', () => {
       })
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const models = await fireworksProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies mixtral as LLM', async () => {
@@ -130,7 +130,7 @@ describe('fireworksProvider', () => {
       })
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const models = await fireworksProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies yi models as LLM', async () => {
@@ -139,7 +139,7 @@ describe('fireworksProvider', () => {
       })
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const models = await fireworksProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies starcoder as LLM', async () => {
@@ -148,7 +148,7 @@ describe('fireworksProvider', () => {
       })
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const models = await fireworksProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('falls back to LLM for unknown model ids', async () => {
@@ -157,7 +157,7 @@ describe('fireworksProvider', () => {
       })
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const models = await fireworksProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('sorts models alphabetically by id', async () => {
@@ -174,7 +174,7 @@ describe('fireworksProvider', () => {
     })
 
     it('returns empty array on fetch error', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       const models = await fireworksProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -187,10 +187,10 @@ describe('fireworksProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       await fireworksProvider.listModels({ apiKey: 'test-key', baseUrl: 'https://custom.api.com/v1' })
-      expect(fetchMock.mock.calls[0][0]).toBe('https://custom.api.com/v1/models')
+      expect((fetchMock as any).mock.calls[0][0]).toBe('https://custom.api.com/v1/models')
     })
 
     it('defaults to Fireworks AI base URL', async () => {
@@ -200,10 +200,10 @@ describe('fireworksProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { fireworksProvider } = await import('@/server/providers/fireworks')
       await fireworksProvider.listModels({ apiKey: 'test-key' })
-      expect(fetchMock.mock.calls[0][0]).toBe('https://api.fireworks.ai/inference/v1/models')
+      expect((fetchMock as any).mock.calls[0][0]).toBe('https://api.fireworks.ai/inference/v1/models')
     })
   })
 })

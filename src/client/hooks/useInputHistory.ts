@@ -64,7 +64,7 @@ export function useInputHistory(kinId: string) {
         const nextIndex = indexRef.current + 1
         if (nextIndex >= history.length) return null // Already at oldest
         indexRef.current = nextIndex
-        return history[nextIndex]
+        return history[nextIndex] ?? null
       }
 
       // direction === 'down'
@@ -76,7 +76,7 @@ export function useInputHistory(kinId: string) {
         return draftRef.current
       }
       indexRef.current = nextIndex
-      return history[nextIndex]
+      return history[nextIndex] ?? null
     },
     [getHistory],
   )

@@ -9,7 +9,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as typeof fetch
 }
 
 describe('groqProvider', () => {
@@ -35,7 +35,7 @@ describe('groqProvider', () => {
     it('returns invalid with error on HTTP failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { groqProvider } = await import('@/server/providers/groq')
       const result = await groqProvider.testConnection({ apiKey: 'bad-key' })
       expect(result.valid).toBe(false)
@@ -43,7 +43,7 @@ describe('groqProvider', () => {
     })
 
     it('returns invalid on network error', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
       const { groqProvider } = await import('@/server/providers/groq')
       const result = await groqProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -64,9 +64,9 @@ describe('groqProvider', () => {
       const models = await groqProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(3)
       // Should be sorted alphabetically
-      expect(models[0].id).toBe('gemma2-9b-it')
-      expect(models[1].id).toBe('llama-3.3-70b-versatile')
-      expect(models[2].id).toBe('mixtral-8x7b-32768')
+      expect(models[0]!.id).toBe('gemma2-9b-it')
+      expect(models[1]!.id).toBe('llama-3.3-70b-versatile')
+      expect(models[2]!.id).toBe('mixtral-8x7b-32768')
       // All should be LLM capability
       for (const m of models) {
         expect(m.capability).toBe('llm')
@@ -78,7 +78,7 @@ describe('groqProvider', () => {
       const { groqProvider } = await import('@/server/providers/groq')
       const models = await groqProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies qwen models as llm', async () => {
@@ -86,7 +86,7 @@ describe('groqProvider', () => {
       const { groqProvider } = await import('@/server/providers/groq')
       const models = await groqProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies mistral models as llm', async () => {
@@ -94,7 +94,7 @@ describe('groqProvider', () => {
       const { groqProvider } = await import('@/server/providers/groq')
       const models = await groqProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies unknown models as llm (fallback)', async () => {
@@ -102,20 +102,20 @@ describe('groqProvider', () => {
       const { groqProvider } = await import('@/server/providers/groq')
       const models = await groqProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('returns empty array on API failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Server Error', { status: 500 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { groqProvider } = await import('@/server/providers/groq')
       const models = await groqProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
     })
 
     it('returns empty array on network error', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('timeout'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('timeout'))) as unknown as typeof fetch
       const { groqProvider } = await import('@/server/providers/groq')
       const models = await groqProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -125,7 +125,7 @@ describe('groqProvider', () => {
       mockFetchResponse({ data: [{ id: 'llama-3.3-70b-versatile', object: 'model' }] })
       const { groqProvider } = await import('@/server/providers/groq')
       await groqProvider.listModels({ apiKey: 'test-key', baseUrl: 'https://custom.groq.example/v1' })
-      const callArgs = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const callArgs = (globalThis.fetch as any).mock.calls[0]
       expect(callArgs[0]).toBe('https://custom.groq.example/v1/models')
     })
 
@@ -133,7 +133,7 @@ describe('groqProvider', () => {
       mockFetchResponse({ data: [{ id: 'llama-3.3-70b-versatile', object: 'model' }] })
       const { groqProvider } = await import('@/server/providers/groq')
       await groqProvider.listModels({ apiKey: 'test-key' })
-      const callArgs = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const callArgs = (globalThis.fetch as any).mock.calls[0]
       expect(callArgs[0]).toBe('https://api.groq.com/openai/v1/models')
     })
   })
