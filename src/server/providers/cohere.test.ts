@@ -56,7 +56,7 @@ describe('cohereProvider', () => {
       mockFetchResponse({ models: [{ name: 'model-1', endpoints: ['chat'] }] })
       const { cohereProvider } = await import('@/server/providers/cohere')
       await cohereProvider.testConnection({ apiKey: 'key', baseUrl: 'https://custom.api.com' })
-      const call = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const call = (globalThis.fetch as any).mock.calls[0]!
       expect(call[0]).toBe('https://custom.api.com/v2/models')
     })
 
@@ -64,7 +64,7 @@ describe('cohereProvider', () => {
       mockFetchResponse({ models: [{ name: 'model-1', endpoints: ['chat'] }] })
       const { cohereProvider } = await import('@/server/providers/cohere')
       await cohereProvider.testConnection({ apiKey: 'key' })
-      const call = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const call = (globalThis.fetch as any).mock.calls[0]!
       expect(call[0]).toBe('https://api.cohere.com/v2/models')
     })
   })
@@ -77,8 +77,8 @@ describe('cohereProvider', () => {
       const { cohereProvider } = await import('@/server/providers/cohere')
       const models = await cohereProvider.listModels({ apiKey: 'test-key' })
       expect(models).toHaveLength(1)
-      expect(models[0].capability).toBe('llm')
-      expect(models[0].id).toBe('command-r-plus')
+      expect(models[0]!.capability).toBe('llm')
+      expect(models[0]!.id).toBe('command-r-plus')
     })
 
     it('classifies generate models as llm', async () => {
@@ -88,7 +88,7 @@ describe('cohereProvider', () => {
       const { cohereProvider } = await import('@/server/providers/cohere')
       const models = await cohereProvider.listModels({ apiKey: 'test-key' })
       expect(models).toHaveLength(1)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies embed models as embedding', async () => {
@@ -98,7 +98,7 @@ describe('cohereProvider', () => {
       const { cohereProvider } = await import('@/server/providers/cohere')
       const models = await cohereProvider.listModels({ apiKey: 'test-key' })
       expect(models).toHaveLength(1)
-      expect(models[0].capability).toBe('embedding')
+      expect(models[0]!.capability).toBe('embedding')
     })
 
     it('filters out models with unknown endpoints', async () => {
@@ -111,7 +111,7 @@ describe('cohereProvider', () => {
       const { cohereProvider } = await import('@/server/providers/cohere')
       const models = await cohereProvider.listModels({ apiKey: 'test-key' })
       expect(models).toHaveLength(1)
-      expect(models[0].id).toBe('command-r')
+      expect(models[0]!.id).toBe('command-r')
     })
 
     it('filters out models with no endpoints', async () => {
@@ -163,14 +163,14 @@ describe('cohereProvider', () => {
       const { cohereProvider } = await import('@/server/providers/cohere')
       const models = await cohereProvider.listModels({ apiKey: 'test-key' })
       expect(models).toHaveLength(1)
-      expect(models[0].capability).toBe('embedding')
+      expect(models[0]!.capability).toBe('embedding')
     })
 
     it('sends correct authorization header', async () => {
       mockFetchResponse({ models: [] })
       const { cohereProvider } = await import('@/server/providers/cohere')
       await cohereProvider.listModels({ apiKey: 'my-secret-key' })
-      const call = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const call = (globalThis.fetch as any).mock.calls[0]!
       const headers = call[1]?.headers as Record<string, string>
       expect(headers['Authorization']).toBe('Bearer my-secret-key')
     })
