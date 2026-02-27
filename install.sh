@@ -996,6 +996,130 @@ create_service() {
 # ─── Post-start health check ─────────────────────────────────────────────────
 KINBOT_HEALTHY=false
 
+# Analyze recent logs and provide actionable hints for common failures
+diagnose_startup_failure() {
+  local log_lines=""
+
+  # Grab last 50 lines of logs depending on init system
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local log_file="$HOME/Library/Logs/kinbot/kinbot.log"
+    [ -f "$log_file" ] && log_lines="$(tail -50 "$log_file" 2>/dev/null)"
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local log_file="$KINBOT_DATA_DIR/kinbot.log"
+    [ -f "$log_file" ] && log_lines="$(tail -50 "$log_file" 2>/dev/null)"
+  elif [ "$IS_ROOT" = true ]; then
+    log_lines="$(journalctl -u kinbot --no-pager -n 50 2>/dev/null)"
+  else
+    log_lines="$(journalctl --user -u kinbot --no-pager -n 50 2>/dev/null)"
+  fi
+
+  if [ -z "$log_lines" ]; then
+    warn "No logs found. The service may not have started at all."
+    echo ""
+    echo -e "  ${BOLD}Check that the service is registered:${NC}"
+    if [ "$INIT_SYSTEM" = "launchd" ]; then
+      echo -e "  ${DIM}  launchctl list | grep kinbot${NC}"
+    elif [ "$INIT_SYSTEM" = "script" ]; then
+      echo -e "  ${DIM}  $KINBOT_DIR/kinbot status${NC}"
+    elif [ "$IS_ROOT" = true ]; then
+      echo -e "  ${DIM}  sudo systemctl status kinbot${NC}"
+    else
+      echo -e "  ${DIM}  systemctl --user status kinbot${NC}"
+    fi
+    return
+  fi
+
+  local hints_shown=0
+
+  # Pattern: port already in use
+  if echo "$log_lines" | grep -qi 'EADDRINUSE\|address already in use\|port.*already.*in.*use'; then
+    echo ""
+    echo -e "  ${RED}Diagnosis:${NC} Port $KINBOT_PORT is already in use by another process."
+    echo -e "  ${BOLD}Fix:${NC}"
+    echo -e "  ${DIM}  # Find what's using the port:${NC}"
+    if command -v ss &>/dev/null; then
+      echo -e "  ${DIM}  ss -tlnp | grep :${KINBOT_PORT}${NC}"
+    elif command -v lsof &>/dev/null; then
+      echo -e "  ${DIM}  lsof -i :${KINBOT_PORT}${NC}"
+    fi
+    echo -e "  ${DIM}  # Then either stop that process, or change KinBot's port:${NC}"
+    echo -e "  ${DIM}  bash install.sh --config${NC}"
+    hints_shown=$((hints_shown + 1))
+  fi
+
+  # Pattern: out of memory
+  if echo "$log_lines" | grep -qi 'out of memory\|OOM\|Cannot allocate memory\|JavaScript heap\|ENOMEM'; then
+    echo ""
+    echo -e "  ${RED}Diagnosis:${NC} KinBot ran out of memory."
+    echo -e "  ${BOLD}Fix:${NC}"
+    echo -e "  ${DIM}  # Check available memory:${NC}"
+    echo -e "  ${DIM}  free -h${NC}"
+    echo -e "  ${DIM}  # Add swap if needed:${NC}"
+    echo -e "  ${DIM}  sudo fallocate -l 1G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile${NC}"
+    hints_shown=$((hints_shown + 1))
+  fi
+
+  # Pattern: permission denied
+  if echo "$log_lines" | grep -qi 'EACCES\|permission denied\|EPERM'; then
+    echo ""
+    echo -e "  ${RED}Diagnosis:${NC} Permission error accessing files or ports."
+    echo -e "  ${BOLD}Fix:${NC}"
+    if [ "$IS_ROOT" = true ]; then
+      echo -e "  ${DIM}  # Re-apply ownership:${NC}"
+      echo -e "  ${DIM}  sudo chown -R ${KINBOT_USER}:${KINBOT_USER} ${KINBOT_DIR} ${KINBOT_DATA_DIR}${NC}"
+    else
+      echo -e "  ${DIM}  # Check file ownership:${NC}"
+      echo -e "  ${DIM}  ls -la ${KINBOT_DIR}/ ${KINBOT_DATA_DIR}/${NC}"
+    fi
+    if [ "$KINBOT_PORT" -lt 1024 ] 2>/dev/null; then
+      echo -e "  ${DIM}  # Port $KINBOT_PORT requires root. Use a port >= 1024 or run as root.${NC}"
+    fi
+    hints_shown=$((hints_shown + 1))
+  fi
+
+  # Pattern: database locked / corrupt
+  if echo "$log_lines" | grep -qi 'database.*locked\|SQLITE_BUSY\|database.*corrupt\|database disk image is malformed'; then
+    echo ""
+    echo -e "  ${RED}Diagnosis:${NC} Database issue (locked or corrupted)."
+    echo -e "  ${BOLD}Fix:${NC}"
+    echo -e "  ${DIM}  # If locked, make sure no other KinBot process is running:${NC}"
+    echo -e "  ${DIM}  pgrep -f 'kinbot.*server' && echo 'Found stale process!'${NC}"
+    echo -e "  ${DIM}  # If corrupted, restore from a backup:${NC}"
+    echo -e "  ${DIM}  bash install.sh --restore${NC}"
+    hints_shown=$((hints_shown + 1))
+  fi
+
+  # Pattern: missing module / build issue
+  if echo "$log_lines" | grep -qi 'Cannot find module\|MODULE_NOT_FOUND\|Cannot find package\|SyntaxError'; then
+    echo ""
+    echo -e "  ${RED}Diagnosis:${NC} Missing dependency or broken build."
+    echo -e "  ${BOLD}Fix:${NC}"
+    echo -e "  ${DIM}  bash install.sh --reset${NC}"
+    hints_shown=$((hints_shown + 1))
+  fi
+
+  # Pattern: env var / config issue
+  if echo "$log_lines" | grep -qi 'missing.*env\|missing.*config\|required.*variable\|ENCRYPTION_KEY'; then
+    echo ""
+    echo -e "  ${RED}Diagnosis:${NC} Missing or invalid configuration."
+    echo -e "  ${BOLD}Fix:${NC}"
+    echo -e "  ${DIM}  bash install.sh --config${NC}"
+    hints_shown=$((hints_shown + 1))
+  fi
+
+  # If no specific pattern matched, show the last few log lines as a hint
+  if [ "$hints_shown" -eq 0 ]; then
+    echo ""
+    echo -e "  ${BOLD}Recent log output:${NC}"
+    echo "$log_lines" | tail -10 | while IFS= read -r line; do
+      echo -e "  ${DIM}  $line${NC}"
+    done
+    echo ""
+    echo -e "  ${DIM}If the issue isn't clear, run: bash install.sh --test${NC}"
+    echo -e "  ${DIM}Or open an issue: https://github.com/$KINBOT_REPO/issues${NC}"
+  fi
+}
+
 verify_running() {
   step "Verifying KinBot is running"
 
@@ -1015,16 +1139,22 @@ verify_running() {
     attempts=$((attempts + 1))
   done
 
-  warn "KinBot hasn't responded after ${max_attempts} attempts"
-  warn "It may still be starting up. Check the logs:"
+  warn "KinBot hasn't responded after 30 seconds"
+
+  # Try to diagnose the actual problem instead of just saying "check the logs"
+  diagnose_startup_failure
+
+  # Always show the log command as a fallback
+  echo ""
+  echo -e "  ${BOLD}Full logs:${NC}"
   if [ "$INIT_SYSTEM" = "launchd" ]; then
-    echo -e "  ${DIM}tail -f ~/Library/Logs/kinbot/kinbot.log${NC}"
+    echo -e "  ${DIM}  tail -f ~/Library/Logs/kinbot/kinbot.log${NC}"
   elif [ "$INIT_SYSTEM" = "script" ]; then
-    echo -e "  ${DIM}$KINBOT_DIR/kinbot logs${NC}"
+    echo -e "  ${DIM}  $KINBOT_DIR/kinbot logs${NC}"
   elif [ "$IS_ROOT" = true ]; then
-    echo -e "  ${DIM}sudo journalctl -u kinbot -f${NC}"
+    echo -e "  ${DIM}  sudo journalctl -u kinbot -f${NC}"
   else
-    echo -e "  ${DIM}journalctl --user -u kinbot -f${NC}"
+    echo -e "  ${DIM}  journalctl --user -u kinbot -f${NC}"
   fi
 }
 
