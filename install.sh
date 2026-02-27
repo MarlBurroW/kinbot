@@ -153,7 +153,8 @@ detect_os() {
         # shellcheck disable=SC1091
         . /etc/os-release
         DISTRO="${ID:-unknown}"
-        DISTRO_LIKE="${ID_LIKE:-}"
+        DISTRO_LIKE="${ID_LIKE:-}"  # exported for potential use by plugins
+      export DISTRO_LIKE
       else
         DISTRO="unknown"
         DISTRO_LIKE=""
@@ -379,7 +380,9 @@ BUN_MIN_VERSION="1.2.0"
 # Compare two semver strings: returns 0 if $1 >= $2, 1 otherwise
 version_gte() {
   local IFS='.'
-  local -a v1=($1) v2=($2)
+  local -a v1 v2
+  IFS='.' read -ra v1 <<< "$1"
+  IFS='.' read -ra v2 <<< "$2"
   local i
   for i in 0 1 2; do
     local a="${v1[$i]:-0}" b="${v2[$i]:-0}"
@@ -468,8 +471,8 @@ backup_database() {
   fi
 
   # Also backup WAL/SHM if they exist (for cp-based backups)
-  [ -f "${db_file}-wal" ] && cp "${db_file}-wal" "${BACKUP_DB_PATH}-wal" 2>/dev/null || true
-  [ -f "${db_file}-shm" ] && cp "${db_file}-shm" "${BACKUP_DB_PATH}-shm" 2>/dev/null || true
+  if [ -f "${db_file}-wal" ]; then cp "${db_file}-wal" "${BACKUP_DB_PATH}-wal" 2>/dev/null || true; fi
+  if [ -f "${db_file}-shm" ]; then cp "${db_file}-shm" "${BACKUP_DB_PATH}-shm" 2>/dev/null || true; fi
 
   # Prune old backups: keep last 5
   local count
@@ -585,7 +588,7 @@ rollback() {
           [ -f "$plist" ] && launchctl load "$plist" 2>/dev/null
         elif [ "${INIT_SYSTEM:-}" = "script" ]; then
           local script_path="$KINBOT_DIR/kinbot"
-          [ -x "$script_path" ] && "$script_path" start 2>/dev/null || true
+          if [ -x "$script_path" ]; then "$script_path" start 2>/dev/null || true; fi
         elif [ "${IS_ROOT:-false}" = true ]; then
           systemctl start kinbot 2>/dev/null || true
         else
@@ -1296,7 +1299,7 @@ check_status() {
     success "Data directory: $KINBOT_DATA_DIR"
     if [ -f "$KINBOT_DATA_DIR/kinbot.env" ]; then
       success "Config file exists"
-      # shellcheck disable=SC1090
+      # shellcheck disable=SC1090,SC1091
       . "$KINBOT_DATA_DIR/kinbot.env" 2>/dev/null || true
       KINBOT_PORT="${PORT:-$KINBOT_PORT}"
     else
@@ -1670,6 +1673,7 @@ COMPOSE
   if [[ "$start_now" =~ ^[Yy]$ ]]; then
     header "Starting KinBot..."
     cd "$output_dir"
+    # shellcheck disable=SC2086
     run_with_spinner "Building and starting container..." $compose_cmd up -d --build
     success "KinBot is starting!"
 
@@ -1795,7 +1799,7 @@ do_backup() {
     version_tag="$(echo "$version_tag" | tr '/' '-')"
   fi
 
-  local output="${2:-}"
+  local output="${1:-}"
   if [ -z "$output" ]; then
     local backup_dir="$KINBOT_DATA_DIR/backups"
     mkdir -p "$backup_dir"
@@ -1889,7 +1893,7 @@ do_restore() {
     INIT_SYSTEM="script"
   fi
 
-  local backup_file="${2:-}"
+  local backup_file="${1:-}"
 
   # If no file given, list available backups and let user pick
   if [ -z "$backup_file" ]; then
@@ -1965,7 +1969,8 @@ do_restore() {
 
   # Back up current database first
   if [ -f "$db_file" ]; then
-    local safety_backup="$KINBOT_DATA_DIR/backups/kinbot-pre-restore-$(date +%Y%m%d-%H%M%S).db"
+    local safety_backup
+    safety_backup="$KINBOT_DATA_DIR/backups/kinbot-pre-restore-$(date +%Y%m%d-%H%M%S).db"
     mkdir -p "$(dirname "$safety_backup")"
     cp "$db_file" "$safety_backup"
     [ -f "${db_file}-wal" ] && cp "${db_file}-wal" "${safety_backup}-wal"
@@ -2195,12 +2200,29 @@ main() {
         ;;
       --backup|backup)
         trap - INT TERM
-        do_backup "$@"
+        # Extract the argument after --backup/backup (skip flags like --no-color)
+        local backup_path=""
+        local found_flag=false
+        for a in "$@"; do
+          if [ "$found_flag" = true ]; then
+            [[ "$a" != --* ]] && backup_path="$a" && break
+          fi
+          [[ "$a" = "--backup" || "$a" = "backup" ]] && found_flag=true
+        done
+        do_backup "$backup_path"
         exit 0
         ;;
       --restore|restore)
         trap - INT TERM
-        do_restore "$@"
+        local restore_path=""
+        local found_flag=false
+        for a in "$@"; do
+          if [ "$found_flag" = true ]; then
+            [[ "$a" != --* ]] && restore_path="$a" && break
+          fi
+          [[ "$a" = "--restore" || "$a" = "restore" ]] && found_flag=true
+        done
+        do_restore "$restore_path"
         exit 0
         ;;
       --update|update)
