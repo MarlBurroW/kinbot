@@ -135,6 +135,8 @@
       "create": "Nouveau Kin",
       "shortcutHint": "Basculer vers ce Kin ({{key}})",
       "emptyDescription": "Créez votre premier assistant IA pour commencer",
+      "search": "Filtrer les kins...",
+      "noResults": "Aucun kin ne correspond",
       "contextMenu": {
         "edit": "Modifier les paramètres",
         "delete": "Supprimer le Kin"

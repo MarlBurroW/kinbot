@@ -1,5 +1,7 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Input } from '@/client/components/ui/input'
+import { Search } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -46,8 +48,21 @@ interface KinListProps {
   onReorderKins: (newOrder: string[]) => void
 }
 
+const KIN_SEARCH_THRESHOLD = 5
+
 export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onReorderKins }: KinListProps) {
   const { t } = useTranslation()
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredKins = useMemo(() => {
+    if (!searchQuery.trim()) return kins
+    const q = searchQuery.toLowerCase()
+    return kins.filter(
+      (k) => k.name.toLowerCase().includes(q) || k.role.toLowerCase().includes(q),
+    )
+  }, [kins, searchQuery])
+
+  const showSearch = kins.length >= KIN_SEARCH_THRESHOLD
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -87,10 +102,29 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
             onAction={onCreateKin}
           />
         ) : (
+          <>
+            {showSearch && (
+              <div className="px-1 pb-2 pt-1">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('sidebar.kins.search')}
+                    className="h-8 pl-8 text-xs"
+                  />
+                </div>
+              </div>
+            )}
+            {searchQuery && filteredKins.length === 0 ? (
+              <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                {t('sidebar.kins.noResults')}
+              </p>
+            ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={kinIds} strategy={verticalListSortingStrategy}>
               <div className="space-y-1 px-1">
-                {kins.map((kin, index) => {
+                {filteredKins.map((kin, index) => {
                   const queueState = kinQueueState.get(kin.id)
                   const modelName = llmModels.find((m) => m.id === kin.model)?.name
                   return (
@@ -115,6 +149,8 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
               </div>
             </SortableContext>
           </DndContext>
+            )}
+          </>
         )}
       </SidebarGroupContent>
     </SidebarGroup>
