@@ -32,16 +32,20 @@ interface VaultTypeManagerDialogProps {
   onTypesChanged: () => void
 }
 
-const FIELD_TYPES: { value: VaultFieldType; label: string }[] = [
-  { value: 'text', label: 'Text' },
-  { value: 'password', label: 'Password' },
-  { value: 'textarea', label: 'Text Area' },
-  { value: 'url', label: 'URL' },
-  { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Phone' },
-  { value: 'date', label: 'Date' },
-  { value: 'number', label: 'Number' },
+const FIELD_TYPE_VALUES: VaultFieldType[] = [
+  'text', 'password', 'textarea', 'url', 'email', 'phone', 'date', 'number',
 ]
+
+const FIELD_TYPE_KEYS: Record<VaultFieldType, string> = {
+  text: 'settings.vault.fieldTypeText',
+  password: 'settings.vault.fieldTypePassword',
+  textarea: 'settings.vault.fieldTypeTextarea',
+  url: 'settings.vault.fieldTypeUrl',
+  email: 'settings.vault.fieldTypeEmail',
+  phone: 'settings.vault.fieldTypePhone',
+  date: 'settings.vault.fieldTypeDate',
+  number: 'settings.vault.fieldTypeNumber',
+}
 
 export function VaultTypeManagerDialog({
   open,
@@ -240,9 +244,9 @@ export function VaultTypeManagerDialog({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {FIELD_TYPES.map((ft) => (
-                            <SelectItem key={ft.value} value={ft.value}>
-                              {ft.label}
+                          {FIELD_TYPE_VALUES.map((ft) => (
+                            <SelectItem key={ft} value={ft}>
+                              {t(FIELD_TYPE_KEYS[ft])}
                             </SelectItem>
                           ))}
                         </SelectContent>
