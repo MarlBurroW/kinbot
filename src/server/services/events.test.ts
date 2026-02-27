@@ -26,21 +26,21 @@ describe('EventBus', () => {
   describe('on / emit', () => {
     it('calls handler when matching event is emitted', () => {
       const received: KinBotEvent[] = []
-      const unsub = eventBus.on('test:basic', (e) => received.push(e))
+      const unsub = eventBus.on('test:basic', (e) => { received.push(e) })
 
       const event = makeEvent('test:basic', { foo: 'bar' })
       eventBus.emit(event)
 
       expect(received).toHaveLength(1)
-      expect(received[0]).toBe(event)
-      expect(received[0].data.foo).toBe('bar')
+      expect(received[0]!).toBe(event)
+      expect(received[0]!.data.foo).toBe('bar')
 
       unsub()
     })
 
     it('does not call handler for non-matching event types', () => {
       const received: KinBotEvent[] = []
-      const unsub = eventBus.on('test:match', (e) => received.push(e))
+      const unsub = eventBus.on('test:match', (e) => { received.push(e) })
 
       eventBus.emit(makeEvent('test:other'))
 
@@ -65,8 +65,8 @@ describe('EventBus', () => {
       const aEvents: KinBotEvent[] = []
       const bEvents: KinBotEvent[] = []
 
-      const unsub1 = eventBus.on('test:typeA', (e) => aEvents.push(e))
-      const unsub2 = eventBus.on('test:typeB', (e) => bEvents.push(e))
+      const unsub1 = eventBus.on('test:typeA', (e) => { aEvents.push(e) })
+      const unsub2 = eventBus.on('test:typeB', (e) => { bEvents.push(e) })
 
       eventBus.emit(makeEvent('test:typeA'))
       eventBus.emit(makeEvent('test:typeB'))
