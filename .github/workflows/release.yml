@@ -41,24 +41,37 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Generate changelog
+      - name: Extract changelog from CHANGELOG.md
         id: changelog
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          VERSION="${GITHUB_REF#refs/tags/v}"
 
-          if [ -n "$PREV_TAG" ]; then
-            CHANGELOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges | head -50)
-          else
-            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges | head -30)
+          # Try to extract the section for this version from CHANGELOG.md
+          # Matches "## [X.Y.Z]" and captures everything until the next "## [" or EOF
+          SECTION=$(awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]")) { found=1; next }
+            }
+            found { print }
+          ' CHANGELOG.md)
+
+          # Fallback to git log if version not found in CHANGELOG.md
+          if [ -z "$SECTION" ]; then
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -n "$PREV_TAG" ]; then
+              SECTION=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges | head -50)
+            else
+              SECTION=$(git log --pretty=format:"- %s" --no-merges | head -30)
+            fi
           fi
 
           {
             echo "changelog<<EOF"
-            echo "$CHANGELOG"
+            echo "$SECTION"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
