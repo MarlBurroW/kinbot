@@ -18,6 +18,7 @@ import { SSEStatusIndicator } from '@/client/components/common/SSEStatusIndicato
 import { ConnectionBanner } from '@/client/components/common/ConnectionBanner'
 import { CommandPalette } from '@/client/components/common/CommandPalette'
 import { KeyboardShortcutsDialog } from '@/client/components/common/KeyboardShortcutsDialog'
+import { StatusNotifications } from '@/client/components/common/StatusNotifications'
 import { Button } from '@/client/components/ui/button'
 import { GettingStartedChecklist } from '@/client/components/common/GettingStartedChecklist'
 import { useDocumentTitle } from '@/client/hooks/useDocumentTitle'
@@ -335,6 +336,9 @@ export function ChatPage() {
 
       {/* Keyboard shortcuts help (?) */}
       <KeyboardShortcutsDialog />
+
+      {/* Real-time status change notifications */}
+      <StatusNotifications />
     </SidebarProvider>
   )
 }

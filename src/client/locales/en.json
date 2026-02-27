@@ -1328,5 +1328,12 @@
   "focusMode": {
     "enter": "Focus mode (⌘⇧F)",
     "exit": "Exit focus mode (⌘⇧F)"
+  },
+  "statusNotifications": {
+    "providerOnline": "{{name}} is back online",
+    "providerOffline": "{{name}} connection failed",
+    "channelOnline": "Channel connected",
+    "channelOffline": "Channel disconnected",
+    "channelError": "Channel connection error"
   }
 }
