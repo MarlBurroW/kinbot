@@ -7,51 +7,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.2.24] - 2026-02-27
+
 ### Added
-- Installer `--backup` and `--restore` commands for database management
-- Mobile-friendly model picker and context usage display in conversation header
+- Unsaved changes protection to Kin and Cron form dialogs
+- Auto-scroll toggle button in conversation view
+- Read aloud button for assistant messages (Web Speech API)
+- Edit & resend user messages via hover button and context menu
+- Search within conversation messages (Ctrl+F)
+- Export conversation as Markdown or JSON
+- Collapse/expand long messages with gradient fade and toggle
+- Date separators between messages from different days
+- Message grouping for consecutive messages from same sender
+- Full-area drag-and-drop file upload overlay on chat panel
+- Auto-focus message input on kin switch + Escape to refocus
+- Character count indicator in message input
 - Right-click context menu on chat messages (copy, quote reply, regenerate)
-- Language label and line numbers on code blocks
-- Use cases section with 6 scenario cards (landing site)
-- Floating back-to-top button on landing site
-- Ollama-first install messaging and visibility improvements (landing site)
-- InfoTips on MCP server form fields and General Settings
+- Copy message to clipboard button on hover
+- Notification sound chime with toggle in preferences
+- `notify` tool and `kin:alert` notification type
+- Real context usage tracking + visible LLM error handling
+- System health bar in sidebar showing provider/channel status
+- Enhanced typing indicator with kin avatar and chat bubble style
 - Elapsed time counter on typing/thinking indicator
-- Docker Compose tab in install section (landing site)
-- Section group headers in settings sidebar
+- Live relative timestamps on messages ("2m ago") with absolute on hover
+- Keyboard shortcuts for kin navigation (Cmd+1-9, Cmd+Shift+N, Cmd+,)
+- Keyboard shortcuts help dialog (press `?` to open)
+- Keyboard shortcut badges on kin cards in sidebar
+- Language label and line numbers on code blocks
+- API key reveal toggle in provider form
+- Duplicate cron button in job detail modal
+- Search/filter field in crons list
 - Scroll-to-bottom floating button in conversation view
 - Getting started checklist on welcome screen
-- Live relative timestamps on messages ("2m ago") with absolute on hover
-- Keyboard shortcuts help dialog (press `?` to open)
-- Copy message to clipboard button on hover
-- Dedicated Channels section on landing site
-- PR template and SECURITY.md
+- Chat empty state with kin avatar, greeting, and suggestion chips
+- InfoTips across provider, channel, webhook, contact, MCP, and settings forms
+- Contextual help panels to advanced settings pages
+- Section group headers in settings sidebar
+- System info footer in settings modal (version, uptime, stats)
+- Sidebar footer with settings, shortcuts hints, and version
+- Connection-lost banner when SSE disconnects
+- Connection status indicator to channel cards
+- Mobile-friendly model picker and context usage display in conversation header
+- Responsive settings modal with mobile dropdown navigation
+- Skeleton loading states to all settings pages
+- Password visibility toggle to login, onboarding, and invite pages
+- KinBot logo across UI
+- Platform awareness, delegation & initiative to Kin system prompt
+- PR template, SECURITY.md, Code of Conduct, CONTRIBUTING.md
+- Installer: `--backup`/`--restore`, `--update`, `--docker`, `--version`, `--logs`, `--no-color` flags
+- Installer: WSL detection, animated spinners, rollback on failure, auto-backup before updates, post-start health check, signal handling
 
 ### Fixed
-- SSE event handlers for webhooks settings page
-- Provider count updated (19 → 22) and channel list in README
+- SSE events for webhooks, provider CRUD, channel cascade deletion, and kin deletion cascades
+- Avatar generated preview in AvatarPickerModal on open
+- Auth login error handling in useAuth
+- SVG icons for Slack, WhatsApp, Signal, Matrix platforms
+- Docker CI: `latest` tag never applied on release pushes
 
 ### Changed
-- Extracted shared LanguageSelector component
-- Upgraded empty states in memories and notification settings to use EmptyState component
-- Replaced hardcoded strings with `t()` calls in channels, webhooks, contacts, vault (i18n)
-- Translated theme palette switcher and notification test button
+- Replaced README screenshots with video demo
+- Improved card action consistency and added ProviderIcon to search provider selector
+- Redesigned vault secret card with colored type icons
+- Improved notification read/unread visual distinction
+- Improved welcome screen when no kin is selected
+- Extracted shared components: KinSelector, LanguageSelector, useProviders, useKinList hooks
+- Used PasswordInput component for all secret/password fields
+- Upgraded empty states in memories and notification settings
+
+### i18n
+- Extracted last hardcoded slug placeholder
+- Replaced hardcoded error strings with `t()` calls across channels, webhooks, contacts, vault
+- Fixed untranslated French strings, missing accents, 'Francais' typo
+- Translated 'Channels' to 'Canaux', theme palette switcher, notification test button
 
 ### CI
-- Added TypeScript type-checking step (`bun run typecheck`) to CI pipeline
+- TypeScript type-check step (non-blocking)
 - Multi-platform Docker builds (amd64 + arm64) with OCI labels
-- Dependabot config for automated dependency updates (npm, GitHub Actions, Docker)
+- Dependabot config (npm, GitHub Actions, Docker)
 - Bumped actions/checkout to v6, actions/cache to v5, actions/upload-pages-artifact to v4
-- Added Docker build & push workflow with release changelog output
-- Added build & test workflow on push/PR
+- Bun dependency caching across all workflows
 
-### Installer
-- Bun version validation and auto-upgrade
+### Site
+- Multi-column footer layout with nav, resources & community links
+- Standardized provider count to 23
+- Responsive comparison section with mobile card view
+- Improved architecture section with animated connectors and icons
+- Code-split with React.lazy + manual chunks
+- Replaced mock chat with preview1.mp4 video in Hero
+- Use cases section, FAQ structured data, Perplexity provider card
+- Favicon, web manifest, OG/Twitter preview image, brain logo
+- Added AnythingLLM to comparison table
 
 ### Tests
-- Ollama provider tests
-- OpenAI provider (classifyModel, testConnection, listModels)
-- Custom-tools service (path validation, name regex, JSON Schema → Zod)
+- Groq, xAI, Anthropic, Gemini, OpenRouter, DeepSeek, Ollama, OpenAI providers
+- Server config module, HookRegistry, MCP service, log-store service
+- Custom-tools service, shared/provider-metadata
 
 ---
 
