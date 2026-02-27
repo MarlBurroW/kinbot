@@ -30,6 +30,7 @@ interface AppSidebarProps {
   onSelectKin: (slug: string) => void
   onCreateKin: () => void
   onEditKin: (id: string) => void
+  onDeleteKin?: (id: string) => void
   onReorderKins: (newOrder: string[]) => void
   onOpenSettings?: (section?: string) => void
 }
@@ -43,6 +44,7 @@ export function AppSidebar({
   onSelectKin,
   onCreateKin,
   onEditKin,
+  onDeleteKin,
   onReorderKins,
   onOpenSettings,
 }: AppSidebarProps) {
@@ -80,6 +82,7 @@ export function AppSidebar({
           onSelectKin={onSelectKin}
           onCreateKin={onCreateKin}
           onEditKin={onEditKin}
+          onDeleteKin={onDeleteKin}
           onReorderKins={onReorderKins}
         />
 

@@ -1,9 +1,26 @@
-import { forwardRef, type HTMLAttributes } from 'react'
+import { forwardRef, useState, type HTMLAttributes } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/client/components/ui/badge'
 import { cn } from '@/client/lib/utils'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
-import { AlertTriangle, Bot, GripVertical, Loader2, Settings2 } from 'lucide-react'
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from '@/client/components/ui/context-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/client/components/ui/alert-dialog'
+import { AlertTriangle, Bot, GripVertical, Loader2, Settings2, Trash2 } from 'lucide-react'
 
 export interface KinCardProps extends HTMLAttributes<HTMLDivElement> {
   id: string
@@ -19,6 +36,7 @@ export interface KinCardProps extends HTMLAttributes<HTMLDivElement> {
   shortcutIndex?: number
   onClick: () => void
   onEdit?: () => void
+  onDelete?: () => void
   dragHandleProps?: Record<string, unknown>
 }
 
@@ -35,14 +53,16 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
   shortcutIndex,
   onClick,
   onEdit,
+  onDelete,
   dragHandleProps,
   style,
   className: extraClassName,
   ...rest
 }, ref) {
   const { t } = useTranslation()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  return (
+  const cardContent = (
     <div
       ref={ref}
       style={style}
@@ -178,5 +198,63 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
         )}
       </div>
     </div>
+  )
+
+  return (
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          {cardContent}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          {onEdit && (
+            <ContextMenuItem onClick={onEdit}>
+              <Settings2 className="size-4" />
+              {t('sidebar.kins.contextMenu.edit')}
+            </ContextMenuItem>
+          )}
+          {onDelete && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => setDeleteDialogOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="size-4" />
+                {t('sidebar.kins.contextMenu.delete')}
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+
+      {/* Delete confirmation dialog */}
+      {onDelete && (
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {t('kin.delete', { defaultValue: 'Delete this Kin' })}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('kin.deleteConfirm')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  onDelete()
+                  setDeleteDialogOpen(false)
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {t('kin.deleteAction')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
   )
 })

@@ -42,10 +42,11 @@ interface KinListProps {
   onSelectKin: (slug: string) => void
   onCreateKin: () => void
   onEditKin: (id: string) => void
+  onDeleteKin?: (id: string) => void
   onReorderKins: (newOrder: string[]) => void
 }
 
-export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onReorderKins }: KinListProps) {
+export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onReorderKins }: KinListProps) {
   const { t } = useTranslation()
 
   const sensors = useSensors(
@@ -107,6 +108,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
                       shortcutIndex={index + 1}
                       onClick={() => onSelectKin(kin.slug)}
                       onEdit={() => onEditKin(kin.id)}
+                      onDelete={onDeleteKin ? () => onDeleteKin(kin.id) : undefined}
                     />
                   )
                 })}
