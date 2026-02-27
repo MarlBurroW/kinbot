@@ -17,6 +17,8 @@ interface ConfirmDeleteButtonProps {
   onConfirm: () => void
   title?: string
   description: string
+  /** Custom confirm button label (defaults to common.delete) */
+  confirmLabel?: string
   /** Button variant, defaults to "ghost" */
   variant?: 'ghost' | 'destructive'
   /** Button size, defaults to "icon-xs" */
@@ -25,33 +27,48 @@ interface ConfirmDeleteButtonProps {
   iconSize?: string
   /** Extra class on the trigger button */
   className?: string
+  /** Render a custom trigger element instead of the default Button */
+  trigger?: React.ReactNode
 }
 
 export function ConfirmDeleteButton({
   onConfirm,
   title,
   description,
+  confirmLabel,
   variant = 'ghost',
   size = 'icon-xs',
   iconSize = 'size-3.5',
   className,
+  trigger,
 }: ConfirmDeleteButtonProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <Button
-        variant={variant}
-        size={size}
-        className={className}
-        onClick={(e) => {
-          e.stopPropagation()
-          setOpen(true)
-        }}
-      >
-        <Trash2 className={iconSize} />
-      </Button>
+      {trigger ? (
+        <span
+          onClick={(e) => {
+            e.stopPropagation()
+            setOpen(true)
+          }}
+        >
+          {trigger}
+        </span>
+      ) : (
+        <Button
+          variant={variant}
+          size={size}
+          className={className}
+          onClick={(e) => {
+            e.stopPropagation()
+            setOpen(true)
+          }}
+        >
+          <Trash2 className={iconSize} />
+        </Button>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title ?? t('common.delete')}</AlertDialogTitle>
@@ -60,7 +77,7 @@ export function ConfirmDeleteButton({
         <AlertDialogFooter>
           <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm}>
-            {t('common.delete')}
+            {confirmLabel ?? t('common.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

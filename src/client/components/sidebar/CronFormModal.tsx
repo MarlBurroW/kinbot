@@ -6,19 +6,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/client/components/ui/alert-dialog'
 import { Input } from '@/client/components/ui/input'
 import { Button } from '@/client/components/ui/button'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { Label } from '@/client/components/ui/label'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
@@ -310,26 +300,18 @@ export function CronFormModal({
           {/* Footer */}
           <div className="shrink-0 flex items-center border-t px-6 py-3">
             {isEdit && onDelete && cron && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+              <ConfirmDeleteButton
+                onConfirm={handleDelete}
+                title={t('cron.edit.delete')}
+                description={t('cron.edit.deleteConfirm')}
+                confirmLabel={t('cron.edit.deleteAction')}
+                trigger={
                   <Button type="button" variant="destructive" size="sm" className="mr-auto">
                     <Trash2 className="mr-1.5 size-3.5" />
                     {t('cron.edit.delete')}
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('cron.edit.delete')}</AlertDialogTitle>
-                    <AlertDialogDescription>{t('cron.edit.deleteConfirm')}</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>
-                      {t('cron.edit.deleteAction')}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                }
+              />
             )}
 
             <Button

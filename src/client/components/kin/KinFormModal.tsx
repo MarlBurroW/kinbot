@@ -6,23 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/client/components/ui/alert-dialog'
 import { Input } from '@/client/components/ui/input'
 import { Textarea } from '@/client/components/ui/textarea'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
@@ -735,32 +725,18 @@ export function KinFormModal({
                   <div className="shrink-0 border-t px-6 py-3">
                     {isEdit ? (
                       <div className="flex items-center justify-between">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                        <ConfirmDeleteButton
+                          onConfirm={handleDelete}
+                          title={t('kin.settings.delete')}
+                          description={t('kin.settings.deleteConfirm')}
+                          confirmLabel={t('kin.settings.deleteAction')}
+                          trigger={
                             <Button type="button" variant="destructive" size="sm" disabled={isDeleting}>
                               <Trash2 className="size-4" />
                               {t('kin.settings.delete')}
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>{t('kin.settings.delete')}</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {t('kin.settings.deleteConfirm')}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleDelete}>
-                                {isDeleting ? (
-                                  <Loader2 className="size-4 animate-spin" />
-                                ) : (
-                                  t('kin.settings.deleteAction')
-                                )}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                          }
+                        />
 
                         <Button type="submit" disabled={isLoading || !name || !role} className="btn-shine">
                           {isLoading ? (

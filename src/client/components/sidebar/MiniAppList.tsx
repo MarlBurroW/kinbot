@@ -5,23 +5,13 @@ import {
   SidebarGroupContent,
 } from '@/client/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/client/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { useMiniApps } from '@/client/hooks/useMiniApps'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { cn } from '@/client/lib/utils'
 import { ChevronRight, AppWindow, Loader2, Trash2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import type { MiniAppSummary } from '@/shared/types'
 
 const STORAGE_KEY = 'sidebar.miniApps.open'
@@ -74,32 +64,21 @@ function MiniAppCard({
       {isActive && (
         <div className="size-1.5 shrink-0 rounded-full bg-primary" />
       )}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
+      <ConfirmDeleteButton
+        onConfirm={onDelete}
+        title={t('miniApps.deleteTitle')}
+        description={t('miniApps.deleteConfirm', { name: app.name })}
+        confirmLabel={t('miniApps.deleteAction')}
+        trigger={
           <button
             type="button"
-            onClick={(e) => e.stopPropagation()}
             className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
             title={t('miniApps.delete')}
           >
             <Trash2 className="size-3" />
           </button>
-        </AlertDialogTrigger>
-        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('miniApps.deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('miniApps.deleteConfirm', { name: app.name })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={onDelete}>
-              {t('miniApps.deleteAction')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        }
+      />
     </div>
   )
 }
