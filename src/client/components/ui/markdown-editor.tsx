@@ -27,7 +27,7 @@ function cssVarToHex(varName: string, fallback: string): string {
     ctx.fillStyle = raw
     ctx.fillRect(0, 0, 1, 1)
     const d = ctx.getImageData(0, 0, 1, 1).data
-    return `#${d[0].toString(16).padStart(2, '0')}${d[1].toString(16).padStart(2, '0')}${d[2].toString(16).padStart(2, '0')}`
+    return `#${d[0]!.toString(16).padStart(2, '0')}${d[1]!.toString(16).padStart(2, '0')}${d[2]!.toString(16).padStart(2, '0')}`
   } catch {
     return fallback
   }

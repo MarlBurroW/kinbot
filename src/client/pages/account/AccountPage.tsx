@@ -18,7 +18,7 @@ export function AccountPage() {
   const [firstName, setFirstName] = useState(user?.firstName ?? '')
   const [lastName, setLastName] = useState(user?.lastName ?? '')
   const [pseudonym, setPseudonym] = useState(user?.pseudonym ?? '')
-  const [language, setLanguage] = useState(user?.language ?? 'en')
+  const [language, setLanguage] = useState<string>(user?.language ?? 'en')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl ?? null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)

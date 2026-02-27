@@ -34,7 +34,7 @@ function getRealHome(): string {
   // Fall back to HOME, but strip snap paths
   const home = process.env.HOME ?? ''
   const snapMatch = home.match(/^(\/home\/[^/]+)\/snap\//)
-  if (snapMatch) return snapMatch[1]
+  if (snapMatch) return snapMatch[1]!
   // Last resort: construct from USER
   if (process.env.USER) return `/home/${process.env.USER}`
   return home

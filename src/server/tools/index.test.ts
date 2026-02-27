@@ -12,7 +12,7 @@ import type { ToolRegistration, ToolExecutionContext } from '@/server/tools/type
 function makeMockTool(name: string): Tool<any, any> {
   return {
     description: `Mock tool: ${name}`,
-    parameters: z.object({ input: z.string().optional() }),
+    inputSchema: z.object({ input: z.string().optional() }),
     execute: async (args: any) => `executed ${name} with ${JSON.stringify(args)}`,
   }
 }
@@ -205,7 +205,7 @@ describe('ToolRegistry', () => {
     registry.register('exec_test', {
       create: () => ({
         description: 'test',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => 'hello from tool',
       }),
       availability: ['main'],

@@ -504,6 +504,7 @@ function MessageContextMenu({
   isUser,
   onRegenerate,
   onQuoteReply,
+  onEditResend,
 }: {
   children: React.ReactNode
   content: string

@@ -47,7 +47,7 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
   // Pre-select first embedding model when models load
   useEffect(() => {
     if (embeddingModels.length > 0) {
-      setEmbeddingModel((prev) => prev || embeddingModels[0].id)
+      setEmbeddingModel((prev) => prev || embeddingModels[0]!.id)
     }
   }, [embeddingModels])
 

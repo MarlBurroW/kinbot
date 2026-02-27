@@ -26,7 +26,7 @@ channelWhatsAppRoutes.get('/:channelId', async (c) => {
   }
 
   // Verify the token against the one stored in vault
-  const cfg = channel.config as Record<string, unknown>
+  const cfg = JSON.parse(channel.platformConfig) as Record<string, unknown>
   const verifyTokenKey = (cfg as { verifyTokenVaultKey?: string }).verifyTokenVaultKey
   if (!verifyTokenKey) {
     log.warn({ channelId }, 'No verifyTokenVaultKey configured')

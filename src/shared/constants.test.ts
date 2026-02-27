@@ -18,14 +18,14 @@ import {
   CONTACT_IDENTIFIER_SUGGESTIONS,
   SUPPORTED_LANGUAGES,
 } from '@/shared/constants'
-import { PROVIDER_META, type ProviderType } from '@/shared/provider-metadata'
+import { PROVIDER_META, type ProviderType, type ProviderMeta } from '@/shared/provider-metadata'
 
 // ─── Provider-derived constants ──────────────────────────────────────────────
 
 describe('PROVIDER_TYPES', () => {
   it('contains all keys from PROVIDER_META', () => {
     const metaKeys = Object.keys(PROVIDER_META)
-    expect(PROVIDER_TYPES).toEqual(metaKeys)
+    expect(PROVIDER_TYPES as string[]).toEqual(metaKeys)
   })
 
   it('is non-empty', () => {
@@ -107,7 +107,7 @@ describe('PROVIDER_DISPLAY_NAMES', () => {
   it('has a display name for every provider', () => {
     for (const p of PROVIDER_TYPES) {
       expect(typeof PROVIDER_DISPLAY_NAMES[p]).toBe('string')
-      expect(PROVIDER_DISPLAY_NAMES[p].length).toBeGreaterThan(0)
+      expect(PROVIDER_DISPLAY_NAMES[p]!.length).toBeGreaterThan(0)
     }
   })
 
@@ -134,7 +134,7 @@ describe('PROVIDERS_WITHOUT_API_KEY', () => {
 
   it('every entry has noApiKey=true in PROVIDER_META', () => {
     for (const p of PROVIDERS_WITHOUT_API_KEY) {
-      const meta = PROVIDER_META[p as ProviderType]
+      const meta = PROVIDER_META[p as ProviderType] as ProviderMeta
       expect(meta.noApiKey).toBe(true)
     }
   })

@@ -23,7 +23,7 @@ taskRoutes.get('/', async (c) => {
   const { tasks: allTasks, total } = await listTasksPaginated({ status, kinId, cronId, search, limit, offset })
 
   // Fetch kin info (name + avatar) for display
-  const kinIds = [...new Set(allTasks.flatMap((t) => [t.parentKinId, t.sourceKinId].filter(Boolean)))]
+  const kinIds = [...new Set(allTasks.flatMap((t) => [t.parentKinId, t.sourceKinId].filter((id): id is string => id != null)))]
   const kinMap = new Map<string, { name: string; avatarUrl: string | null; model: string }>()
 
   for (const id of kinIds) {

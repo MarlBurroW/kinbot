@@ -109,7 +109,7 @@ async function uploadSingleFile(
 
     if (!res.ok) {
       const data = await res.json().catch(() => null)
-      const message = data?.error?.message ?? t('errors.uploadFailed')
+      const message = data?.error?.message ?? 'Upload failed'
       setPendingFiles((prev) =>
         prev.map((f) =>
           f.localId === entry.localId ? { ...f, status: 'error' as const, error: message } : f,
@@ -130,7 +130,7 @@ async function uploadSingleFile(
   } catch {
     setPendingFiles((prev) =>
       prev.map((f) =>
-        f.localId === entry.localId ? { ...f, status: 'error' as const, error: t('errors.uploadFailed') } : f,
+        f.localId === entry.localId ? { ...f, status: 'error' as const, error: 'Upload failed' } : f,
       ),
     )
   }

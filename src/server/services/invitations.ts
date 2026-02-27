@@ -1,7 +1,7 @@
 import { eq, and, isNull, desc, sql } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { randomBytes } from 'crypto'
-import { db } from '@/server/db/index'
+import { db, sqlite } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { invitations, user, userProfiles } from '@/server/db/schema'
 import { config } from '@/server/config'
@@ -122,11 +122,10 @@ export function validateInvitation(token: string): { valid: boolean; reason?: st
 
 export function markInvitationUsed(token: string, usedBy: string): boolean {
   // Atomic update: only succeeds if usedAt IS NULL (prevents race conditions)
-  const result = db
-    .update(invitations)
-    .set({ usedAt: new Date(), usedBy })
-    .where(and(eq(invitations.token, token), isNull(invitations.usedAt)))
-    .run()
+  const result = sqlite.run(
+    `UPDATE invitations SET used_at = ?, used_by = ? WHERE token = ? AND used_at IS NULL`,
+    [Date.now(), usedBy, token],
+  )
 
   if (result.changes === 0) {
     log.warn({ token: token.slice(0, 8) + '...' }, 'Failed to mark invitation as used (already used or not found)')

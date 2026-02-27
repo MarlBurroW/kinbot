@@ -41,7 +41,7 @@ function splitMessage(text: string): string[] {
 }
 
 async function resolveSecret(cfg: Record<string, unknown>, key: keyof WhatsAppChannelConfig): Promise<string> {
-  const vaultKey = (cfg as WhatsAppChannelConfig)[key] as string
+  const vaultKey = (cfg as unknown as WhatsAppChannelConfig)[key] as string
   const secret = await getSecretValue(vaultKey)
   if (!secret) throw new Error(`Vault key "${vaultKey}" not found`)
   return secret
@@ -76,7 +76,7 @@ export class WhatsAppAdapter implements ChannelAdapter {
     // WhatsApp Cloud API uses a webhook configured in Meta Developer Console.
     // We just log that the channel is active — the user must configure the webhook URL
     // in Meta's dashboard pointing to our endpoint.
-    const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+    const phoneNumberId = (cfg as unknown as WhatsAppChannelConfig).phoneNumberId
     const webhookUrl = `${config.publicUrl}/api/channels/whatsapp/webhook/${channelId}`
     log.info({ channelId, phoneNumberId, webhookUrl }, 'WhatsApp channel started — configure this webhook URL in Meta Developer Console')
   }
@@ -91,7 +91,7 @@ export class WhatsAppAdapter implements ChannelAdapter {
     params: OutboundMessageParams,
   ): Promise<{ platformMessageId: string }> {
     const accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
-    const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+    const phoneNumberId = (cfg as unknown as WhatsAppChannelConfig).phoneNumberId
     const chunks = splitMessage(params.content)
 
     let lastMessageId = ''
@@ -119,7 +119,7 @@ export class WhatsAppAdapter implements ChannelAdapter {
   async validateConfig(cfg: Record<string, unknown>): Promise<{ valid: boolean; error?: string }> {
     try {
       const accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
-      const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+      const phoneNumberId = (cfg as unknown as WhatsAppChannelConfig).phoneNumberId
       if (!phoneNumberId) return { valid: false, error: 'phoneNumberId is required' }
 
       // Verify by fetching phone number info
@@ -139,7 +139,7 @@ export class WhatsAppAdapter implements ChannelAdapter {
   async getBotInfo(cfg: Record<string, unknown>): Promise<{ name: string; username?: string } | null> {
     try {
       const accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
-      const phoneNumberId = (cfg as WhatsAppChannelConfig).phoneNumberId
+      const phoneNumberId = (cfg as unknown as WhatsAppChannelConfig).phoneNumberId
       const resp = await fetch(`${GRAPH_API}/${phoneNumberId}?fields=display_phone_number,verified_name`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })

@@ -34,7 +34,7 @@ describe('deepseekProvider', () => {
     it('returns valid when models are returned', async () => {
       globalThis.fetch = mockFetchResponse({
         data: [{ id: 'deepseek-chat', object: 'model' }],
-      })
+      }) as unknown as typeof fetch
 
       const result = await deepseekProvider.testConnection(makeConfig())
       expect(result.valid).toBe(true)
@@ -42,14 +42,14 @@ describe('deepseekProvider', () => {
     })
 
     it('returns invalid on empty model list', async () => {
-      globalThis.fetch = mockFetchResponse({ data: [] })
+      globalThis.fetch = mockFetchResponse({ data: [] }) as unknown as typeof fetch
 
       const result = await deepseekProvider.testConnection(makeConfig())
       expect(result.valid).toBe(false)
     })
 
     it('returns invalid with error message on HTTP error', async () => {
-      globalThis.fetch = mockFetchResponse({ error: 'unauthorized' }, 401)
+      globalThis.fetch = mockFetchResponse({ error: 'unauthorized' }, 401) as unknown as typeof fetch
 
       const result = await deepseekProvider.testConnection(makeConfig())
       expect(result.valid).toBe(false)
@@ -57,7 +57,7 @@ describe('deepseekProvider', () => {
     })
 
     it('returns invalid on network failure', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error')))
+      globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch
 
       const result = await deepseekProvider.testConnection(makeConfig())
       expect(result.valid).toBe(false)
@@ -68,7 +68,7 @@ describe('deepseekProvider', () => {
       const customFetch = mockFetchResponse({
         data: [{ id: 'deepseek-chat', object: 'model' }],
       })
-      globalThis.fetch = customFetch
+      globalThis.fetch = customFetch as unknown as typeof fetch
 
       await deepseekProvider.testConnection(
         makeConfig({ baseUrl: 'https://custom.api.com/v1' }),
@@ -85,49 +85,49 @@ describe('deepseekProvider', () => {
     it('classifies deepseek-chat as LLM', async () => {
       globalThis.fetch = mockFetchResponse({
         data: [{ id: 'deepseek-chat', object: 'model' }],
-      })
+      }) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
       expect(models).toHaveLength(1)
-      expect(models[0].id).toBe('deepseek-chat')
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.id).toBe('deepseek-chat')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies deepseek-coder as LLM', async () => {
       globalThis.fetch = mockFetchResponse({
         data: [{ id: 'deepseek-coder', object: 'model' }],
-      })
+      }) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies deepseek-reasoner as LLM', async () => {
       globalThis.fetch = mockFetchResponse({
         data: [{ id: 'deepseek-reasoner', object: 'model' }],
-      })
+      }) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies embed model as embedding', async () => {
       globalThis.fetch = mockFetchResponse({
         data: [{ id: 'deepseek-embed-v2', object: 'model' }],
-      })
+      }) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
-      expect(models[0].capability).toBe('embedding')
+      expect(models[0]!.capability).toBe('embedding')
     })
 
     it('classifies unknown model as LLM (fallback)', async () => {
       globalThis.fetch = mockFetchResponse({
         data: [{ id: 'some-unknown-model', object: 'model' }],
-      })
+      }) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
       // Fallback is 'llm' per the source code
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('sorts models alphabetically by id', async () => {
@@ -137,7 +137,7 @@ describe('deepseekProvider', () => {
           { id: 'deepseek-chat', object: 'model' },
           { id: 'deepseek-coder', object: 'model' },
         ],
-      })
+      }) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
       expect(models.map((m) => m.id)).toEqual([
@@ -151,29 +151,29 @@ describe('deepseekProvider', () => {
       // The fetchModels function handles both { data: [...] } and raw array
       globalThis.fetch = mockFetchResponse([
         { id: 'deepseek-chat', object: 'model' },
-      ])
+      ]) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
       expect(models).toHaveLength(1)
-      expect(models[0].id).toBe('deepseek-chat')
+      expect(models[0]!.id).toBe('deepseek-chat')
     })
 
     it('returns empty array on API error', async () => {
-      globalThis.fetch = mockFetchResponse({ error: 'bad' }, 500)
+      globalThis.fetch = mockFetchResponse({ error: 'bad' }, 500) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
       expect(models).toEqual([])
     })
 
     it('returns empty array on network failure', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('timeout')))
+      globalThis.fetch = mock(() => Promise.reject(new Error('timeout'))) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
       expect(models).toEqual([])
     })
 
     it('handles missing data field gracefully', async () => {
-      globalThis.fetch = mockFetchResponse({})
+      globalThis.fetch = mockFetchResponse({}) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
       expect(models).toEqual([])
@@ -182,10 +182,10 @@ describe('deepseekProvider', () => {
     it('sets name equal to id', async () => {
       globalThis.fetch = mockFetchResponse({
         data: [{ id: 'deepseek-chat', object: 'model' }],
-      })
+      }) as unknown as typeof fetch
 
       const models = await deepseekProvider.listModels(makeConfig())
-      expect(models[0].name).toBe(models[0].id)
+      expect(models[0]!.name).toBe(models[0]!.id)
     })
   })
 

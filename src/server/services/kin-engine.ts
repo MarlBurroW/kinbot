@@ -382,22 +382,6 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
             break
           }
 
-          case 'tool-call-streaming-start': {
-            // Notify client as soon as the LLM starts generating a tool call
-            // (before arguments are fully parsed) for immediate UI feedback
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-call-start',
-              kinId,
-              data: {
-                messageId: assistantMessageId,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                contentOffset: fullContent.length,
-              },
-            })
-            break
-          }
-
           case 'tool-call': {
             const contentOffset = fullContent.length
             toolCallsLog.push({
@@ -809,14 +793,6 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
             })
             break
           }
-          case 'tool-call-streaming-start': {
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-call-start',
-              kinId,
-              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, contentOffset: fullContent.length, sessionId },
-            })
-            break
-          }
           case 'tool-call': {
             const contentOffset = fullContent.length
             toolCallsLog.push({ id: part.toolCallId, name: part.toolName, args: part.input, offset: contentOffset })
@@ -1163,7 +1139,7 @@ async function tryCreateModel(
       const anthropic = createAnthropic({
         apiKey: 'oauth', // placeholder — overridden by custom fetch below
         headers: OAUTH_HEADERS,
-        fetch: async (url, init) => {
+        fetch: (async (url: URL | RequestInfo, init: RequestInit | undefined) => {
           const headers = new Headers(init?.headers)
           headers.delete('x-api-key')
           headers.set('authorization', `Bearer ${accessToken}`)
@@ -1195,7 +1171,7 @@ async function tryCreateModel(
           }
 
           return globalThis.fetch(url, { ...init, headers })
-        },
+        }) as unknown as typeof fetch,
       })
       return anthropic(modelId)
     } else if (provider.type === 'openai') {

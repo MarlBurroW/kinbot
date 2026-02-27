@@ -2,8 +2,9 @@ import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { v4 as uuid } from 'uuid'
 import { sseManager } from '@/server/sse/index'
+import type { AppVariables } from '@/server/app'
 
-const sseRoutes = new Hono()
+const sseRoutes = new Hono<{ Variables: AppVariables }>()
 
 // GET /api/sse — global SSE connection (one per client)
 sseRoutes.get('/', (c) => {

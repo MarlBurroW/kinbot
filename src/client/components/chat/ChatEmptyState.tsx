@@ -48,7 +48,7 @@ export function ChatEmptyState({ kinName, kinRole, kinAvatarUrl, onSendMessage }
       {suggestionList.length > 0 && (
         <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
           {suggestionList.map((suggestion, i) => {
-            const Icon = SUGGESTION_ICONS[i % SUGGESTION_ICONS.length]
+            const Icon = SUGGESTION_ICONS[i % SUGGESTION_ICONS.length]!
             return (
               <button
                 key={i}

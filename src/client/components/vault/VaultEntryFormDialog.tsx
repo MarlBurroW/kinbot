@@ -56,7 +56,7 @@ export function VaultEntryFormDialog({
 
   // Build type options
   const typeOptions = useMemo(() => {
-    const options = VAULT_BUILTIN_TYPES.map((type) => ({
+    const options: Array<{ value: string; label: string }> = VAULT_BUILTIN_TYPES.map((type) => ({
       value: type,
       label: t(`vault.types.${type}`, type),
     }))

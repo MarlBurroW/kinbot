@@ -53,7 +53,7 @@ export async function encryptBuffer(data: Uint8Array): Promise<Uint8Array> {
   const ciphertext = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     key,
-    data,
+    data.buffer as ArrayBuffer,
   )
 
   const combined = new Uint8Array(iv.length + ciphertext.byteLength)

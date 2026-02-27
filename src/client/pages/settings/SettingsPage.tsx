@@ -294,7 +294,7 @@ export function SettingsModal({ open, onOpenChange, initialSection }: SettingsMo
           {/* Main content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="mx-auto max-w-2xl">
-              <ActiveComponent />
+              {ActiveComponent && <ActiveComponent />}
             </div>
           </div>
         </div>

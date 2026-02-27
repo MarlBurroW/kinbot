@@ -62,7 +62,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
 
     const newKins = [...kins]
     const [moved] = newKins.splice(oldIndex, 1)
-    newKins.splice(newIndex, 0, moved)
+    newKins.splice(newIndex, 0, moved!)
     onReorderKins(newKins.map((k) => k.id))
   }, [kins, onReorderKins])
 

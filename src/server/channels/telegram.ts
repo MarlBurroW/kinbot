@@ -41,7 +41,7 @@ function splitMessage(text: string): string[] {
 }
 
 async function resolveToken(cfg: Record<string, unknown>): Promise<string> {
-  const vaultKey = (cfg as TelegramChannelConfig).botTokenVaultKey
+  const vaultKey = (cfg as unknown as TelegramChannelConfig).botTokenVaultKey
   const token = await getSecretValue(vaultKey)
   if (!token) throw new Error(`Vault key "${vaultKey}" not found`)
   return token

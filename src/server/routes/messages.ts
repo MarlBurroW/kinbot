@@ -6,10 +6,11 @@ import { enqueueMessage } from '@/server/services/queue'
 import { abortKinStream } from '@/server/services/kin-engine'
 import { getFilesForMessages, serializeFile } from '@/server/services/files'
 import { resolveKinId } from '@/server/services/kin-resolver'
+import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
 
 const log = createLogger('routes:messages')
-const messageRoutes = new Hono()
+const messageRoutes = new Hono<{ Variables: AppVariables }>()
 
 // POST /api/kins/:kinId/messages — send a message to a kin (accepts UUID or slug)
 messageRoutes.post('/', async (c) => {
