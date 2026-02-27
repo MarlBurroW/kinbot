@@ -422,6 +422,7 @@
       "daysAgo": "{{count}}d ago"
     },
     "scrollToBottom": "Scroll to bottom",
+    "scrollToTop": "Scroll to top",
     "autoScroll": {
       "on": "Auto-scroll enabled — click to disable",
       "off": "Auto-scroll disabled — click to enable"
