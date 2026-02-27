@@ -50,6 +50,19 @@ warn()    { echo -e "${YELLOW}⚠${NC} $*"; }
 error()   { echo -e "${RED}✗ ERROR:${NC} $*" >&2; exit 1; }
 header()  { echo -e "\n${BOLD}$*${NC}"; }
 
+# ─── Step progress (for main install flow) ───────────────────────────────────
+STEP_CURRENT=0
+STEP_TOTAL=0
+
+step() {
+  STEP_CURRENT=$((STEP_CURRENT + 1))
+  local progress=""
+  if [ "$STEP_TOTAL" -gt 0 ] 2>/dev/null; then
+    progress="${DIM}[${STEP_CURRENT}/${STEP_TOTAL}]${NC} "
+  fi
+  echo -e "\n${progress}${BOLD}$*${NC}"
+}
+
 # ─── Cleanup & signal handling ───────────────────────────────────────────────
 SPINNER_PID=""
 SPINNER_LOG=""
@@ -242,7 +255,7 @@ install_pkg() {
 
 # ─── Check prerequisites ─────────────────────────────────────────────────────
 check_prerequisites() {
-  header "Checking prerequisites..."
+  step "Checking prerequisites"
 
   if ! command -v git &>/dev/null; then
     install_pkg git
@@ -263,7 +276,7 @@ check_prerequisites() {
 
 # ─── Pre-flight checks ───────────────────────────────────────────────────────
 preflight_checks() {
-  header "Running pre-flight checks..."
+  step "Running pre-flight checks"
 
   # Check available disk space (need ~500MB for clone + deps + build)
   local install_parent
@@ -420,7 +433,7 @@ version_gte() {
 }
 
 ensure_bun() {
-  header "Checking Bun runtime..."
+  step "Checking Bun runtime"
 
   BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
   export BUN_INSTALL
@@ -520,7 +533,7 @@ backup_database() {
 ROLLBACK_COMMIT=""
 
 install_or_update() {
-  header "Installing KinBot..."
+  step "Installing KinBot"
 
   if [ -d "$KINBOT_DIR/.git" ]; then
     info "Existing installation found at $KINBOT_DIR — updating..."
@@ -649,7 +662,7 @@ rollback() {
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 build_kinbot() {
-  header "Installing dependencies and building..."
+  step "Installing dependencies and building"
 
   cd "$KINBOT_DIR"
   run_with_spinner "Installing dependencies..." retry 3 "bun install" bun install --frozen-lockfile
@@ -658,7 +671,7 @@ build_kinbot() {
 
 # ─── Database ────────────────────────────────────────────────────────────────
 setup_database() {
-  header "Setting up database..."
+  step "Setting up database"
 
   mkdir -p "$KINBOT_DATA_DIR"
 
@@ -928,7 +941,7 @@ SCRIPT
 
 # ─── Create service (dispatch) ───────────────────────────────────────────────
 create_service() {
-  header "Creating service..."
+  step "Creating service"
 
   if [ "$INIT_SYSTEM" = "launchd" ]; then
     create_launchd_service
@@ -945,7 +958,7 @@ create_service() {
 KINBOT_HEALTHY=false
 
 verify_running() {
-  header "Verifying KinBot is running..."
+  step "Verifying KinBot is running"
 
   local url="http://localhost:${KINBOT_PORT}"
   local attempts=0
@@ -2336,6 +2349,9 @@ do_update() {
   echo ""
 
   # Detect OS fully for the install flow
+  STEP_TOTAL=7
+  STEP_CURRENT=0
+
   detect_os
   ensure_bun
 
@@ -2343,6 +2359,7 @@ do_update() {
   trap rollback EXIT
 
   install_or_update
+  step "Configuring"
   configure
   build_kinbot
   setup_database
@@ -2454,11 +2471,15 @@ main() {
   echo -e "https://github.com/MarlBurroW/kinbot"
   echo ""
 
+  STEP_TOTAL=9
+  STEP_CURRENT=0
+
   detect_os
   check_prerequisites
   preflight_checks
   ensure_bun
   install_or_update
+  step "Configuring"
   configure
   build_kinbot
   setup_database
