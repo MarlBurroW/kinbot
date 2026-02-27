@@ -377,6 +377,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onSearch={toggleSearch}
         onClearConversation={clearConversation}
         messages={messages}
+        scrollViewportRef={scrollAreaRef}
       />
 
       {/* Search bar */}

@@ -383,6 +383,7 @@
     "contextUsage": "Context: ~{{tokens}} / {{max}} tokens ({{percent}}%), includes system prompt, history & tools",
     "contextNoData": "Context usage will appear after the first message is processed",
     "forceCompact": "Force compaction",
+    "moreActions": "More actions",
     "compacting": {
       "title": "Compacting conversation",
       "running": "Summarizing messages...",
@@ -522,6 +523,10 @@
       "activityAriaLabel": "Message activity sparkline showing conversation frequency over time",
       "legendUser": "You",
       "legendAssistant": "Assistant"
+    },
+    "dateNav": {
+      "title": "Jump to date",
+      "subtitle": "{{count}} days in conversation"
     }
   },
   "quickChat": {

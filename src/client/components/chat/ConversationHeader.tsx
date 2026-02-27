@@ -23,9 +23,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson, Search, Trash2 } from 'lucide-react'
+import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson, Search, Trash2, MoreVertical } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { ConversationStats } from '@/client/components/chat/ConversationStats'
+import { DateNavigator } from '@/client/components/chat/DateNavigator'
 import type { ChatMessage } from '@/client/hooks/useChat'
 
 interface LLMModel {
@@ -60,6 +61,7 @@ interface ConversationHeaderProps {
   onSearch?: () => void
   onClearConversation?: () => void
   messages?: ChatMessage[]
+  scrollViewportRef?: React.RefObject<HTMLElement | null>
 }
 
 function formatTokenCount(n: number): string {
@@ -91,6 +93,7 @@ export function ConversationHeader({
   onSearch,
   onClearConversation,
   messages,
+  scrollViewportRef,
 }: ConversationHeaderProps) {
   const { t } = useTranslation()
 
@@ -273,27 +276,6 @@ export function ConversationHeader({
         <TooltipContent side="bottom">{t('tools.viewer.title')}</TooltipContent>
       </Tooltip>
 
-      {/* Force compaction button */}
-      {onForceCompact && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onForceCompact}
-              disabled={isCompacting}
-            >
-              {isCompacting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Archive className="size-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{t('chat.forceCompact')}</TooltipContent>
-        </Tooltip>
-      )}
-
       {/* Quick session button */}
       {onQuickSession && (
         <Tooltip>
@@ -318,58 +300,40 @@ export function ConversationHeader({
         </Tooltip>
       )}
 
+      {/* Date navigator */}
+      {messages && messages.length > 0 && (
+        <DateNavigator messages={messages} scrollViewportRef={scrollViewportRef} />
+      )}
+
       {/* Conversation statistics */}
       {messages && messages.length > 0 && (
         <ConversationStats messages={messages} toolCallCount={toolCallCount} />
       )}
 
-      {/* Clear conversation */}
-      {onClearConversation && messageCount > 0 && (
-        <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" onClick={() => setClearDialogOpen(true)}>
-                <Trash2 className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t('chat.clear.title')}</TooltipContent>
-          </Tooltip>
-          <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('chat.clear.title')}</AlertDialogTitle>
-                <AlertDialogDescription>{t('chat.clear.description')}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onClearConversation()
-                    setClearDialogOpen(false)
-                  }}
-                >
-                  {t('chat.clear.confirm')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      )}
-
-      {/* Export dropdown */}
-      {(onExportMarkdown || onExportJSON) && (
+      {/* More actions dropdown (export, compact, clear) */}
+      {(onExportMarkdown || onExportJSON || onForceCompact || (onClearConversation && messageCount > 0)) && (
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon-sm">
-                  <Download className="size-4" />
+                  <MoreVertical className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent side="bottom">{t('chat.export.title')}</TooltipContent>
+            <TooltipContent side="bottom">{t('chat.moreActions')}</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end">
+            {onForceCompact && (
+              <DropdownMenuItem onClick={onForceCompact} disabled={isCompacting}>
+                {isCompacting ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Archive className="mr-2 size-4" />
+                )}
+                {t('chat.forceCompact')}
+              </DropdownMenuItem>
+            )}
             {onExportMarkdown && (
               <DropdownMenuItem onClick={onExportMarkdown}>
                 <FileText className="mr-2 size-4" />
@@ -382,8 +346,40 @@ export function ConversationHeader({
                 {t('chat.export.json')}
               </DropdownMenuItem>
             )}
+            {onClearConversation && messageCount > 0 && (
+              <DropdownMenuItem
+                onClick={() => setClearDialogOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 size-4" />
+                {t('chat.clear.title')}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
+      )}
+
+      {/* Clear conversation confirmation dialog */}
+      {onClearConversation && (
+        <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('chat.clear.title')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('chat.clear.description')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  onClearConversation()
+                  setClearDialogOpen(false)
+                }}
+              >
+                {t('chat.clear.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
 
       {/* Settings button */}

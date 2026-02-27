@@ -33,8 +33,17 @@ export function DateSeparator({ date }: DateSeparatorProps) {
     })
   }, [date, t])
 
+  // Normalised date key for programmatic scrolling (YYYY-MM-DD)
+  const dateKey = useMemo(() => {
+    const d = new Date(date)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [date])
+
   return (
-    <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-background/80 backdrop-blur-sm">
+    <div
+      className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-background/80 backdrop-blur-sm"
+      data-date-separator={dateKey}
+    >
       <div className="h-px flex-1 bg-border" />
       <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
         {label}
