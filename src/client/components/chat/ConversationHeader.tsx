@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/client/components/ui/dropdown-menu'
 import {
   AlertDialog,
@@ -276,11 +277,11 @@ export function ConversationHeader({
         <TooltipContent side="bottom">{t('tools.viewer.title')}</TooltipContent>
       </Tooltip>
 
-      {/* Quick session button */}
+      {/* Quick session button — hidden on mobile */}
       {onQuickSession && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" onClick={onQuickSession}>
+            <Button variant="ghost" size="icon-sm" onClick={onQuickSession} className="hidden sm:inline-flex">
               <Zap className="size-4" />
             </Button>
           </TooltipTrigger>
@@ -300,53 +301,68 @@ export function ConversationHeader({
         </Tooltip>
       )}
 
-      {/* Date navigator */}
+      {/* Date navigator — hidden on mobile */}
       {messages && messages.length > 0 && (
-        <DateNavigator messages={messages} scrollViewportRef={scrollViewportRef} />
+        <span className="hidden md:inline-flex">
+          <DateNavigator messages={messages} scrollViewportRef={scrollViewportRef} />
+        </span>
       )}
 
-      {/* Conversation statistics */}
+      {/* Conversation statistics — hidden on mobile */}
       {messages && messages.length > 0 && (
-        <ConversationStats messages={messages} toolCallCount={toolCallCount} />
+        <span className="hidden md:inline-flex">
+          <ConversationStats messages={messages} toolCallCount={toolCallCount} />
+        </span>
       )}
 
-      {/* More actions dropdown (export, compact, clear) */}
-      {(onExportMarkdown || onExportJSON || onForceCompact || (onClearConversation && messageCount > 0)) && (
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm">
-                  <MoreVertical className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t('chat.moreActions')}</TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="end">
-            {onForceCompact && (
-              <DropdownMenuItem onClick={onForceCompact} disabled={isCompacting}>
-                {isCompacting ? (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <Archive className="mr-2 size-4" />
-                )}
-                {t('chat.forceCompact')}
-              </DropdownMenuItem>
-            )}
-            {onExportMarkdown && (
-              <DropdownMenuItem onClick={onExportMarkdown}>
-                <FileText className="mr-2 size-4" />
-                {t('chat.export.markdown')}
-              </DropdownMenuItem>
-            )}
-            {onExportJSON && (
-              <DropdownMenuItem onClick={onExportJSON}>
-                <FileJson className="mr-2 size-4" />
-                {t('chat.export.json')}
-              </DropdownMenuItem>
-            )}
-            {onClearConversation && messageCount > 0 && (
+      {/* More actions dropdown */}
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm">
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{t('chat.moreActions')}</TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent align="end">
+          {/* Mobile-only: quick session (hidden on sm+ where it has its own button) */}
+          {onQuickSession && (
+            <DropdownMenuItem onClick={onQuickSession} className="sm:hidden">
+              <Zap className="mr-2 size-4" />
+              {t('quickChat.open')}
+            </DropdownMenuItem>
+          )}
+          {onQuickSession && (onForceCompact || onExportMarkdown || onExportJSON) && (
+            <DropdownMenuSeparator className="sm:hidden" />
+          )}
+          {onForceCompact && (
+            <DropdownMenuItem onClick={onForceCompact} disabled={isCompacting}>
+              {isCompacting ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Archive className="mr-2 size-4" />
+              )}
+              {t('chat.forceCompact')}
+            </DropdownMenuItem>
+          )}
+          {onExportMarkdown && (
+            <DropdownMenuItem onClick={onExportMarkdown}>
+              <FileText className="mr-2 size-4" />
+              {t('chat.export.markdown')}
+            </DropdownMenuItem>
+          )}
+          {onExportJSON && (
+            <DropdownMenuItem onClick={onExportJSON}>
+              <FileJson className="mr-2 size-4" />
+              {t('chat.export.json')}
+            </DropdownMenuItem>
+          )}
+          {onClearConversation && messageCount > 0 && (
+            <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setClearDialogOpen(true)}
                 className="text-destructive focus:text-destructive"
@@ -354,10 +370,10 @@ export function ConversationHeader({
                 <Trash2 className="mr-2 size-4" />
                 {t('chat.clear.title')}
               </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Clear conversation confirmation dialog */}
       {onClearConversation && (
