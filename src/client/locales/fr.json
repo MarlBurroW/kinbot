@@ -1235,5 +1235,15 @@
       "note": "Note",
       "identity": "Identité"
     }
-  }
+  },
+  "chat.stats.title": "Statistiques de conversation",
+  "chat.stats.totalMessages": "Messages totaux",
+  "chat.stats.userMessages": "Vos messages",
+  "chat.stats.assistantMessages": "Messages assistant",
+  "chat.stats.toolCalls": "Appels d'outils",
+  "chat.stats.files": "Fichiers partagés",
+  "chat.stats.memoriesExtracted": "Souvenirs extraits",
+  "chat.stats.duration": "Durée",
+  "chat.stats.avgResponse": "Temps de réponse moy.",
+  "chat.stats.totalWords": "Mots au total"
 }

@@ -15,6 +15,8 @@ import {
 } from '@/client/components/ui/dropdown-menu'
 import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson, Search } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
+import { ConversationStats } from '@/client/components/chat/ConversationStats'
+import type { ChatMessage } from '@/client/hooks/useChat'
 
 interface LLMModel {
   id: string
@@ -46,6 +48,7 @@ interface ConversationHeaderProps {
   onExportMarkdown?: () => void
   onExportJSON?: () => void
   onSearch?: () => void
+  messages?: ChatMessage[]
 }
 
 function formatTokenCount(n: number): string {
@@ -75,6 +78,7 @@ export function ConversationHeader({
   onExportMarkdown,
   onExportJSON,
   onSearch,
+  messages,
 }: ConversationHeaderProps) {
   const { t } = useTranslation()
 
@@ -299,6 +303,11 @@ export function ConversationHeader({
           </TooltipTrigger>
           <TooltipContent side="bottom">{t('chat.search.title')}</TooltipContent>
         </Tooltip>
+      )}
+
+      {/* Conversation statistics */}
+      {messages && messages.length > 0 && (
+        <ConversationStats messages={messages} toolCallCount={toolCallCount} />
       )}
 
       {/* Export dropdown */}

@@ -349,6 +349,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onExportMarkdown={exportAsMarkdown}
         onExportJSON={exportAsJSON}
         onSearch={toggleSearch}
+        messages={messages}
       />
 
       {/* Search bar */}
