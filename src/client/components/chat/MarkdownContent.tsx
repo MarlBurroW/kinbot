@@ -5,7 +5,7 @@ import remarkMath from 'remark-math'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
 import { useTranslation } from 'react-i18next'
-import { Copy, Check, WrapText } from 'lucide-react'
+import { Copy, Check, WrapText, Download } from 'lucide-react'
 import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { cn } from '@/client/lib/utils'
 import { HighlightText } from '@/client/components/chat/HighlightText'
@@ -35,8 +35,7 @@ function CodeBlockCopyButton({ code }: { code: string }) {
       type="button"
       onClick={handleCopy}
       className={cn(
-        'absolute top-2 right-2 rounded-md p-1.5 transition-all',
-        'opacity-0 group-hover/codeblock:opacity-100',
+        'rounded-md p-1.5 transition-all',
         'bg-background/60 hover:bg-background/90 backdrop-blur-sm',
         'text-muted-foreground hover:text-foreground',
         'active:scale-95',
@@ -101,6 +100,67 @@ function langDisplayName(lang: string): string {
   return LANG_DISPLAY[lang.toLowerCase()] ?? lang.toUpperCase()
 }
 
+/** Map language identifiers to file extensions for downloading. */
+const LANG_EXTENSION: Record<string, string> = {
+  js: 'js', javascript: 'js', jsx: 'jsx',
+  ts: 'ts', typescript: 'ts', tsx: 'tsx',
+  py: 'py', python: 'py',
+  rb: 'rb', ruby: 'rb',
+  rs: 'rs', rust: 'rs',
+  go: 'go', golang: 'go',
+  sh: 'sh', bash: 'sh', zsh: 'zsh', fish: 'fish',
+  json: 'json', yaml: 'yaml', yml: 'yml', toml: 'toml', xml: 'xml',
+  html: 'html', css: 'css', scss: 'scss', less: 'less',
+  sql: 'sql', graphql: 'graphql',
+  md: 'md', markdown: 'md',
+  dockerfile: 'Dockerfile', docker: 'Dockerfile',
+  cpp: 'cpp', c: 'c', cs: 'cs', csharp: 'cs',
+  java: 'java', kotlin: 'kt', swift: 'swift',
+  php: 'php', lua: 'lua', perl: 'pl', r: 'r',
+  diff: 'diff', plaintext: 'txt', text: 'txt',
+  ini: 'ini', nginx: 'conf', makefile: 'Makefile',
+}
+
+function langExtension(lang: string | null): string {
+  if (!lang) return 'txt'
+  return LANG_EXTENSION[lang.toLowerCase()] ?? 'txt'
+}
+
+function CodeBlockDownloadButton({ code, language }: { code: string; language: string | null }) {
+  const { t } = useTranslation()
+
+  const handleDownload = useCallback(() => {
+    const ext = langExtension(language)
+    const filename = `code.${ext}`
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [code, language])
+
+  return (
+    <button
+      type="button"
+      onClick={handleDownload}
+      className={cn(
+        'rounded-md p-1.5 transition-all',
+        'bg-background/60 hover:bg-background/90 backdrop-blur-sm',
+        'text-muted-foreground hover:text-foreground',
+        'active:scale-95',
+      )}
+      title={t('chat.codeBlock.download')}
+      aria-label={t('chat.codeBlock.download')}
+    >
+      <Download className="size-3.5" />
+    </button>
+  )
+}
+
 /** Minimum number of lines before showing line numbers. */
 const LINE_NUMBER_THRESHOLD = 4
 
@@ -114,8 +174,7 @@ function CodeBlockWrapButton({ wrapped, onToggle }: { wrapped: boolean; onToggle
       type="button"
       onClick={onToggle}
       className={cn(
-        'absolute top-2 right-10 rounded-md p-1.5 transition-all',
-        'opacity-0 group-hover/codeblock:opacity-100',
+        'rounded-md p-1.5 transition-all',
         'bg-background/60 hover:bg-background/90 backdrop-blur-sm',
         wrapped ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
         'active:scale-95',
@@ -169,8 +228,14 @@ function PreBlock({ children, ...props }: HTMLAttributes<HTMLPreElement>) {
           {children}
         </pre>
       </div>
-      {showWrapToggle && <CodeBlockWrapButton wrapped={wrapped} onToggle={() => setWrapped((w) => !w)} />}
-      {code && <CodeBlockCopyButton code={code} />}
+      {/* Floating toolbar — appears on hover */}
+      {code && (
+        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/codeblock:opacity-100 transition-opacity">
+          {showWrapToggle && <CodeBlockWrapButton wrapped={wrapped} onToggle={() => setWrapped((w) => !w)} />}
+          <CodeBlockDownloadButton code={code} language={language} />
+          <CodeBlockCopyButton code={code} />
+        </div>
+      )}
     </div>
   )
 }

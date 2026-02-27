@@ -413,7 +413,8 @@
       "copied": "Code copié dans le presse-papiers",
       "copyFailed": "Échec de la copie du code",
       "wrap": "Retour à la ligne automatique",
-      "unwrap": "Désactiver le retour à la ligne"
+      "unwrap": "Désactiver le retour à la ligne",
+      "download": "Télécharger en fichier"
     },
     "sendFailed": "Échec de l'envoi du message",
     "shortcutsHint": "pour voir tous les raccourcis clavier",

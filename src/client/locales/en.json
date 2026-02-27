@@ -413,7 +413,8 @@
       "copied": "Code copied to clipboard",
       "copyFailed": "Failed to copy code",
       "wrap": "Wrap long lines",
-      "unwrap": "Unwrap lines"
+      "unwrap": "Unwrap lines",
+      "download": "Download as file"
     },
     "sendFailed": "Failed to send message",
     "shortcutsHint": "to view all keyboard shortcuts",
