@@ -22,6 +22,7 @@ import { StatusNotifications } from '@/client/components/common/StatusNotificati
 import { Button } from '@/client/components/ui/button'
 import { GettingStartedChecklist } from '@/client/components/common/GettingStartedChecklist'
 import { useDocumentTitle } from '@/client/hooks/useDocumentTitle'
+import { useUnreadWhileHidden } from '@/client/hooks/useUnreadWhileHidden'
 import { Bot, Command, Maximize2, MessageSquare, Minimize2, Plus, Sparkles } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { useFocusMode } from '@/client/hooks/useFocusMode'
@@ -116,7 +117,8 @@ export function ChatPage() {
   const selectedKinProcessing = selectedKin
     ? kinQueueState.get(selectedKin.id)?.isProcessing ?? false
     : false
-  useDocumentTitle(selectedKin?.name, selectedKinProcessing)
+  const unreadCount = useUnreadWhileHidden(selectedKin?.id ?? null)
+  useDocumentTitle(selectedKin?.name, selectedKinProcessing, unreadCount)
 
   // Global keyboard shortcuts for kin navigation & actions
   useEffect(() => {
