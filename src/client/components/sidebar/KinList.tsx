@@ -21,7 +21,8 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
 } from '@/client/components/ui/sidebar'
-import { Plus } from 'lucide-react'
+import { Plus, Bot } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 
 interface KinSummary {
   id: string
@@ -76,9 +77,14 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
       </SidebarGroupAction>
       <SidebarGroupContent>
         {kins.length === 0 ? (
-          <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-            {t('sidebar.kins.empty')}
-          </p>
+          <EmptyState
+            compact
+            icon={Bot}
+            title={t('sidebar.kins.empty')}
+            description={t('sidebar.kins.emptyDescription')}
+            actionLabel={t('sidebar.kins.create')}
+            onAction={onCreateKin}
+          />
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={kinIds} strategy={verticalListSortingStrategy}>

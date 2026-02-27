@@ -31,7 +31,8 @@ import { CronDetailModal } from '@/client/components/sidebar/CronDetailModal'
 import { useCrons } from '@/client/hooks/useCrons'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
-import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search, GripVertical } from 'lucide-react'
+import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search, GripVertical, Timer } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import type { CronSummary } from '@/shared/types'
 
 const STORAGE_KEY = 'sidebar.crons.open'
@@ -336,9 +337,20 @@ export function CronList({ kins, llmModels }: CronListProps) {
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               </div>
             ) : isEmpty ? (
-              <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-                {searchQuery ? t('sidebar.crons.noResults') : t('sidebar.crons.empty')}
-              </p>
+              searchQuery ? (
+                <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                  {t('sidebar.crons.noResults')}
+                </p>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={Timer}
+                  title={t('sidebar.crons.empty')}
+                  description={t('sidebar.crons.emptyDescription')}
+                  actionLabel={t('sidebar.crons.create')}
+                  onAction={() => setShowCreateModal(true)}
+                />
+              )
             ) : (
               <div className="max-h-[25vh] overflow-y-auto">
                 <div className="space-y-1 px-1">

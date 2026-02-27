@@ -8,7 +8,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/co
 import { Input } from '@/client/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { cn } from '@/client/lib/utils'
-import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, Search, ChevronRight } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, Search, ChevronRight, ListTodo } from 'lucide-react'
+import { EmptyState } from '@/client/components/common/EmptyState'
 import { TaskDetailModal } from '@/client/components/sidebar/TaskDetailModal'
 import { useTasks } from '@/client/hooks/useTasks'
 import type { TaskStatus, TaskSummary } from '@/shared/types'
@@ -266,9 +267,18 @@ export function TaskList({ llmModels }: TaskListProps) {
             </div>
 
             {isEmpty ? (
-              <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-                {searchQuery ? t('sidebar.tasks.noResults') : t('sidebar.tasks.empty')}
-              </p>
+              searchQuery ? (
+                <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                  {t('sidebar.tasks.noResults')}
+                </p>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={ListTodo}
+                  title={t('sidebar.tasks.empty')}
+                  description={t('sidebar.tasks.emptyDescription')}
+                />
+              )
             ) : (
               <div ref={scrollRef} className="max-h-[25vh] overflow-y-auto">
                 <div className="space-y-1 px-1">

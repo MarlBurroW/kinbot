@@ -133,7 +133,8 @@
       "title": "Kins",
       "empty": "No Kins yet",
       "create": "New Kin",
-      "shortcutHint": "Switch to this Kin ({{key}})"
+      "shortcutHint": "Switch to this Kin ({{key}})",
+      "emptyDescription": "Create your first AI assistant to get started"
     },
     "tasks": {
       "title": "Tasks",
@@ -152,7 +153,8 @@
         "completed": "Done",
         "failed": "Failed",
         "cancelled": "Cancelled"
-      }
+      },
+      "emptyDescription": "Tasks will appear here when Kins are working"
     },
     "crons": {
       "title": "Scheduled Jobs",
@@ -169,7 +171,8 @@
         "pending": "{{count}} pending"
       },
       "search": "Search jobs...",
-      "noResults": "No matching jobs"
+      "noResults": "No matching jobs",
+      "emptyDescription": "Schedule recurring tasks for your Kins"
     },
     "account": "My account",
     "settings": "Settings",
