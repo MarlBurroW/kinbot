@@ -136,6 +136,33 @@ run_with_spinner() {
   return 0
 }
 
+# ─── Retry wrapper for flaky network operations ─────────────────────────────
+# Usage: retry <max_attempts> <label> command arg1 arg2 ...
+# Retries with exponential backoff (2s, 4s, 8s, ...) on failure.
+retry() {
+  local max_attempts="$1"
+  local label="$2"
+  shift 2
+
+  local attempt=1
+  local delay=2
+
+  while true; do
+    if "$@" 2>&1; then
+      return 0
+    fi
+
+    if [ $attempt -ge "$max_attempts" ]; then
+      return 1
+    fi
+
+    warn "$label failed (attempt $attempt/$max_attempts) — retrying in ${delay}s..."
+    sleep $delay
+    delay=$((delay * 2))
+    attempt=$((attempt + 1))
+  done
+}
+
 # ─── OS detection ────────────────────────────────────────────────────────────
 detect_os() {
   OS="$(uname -s)"
@@ -410,7 +437,7 @@ ensure_bun() {
 
     warn "Bun v${current_version} is too old (need v${BUN_MIN_VERSION}+)"
     info "Upgrading Bun..."
-    run_with_spinner "Upgrading Bun..." bash -c 'curl -fsSL https://bun.sh/install | bash'
+    run_with_spinner "Upgrading Bun..." retry 3 "Bun upgrade" bash -c 'curl -fsSL https://bun.sh/install | bash'
     export PATH="$BUN_INSTALL/bin:$PATH"
     hash -r 2>/dev/null || true
 
@@ -425,7 +452,7 @@ ensure_bun() {
   fi
 
   info "Installing Bun..."
-  run_with_spinner "Downloading and installing Bun..." bash -c 'curl -fsSL https://bun.sh/install | bash'
+  run_with_spinner "Downloading and installing Bun..." retry 3 "Bun install" bash -c 'curl -fsSL https://bun.sh/install | bash'
   export PATH="$BUN_INSTALL/bin:$PATH"
 
   command -v bun &>/dev/null || error "Bun installation failed. Install manually: https://bun.sh"
@@ -509,9 +536,9 @@ install_or_update() {
       info "Current version: $old_version (rollback point: ${ROLLBACK_COMMIT:0:8})"
     fi
 
-    git -C "$KINBOT_DIR" fetch origin
+    retry 3 "git fetch" git -C "$KINBOT_DIR" fetch origin
     git -C "$KINBOT_DIR" checkout "$KINBOT_BRANCH"
-    git -C "$KINBOT_DIR" pull origin "$KINBOT_BRANCH"
+    retry 3 "git pull" git -C "$KINBOT_DIR" pull origin "$KINBOT_BRANCH"
 
     local new_version
     new_version="$(get_installed_version)"
@@ -541,7 +568,7 @@ install_or_update() {
     IS_UPDATE=true
   else
     mkdir -p "$(dirname "$KINBOT_DIR")"
-    run_with_spinner "Cloning KinBot to $KINBOT_DIR..." git clone "https://github.com/$KINBOT_REPO.git" "$KINBOT_DIR" --branch "$KINBOT_BRANCH" --depth 1
+    run_with_spinner "Cloning KinBot to $KINBOT_DIR..." retry 3 "git clone" git clone "https://github.com/$KINBOT_REPO.git" "$KINBOT_DIR" --branch "$KINBOT_BRANCH" --depth 1
     IS_UPDATE=false
   fi
 }
@@ -625,7 +652,7 @@ build_kinbot() {
   header "Installing dependencies and building..."
 
   cd "$KINBOT_DIR"
-  run_with_spinner "Installing dependencies..." bun install --frozen-lockfile
+  run_with_spinner "Installing dependencies..." retry 3 "bun install" bun install --frozen-lockfile
   run_with_spinner "Building KinBot..." bun run build
 }
 
