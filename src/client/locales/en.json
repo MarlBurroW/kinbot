@@ -134,7 +134,11 @@
       "empty": "No Kins yet",
       "create": "New Kin",
       "shortcutHint": "Switch to this Kin ({{key}})",
-      "emptyDescription": "Create your first AI assistant to get started"
+      "emptyDescription": "Create your first AI assistant to get started",
+      "contextMenu": {
+        "edit": "Edit settings",
+        "delete": "Delete Kin"
+      }
     },
     "tasks": {
       "title": "Tasks",

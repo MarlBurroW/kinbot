@@ -169,6 +169,7 @@ export function ChatPage() {
         onSelectKin={handleSelectKin}
         onCreateKin={handleOpenCreateModal}
         onEditKin={handleOpenEditModal}
+        onDeleteKin={handleDeleteKin}
         onReorderKins={reorderKins}
         onOpenSettings={handleOpenSettings}
       />
