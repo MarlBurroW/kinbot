@@ -24,7 +24,7 @@ You create "Kins" — AI agents with a name, role, personality, and persistent m
 
 **Resource usage:** KinBot itself is lightweight (Bun runtime, ~100MB RAM idle). The heavy lifting is your LLM inference, which you control.
 
-**Providers supported:** 25+ including Ollama, OpenAI-compatible (anything with /v1/chat/completions), Anthropic, Gemini, Mistral, DeepSeek, Groq, Together, Fireworks, Cohere, xAI, and more. You can mix providers — e.g. Ollama for daily chat, Claude for complex reasoning, Jina for embeddings.
+**Providers supported:** 23+ including Ollama, OpenAI-compatible (anything with /v1/chat/completions), Anthropic, Gemini, Mistral, DeepSeek, Groq, Together, Fireworks, Cohere, xAI, and more. You can mix providers — e.g. Ollama for daily chat, Claude for complex reasoning, Jina for embeddings.
 
 **Stack:** Bun + Hono + React + SQLite
 

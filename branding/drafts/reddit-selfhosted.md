@@ -21,7 +21,7 @@ It runs as a single process with one SQLite file. No Postgres, no Redis, no exte
 - Cron jobs, webhooks, 6 channel integrations (Telegram, Discord, Slack, WhatsApp, Signal, Matrix)
 - Encrypted vault for secrets (AES-256-GCM)
 - Multi-user with auth (admin + member roles)
-- 25+ AI providers supported (including Ollama for fully local)
+- 23+ AI providers supported (including Ollama for fully local)
 - Notifications, human-in-the-loop approval, contacts management
 
 **Stack:** Bun + Hono + React + SQLite
@@ -42,4 +42,4 @@ Happy to answer any questions. Feedback welcome — especially on what features 
 - Screenshots MANDATORY before posting
 - Respond to every comment in the first 6 hours
 - Be honest about limitations
-- Provider count updated to 25+
+- Provider count updated to 23+

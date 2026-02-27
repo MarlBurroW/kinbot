@@ -19,7 +19,7 @@ Key design decisions:
 - 6 channel integrations (Telegram, Discord, Slack, WhatsApp, Signal, Matrix)
 - Human-in-the-loop approval for sensitive agent actions
 
-Built with Bun + Hono (backend) and React (frontend). Supports 25+ providers including Ollama for fully local inference.
+Built with Bun + Hono (backend) and React (frontend). Supports 23+ providers including Ollama for fully local inference.
 
 I've been running it personally for several months with agents handling everything from code review to home automation orchestration.
 

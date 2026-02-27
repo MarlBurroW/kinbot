@@ -34,7 +34,7 @@ What makes it different from Open WebUI / LobeChat / etc.:
 → Memory persists across ALL sessions (not just the current one)
 → Agents can spawn sub-agents and talk to each other
 → Zero infra: one process, one SQLite file, done
-→ 25+ providers incl. Ollama for fully local
+→ 23+ providers incl. Ollama for fully local
 
 ---
 
