@@ -1,0 +1,52 @@
+name: 💬 Channel Request
+description: Request support for a new messaging channel
+labels: ["enhancement", "channel"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Want KinBot to support a new messaging platform? Let us know!
+
+  - type: input
+    id: channel
+    attributes:
+      label: Channel / Platform name
+      placeholder: "e.g. IRC, Line, Google Chat, etc."
+    validations:
+      required: true
+
+  - type: input
+    id: website
+    attributes:
+      label: Platform website / Bot API docs
+      placeholder: "https://..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bot-api
+    attributes:
+      label: Bot API type
+      description: How does the platform expose its bot/integration API?
+      options:
+        - Webhook-based (push)
+        - WebSocket / long-polling (pull)
+        - REST API only
+        - Not sure
+
+  - type: checkboxes
+    id: features
+    attributes:
+      label: Desired features
+      options:
+        - label: Send and receive text messages
+        - label: Typing indicators
+        - label: File / image attachments
+        - label: Message editing
+        - label: Group conversations
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Why this channel? Use case, community demand, personal need, etc.
