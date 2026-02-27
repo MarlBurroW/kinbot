@@ -38,8 +38,11 @@ export default function App() {
 
   return (
     <div className="surface-base min-h-screen">
+      <a href="#main-content" className="skip-to-content">
+        Skip to content
+      </a>
       <Navbar dark={dark} onToggleDark={() => setDark(d => !d)} />
-      <main>
+      <main id="main-content">
         <Hero />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
