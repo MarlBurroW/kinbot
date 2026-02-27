@@ -11,6 +11,7 @@ const HowItWorks = lazy(() => import('./components/HowItWorks').then(m => ({ def
 const WhatIsKin = lazy(() => import('./components/WhatIsKin').then(m => ({ default: m.WhatIsKin })))
 const Features = lazy(() => import('./components/Features').then(m => ({ default: m.Features })))
 const UseCases = lazy(() => import('./components/UseCases').then(m => ({ default: m.UseCases })))
+const Testimonials = lazy(() => import('./components/Testimonials').then(m => ({ default: m.Testimonials })))
 const Screenshots = lazy(() => import('./components/Screenshots').then(m => ({ default: m.Screenshots })))
 const Demo = lazy(() => import('./components/Demo').then(m => ({ default: m.Demo })))
 const Comparison = lazy(() => import('./components/Comparison').then(m => ({ default: m.Comparison })))
@@ -69,6 +70,11 @@ export default function App() {
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <UseCases />
+          </ScrollReveal>
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <ScrollReveal>
+            <Testimonials />
           </ScrollReveal>
         </Suspense>
         <Suspense fallback={<SectionFallback />}>
