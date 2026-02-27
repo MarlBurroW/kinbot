@@ -13,7 +13,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/client/components/ui/dropdown-menu'
-import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson, Search } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/client/components/ui/alert-dialog'
+import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson, Search, Trash2 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { ConversationStats } from '@/client/components/chat/ConversationStats'
 import type { ChatMessage } from '@/client/hooks/useChat'
@@ -48,6 +58,7 @@ interface ConversationHeaderProps {
   onExportMarkdown?: () => void
   onExportJSON?: () => void
   onSearch?: () => void
+  onClearConversation?: () => void
   messages?: ChatMessage[]
 }
 
@@ -78,11 +89,13 @@ export function ConversationHeader({
   onExportMarkdown,
   onExportJSON,
   onSearch,
+  onClearConversation,
   messages,
 }: ConversationHeaderProps) {
   const { t } = useTranslation()
 
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false)
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
 
   const isProcessing = queueState?.isProcessing ?? false
   const queueSize = queueState?.queueSize ?? 0
@@ -308,6 +321,39 @@ export function ConversationHeader({
       {/* Conversation statistics */}
       {messages && messages.length > 0 && (
         <ConversationStats messages={messages} toolCallCount={toolCallCount} />
+      )}
+
+      {/* Clear conversation */}
+      {onClearConversation && messageCount > 0 && (
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" onClick={() => setClearDialogOpen(true)}>
+                <Trash2 className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t('chat.clear.title')}</TooltipContent>
+          </Tooltip>
+          <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('chat.clear.title')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('chat.clear.description')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onClearConversation()
+                    setClearDialogOpen(false)
+                  }}
+                >
+                  {t('chat.clear.confirm')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
 
       {/* Export dropdown */}

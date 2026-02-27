@@ -398,6 +398,17 @@ export function useChat(kinId: string | null) {
     }
   }, [])
 
+  const clearConversation = useCallback(async () => {
+    if (!kinId) return
+    try {
+      await api.delete(`/kins/${kinId}/messages`)
+      setMessages([])
+      toast.success(t('chat.clear.success'))
+    } catch {
+      toast.error(t('chat.clear.error'))
+    }
+  }, [kinId, t])
+
   return {
     messages,
     streamingMessage,
@@ -407,6 +418,7 @@ export function useChat(kinId: string | null) {
     isStreaming,
     sendMessage,
     stopStreaming,
+    clearConversation,
     refetch: fetchMessages,
   }
 }

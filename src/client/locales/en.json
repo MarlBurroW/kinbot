@@ -482,6 +482,13 @@
       "strikethrough": "Strikethrough",
       "code": "Inline code",
       "codeBlock": "Code block"
+    },
+    "clear": {
+      "title": "Clear conversation",
+      "description": "This will permanently delete all messages in this conversation. Memories and files will be preserved. This action cannot be undone.",
+      "confirm": "Clear all messages",
+      "success": "Conversation cleared",
+      "error": "Failed to clear conversation"
     }
   },
   "quickChat": {

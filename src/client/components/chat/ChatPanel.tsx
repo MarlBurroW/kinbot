@@ -57,7 +57,7 @@ interface ChatPanelProps {
 export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin }: ChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, streamingMessage, liveTasks, liveCompacting, isStreaming, sendMessage, stopStreaming } = useChat(kin.id)
+  const { messages, streamingMessage, liveTasks, liveCompacting, isStreaming, sendMessage, stopStreaming, clearConversation } = useChat(kin.id)
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
@@ -365,6 +365,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onExportMarkdown={exportAsMarkdown}
         onExportJSON={exportAsJSON}
         onSearch={toggleSearch}
+        onClearConversation={clearConversation}
         messages={messages}
       />
 

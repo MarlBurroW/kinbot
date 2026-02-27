@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { eq, and, isNull, lt, desc, inArray } from 'drizzle-orm'
 import { db } from '@/server/db/index'
-import { messages, kins } from '@/server/db/schema'
+import { messages, kins, compactingSnapshots, memories as kinMemories, files, humanPrompts } from '@/server/db/schema'
 import { enqueueMessage } from '@/server/services/queue'
 import { abortKinStream } from '@/server/services/kin-engine'
 import { getFilesForMessages, serializeFile } from '@/server/services/files'
@@ -146,6 +146,58 @@ messageRoutes.post('/stop', async (c) => {
   }
 
   return c.json({ ok: true })
+})
+
+// DELETE /api/kins/:kinId/messages — clear all conversation messages (not task/session messages)
+messageRoutes.delete('/', async (c) => {
+  const kinIdParam = c.req.param('kinId')
+  const kinId = kinIdParam ? resolveKinId(kinIdParam) : null
+  if (!kinId) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  try {
+    // Delete compacting snapshots first (references messages.id without cascade)
+    await db.delete(compactingSnapshots).where(eq(compactingSnapshots.kinId, kinId))
+
+    // Nullify sourceMessageId in memories (no cascade)
+    await db
+      .update(kinMemories)
+      .set({ sourceMessageId: null })
+      .where(eq(kinMemories.kinId, kinId))
+
+    // Nullify messageId in files (no cascade)
+    await db
+      .update(files)
+      .set({ messageId: null })
+      .where(eq(files.kinId, kinId))
+
+    // Nullify messageId in humanPrompts (no cascade)
+    await db
+      .update(humanPrompts)
+      .set({ messageId: null })
+      .where(eq(humanPrompts.kinId, kinId))
+
+    // Delete conversation messages (exclude task/session messages)
+    const deleted = await db
+      .delete(messages)
+      .where(
+        and(
+          eq(messages.kinId, kinId),
+          isNull(messages.taskId),
+          isNull(messages.sessionId),
+        ),
+      )
+
+    log.info({ kinId }, 'Conversation cleared')
+    return c.json({ ok: true })
+  } catch (err) {
+    log.error({ kinId, err }, 'Failed to clear conversation')
+    return c.json(
+      { error: { code: 'CLEAR_FAILED', message: err instanceof Error ? err.message : 'Unknown error' } },
+      500,
+    )
+  }
 })
 
 export { messageRoutes }

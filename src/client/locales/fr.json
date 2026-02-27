@@ -482,6 +482,13 @@
       "strikethrough": "Barré",
       "code": "Code en ligne",
       "codeBlock": "Bloc de code"
+    },
+    "clear": {
+      "title": "Effacer la conversation",
+      "description": "Cela supprimera définitivement tous les messages de cette conversation. Les souvenirs et fichiers seront conservés. Cette action est irréversible.",
+      "confirm": "Effacer tous les messages",
+      "success": "Conversation effacée",
+      "error": "Impossible d'effacer la conversation"
     }
   },
   "quickChat": {
