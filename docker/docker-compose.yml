@@ -1,8 +1,19 @@
+# KinBot Docker Compose
+# Quick start:
+#   ENCRYPTION_KEY=$(openssl rand -hex 32) docker compose up -d
+#
+# Configuration:
+#   Copy ../.env.example to .env and customize, or set env vars inline.
+#   See https://github.com/MarlBurroW/kinbot#configuration for all options.
+
 services:
   kinbot:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: ghcr.io/marlburrow/kinbot:latest
+    # To build from source instead of pulling the image, uncomment:
+    # build:
+    #   context: ..
+    #   dockerfile: docker/Dockerfile
+    container_name: kinbot
     ports:
       - "${PORT:-3000}:3000"
     volumes:
@@ -12,6 +23,8 @@ services:
       - KINBOT_DATA_DIR=/app/data
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Uncomment to set the public-facing URL (needed for webhooks, invitations)
+      # - PUBLIC_URL=https://kinbot.example.com
     restart: unless-stopped
 
 volumes:
