@@ -298,6 +298,23 @@ const THEME_SYNC_SCRIPT = `<script>
 const SDK_LINK = '<link rel="stylesheet" href="/api/mini-apps/sdk/kinbot-sdk.css">'
 const SDK_SCRIPT = '<script src="/api/mini-apps/sdk/kinbot-sdk.js"></script>'
 
+// Content-Security-Policy for mini-app iframes.
+// Allows inline scripts/styles (needed for SDK injection and app code),
+// same-origin fetches (for storage API and static assets),
+// popular CDN hosts for external libraries, and data:/blob: for images.
+const MINI_APP_CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
+  "connect-src 'self' https://esm.sh https://cdn.jsdelivr.net https://unpkg.com",
+  "media-src 'self' blob: data:",
+  "frame-src 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+].join('; ')
+
 // Serve the entry point HTML with injected SDK
 miniAppRoutes.get('/:id/serve', async (c) => {
   const app = await getMiniAppRow(c.req.param('id'))
@@ -331,6 +348,10 @@ miniAppRoutes.get('/:id/serve', async (c) => {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
+      'Content-Security-Policy': MINI_APP_CSP,
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
     },
   })
 })
@@ -365,6 +386,7 @@ miniAppRoutes.get('/:id/static/*', async (c) => {
     headers: {
       'Content-Type': guessMimeType(assetPath),
       'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
     },
   })
 })

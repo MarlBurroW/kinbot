@@ -141,7 +141,7 @@ export function MiniAppViewer() {
             ref={iframeRef}
             key={iframeKey}
             src={iframeSrc}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
             className="min-h-0 flex-1 w-full border-0"
             title={app?.name ?? 'Mini App'}
             onLoad={handleIframeLoad}
