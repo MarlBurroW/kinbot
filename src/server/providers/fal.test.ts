@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, mock } from 'bun:test'
 
 const originalFetch = globalThis.fetch
 
-function mockFetch(fn: typeof fetch) {
+function mockFetch(fn: () => Promise<Response>) {
   globalThis.fetch = mock(fn) as unknown as typeof fetch
 }
 
