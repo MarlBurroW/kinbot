@@ -697,7 +697,10 @@ export function KinFormModal({
                               onChange={(v) => { setCharacter(v); markDirty() }}
                               height="180px"
                             />
-                            <p className="text-xs text-muted-foreground">{t('kin.create.characterHint')}</p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground">{t('kin.create.characterHint')}</p>
+                              <p className="text-xs text-muted-foreground tabular-nums">~{Math.ceil(character.length / 4)} tokens</p>
+                            </div>
                           </div>
 
                           {/* Expertise */}
@@ -708,8 +711,18 @@ export function KinFormModal({
                               onChange={(v) => { setExpertise(v); markDirty() }}
                               height="180px"
                             />
-                            <p className="text-xs text-muted-foreground">{t('kin.create.expertiseHint')}</p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground">{t('kin.create.expertiseHint')}</p>
+                              <p className="text-xs text-muted-foreground tabular-nums">~{Math.ceil(expertise.length / 4)} tokens</p>
+                            </div>
                           </div>
+
+                          {/* Total system prompt token estimate */}
+                          {(character.length > 0 || expertise.length > 0) && (
+                            <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground/70 pt-1 border-t border-border/40">
+                              <span>{t('kin.create.totalPromptTokens', { tokens: Math.ceil((character.length + expertise.length) / 4) })}</span>
+                            </div>
+                          )}
                         </div>
                       )}
 
