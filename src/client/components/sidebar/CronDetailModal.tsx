@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
+import { cronNextRun, formatCountdown } from '@/client/lib/cron-next'
 import { api } from '@/client/lib/api'
 import type { CronSummary, TaskSummary, TaskStatus } from '@/shared/types'
 
@@ -198,6 +199,15 @@ export function CronDetailModal({
                     {t('sidebar.crons.lastRun', { time: formatRelativeTime(cron.lastTriggeredAt) })}
                   </p>
                 )}
+                {cron.isActive && !cron.requiresApproval && (() => {
+                  const next = cronNextRun(cron.schedule)
+                  if (!next) return null
+                  return (
+                    <p className="text-[11px] text-primary/80">
+                      {t('sidebar.crons.nextRun', { time: formatCountdown(next) })} — {next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )
+                })()}
               </div>
 
               {/* Description */}

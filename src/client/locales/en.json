@@ -165,6 +165,7 @@
       "pendingApproval": "Pending approval",
       "approve": "Approve",
       "lastRun": "Last: {{time}}",
+      "nextRun": "Next: in {{time}}",
       "never": "Never run",
       "summary": {
         "active": "{{count}} active",

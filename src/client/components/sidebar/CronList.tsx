@@ -31,7 +31,8 @@ import { CronDetailModal } from '@/client/components/sidebar/CronDetailModal'
 import { useCrons } from '@/client/hooks/useCrons'
 import { cn } from '@/client/lib/utils'
 import { cronToHuman } from '@/client/lib/cron-human'
-import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search, GripVertical, Timer } from 'lucide-react'
+import { cronNextRun, formatCountdown } from '@/client/lib/cron-next'
+import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search, GripVertical, Timer, FastForward } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import type { CronSummary } from '@/shared/types'
 
@@ -80,6 +81,7 @@ function CronCard({
   const initials = cron.kinName.slice(0, 2).toUpperCase()
   const isPaused = !cron.isActive && !cron.requiresApproval
   const humanSchedule = cronToHuman(cron.schedule, i18n.language)
+  const nextRun = cron.isActive && !cron.requiresApproval ? cronNextRun(cron.schedule) : null
 
   return (
     <div
@@ -108,7 +110,13 @@ function CronCard({
               {t('sidebar.crons.pendingApproval')}
             </Badge>
           )}
-          {cron.lastTriggeredAt && (
+          {nextRun && (
+            <span className="text-[10px] text-primary/70 ml-auto shrink-0 flex items-center gap-0.5" title={t('sidebar.crons.nextRun', { time: nextRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}>
+              <FastForward className="size-2.5" />
+              {formatCountdown(nextRun)}
+            </span>
+          )}
+          {!nextRun && cron.lastTriggeredAt && (
             <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
               {formatRelativeTime(cron.lastTriggeredAt)}
             </span>

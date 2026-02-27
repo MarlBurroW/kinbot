@@ -165,6 +165,7 @@
       "pendingApproval": "En attente d'approbation",
       "approve": "Approuver",
       "lastRun": "Dernier : {{time}}",
+      "nextRun": "Prochain : dans {{time}}",
       "never": "Jamais exécutée",
       "summary": {
         "active": "{{count}} actifs",
