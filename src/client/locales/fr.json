@@ -1268,7 +1268,8 @@
     "group": {
       "navigation": "Navigation",
       "kins": "Kins",
-      "chat": "Chat"
+      "chat": "Chat",
+      "general": "Général"
     },
     "commandPalette": "Palette de commandes",
     "toggleSidebar": "Afficher/masquer la barre latérale",
