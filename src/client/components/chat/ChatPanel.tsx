@@ -589,6 +589,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         isUploading={isUploading}
         onAddFiles={addFiles}
         onRemoveFile={removeFile}
+        kinId={kin.id}
       />
 
       {/* Task detail modal — opened from live task cards */}

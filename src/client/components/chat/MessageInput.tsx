@@ -5,6 +5,7 @@ import { Textarea } from '@/client/components/ui/textarea'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 import { cn } from '@/client/lib/utils'
 import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2 } from 'lucide-react'
+import { useInputHistory } from '@/client/hooks/useInputHistory'
 import type { PendingFile } from '@/client/hooks/useFileUpload'
 
 export interface MessageInputHandle {
@@ -29,6 +30,8 @@ interface MessageInputProps {
   onAddFiles?: (files: FileList | File[]) => void
   /** Remove a pending file */
   onRemoveFile?: (localId: string) => void
+  /** Kin ID for input history (Up/Down arrow to cycle through sent messages) */
+  kinId?: string
 }
 
 export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(function MessageInput({
@@ -43,6 +46,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
   isUploading,
   onAddFiles,
   onRemoveFile,
+  kinId,
 }, ref) {
   const { t } = useTranslation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -54,19 +58,48 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
     focus: () => textareaRef.current?.focus(),
   }))
 
+  const history = useInputHistory(kinId ?? '__default__')
+
   const hasPendingFiles = pendingFiles && pendingFiles.length > 0
   const readyFileIds = pendingFiles?.filter((f) => f.status === 'done').map((f) => f.serverId!)
 
   const handleSubmit = () => {
     const trimmed = value.trim()
     if ((!trimmed && !hasPendingFiles) || disabled || isStreaming || isUploading) return
+    history.push(trimmed)
     onSend(trimmed, readyFileIds?.length ? readyFileIds : undefined)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
+      return
+    }
+
+    // Input history navigation: Up/Down arrows when cursor is at position 0 (start of input)
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      const textarea = e.currentTarget
+      const cursorAtStart = textarea.selectionStart === 0 && textarea.selectionEnd === 0
+      // Only navigate history when cursor is at position 0 (for Up) or input came from history (for Down)
+      if (e.key === 'ArrowUp' && cursorAtStart) {
+        const prev = history.navigate('up', value)
+        if (prev !== null) {
+          e.preventDefault()
+          onChange(prev)
+        }
+      } else if (e.key === 'ArrowDown') {
+        const next = history.navigate('down', value)
+        if (next !== null) {
+          e.preventDefault()
+          onChange(next)
+        }
+      }
+    }
+
+    // Escape resets history browsing
+    if (e.key === 'Escape') {
+      history.reset()
     }
   }
 

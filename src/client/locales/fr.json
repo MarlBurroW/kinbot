@@ -473,7 +473,8 @@
     "readAloud": {
       "start": "Lire à voix haute",
       "stop": "Arrêter la lecture"
-    }
+    },
+    "inputHistory": "Appuyez sur ↑ pour parcourir les messages envoyés"
   },
   "quickChat": {
     "title": "Session rapide",
