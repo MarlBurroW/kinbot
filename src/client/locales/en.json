@@ -363,7 +363,7 @@
     "selectKin": "Select a Kin to start chatting",
     "empty": "No messages yet. Say hello!",
     "streaming": "Thinking...",
-    "contextUsage": "Context: ~{{tokens}} / {{max}} tokens ({{percent}}%) — includes system prompt, history & tools",
+    "contextUsage": "Context: ~{{tokens}} / {{max}} tokens ({{percent}}%), includes system prompt, history & tools",
     "contextNoData": "Context usage will appear after the first message is processed",
     "forceCompact": "Force compaction",
     "compacting": {
@@ -430,8 +430,8 @@
     "scrollToBottom": "Scroll to bottom",
     "scrollToTop": "Scroll to top",
     "autoScroll": {
-      "on": "Auto-scroll enabled — click to disable",
-      "off": "Auto-scroll disabled — click to enable"
+      "on": "Auto-scroll enabled. Click to disable",
+      "off": "Auto-scroll disabled. Click to enable"
     },
     "export": {
       "title": "Export conversation",
@@ -560,9 +560,9 @@
       "embeddingModelTip": "Converts text into vectors for semantic memory search. Changing this requires re-embedding all existing memories.",
       "help": {
         "content": "General settings control platform-wide behavior that applies to all your Kins. The global prompt lets you define instructions every Kin follows, while model configuration determines how memories are extracted and searched.",
-        "bullet1": "The global prompt is injected into every Kin's system prompt — use it for universal rules or guidelines",
+        "bullet1": "The global prompt is injected into every Kin's system prompt. Use it for universal rules or guidelines",
         "bullet2": "The extraction model handles converting conversations into long-term memories during compacting",
-        "bullet3": "The embedding model converts text into vectors for semantic memory search — changing it requires re-embedding all memories",
+        "bullet3": "The embedding model converts text into vectors for semantic memory search. Changing it requires re-embedding all memories",
         "bullet4": "If no extraction model is set, each Kin uses its own chat model for memory extraction"
       }
     },
@@ -806,7 +806,7 @@
       "saveKinFirst": "Save the Kin first to manage its memories.",
       "count": "{{count}} memories",
       "kinTip": "Which Kin this memory belongs to. Each Kin has its own memory space.",
-      "contentTip": "The information to remember. Be specific — the Kin will recall this verbatim during conversations.",
+      "contentTip": "The information to remember. Be specific, the Kin will recall this verbatim during conversations.",
       "categoryTip": "Categorize the memory for better organization and retrieval.",
       "subjectTip": "Optional tag to group related memories (e.g. a person's name, a project, a topic).",
       "emptyDescription": "Memories help your Kins remember important information across conversations. Add one manually or let your Kins create them automatically.",
