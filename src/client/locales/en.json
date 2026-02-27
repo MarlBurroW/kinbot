@@ -21,7 +21,13 @@
     "copy": "Copy",
     "copied": "Copied",
     "test": "Test",
-    "whatIsThis": "What is this?"
+    "whatIsThis": "What is this?",
+    "unsavedChanges": {
+      "title": "Unsaved changes",
+      "description": "You have unsaved changes that will be lost if you close this dialog. Are you sure you want to discard them?",
+      "keepEditing": "Keep editing",
+      "discard": "Discard changes"
+    }
   },
   "errors": {
     "backendUnavailable": "Unable to reach the server. Please check that the backend is running and try again.",

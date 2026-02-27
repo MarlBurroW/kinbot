@@ -21,7 +21,13 @@
     "copy": "Copier",
     "copied": "Copié",
     "test": "Tester",
-    "whatIsThis": "Qu'est-ce que c'est ?"
+    "whatIsThis": "Qu'est-ce que c'est ?",
+    "unsavedChanges": {
+      "title": "Modifications non enregistrées",
+      "description": "Vous avez des modifications non enregistrées qui seront perdues si vous fermez cette fenêtre. Voulez-vous les abandonner ?",
+      "keepEditing": "Continuer",
+      "discard": "Abandonner"
+    }
   },
   "errors": {
     "backendUnavailable": "Impossible de joindre le serveur. Vérifiez que le backend est en cours d'exécution et réessayez.",

@@ -27,6 +27,8 @@ import { KinSelector } from '@/client/components/common/KinSelector'
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { AlertCircle, Loader2, Trash2 } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
+import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
+import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
 import { cn } from '@/client/lib/utils'
 import { getErrorMessage } from '@/client/lib/api'
 import { cronToHuman } from '@/client/lib/cron-human'
@@ -86,6 +88,11 @@ export function CronFormModal({
   const { t, i18n } = useTranslation()
   const isEdit = !!cron
 
+  // Unsaved changes guard
+  const { markDirty, resetDirty, guardedClose, confirmDialogProps } = useUnsavedChanges({
+    onClose: () => onOpenChange(false),
+  })
+
   const [name, setName] = useState('')
   const [kinId, setKinId] = useState('')
   const [schedule, setSchedule] = useState('')
@@ -121,8 +128,9 @@ export function CronFormModal({
         setModel('')
       }
       setError(null)
+      resetDirty()
     }
-  }, [open, cron, defaults, kins])
+  }, [open, cron, defaults, kins, resetDirty])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -148,6 +156,7 @@ export function CronFormModal({
           model: model || undefined,
         })
       }
+      resetDirty()
       onOpenChange(false)
     } catch (err) {
       setError(getErrorMessage(err))
@@ -161,6 +170,7 @@ export function CronFormModal({
     setIsSubmitting(true)
     try {
       await onDelete(cron.id)
+      resetDirty()
       onOpenChange(false)
     } catch (err) {
       setError(getErrorMessage(err))
@@ -173,7 +183,8 @@ export function CronFormModal({
   const scheduleHuman = useMemo(() => cronToHuman(schedule, i18n.language), [schedule, i18n.language])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) guardedClose(); else onOpenChange(true) }}>
       <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle>
@@ -200,7 +211,7 @@ export function CronFormModal({
               <Input
                 id="cronFormName"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); markDirty() }}
                 placeholder={t('cron.create.namePlaceholder')}
                 required
               />
@@ -230,7 +241,7 @@ export function CronFormModal({
               <Input
                 id="cronFormSchedule"
                 value={schedule}
-                onChange={(e) => setSchedule(e.target.value)}
+                onChange={(e) => { setSchedule(e.target.value); markDirty() }}
                 placeholder={t('cron.create.schedulePlaceholder')}
                 className="font-mono"
                 required
@@ -241,7 +252,7 @@ export function CronFormModal({
                   <button
                     key={preset.key}
                     type="button"
-                    onClick={() => setSchedule(preset.value)}
+                    onClick={() => { setSchedule(preset.value); markDirty() }}
                     className={cn(
                       'rounded-md border px-2 py-0.5 text-[11px] transition-colors',
                       schedule === preset.value
@@ -265,7 +276,7 @@ export function CronFormModal({
               <Label className="inline-flex items-center gap-1.5">{t('cron.create.taskDescription')} <InfoTip content={t('cron.create.taskDescriptionTip')} /></Label>
               <MarkdownEditor
                 value={taskDescription}
-                onChange={setTaskDescription}
+                onChange={(v) => { setTaskDescription(v); markDirty() }}
                 height="160px"
               />
             </div>
@@ -334,5 +345,9 @@ export function CronFormModal({
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Unsaved changes confirmation */}
+    <UnsavedChangesDialog {...confirmDialogProps} />
+    </>
   )
 }

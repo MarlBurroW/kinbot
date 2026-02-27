@@ -32,6 +32,8 @@ import { KinToolsTab } from '@/client/components/kin/KinToolsTab'
 import { MemoryList } from '@/client/components/memory/MemoryList'
 import { AlertCircle, ArrowLeft, Brain, Camera, Loader2, Settings, Sparkles, Trash2, Wrench } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
+import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
+import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
 import { cn } from '@/client/lib/utils'
 import { getErrorMessage } from '@/client/lib/api'
 import { TOOL_DOMAIN_MAP } from '@/shared/constants'
@@ -164,6 +166,11 @@ export function KinFormModal({
   const defaultCharacter = t('kin.defaults.character')
   const defaultExpertise = t('kin.defaults.expertise')
 
+  // Unsaved changes guard
+  const { isDirty, markDirty, resetDirty, guardedClose, confirmDialogProps } = useUnsavedChanges({
+    onClose: () => onOpenChange(false),
+  })
+
   // Wizard state
   const [wizardStep, setWizardStep] = useState<WizardStep>(isEdit ? 'form' : 'describe')
   const [wizardDescription, setWizardDescription] = useState('')
@@ -230,7 +237,8 @@ export function KinFormModal({
     setIsGenerating(false)
     setIsRefining(false)
     setIsAvatarGenerating(false)
-  }, [kin, defaultCharacter, defaultExpertise])
+    resetDirty()
+  }, [kin, defaultCharacter, defaultExpertise, resetDirty])
 
   // Derive providers that can serve the selected model
   const providersForModel = useMemo(() => {
@@ -390,6 +398,7 @@ export function KinFormModal({
           await onUpdateKin(created.id, { toolConfig })
         }
       }
+      resetDirty()
       onOpenChange(false)
     } catch (err: unknown) {
       setError(getErrorMessage(err) || t('common.error'))
@@ -418,7 +427,7 @@ export function KinFormModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) guardedClose(); else onOpenChange(true) }}>
         <DialogContent
           className="flex h-[min(85vh,720px)] max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-5xl"
         >
@@ -613,7 +622,7 @@ export function KinFormModal({
                                   <Input
                                     id="kinFormName"
                                     value={name}
-                                    onChange={(e) => setName(e.target.value)}
+                                    onChange={(e) => { setName(e.target.value); markDirty() }}
                                     placeholder={t('kin.create.namePlaceholder')}
                                     required
                                   />
@@ -623,7 +632,7 @@ export function KinFormModal({
                                   <Input
                                     id="kinFormRole"
                                     value={role}
-                                    onChange={(e) => setRole(e.target.value)}
+                                    onChange={(e) => { setRole(e.target.value); markDirty() }}
                                     placeholder={t('kin.create.rolePlaceholder')}
                                     required
                                   />
@@ -633,7 +642,7 @@ export function KinFormModal({
                                   <ModelPicker
                                     models={llmModels}
                                     value={model}
-                                    onValueChange={setModel}
+                                    onValueChange={(v) => { setModel(v); markDirty() }}
                                     placeholder={t('kin.create.modelPlaceholder')}
                                   />
                                 </div>
@@ -671,7 +680,7 @@ export function KinFormModal({
                                   <Input
                                     id="kinFormSlug"
                                     value={slug}
-                                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                                    onChange={(e) => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); markDirty() }}
                                     placeholder={t('kin.create.slugPlaceholder')}
                                   />
                                   <p className="text-xs text-muted-foreground">{t('kin.edit.slugHelp')}</p>
@@ -685,7 +694,7 @@ export function KinFormModal({
                             <Label className="inline-flex items-center gap-1.5">{t('kin.create.character')} <InfoTip content={t('kin.create.characterTip')} /></Label>
                             <MarkdownEditor
                               value={character}
-                              onChange={setCharacter}
+                              onChange={(v) => { setCharacter(v); markDirty() }}
                               height="180px"
                             />
                             <p className="text-xs text-muted-foreground">{t('kin.create.characterHint')}</p>
@@ -696,7 +705,7 @@ export function KinFormModal({
                             <Label className="inline-flex items-center gap-1.5">{t('kin.create.expertise')} <InfoTip content={t('kin.create.expertiseTip')} /></Label>
                             <MarkdownEditor
                               value={expertise}
-                              onChange={setExpertise}
+                              onChange={(v) => { setExpertise(v); markDirty() }}
                               height="180px"
                             />
                             <p className="text-xs text-muted-foreground">{t('kin.create.expertiseHint')}</p>
@@ -818,6 +827,9 @@ export function KinFormModal({
         onGenerateAvatarPreview={onGenerateAvatarPreview}
         onConfirm={handleAvatarConfirm}
       />
+
+      {/* Unsaved changes confirmation */}
+      <UnsavedChangesDialog {...confirmDialogProps} />
     </>
   )
 }
