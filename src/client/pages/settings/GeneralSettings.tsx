@@ -10,14 +10,7 @@ import { api, getErrorMessage } from '@/client/lib/api'
 import { Skeleton } from '@/client/components/ui/skeleton'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
-
-interface ProviderModel {
-  id: string
-  name: string
-  providerId: string
-  providerType: string
-  capability: string
-}
+import { useModels } from '@/client/hooks/useModels'
 
 export function GeneralSettings() {
   const { t } = useTranslation()
@@ -30,7 +23,7 @@ export function GeneralSettings() {
   const [savingPrompt, setSavingPrompt] = useState(false)
 
   // Models
-  const [allModels, setAllModels] = useState<ProviderModel[]>([])
+  const { models: allModels } = useModels()
   const [extractionModel, setExtractionModel] = useState('')
   const [initialExtractionModel, setInitialExtractionModel] = useState('')
   const [savingExtractionModel, setSavingExtractionModel] = useState(false)
@@ -40,7 +33,6 @@ export function GeneralSettings() {
 
   useEffect(() => {
     fetchGlobalPrompt()
-    fetchModels()
     fetchModelSettings()
   }, [])
 
@@ -53,15 +45,6 @@ export function GeneralSettings() {
       // Ignore — will show empty
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const fetchModels = async () => {
-    try {
-      const data = await api.get<{ models: ProviderModel[] }>('/providers/models')
-      setAllModels(data.models)
-    } catch {
-      // Ignore
     }
   }
 

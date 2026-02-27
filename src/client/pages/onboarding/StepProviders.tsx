@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
@@ -10,18 +10,11 @@ import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { AI_PROVIDER_TYPES } from '@/shared/constants'
 import { useProviders } from '@/client/hooks/useProviders'
+import { useModels } from '@/client/hooks/useModels'
 
 interface StepProvidersProps {
   onComplete: () => void
   onBack?: () => void
-}
-
-interface ProviderModel {
-  id: string
-  name: string
-  providerId: string
-  providerType: string
-  capability: string
 }
 
 const CAPABILITY_META = {
@@ -35,7 +28,7 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
   const { providers, refetch: fetchProviders } = useProviders()
   const [modalOpen, setModalOpen] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
-  const [allModels, setAllModels] = useState<ProviderModel[]>([])
+  const { llmModels, embeddingModels, refetch: refetchModels } = useModels()
   const [extractionModel, setExtractionModel] = useState('')
   const [embeddingModel, setEmbeddingModel] = useState('')
   const [saving, setSaving] = useState(false)
@@ -47,23 +40,16 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
 
   useEffect(() => {
     if (canFinish) {
-      fetchModels()
+      refetchModels()
     }
   }, [canFinish])
 
-  const fetchModels = async () => {
-    try {
-      const data = await api.get<{ models: ProviderModel[] }>('/providers/models')
-      setAllModels(data.models)
-      // Pre-select first embedding model if not yet set
-      const firstEmbedding = data.find((m) => m.capability === 'embedding')
-      if (firstEmbedding) {
-        setEmbeddingModel((prev) => prev || firstEmbedding.id)
-      }
-    } catch {
-      // Ignore
+  // Pre-select first embedding model when models load
+  useEffect(() => {
+    if (embeddingModels.length > 0) {
+      setEmbeddingModel((prev) => prev || embeddingModels[0].id)
     }
-  }
+  }, [embeddingModels])
 
   const handleTestProvider = async (id: string) => {
     setTestingId(id)
@@ -102,15 +88,6 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
     }
     onComplete()
   }
-
-  const llmModels = useMemo(
-    () => allModels.filter((m) => m.capability === 'llm'),
-    [allModels],
-  )
-  const embeddingModels = useMemo(
-    () => allModels.filter((m) => m.capability === 'embedding'),
-    [allModels],
-  )
 
   return (
     <div className="space-y-6">

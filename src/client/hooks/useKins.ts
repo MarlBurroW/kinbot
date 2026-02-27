@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { useSSE, useSSEStatus } from '@/client/hooks/useSSE'
+import { useModels, type ProviderModel } from '@/client/hooks/useModels'
 import type { KinToolConfig } from '@/shared/types'
 
 interface KinSummary {
@@ -24,14 +25,8 @@ interface KinDetail extends KinSummary {
   isProcessing: boolean
 }
 
-interface Model {
-  id: string
-  name: string
-  providerId: string
-  providerName: string
-  providerType: string
-  capability: string
-}
+/** @deprecated Use ProviderModel from useModels instead */
+type Model = ProviderModel
 
 export interface GeneratedKinConfig {
   name: string
@@ -69,10 +64,10 @@ interface UserProfile {
 
 export function useKins() {
   const [kins, setKins] = useState<KinSummary[]>([])
-  const [models, setModels] = useState<Model[]>([])
+  const { models, llmModels, imageModels, refetch: fetchModels } = useModels()
   const [isLoading, setIsLoading] = useState(true)
   const [kinOrder, setKinOrder] = useState<string[]>([])
-  const [hasImageCapability, setHasImageCapability] = useState(false)
+  const hasImageCapability = imageModels.length > 0
 
   const fetchKins = useCallback(async () => {
     try {
@@ -82,15 +77,6 @@ export function useKins() {
       // Ignore errors
     } finally {
       setIsLoading(false)
-    }
-  }, [])
-
-  const fetchModels = useCallback(async () => {
-    try {
-      const data = await api.get<{ models: Model[] }>('/providers/models')
-      setModels(data.models)
-    } catch (err) {
-      console.error('Failed to fetch models:', err)
     }
   }, [])
 
@@ -105,21 +91,12 @@ export function useKins() {
     }
   }, [])
 
-  const fetchCapabilities = useCallback(async () => {
-    try {
-      const data = await api.get<{ capabilities: Record<string, boolean> }>('/providers/capabilities')
-      setHasImageCapability(data.capabilities.image ?? false)
-    } catch {
-      // Ignore errors
-    }
-  }, [])
+  // Image capability is now derived from useModels() — no need for a separate fetch
 
   useEffect(() => {
     fetchKins()
-    fetchModels()
     fetchKinOrder()
-    fetchCapabilities()
-  }, [fetchKins, fetchModels, fetchKinOrder, fetchCapabilities])
+  }, [fetchKins, fetchKinOrder])
 
   // Refetch when SSE reconnects (kins may have changed while disconnected)
   const sseStatus = useSSEStatus()
@@ -309,10 +286,6 @@ export function useKins() {
     const result = await api.post<{ base64: string; mediaType: string }>('/kins/avatar/preview', data)
     return `data:${result.mediaType};base64,${result.base64}`
   }, [])
-
-  // LLM models only (for kin model selection)
-  const llmModels = models.filter((m) => m.capability === 'llm')
-  const imageModels = models.filter((m) => m.capability === 'image')
 
   return {
     kins: sortedKins,
