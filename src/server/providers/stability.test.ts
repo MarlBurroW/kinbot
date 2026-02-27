@@ -2,6 +2,10 @@ import { describe, it, expect, afterEach, mock } from 'bun:test'
 
 const originalFetch = globalThis.fetch
 
+function getMockCalls() {
+  return (globalThis.fetch as unknown as ReturnType<typeof mock>).mock.calls
+}
+
 function mockFetchResponse(status: number, data?: unknown) {
   globalThis.fetch = mock(() =>
     Promise.resolve(
@@ -67,7 +71,7 @@ describe('stabilityProvider', () => {
       mockFetchResponse(200, {})
       const { stabilityProvider } = await import('@/server/providers/stability')
       await stabilityProvider.testConnection({ apiKey: 'sk-test' })
-      const call = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const call = getMockCalls()[0]!
       expect(call[0]).toBe('https://api.stability.ai/v1/user/account')
     })
 
@@ -75,7 +79,7 @@ describe('stabilityProvider', () => {
       mockFetchResponse(200, {})
       const { stabilityProvider } = await import('@/server/providers/stability')
       await stabilityProvider.testConnection({ apiKey: 'sk-test', baseUrl: 'https://custom.api.com' })
-      const call = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const call = getMockCalls()[0]!
       expect(call[0]).toBe('https://custom.api.com/v1/user/account')
     })
 
@@ -83,7 +87,7 @@ describe('stabilityProvider', () => {
       mockFetchResponse(200, {})
       const { stabilityProvider } = await import('@/server/providers/stability')
       await stabilityProvider.testConnection({ apiKey: 'sk-mykey123' })
-      const call = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const call = getMockCalls()[0]!
       const headers = call[1]?.headers as Record<string, string>
       expect(headers.Authorization).toBe('Bearer sk-mykey123')
     })
