@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, X, Maximize2 } from 'lucide-react'
 
 interface Screenshot {
@@ -30,6 +30,8 @@ const screenshots: Screenshot[] = [
 
 function Lightbox({
   screenshot,
+  screenshots: allScreenshots,
+  index,
   onClose,
   onPrev,
   onNext,
@@ -37,23 +39,70 @@ function Lightbox({
   hasNext,
 }: {
   screenshot: Screenshot
+  screenshots: Screenshot[]
+  index: number
   onClose: () => void
   onPrev: () => void
   onNext: () => void
   hasPrev: boolean
   hasNext: boolean
 }) {
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      else if (e.key === 'ArrowLeft' && hasPrev) onPrev()
+      else if (e.key === 'ArrowRight' && hasNext) onNext()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose, onPrev, onNext, hasPrev, hasNext])
+
+  // Lock body scroll while lightbox is open
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  // Preload adjacent images
+  useEffect(() => {
+    for (const offset of [-1, 1]) {
+      const adj = index + offset
+      if (adj >= 0 && adj < allScreenshots.length) {
+        const img = new Image()
+        img.src = allScreenshots[adj].src
+      }
+    }
+  }, [index, allScreenshots])
+
+  // Touch swipe support
+  const touchStartX = useRef<number | null>(null)
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }, [])
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(dx) < 50) return
+    if (dx > 0 && hasPrev) onPrev()
+    else if (dx < 0 && hasNext) onNext()
+  }, [hasPrev, hasNext, onPrev, onNext])
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
       style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <button
         onClick={onClose}
         className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
         style={{ color: 'white' }}
-        aria-label="Close"
+        aria-label="Close (Esc)"
       >
         <X size={24} />
       </button>
@@ -66,7 +115,7 @@ function Lightbox({
           }}
           className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
           style={{ color: 'white' }}
-          aria-label="Previous"
+          aria-label="Previous (←)"
         >
           <ChevronLeft size={28} />
         </button>
@@ -80,7 +129,7 @@ function Lightbox({
           }}
           className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
           style={{ color: 'white' }}
-          aria-label="Next"
+          aria-label="Next (→)"
         >
           <ChevronRight size={28} />
         </button>
@@ -94,11 +143,14 @@ function Lightbox({
           src={screenshot.src}
           alt={screenshot.title}
           className="w-full rounded-xl shadow-2xl"
-          loading="lazy"
         />
         <div className="text-center mt-4">
           <h3 className="text-lg font-semibold text-white">{screenshot.title}</h3>
           <p className="text-sm text-white/60 mt-1 max-w-xl mx-auto">{screenshot.description}</p>
+          <p className="text-xs text-white/30 mt-2">
+            {index + 1} / {allScreenshots.length}
+            <span className="hidden sm:inline"> · Arrow keys to navigate · Esc to close</span>
+          </p>
         </div>
       </div>
     </div>
@@ -170,6 +222,8 @@ export function Screenshots() {
       {lightboxIndex !== null && (
         <Lightbox
           screenshot={screenshots[lightboxIndex]}
+          screenshots={screenshots}
+          index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onPrev={() => setLightboxIndex((i) => Math.max(0, (i ?? 0) - 1))}
           onNext={() =>
