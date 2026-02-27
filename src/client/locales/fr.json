@@ -363,7 +363,7 @@
     "selectKin": "Sélectionnez un Kin pour commencer",
     "empty": "Aucun message. Dites bonjour !",
     "streaming": "Réflexion...",
-    "contextUsage": "Contexte : ~{{tokens}} / {{max}} tokens ({{percent}} %) — inclut prompt système, historique et outils",
+    "contextUsage": "Contexte : ~{{tokens}} / {{max}} tokens ({{percent}} %), inclut prompt système, historique et outils",
     "contextNoData": "L'utilisation du contexte apparaîtra après le premier message traité",
     "forceCompact": "Forcer la compaction",
     "compacting": {
@@ -430,8 +430,8 @@
     "scrollToBottom": "Aller en bas",
     "scrollToTop": "Aller en haut",
     "autoScroll": {
-      "on": "Défilement auto activé — cliquer pour désactiver",
-      "off": "Défilement auto désactivé — cliquer pour activer"
+      "on": "Défilement auto activé. Cliquer pour désactiver",
+      "off": "Défilement auto désactivé. Cliquer pour activer"
     },
     "export": {
       "title": "Exporter la conversation",
@@ -560,9 +560,9 @@
       "embeddingModelTip": "Convertit le texte en vecteurs pour la recherche sémantique en mémoire. Changer ce modèle nécessite de recalculer tous les embeddings existants.",
       "help": {
         "content": "Les paramètres généraux contrôlent le comportement global de la plateforme, applicable à tous vos Kins. Le prompt global permet de définir des instructions suivies par chaque Kin, et la configuration des modèles détermine comment les souvenirs sont extraits et recherchés.",
-        "bullet1": "Le prompt global est injecté dans le prompt système de chaque Kin — utilisez-le pour des règles ou directives universelles",
+        "bullet1": "Le prompt global est injecté dans le prompt système de chaque Kin. Utilisez-le pour des règles ou directives universelles",
         "bullet2": "Le modèle d'extraction convertit les conversations en souvenirs long-terme lors du compactage",
-        "bullet3": "Le modèle d'embedding convertit le texte en vecteurs pour la recherche sémantique — le changer nécessite de re-générer tous les embeddings existants",
+        "bullet3": "Le modèle d'embedding convertit le texte en vecteurs pour la recherche sémantique. Le changer nécessite de re-générer tous les embeddings existants",
         "bullet4": "Si aucun modèle d'extraction n'est défini, chaque Kin utilise son propre modèle de chat"
       }
     },
