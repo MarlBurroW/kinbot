@@ -569,6 +569,12 @@
       "invalid": "Connection failed",
       "added": "Provider added successfully",
       "deleted": "Provider deleted",
+      "testAll": "Test all connections",
+      "testAllRunning": "Testing {{tested}}/{{total}}...",
+      "testAllSuccess": "All {{count}} providers connected successfully",
+      "testAllPartial": "{{passed}} passed, {{failed}} failed",
+      "testAllPassed": "passed",
+      "testAllFailed": "failed",
       "emptyDescription": "Add an AI provider like OpenAI, Anthropic, or Gemini to power your Kins.",
       "help": {
         "content": "AI providers are the services that power your Kins. Each provider gives access to language models, embedding models, or image generation capabilities.",

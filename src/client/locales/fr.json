@@ -569,6 +569,12 @@
       "invalid": "Connexion échouée",
       "added": "Fournisseur ajouté avec succès",
       "deleted": "Fournisseur supprimé",
+      "testAll": "Tester toutes les connexions",
+      "testAllRunning": "Test {{tested}}/{{total}}...",
+      "testAllSuccess": "Les {{count}} fournisseurs sont connectés",
+      "testAllPartial": "{{passed}} réussis, {{failed}} échoués",
+      "testAllPassed": "réussis",
+      "testAllFailed": "échoués",
       "emptyDescription": "Ajoutez un fournisseur d'IA comme OpenAI, Anthropic ou Gemini pour alimenter vos Kins.",
       "help": {
         "content": "Les providers IA sont les services qui alimentent vos Kins en intelligence. Chaque provider fournit des modèles de langage, d'embedding ou de génération d'images.",
