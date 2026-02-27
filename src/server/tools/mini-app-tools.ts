@@ -31,6 +31,14 @@ export const createMiniAppTool: ToolRegistration = {
         'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border) ' +
         'and utility classes like .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +
         'The theme (light/dark) and palette are automatically synced from the parent app. ' +
+        'A JavaScript SDK is also auto-injected, providing the global `KinBot` object: ' +
+        '`KinBot.theme` (returns {mode, palette}), ' +
+        '`KinBot.app` (returns app metadata after ready: {id, name, slug, description, icon, kinId, kinName, version}), ' +
+        '`KinBot.on(event, callback)` (listen for events: "theme-changed", "app-meta", or custom events), ' +
+        '`KinBot.emit(event, data)` (send custom events to parent), ' +
+        '`KinBot.toast(message, type)` (show a toast in KinBot UI, type: "info"|"success"|"warning"|"error"), ' +
+        '`KinBot.navigate(path)` (navigate parent app, e.g. "/kins"), ' +
+        '`KinBot.ready()` (call when your app is loaded to receive app metadata). ' +
         'For additional files (CSS, JS, images), use write_mini_app_file after creation.',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),

@@ -1,16 +1,20 @@
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { Button } from '@/client/components/ui/button'
 import { X, RotateCw } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
+import { toast } from 'sonner'
 import type { MiniAppSummary } from '@/shared/types'
 
 export function MiniAppViewer() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { panelOpen, activeAppId, activeAppVersion, closePanel } = useMiniAppPanel()
   const [app, setApp] = useState<MiniAppSummary | null>(null)
   const [iframeKey, setIframeKey] = useState(0)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // Fetch app details when activeAppId changes
   useEffect(() => {
@@ -34,9 +38,65 @@ export function MiniAppViewer() {
     }
   }, [activeAppVersion])
 
+  // Send app metadata to iframe when it loads
+  const sendAppMeta = useCallback(() => {
+    if (!iframeRef.current?.contentWindow || !app) return
+    iframeRef.current.contentWindow.postMessage({
+      source: 'kinbot-parent',
+      type: 'app-meta',
+      data: {
+        id: app.id,
+        name: app.name,
+        slug: app.slug,
+        description: app.description,
+        icon: app.icon,
+        kinId: app.kinId,
+        kinName: app.kinName,
+        version: app.version,
+      },
+    }, '*')
+  }, [app])
+
+  // Handle postMessage from mini-app SDK
+  useEffect(() => {
+    function handleMessage(ev: MessageEvent) {
+      const msg = ev.data
+      if (!msg || msg.source !== 'kinbot-sdk') return
+
+      switch (msg.type) {
+        case 'toast': {
+          const text = String(msg.message || '').slice(0, 500)
+          const toastType = msg.toastType as string
+          if (toastType === 'success') toast.success(text)
+          else if (toastType === 'error') toast.error(text)
+          else if (toastType === 'warning') toast.warning(text)
+          else toast.info(text)
+          break
+        }
+        case 'navigate': {
+          const path = String(msg.path || '/')
+          // Only allow internal navigation (starts with /)
+          if (path.startsWith('/')) navigate(path)
+          break
+        }
+        case 'ready': {
+          sendAppMeta()
+          break
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [navigate, sendAppMeta])
+
   const handleRefresh = useCallback(() => {
     setIframeKey((k) => k + 1)
   }, [])
+
+  const handleIframeLoad = useCallback(() => {
+    sendAppMeta()
+  }, [sendAppMeta])
 
   const iframeSrc = activeAppId
     ? `/api/mini-apps/${activeAppId}/serve?v=${activeAppVersion}`
@@ -78,11 +138,13 @@ export function MiniAppViewer() {
         {/* Iframe */}
         {activeAppId && (
           <iframe
+            ref={iframeRef}
             key={iframeKey}
             src={iframeSrc}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
             className="min-h-0 flex-1 w-full border-0"
             title={app?.name ?? 'Mini App'}
+            onLoad={handleIframeLoad}
           />
         )}
       </div>

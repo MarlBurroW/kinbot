@@ -228,6 +228,7 @@ const THEME_SYNC_SCRIPT = `<script>
 </script>`
 
 const SDK_LINK = '<link rel="stylesheet" href="/api/mini-apps/sdk/kinbot-sdk.css">'
+const SDK_SCRIPT = '<script src="/api/mini-apps/sdk/kinbot-sdk.js"></script>'
 
 // Serve the entry point HTML with injected SDK
 miniAppRoutes.get('/:id/serve', async (c) => {
@@ -250,12 +251,12 @@ miniAppRoutes.get('/:id/serve', async (c) => {
 
   // Inject SDK CSS and theme sync script into <head>
   if (html.includes('<head>')) {
-    html = html.replace('<head>', `<head>\n${SDK_LINK}\n${THEME_SYNC_SCRIPT}`)
+    html = html.replace('<head>', `<head>\n${SDK_LINK}\n${SDK_SCRIPT}\n${THEME_SYNC_SCRIPT}`)
   } else if (html.includes('<html>')) {
-    html = html.replace('<html>', `<html>\n<head>\n${SDK_LINK}\n${THEME_SYNC_SCRIPT}\n</head>`)
+    html = html.replace('<html>', `<html>\n<head>\n${SDK_LINK}\n${SDK_SCRIPT}\n${THEME_SYNC_SCRIPT}\n</head>`)
   } else {
     // No HTML structure — wrap everything
-    html = `<!DOCTYPE html>\n<html>\n<head>\n${SDK_LINK}\n${THEME_SYNC_SCRIPT}\n</head>\n<body>\n${html}\n</body>\n</html>`
+    html = `<!DOCTYPE html>\n<html>\n<head>\n${SDK_LINK}\n${SDK_SCRIPT}\n${THEME_SYNC_SCRIPT}\n</head>\n<body>\n${html}\n</body>\n</html>`
   }
 
   return new Response(html, {
@@ -303,6 +304,19 @@ miniAppRoutes.get('/:id/static/*', async (c) => {
 // ─── SDK CSS endpoint (no auth needed — only CSS tokens) ────────────────────
 
 export const miniAppSdkRoutes = new Hono()
+
+miniAppSdkRoutes.get('/kinbot-sdk.js', async (c) => {
+  const jsPath = join(import.meta.dir, '../mini-app-sdk/kinbot-sdk.js')
+  if (!existsSync(jsPath)) {
+    return new Response('/* KinBot SDK JS not found */', {
+      headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=3600' },
+    })
+  }
+  const js = await Bun.file(jsPath).text()
+  return new Response(js, {
+    headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=3600' },
+  })
+})
 
 miniAppSdkRoutes.get('/kinbot-sdk.css', async (c) => {
   // Serve the SDK CSS file
