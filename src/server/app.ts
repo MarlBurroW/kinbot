@@ -75,6 +75,19 @@ app.get('/api/health', (c) => {
   return c.json({ status: 'ok', timestamp: Date.now() })
 })
 
+// Changelog (authenticated — returns CHANGELOG.md content)
+app.get('/api/changelog', async (c) => {
+  try {
+    const fs = await import('node:fs/promises')
+    const path = await import('node:path')
+    const changelogPath = path.resolve(import.meta.dirname ?? '.', '..', 'CHANGELOG.md')
+    const content = await fs.readFile(changelogPath, 'utf-8')
+    return c.json({ content })
+  } catch {
+    return c.json({ content: '' })
+  }
+})
+
 // System info (authenticated — stats about the instance)
 const startedAt = Date.now()
 app.get('/api/info', async (c) => {

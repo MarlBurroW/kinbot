@@ -185,7 +185,8 @@
     "footer": {
       "commandPalette": "Palette de commandes",
       "shortcuts": "Raccourcis clavier",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "whatsNew": "Nouveautés"
     },
     "health": {
       "providers": "{{healthy}}/{{total}} providers connectés",
@@ -1374,5 +1375,19 @@
   "errorBoundary": {
     "message": "Une erreur est survenue. Veuillez recharger la page.",
     "reload": "Recharger"
+  },
+  "whatsNew": {
+    "title": "Nouveautés",
+    "description": "Vous utilisez la v{{version}}",
+    "descriptionGeneric": "Changements et améliorations récents",
+    "empty": "Aucun changelog disponible",
+    "unreleased": "A venir",
+    "category": {
+      "added": "Ajouté",
+      "changed": "Modifié",
+      "fixed": "Corrigé",
+      "removed": "Supprimé",
+      "deprecated": "Déprécié"
+    }
   }
 }

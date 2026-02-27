@@ -185,7 +185,8 @@
     "footer": {
       "commandPalette": "Command palette",
       "shortcuts": "Keyboard shortcuts",
-      "settings": "Settings"
+      "settings": "Settings",
+      "whatsNew": "What's new"
     },
     "health": {
       "providers": "{{healthy}}/{{total}} providers connected",
@@ -1374,5 +1375,19 @@
   "errorBoundary": {
     "message": "Something went wrong. Please reload the page.",
     "reload": "Reload"
+  },
+  "whatsNew": {
+    "title": "What's New",
+    "description": "You're running v{{version}}",
+    "descriptionGeneric": "Recent changes and improvements",
+    "empty": "No changelog available",
+    "unreleased": "Upcoming",
+    "category": {
+      "added": "Added",
+      "changed": "Changed",
+      "fixed": "Fixed",
+      "removed": "Removed",
+      "deprecated": "Deprecated"
+    }
   }
 }

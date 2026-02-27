@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Settings2, Keyboard, Command } from 'lucide-react'
 import { Button } from '@/client/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/client/components/ui/tooltip'
+import { WhatsNewDialog } from '@/client/components/common/WhatsNewDialog'
 import { api } from '@/client/lib/api'
 
 interface SidebarFooterContentProps {
@@ -12,6 +13,7 @@ interface SidebarFooterContentProps {
 export function SidebarFooterContent({ onOpenSettings }: SidebarFooterContentProps) {
   const { t } = useTranslation()
   const [version, setVersion] = useState<string | null>(null)
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false)
 
   useEffect(() => {
     api
@@ -25,10 +27,26 @@ export function SidebarFooterContent({ onOpenSettings }: SidebarFooterContentPro
 
   return (
     <div className="flex items-center justify-between px-2 py-1">
-      {/* Left: version badge */}
-      <span className="text-[10px] text-muted-foreground/50 font-medium select-none">
-        {version ? `v${version}` : ''}
-      </span>
+      {/* Left: version badge — clickable to open changelog */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => setWhatsNewOpen(true)}
+            className="text-[10px] text-muted-foreground/50 font-medium select-none transition-colors hover:text-muted-foreground cursor-pointer"
+          >
+            {version ? `v${version}` : ''}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {t('sidebar.footer.whatsNew')}
+        </TooltipContent>
+      </Tooltip>
+      <WhatsNewDialog
+        open={whatsNewOpen}
+        onOpenChange={setWhatsNewOpen}
+        currentVersion={version}
+      />
 
       {/* Right: shortcut hints + settings */}
       <div className="flex items-center gap-0.5">
