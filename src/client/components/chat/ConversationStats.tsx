@@ -3,12 +3,123 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/client/components/ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
-import { BarChart3, MessageSquare, Bot, User, Wrench, Clock, FileIcon, Brain } from 'lucide-react'
+import { BarChart3, MessageSquare, Bot, User, Wrench, Clock, FileIcon, Brain, Activity } from 'lucide-react'
 import type { ChatMessage } from '@/client/hooks/useChat'
 
 interface ConversationStatsProps {
   messages: ChatMessage[]
   toolCallCount: number
+}
+
+// ─── Activity sparkline ───────────────────────────────────────────────────────
+
+/** Number of buckets in the sparkline */
+const SPARKLINE_BUCKETS = 24
+
+/**
+ * Tiny SVG sparkline showing message activity over time.
+ * Each bucket aggregates message count for a time slice.
+ * Shows user messages (primary) and assistant messages (chart-2) as stacked bars.
+ */
+function ActivitySparkline({ messages }: { messages: ChatMessage[] }) {
+  const { t } = useTranslation()
+
+  const { userBuckets, assistantBuckets, maxCount } = useMemo(() => {
+    if (messages.length < 2) return { userBuckets: [], assistantBuckets: [], maxCount: 0 }
+
+    const timestamps = messages.map((m) => new Date(m.createdAt).getTime())
+    const minT = timestamps[0]!
+    const maxT = timestamps[timestamps.length - 1]!
+    const range = maxT - minT
+
+    if (range <= 0) return { userBuckets: [], assistantBuckets: [], maxCount: 0 }
+
+    const uBuckets = new Array(SPARKLINE_BUCKETS).fill(0) as number[]
+    const aBuckets = new Array(SPARKLINE_BUCKETS).fill(0) as number[]
+
+    for (const msg of messages) {
+      if (msg.sourceType === 'compacting' || msg.sourceType === 'system' || msg.sourceType === 'cron') continue
+      const t = new Date(msg.createdAt).getTime()
+      const idx = Math.min(SPARKLINE_BUCKETS - 1, Math.floor(((t - minT) / range) * SPARKLINE_BUCKETS))
+      if (msg.role === 'user') uBuckets[idx]!++
+      else if (msg.role === 'assistant') aBuckets[idx]!++
+    }
+
+    const max = Math.max(1, ...uBuckets.map((u, i) => u + aBuckets[i]!))
+    return { userBuckets: uBuckets, assistantBuckets: aBuckets, maxCount: max }
+  }, [messages])
+
+  if (userBuckets.length === 0) return null
+
+  const width = 220
+  const height = 36
+  const barWidth = width / SPARKLINE_BUCKETS - 1
+  const gap = 1
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <Activity className="size-3.5 shrink-0 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">{t('chat.stats.activity')}</span>
+      </div>
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full"
+        role="img"
+        aria-label={t('chat.stats.activityAriaLabel')}
+      >
+        {userBuckets.map((uCount, i) => {
+          const aCount = assistantBuckets[i]!
+          const total = uCount + aCount
+          const totalH = (total / maxCount) * height
+          const userH = (uCount / maxCount) * height
+          const assistantH = (aCount / maxCount) * height
+          const x = i * (barWidth + gap)
+
+          return (
+            <g key={i}>
+              {/* Assistant portion (bottom) */}
+              {assistantH > 0 && (
+                <rect
+                  x={x}
+                  y={height - totalH}
+                  width={barWidth}
+                  height={assistantH}
+                  rx={1}
+                  className="fill-chart-2/60"
+                />
+              )}
+              {/* User portion (top of stack) */}
+              {userH > 0 && (
+                <rect
+                  x={x}
+                  y={height - totalH + assistantH}
+                  width={barWidth}
+                  height={userH}
+                  rx={1}
+                  className="fill-primary/60"
+                />
+              )}
+            </g>
+          )
+        })}
+      </svg>
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground/60">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1">
+            <span className="inline-block size-1.5 rounded-full bg-primary/60" />
+            {t('chat.stats.legendUser')}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block size-1.5 rounded-full bg-chart-2/60" />
+            {t('chat.stats.legendAssistant')}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function formatDuration(ms: number): string {
@@ -144,6 +255,12 @@ export function ConversationStats({ messages, toolCallCount }: ConversationStats
               value={stats.totalWords.toLocaleString()}
             />
           </div>
+          {/* Activity sparkline */}
+          {messages.length >= 4 && (
+            <div className="pt-2">
+              <ActivitySparkline messages={messages} />
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

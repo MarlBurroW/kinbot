@@ -496,7 +496,13 @@
       "success": "Conversation cleared",
       "error": "Failed to clear conversation"
     },
-    "readingTime": "~{{minutes}} min read"
+    "readingTime": "~{{minutes}} min read",
+    "stats": {
+      "activity": "Activity over time",
+      "activityAriaLabel": "Message activity sparkline showing conversation frequency over time",
+      "legendUser": "You",
+      "legendAssistant": "Assistant"
+    }
   },
   "quickChat": {
     "title": "Quick Session",

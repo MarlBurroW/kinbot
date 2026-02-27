@@ -496,7 +496,13 @@
       "success": "Conversation effacée",
       "error": "Impossible d'effacer la conversation"
     },
-    "readingTime": "~{{minutes}} min de lecture"
+    "readingTime": "~{{minutes}} min de lecture",
+    "stats": {
+      "activity": "Activité dans le temps",
+      "activityAriaLabel": "Graphique d'activité montrant la fréquence des messages au fil du temps",
+      "legendUser": "Vous",
+      "legendAssistant": "Assistant"
+    }
   },
   "quickChat": {
     "title": "Session rapide",
