@@ -45,5 +45,14 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Test
-        run: bun test
+      - name: Test with coverage
+        run: bun test --coverage 2>&1 | tee coverage-output.txt
+
+      - name: Coverage summary
+        if: github.event_name == 'pull_request'
+        run: |
+          # Extract the summary line from Bun's coverage output
+          echo "### 📊 Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E '^\s*(All files|src/)' coverage-output.txt | head -40 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
