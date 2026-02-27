@@ -1357,5 +1357,9 @@
     "channelOnline": "Canal connecté",
     "channelOffline": "Canal déconnecté",
     "channelError": "Erreur de connexion au canal"
+  },
+  "errorBoundary": {
+    "message": "Une erreur est survenue. Veuillez recharger la page.",
+    "reload": "Recharger"
   }
 }
