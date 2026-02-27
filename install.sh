@@ -908,74 +908,207 @@ create_script_service() {
   local pid_file="$KINBOT_DATA_DIR/kinbot.pid"
   local log_file="$KINBOT_DATA_DIR/kinbot.log"
 
-  cat > "$script_path" << SCRIPT
+  cat > "$script_path" << 'SCRIPT_HEADER'
 #!/usr/bin/env bash
 # KinBot service manager (for systems without systemd)
 set -euo pipefail
+SCRIPT_HEADER
 
+  cat >> "$script_path" << SCRIPT_VARS
 KINBOT_DIR="$KINBOT_DIR"
 DATA_DIR="$KINBOT_DATA_DIR"
 ENV_FILE="$env_file"
 PID_FILE="$pid_file"
 LOG_FILE="$log_file"
 BUN_BIN="$BUN_BIN"
+SCRIPT_VARS
 
+  cat >> "$script_path" << 'SCRIPT_BODY'
+
+# Verify PID file points to an actual KinBot process (not a recycled PID)
 is_running() {
-  [ -f "\$PID_FILE" ] && kill -0 "\$(cat "\$PID_FILE")" 2>/dev/null
+  [ -f "$PID_FILE" ] || return 1
+  local pid
+  pid="$(cat "$PID_FILE" 2>/dev/null)" || return 1
+  [ -n "$pid" ] || return 1
+  kill -0 "$pid" 2>/dev/null || return 1
+  # Guard against recycled PIDs: verify the process is actually bun/kinbot
+  if [ -d "/proc/$pid" ]; then
+    local cmdline
+    cmdline="$(cat "/proc/$pid/cmdline" 2>/dev/null | tr '\0' ' ')" || true
+    if echo "$cmdline" | grep -qiE 'bun|kinbot'; then
+      return 0
+    fi
+    # PID exists but isn't KinBot — stale PID file
+    return 1
+  fi
+  # No /proc (macOS/BSD) — fall back to ps
+  if ps -p "$pid" -o args= 2>/dev/null | grep -qiE 'bun|kinbot'; then
+    return 0
+  fi
+  return 1
 }
 
-case "\${1:-}" in
+get_pid() {
+  cat "$PID_FILE" 2>/dev/null || echo ""
+}
+
+case "${1:-}" in
   start)
     if is_running; then
-      echo "KinBot is already running (PID \$(cat "\$PID_FILE"))"
+      echo "KinBot is already running (PID $(get_pid))"
       exit 0
     fi
+    # Clean up stale PID file if present
+    rm -f "$PID_FILE"
     echo "Starting KinBot..."
-    cd "\$KINBOT_DIR"
+    cd "$KINBOT_DIR"
     set -a
     # shellcheck disable=SC1090
-    [ -f "\$ENV_FILE" ] && . "\$ENV_FILE"
+    [ -f "$ENV_FILE" ] && . "$ENV_FILE"
     set +a
-    nohup "\$BUN_BIN" src/server/index.ts >> "\$LOG_FILE" 2>&1 &
-    echo \$! > "\$PID_FILE"
-    echo "KinBot started (PID \$!)"
-    echo "Logs: tail -f \$LOG_FILE"
+    nohup "$BUN_BIN" src/server/index.ts >> "$LOG_FILE" 2>&1 &
+    echo $! > "$PID_FILE"
+    echo "KinBot started (PID $!)"
+    echo "Logs: tail -f $LOG_FILE"
     ;;
   stop)
     if ! is_running; then
       echo "KinBot is not running"
-      rm -f "\$PID_FILE"
+      rm -f "$PID_FILE"
       exit 0
     fi
-    _pid="\$(cat "\$PID_FILE")"
-    echo "Stopping KinBot (PID \$_pid)..."
-    kill "\$_pid"
-    rm -f "\$PID_FILE"
+    _pid="$(get_pid)"
+    echo "Stopping KinBot (PID $_pid)..."
+    kill "$_pid" 2>/dev/null || true
+
+    # Wait up to 10 seconds for graceful shutdown
+    local attempts=0
+    while [ $attempts -lt 20 ] && kill -0 "$_pid" 2>/dev/null; do
+      sleep 0.5
+      attempts=$((attempts + 1))
+    done
+
+    # Force kill if still running
+    if kill -0 "$_pid" 2>/dev/null; then
+      echo "Process didn't stop gracefully, sending SIGKILL..."
+      kill -9 "$_pid" 2>/dev/null || true
+      sleep 1
+    fi
+
+    rm -f "$PID_FILE"
     echo "KinBot stopped"
     ;;
   restart)
-    "\$0" stop
+    "$0" stop
     sleep 1
-    "\$0" start
+    "$0" start
     ;;
   status)
     if is_running; then
-      echo "KinBot is running (PID \$(cat "\$PID_FILE"))"
+      local pid
+      pid="$(get_pid)"
+      echo "● KinBot is running (PID $pid)"
+
+      # Show uptime
+      if [ -d "/proc/$pid" ]; then
+        local start_time now_time uptime_s
+        start_time="$(stat -c %Y "/proc/$pid" 2>/dev/null)" || start_time=""
+        if [ -n "$start_time" ]; then
+          now_time="$(date +%s)"
+          uptime_s=$((now_time - start_time))
+          local days=$((uptime_s / 86400))
+          local hours=$(( (uptime_s % 86400) / 3600 ))
+          local mins=$(( (uptime_s % 3600) / 60 ))
+          if [ "$days" -gt 0 ]; then
+            echo "  Uptime:  ${days}d ${hours}h ${mins}m"
+          elif [ "$hours" -gt 0 ]; then
+            echo "  Uptime:  ${hours}h ${mins}m"
+          else
+            echo "  Uptime:  ${mins}m"
+          fi
+        fi
+      fi
+
+      # Show memory usage
+      local mem_kb=""
+      if [ -f "/proc/$pid/status" ]; then
+        mem_kb="$(awk '/^VmRSS:/ {print $2}' "/proc/$pid/status" 2>/dev/null)" || mem_kb=""
+      fi
+      if [ -z "$mem_kb" ]; then
+        mem_kb="$(ps -p "$pid" -o rss= 2>/dev/null | tr -d ' ')" || mem_kb=""
+      fi
+      if [ -n "$mem_kb" ] && [ "$mem_kb" -gt 0 ] 2>/dev/null; then
+        local mem_mb=$((mem_kb / 1024))
+        echo "  Memory:  ${mem_mb}MB RSS"
+      fi
+
+      # Show port from config
+      if [ -f "$ENV_FILE" ]; then
+        local port
+        port="$(grep '^PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2)" || port=""
+        [ -n "$port" ] && echo "  Port:    $port"
+      fi
+
+      # Show log file size
+      if [ -f "$LOG_FILE" ]; then
+        local log_size
+        log_size="$(du -h "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || log_size=""
+        [ -n "$log_size" ] && echo "  Logs:    $LOG_FILE ($log_size)"
+        if [ -n "$log_size" ]; then
+          # Warn if log file is getting large (>100MB)
+          local log_kb
+          log_kb="$(du -k "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || log_kb="0"
+          if [ "$log_kb" -gt 102400 ] 2>/dev/null; then
+            echo "  ⚠ Log file is large. Consider truncating: > $LOG_FILE"
+          fi
+        fi
+      fi
     else
-      echo "KinBot is not running"
-      rm -f "\$PID_FILE"
+      echo "○ KinBot is not running"
+      rm -f "$PID_FILE"
+      # Show last few log lines as a hint
+      if [ -f "$LOG_FILE" ]; then
+        echo ""
+        echo "Last log lines:"
+        tail -5 "$LOG_FILE" 2>/dev/null | sed 's/^/  /'
+      fi
       exit 1
     fi
     ;;
   logs)
-    tail -f "\$LOG_FILE"
+    if [ "${2:-}" = "--recent" ] || [ "${2:-}" = "-n" ]; then
+      local n="${3:-50}"
+      tail -n "$n" "$LOG_FILE"
+    else
+      tail -f "$LOG_FILE"
+    fi
+    ;;
+  version)
+    if [ -d "$KINBOT_DIR/.git" ]; then
+      local ver
+      ver="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+      echo "KinBot $ver"
+    else
+      echo "KinBot (version unknown)"
+    fi
     ;;
   *)
-    echo "Usage: \$0 {start|stop|restart|status|logs}"
+    echo "KinBot service manager"
+    echo ""
+    echo "Usage: $0 {start|stop|restart|status|logs|version}"
+    echo ""
+    echo "Commands:"
+    echo "  start      Start KinBot in the background"
+    echo "  stop       Stop KinBot (graceful, then force after 10s)"
+    echo "  restart    Stop and start KinBot"
+    echo "  status     Show KinBot status, uptime, and resource usage"
+    echo "  logs       Tail the log file (use 'logs -n 50' for recent lines)"
+    echo "  version    Show installed version"
     exit 1
     ;;
 esac
-SCRIPT
+SCRIPT_BODY
 
   chmod +x "$script_path"
 
