@@ -1496,6 +1496,7 @@ show_help() {
   echo "  --reset         Fix broken install: re-clone & rebuild, keep data"
   echo "  --dry-run       Show what would happen without making changes"
   echo "  --docker        Docker Compose setup (no Bun/build needed)"
+  echo "  --env KEY=VALUE Set or update an env variable in the config file"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
   echo ""
   echo -e "${BOLD}ENVIRONMENT VARIABLES${NC}"
@@ -1528,6 +1529,10 @@ show_help() {
   echo ""
   echo "  # Check for updates and apply"
   echo "  bash install.sh --update"
+  echo ""
+  echo "  # Set a config variable (scriptable)"
+  echo "  bash install.sh --env LOG_LEVEL=debug"
+  echo "  bash install.sh --env ENCRYPTION_KEY=\$(openssl rand -hex 32)"
   echo ""
   echo "  # Docker install (no Bun required)"
   echo "  bash install.sh --docker"
@@ -2377,6 +2382,76 @@ do_restore() {
   echo ""
 }
 
+# ─── Set env variable ─────────────────────────────────────────────────────────
+do_env() {
+  local assignment="$1"
+
+  # Validate format
+  if [[ ! "$assignment" =~ ^[A-Za-z_][A-Za-z0-9_]*=.* ]]; then
+    error "Invalid format. Usage: bash install.sh --env KEY=VALUE"
+  fi
+
+  local key="${assignment%%=*}"
+  local value="${assignment#*=}"
+
+  # Minimal env setup
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  local env_file="$KINBOT_DATA_DIR/kinbot.env"
+
+  if [ ! -f "$env_file" ]; then
+    # Create the file if it doesn't exist yet (pre-install config)
+    mkdir -p "$KINBOT_DATA_DIR"
+    cat > "$env_file" << ENV
+# KinBot configuration
+NODE_ENV=production
+ENV
+    chmod 600 "$env_file"
+  fi
+
+  # Check if key already exists in the file
+  if grep -q "^${key}=" "$env_file" 2>/dev/null; then
+    # Update existing key
+    local tmp_env
+    tmp_env="$(mktemp)"
+    while IFS= read -r line; do
+      case "$line" in
+        "${key}="*) echo "${key}=${value}" ;;
+        *)          echo "$line" ;;
+      esac
+    done < "$env_file" > "$tmp_env"
+    mv "$tmp_env" "$env_file"
+    chmod 600 "$env_file"
+    success "$key updated in $env_file"
+  else
+    # Append new key
+    echo "${key}=${value}" >> "$env_file"
+    success "$key added to $env_file"
+  fi
+
+  # Show the current value (mask secrets)
+  local display_value="$value"
+  local secret_keys="KEY TOKEN SECRET PASSWORD PASS"
+  for sk in $secret_keys; do
+    if echo "$key" | grep -qi "$sk"; then
+      if [ ${#value} -gt 8 ]; then
+        display_value="${value:0:4}...${value: -4}"
+      else
+        display_value="****"
+      fi
+      break
+    fi
+  done
+  info "$key=$display_value"
+}
+
 # ─── Reconfigure ─────────────────────────────────────────────────────────────
 do_config() {
   echo ""
@@ -3205,6 +3280,24 @@ main() {
           [[ "$a" = "--restore" || "$a" = "restore" ]] && found_flag=true
         done
         do_restore "$restore_path"
+        exit 0
+        ;;
+      --env)
+        trap - INT TERM
+        # Find the KEY=VALUE argument after --env
+        local env_val=""
+        local found_env=false
+        for a in "$@"; do
+          if [ "$found_env" = true ]; then
+            env_val="$a"
+            break
+          fi
+          [ "$a" = "--env" ] && found_env=true
+        done
+        if [ -z "$env_val" ]; then
+          error "Usage: bash install.sh --env KEY=VALUE"
+        fi
+        do_env "$env_val"
         exit 0
         ;;
       --config|config)
