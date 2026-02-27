@@ -7,10 +7,10 @@ import {
   Shield,
   Plug,
   Puzzle,
-  Palette,
+  AppWindow,
   Webhook,
   MessageSquare,
-  Zap,
+  Wrench,
   Users,
 } from 'lucide-react'
 
@@ -70,10 +70,10 @@ const features = [
       'Inbound webhooks trigger Kins from external systems. Telegram, Discord, Slack, WhatsApp, and Signal integration lets Kins interact with users on their preferred platform.',
   },
   {
-    icon: Zap,
-    title: 'Real-time Streaming',
+    icon: Wrench,
+    title: 'Custom Tools',
     description:
-      'SSE-based streaming multiplexed across all Kins on a single connection. Responses stream token by token as they\'re generated.',
+      'Kins create, register, and run their own scripts from their workspace — with user approval. Combined with MCP, they extend their own capabilities without code changes.',
   },
   {
     icon: Users,
@@ -82,10 +82,10 @@ const features = [
       'Admin and member roles. Invitation system. Shared Kins accessible to all users — messages tagged with sender identity so Kins know who they\'re talking to.',
   },
   {
-    icon: Palette,
-    title: '8 Palettes + Dark Mode',
+    icon: AppWindow,
+    title: 'Mini Apps',
     description:
-      'Aurora, Ocean, Forest, Sunset, Monochrome, Sakura, Neon, Lavender. Full dark/light/system mode support. Designed to be beautiful.',
+      'Kins build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar. Auto-injected design system with theme sync, toasts, and parent-child communication.',
   },
 ]
 
