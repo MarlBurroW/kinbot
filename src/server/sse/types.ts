@@ -42,6 +42,9 @@ export type SSEEventType =
   | 'miniapp:updated'
   | 'miniapp:deleted'
   | 'miniapp:file-updated'
+  | 'memory:created'
+  | 'memory:updated'
+  | 'memory:deleted'
   | 'connected'
 
 export interface SSEEvent {

@@ -106,6 +106,17 @@ export function useTaskDetail(taskId: string | null) {
   // SSE handlers
   useSSE({
     // Task lifecycle events
+    'task:deleted': (data) => {
+      if (data.taskId !== taskId) return
+      setTask(null)
+      setMessages([])
+      setIsStreaming(false)
+      setStreamingMessage(null)
+      streamingContentRef.current = ''
+      streamingMessageIdRef.current = null
+      streamingToolCallsRef.current = []
+      setStreamingToolCalls([])
+    },
     'task:status': (data) => {
       if (data.taskId !== taskId) return
       const status = data.status as TaskStatus

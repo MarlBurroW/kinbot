@@ -4,6 +4,7 @@ import { db, sqlite } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { memories } from '@/server/db/schema'
 import { generateEmbedding } from '@/server/services/embeddings'
+import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
 import type { MemoryCategory } from '@/shared/types'
 
@@ -99,7 +100,15 @@ export async function createMemory(kinId: string, input: CreateMemoryInput) {
 
   log.debug({ kinId, memoryId: id, category: input.category, hasEmbedding: !!embeddingBuf }, 'Memory created')
 
-  return db.select().from(memories).where(eq(memories.id, id)).get()!
+  const created = db.select().from(memories).where(eq(memories.id, id)).get()!
+
+  sseManager.sendToKin(kinId, {
+    type: 'memory:created',
+    kinId,
+    data: { memoryId: id, kinId, category: input.category, content: input.content, subject: input.subject ?? null },
+  })
+
+  return created
 }
 
 export async function updateMemory(memoryId: string, kinId: string, updates: UpdateMemoryInput) {
@@ -138,7 +147,15 @@ export async function updateMemory(memoryId: string, kinId: string, updates: Upd
     .set(setValues)
     .where(and(eq(memories.id, memoryId), eq(memories.kinId, kinId)))
 
-  return db.select().from(memories).where(eq(memories.id, memoryId)).get()!
+  const updated = db.select().from(memories).where(eq(memories.id, memoryId)).get()!
+
+  sseManager.sendToKin(kinId, {
+    type: 'memory:updated',
+    kinId,
+    data: { memoryId, kinId, ...(updates.content !== undefined && { content: updates.content }), ...(updates.category !== undefined && { category: updates.category }), ...(updates.subject !== undefined && { subject: updates.subject }) },
+  })
+
+  return updated
 }
 
 export async function deleteMemory(memoryId: string, kinId: string) {
@@ -154,6 +171,13 @@ export async function deleteMemory(memoryId: string, kinId: string) {
 
   await db.delete(memories).where(and(eq(memories.id, memoryId), eq(memories.kinId, kinId)))
   log.debug({ memoryId, kinId }, 'Memory deleted')
+
+  sseManager.sendToKin(kinId, {
+    type: 'memory:deleted',
+    kinId,
+    data: { memoryId, kinId },
+  })
+
   return true
 }
 

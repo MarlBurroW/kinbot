@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/client/lib/api'
+import { useSSE } from '@/client/hooks/useSSE'
 import type { MemorySummary, MemoryCategory } from '@/shared/types'
 
 interface MemoriesResponse {
@@ -81,6 +82,28 @@ export function useMemories(kinId?: string | null) {
   const applyFilters = useCallback((newFilters: MemoryFilters) => {
     setFilters(newFilters)
   }, [])
+
+  // SSE: real-time memory updates
+  useSSE({
+    'memory:created': (data) => {
+      const memKinId = data.kinId as string
+      // If we're viewing a specific kin's memories, only react to that kin's events
+      if (kinId && memKinId !== kinId) return
+      // Refetch to get full memory data with proper formatting
+      fetchMemories()
+    },
+    'memory:updated': (data) => {
+      const memKinId = data.kinId as string
+      if (kinId && memKinId !== kinId) return
+      fetchMemories()
+    },
+    'memory:deleted': (data) => {
+      const memoryId = data.memoryId as string
+      const memKinId = data.kinId as string
+      if (kinId && memKinId !== kinId) return
+      setMemories((prev) => prev.filter((m) => m.id !== memoryId))
+    },
+  })
 
   return {
     memories,
