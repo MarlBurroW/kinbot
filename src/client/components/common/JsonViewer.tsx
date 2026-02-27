@@ -1,7 +1,8 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, Copy } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
+import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 
 interface JsonViewerProps {
   data: unknown
@@ -83,7 +84,7 @@ function tokenizeJson(json: string): Token[] {
 /** Compact JSON viewer with syntax highlighting and copy button. */
 export function JsonViewer({ data, label, labelClassName, maxHeight = 'max-h-60', className }: JsonViewerProps) {
   const { t } = useTranslation()
-  const [copied, setCopied] = useState(false)
+  const { copy, copied } = useCopyToClipboard()
 
   const beautified = useMemo(() => {
     try {
@@ -95,23 +96,9 @@ export function JsonViewer({ data, label, labelClassName, maxHeight = 'max-h-60'
 
   const tokens = useMemo(() => tokenizeJson(beautified), [beautified])
 
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(beautified)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea')
-      textarea.value = beautified
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    }
-  }, [beautified])
+  const handleCopy = useCallback(() => {
+    copy(beautified, { successKey: '', resetMs: 1500 })
+  }, [beautified, copy])
 
   return (
     <div className={cn('rounded-md bg-background/60 group/json', className)}>

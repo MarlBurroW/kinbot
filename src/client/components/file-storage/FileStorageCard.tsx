@@ -16,7 +16,7 @@ import {
   Globe,
 } from 'lucide-react'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
-import { toast } from 'sonner'
+import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 
 export interface StoredFileData {
   id: string
@@ -66,15 +66,7 @@ function formatExpiry(expiresAt: number): string {
 
 export function FileStorageCard({ file, kinName, kinAvatarUrl, onEdit, onDelete }: FileStorageCardProps) {
   const { t } = useTranslation()
-
-  const handleCopyUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(file.url)
-      toast.success(t('settings.files.urlCopied'))
-    } catch {
-      toast.error(t('errors.copyFailed'))
-    }
-  }
+  const { copy } = useCopyToClipboard()
 
   return (
     <Card className="surface-card">
@@ -132,7 +124,7 @@ export function FileStorageCard({ file, kinName, kinAvatarUrl, onEdit, onDelete 
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <Button variant="ghost" size="icon-xs" onClick={handleCopyUrl} title={t('settings.files.copyUrl')}>
+          <Button variant="ghost" size="icon-xs" onClick={() => copy(file.url, { successKey: 'settings.files.urlCopied', errorKey: 'errors.copyFailed' })} title={t('settings.files.copyUrl')}>
             <Copy className="size-3.5" />
           </Button>
           {onEdit && (

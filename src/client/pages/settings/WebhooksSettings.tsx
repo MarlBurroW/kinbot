@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { Button } from '@/client/components/ui/button'
 import {
   AlertDialog,
@@ -145,14 +146,7 @@ export function WebhooksSettings() {
     setModalOpen(true)
   }
 
-  const copyToClipboard = async (text: string, successKey: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success(t(successKey))
-    } catch {
-      // fallback
-    }
-  }
+  const { copy } = useCopyToClipboard()
 
   if (isLoading) {
     return <SettingsListSkeleton count={2} />
@@ -275,7 +269,7 @@ export function WebhooksSettings() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => copyToClipboard(revealedToken.url, 'settings.webhooks.urlCopied')}
+                    onClick={() => copy(revealedToken.url, { successKey: 'settings.webhooks.urlCopied' })}
                   >
                     <Copy className="size-4" />
                   </Button>
@@ -299,7 +293,7 @@ export function WebhooksSettings() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => copyToClipboard(revealedToken.token, 'settings.webhooks.tokenCopied')}
+                    onClick={() => copy(revealedToken.token, { successKey: 'settings.webhooks.tokenCopied' })}
                   >
                     <Copy className="size-4" />
                   </Button>

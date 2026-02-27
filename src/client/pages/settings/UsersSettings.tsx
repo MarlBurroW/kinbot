@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/client/components/ui/avatar'
@@ -112,14 +113,7 @@ export function UsersSettings() {
     }
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success(t('settings.users.invitations.linkCopied'))
-    } catch {
-      // fallback
-    }
-  }
+  const { copy: copyToClipboard } = useCopyToClipboard()
 
   const getInvitationStatus = (inv: InvitationSummary): 'active' | 'used' | 'expired' => {
     if (inv.usedAt) return 'used'
@@ -258,7 +252,7 @@ export function UsersSettings() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => copyToClipboard(inv.url)}
+                    onClick={() => copyToClipboard(inv.url, { successKey: 'settings.users.invitations.linkCopied' })}
                   >
                     <Copy className="size-4" />
                   </Button>
@@ -338,7 +332,7 @@ export function UsersSettings() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => copyToClipboard(revealedLink)}
+                onClick={() => copyToClipboard(revealedLink!, { successKey: 'settings.users.invitations.linkCopied' })}
               >
                 <Copy className="size-4" />
               </Button>

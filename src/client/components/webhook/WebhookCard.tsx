@@ -5,7 +5,7 @@ import { Switch } from '@/client/components/ui/switch'
 import { KinBadge } from '@/client/components/common/KinBadge'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { Pencil, Trash2, Webhook, Copy, RefreshCw, History } from 'lucide-react'
-import { toast } from 'sonner'
+import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import type { WebhookSummary } from '@/shared/types'
 
 interface WebhookCardProps {
@@ -19,15 +19,7 @@ interface WebhookCardProps {
 
 export function WebhookCard({ webhook, onEdit, onDelete, onToggle, onRegenerateToken, onViewLogs }: WebhookCardProps) {
   const { t } = useTranslation()
-
-  const copyUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(webhook.url)
-      toast.success(t('settings.webhooks.urlCopied'))
-    } catch {
-      // fallback: do nothing
-    }
-  }
+  const { copy } = useCopyToClipboard()
 
   const formattedLastTriggered = webhook.lastTriggeredAt
     ? new Date(webhook.lastTriggeredAt).toLocaleString()
@@ -67,7 +59,7 @@ export function WebhookCard({ webhook, onEdit, onDelete, onToggle, onRegenerateT
               <History className="size-3.5" />
             </Button>
           )}
-          <Button variant="ghost" size="icon-xs" onClick={copyUrl} title={t('settings.webhooks.copyUrl')}>
+          <Button variant="ghost" size="icon-xs" onClick={() => copy(webhook.url, { successKey: 'settings.webhooks.urlCopied' })} title={t('settings.webhooks.copyUrl')}>
             <Copy className="size-3.5" />
           </Button>
           {onRegenerateToken && (

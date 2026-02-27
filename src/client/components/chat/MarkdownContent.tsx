@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState, type HTMLAttributes } from 'react'
+import { memo, useCallback, useMemo, type HTMLAttributes } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -6,7 +6,7 @@ import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
 import { useTranslation } from 'react-i18next'
 import { Copy, Check } from 'lucide-react'
-import { toast } from 'sonner'
+import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { cn } from '@/client/lib/utils'
 import { HighlightText } from '@/client/components/chat/HighlightText'
 
@@ -24,18 +24,11 @@ const rehypePlugins = [rehypeHighlight, rehypeKatex]
 
 function CodeBlockCopyButton({ code }: { code: string }) {
   const { t } = useTranslation()
-  const [copied, setCopied] = useState(false)
+  const { copy, copied } = useCopyToClipboard()
 
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      toast.success(t('chat.codeBlock.copied'))
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error(t('chat.codeBlock.copyFailed'))
-    }
-  }, [code, t])
+  const handleCopy = useCallback(() => {
+    copy(code, { successKey: 'chat.codeBlock.copied', errorKey: 'chat.codeBlock.copyFailed' })
+  }, [code, copy])
 
   return (
     <button

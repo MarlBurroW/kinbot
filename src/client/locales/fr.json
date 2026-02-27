@@ -20,6 +20,7 @@
     "create": "Créer",
     "copy": "Copier",
     "copied": "Copié",
+    "copyFailed": "Échec de la copie",
     "test": "Tester",
     "whatIsThis": "Qu'est-ce que c'est ?",
     "unsavedChanges": {

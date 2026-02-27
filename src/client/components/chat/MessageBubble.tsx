@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
+import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Badge } from '@/client/components/ui/badge'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/client/components/ui/collapsible'
@@ -212,18 +212,11 @@ function InjectedMemoriesIndicator({ memories }: { memories: InjectedMemory[] })
 
 function CopyMessageButton({ content, isUser }: { content: string; isUser: boolean }) {
   const { t } = useTranslation()
-  const [copied, setCopied] = useState(false)
+  const { copy, copied } = useCopyToClipboard()
 
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(content)
-      setCopied(true)
-      toast.success(t('chat.copied'))
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error(t('chat.copyFailed'))
-    }
-  }, [content, t])
+  const handleCopy = useCallback(() => {
+    copy(content, { successKey: 'chat.copied', errorKey: 'chat.copyFailed' })
+  }, [content, copy])
 
   return (
     <button
@@ -487,15 +480,11 @@ function MessageContextMenu({
   onEditResend?: (text: string) => void
 }) {
   const { t } = useTranslation()
+  const { copy } = useCopyToClipboard()
 
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(content)
-      toast.success(t('chat.copied'))
-    } catch {
-      toast.error(t('chat.copyFailed'))
-    }
-  }, [content, t])
+  const handleCopy = useCallback(() => {
+    copy(content, { successKey: 'chat.copied', errorKey: 'chat.copyFailed' })
+  }, [content, copy])
 
   const handleQuote = useCallback(() => {
     if (onQuoteReply) {
