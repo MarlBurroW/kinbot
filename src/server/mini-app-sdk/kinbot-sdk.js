@@ -8,6 +8,7 @@
  *   KinBot.on()    — listen for events from the parent
  *   KinBot.emit()  — send events to the parent
  *   KinBot.toast() — show a toast notification in the parent UI
+ *   KinBot.storage  — persistent key-value storage (get/set/delete/list/clear)
  *   KinBot.ready() — signal that the app has finished loading
  */
 ;(function () {
@@ -128,6 +129,71 @@
     })
   } catch (e) {}
 
+  // ─── Storage ─────────────────────────────────────────────────────────
+
+  /**
+   * Persistent key-value storage per app, backed by the server.
+   * Values can be any JSON-serializable type.
+   * All methods return Promises. Requires KinBot.ready() to have been called.
+   */
+  var storage = {
+    /** Get a value by key. Returns parsed value or null if not found. */
+    get: function (key) {
+      if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+      return fetch('/api/mini-apps/' + _appMeta.id + '/storage/' + encodeURIComponent(key))
+        .then(function (r) {
+          if (r.status === 404) return null
+          if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'Storage error') })
+          return r.json().then(function (d) { return d.value })
+        })
+    },
+
+    /** Set a value for a key. Value must be JSON-serializable. */
+    set: function (key, value) {
+      if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+      return fetch('/api/mini-apps/' + _appMeta.id + '/storage/' + encodeURIComponent(key), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: value }),
+      }).then(function (r) {
+        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'Storage error') })
+      })
+    },
+
+    /** Delete a key. Returns true if deleted, false if not found. */
+    delete: function (key) {
+      if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+      return fetch('/api/mini-apps/' + _appMeta.id + '/storage/' + encodeURIComponent(key), {
+        method: 'DELETE',
+      }).then(function (r) {
+        if (r.status === 404) return false
+        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'Storage error') })
+        return true
+      })
+    },
+
+    /** List all keys with their sizes. Returns [{key, size}]. */
+    list: function () {
+      if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+      return fetch('/api/mini-apps/' + _appMeta.id + '/storage')
+        .then(function (r) {
+          if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'Storage error') })
+          return r.json().then(function (d) { return d.keys })
+        })
+    },
+
+    /** Clear all storage for this app. Returns number of keys cleared. */
+    clear: function () {
+      if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+      return fetch('/api/mini-apps/' + _appMeta.id + '/storage', {
+        method: 'DELETE',
+      }).then(function (r) {
+        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'Storage error') })
+        return r.json().then(function (d) { return d.cleared })
+      })
+    },
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -138,6 +204,7 @@
     toast: toast,
     navigate: navigate,
     ready: ready,
-    version: '1.0.0',
+    storage: storage,
+    version: '1.1.0',
   }
 })()

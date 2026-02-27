@@ -5,7 +5,7 @@ import { mkdir, unlink, readdir, stat, rm } from 'fs/promises'
 import { existsSync } from 'fs'
 import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
-import { miniApps, kins } from '@/server/db/schema'
+import { miniApps, miniAppStorage, kins } from '@/server/db/schema'
 import { config } from '@/server/config'
 import type { MiniAppSummary } from '@/shared/types'
 
@@ -328,3 +328,72 @@ export async function getMiniAppRow(id: string): Promise<MiniAppRow | null> {
 }
 
 export { guessMimeType }
+
+// ─── Key-Value Storage ──────────────────────────────────────────────────────
+
+const MAX_STORAGE_KEY_LENGTH = 256
+const MAX_STORAGE_VALUE_SIZE = 64 * 1024 // 64 KB per value
+const MAX_STORAGE_KEYS_PER_APP = 500
+
+export async function storageGet(appId: string, key: string): Promise<string | null> {
+  const row = await db.select()
+    .from(miniAppStorage)
+    .where(and(eq(miniAppStorage.appId, appId), eq(miniAppStorage.key, key)))
+    .get()
+  return row?.value ?? null
+}
+
+export async function storageSet(appId: string, key: string, value: string): Promise<void> {
+  if (key.length > MAX_STORAGE_KEY_LENGTH) {
+    throw new Error(`Key too long: max ${MAX_STORAGE_KEY_LENGTH} characters`)
+  }
+  if (value.length > MAX_STORAGE_VALUE_SIZE) {
+    throw new Error(`Value too large: max ${MAX_STORAGE_VALUE_SIZE} bytes`)
+  }
+
+  const existing = await db.select()
+    .from(miniAppStorage)
+    .where(and(eq(miniAppStorage.appId, appId), eq(miniAppStorage.key, key)))
+    .get()
+
+  if (existing) {
+    await db.update(miniAppStorage)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(miniAppStorage.id, existing.id))
+  } else {
+    // Check max keys
+    const count = await db.select({ id: miniAppStorage.id })
+      .from(miniAppStorage)
+      .where(eq(miniAppStorage.appId, appId))
+      .all()
+    if (count.length >= MAX_STORAGE_KEYS_PER_APP) {
+      throw new Error(`Maximum of ${MAX_STORAGE_KEYS_PER_APP} storage keys per app reached`)
+    }
+    await db.insert(miniAppStorage).values({
+      appId,
+      key,
+      value,
+      updatedAt: new Date(),
+    })
+  }
+}
+
+export async function storageDelete(appId: string, key: string): Promise<boolean> {
+  const result = await db.delete(miniAppStorage)
+    .where(and(eq(miniAppStorage.appId, appId), eq(miniAppStorage.key, key)))
+  return (result as any).changes > 0
+}
+
+export async function storageList(appId: string): Promise<{ key: string; size: number }[]> {
+  const rows = await db.select({ key: miniAppStorage.key, value: miniAppStorage.value })
+    .from(miniAppStorage)
+    .where(eq(miniAppStorage.appId, appId))
+    .all()
+  return rows.map((r) => ({ key: r.key, size: r.value.length }))
+}
+
+export async function storageClear(appId: string): Promise<number> {
+  const result = await db.delete(miniAppStorage)
+    .where(eq(miniAppStorage.appId, appId))
+  return (result as any).changes ?? 0
+}

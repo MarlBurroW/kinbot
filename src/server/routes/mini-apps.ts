@@ -15,6 +15,11 @@ import {
   getMiniAppRow,
   getAppDir,
   guessMimeType,
+  storageGet,
+  storageSet,
+  storageDelete,
+  storageList,
+  storageClear,
 } from '@/server/services/mini-apps'
 import { sseManager } from '@/server/sse/index'
 
@@ -203,6 +208,69 @@ miniAppRoutes.delete('/:id/files/*', async (c) => {
     const message = err instanceof Error ? err.message : 'Failed to delete file'
     return c.json({ error: { code: 'DELETE_FAILED', message } }, 400)
   }
+})
+
+// ─── Key-Value Storage ──────────────────────────────────────────────────────
+
+// List all keys
+miniAppRoutes.get('/:id/storage', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  try {
+    const keys = await storageList(app.id)
+    return c.json({ keys })
+  } catch (err) {
+    return c.json({ error: { code: 'STORAGE_ERROR', message: String(err) } }, 500)
+  }
+})
+
+// Get a value
+miniAppRoutes.get('/:id/storage/:key', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  const value = await storageGet(app.id, c.req.param('key'))
+  if (value === null) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'Key not found' } }, 404)
+  }
+  return c.json({ key: c.req.param('key'), value: JSON.parse(value) })
+})
+
+// Set a value
+miniAppRoutes.put('/:id/storage/:key', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  try {
+    const body = await c.req.json<{ value: unknown }>()
+    await storageSet(app.id, c.req.param('key'), JSON.stringify(body.value))
+    return c.json({ key: c.req.param('key'), ok: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Storage error'
+    return c.json({ error: { code: 'STORAGE_ERROR', message } }, 400)
+  }
+})
+
+// Delete a key
+miniAppRoutes.delete('/:id/storage/:key', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  const deleted = await storageDelete(app.id, c.req.param('key'))
+  if (!deleted) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'Key not found' } }, 404)
+  }
+  return c.body(null, 204)
+})
+
+// Clear all storage
+miniAppRoutes.delete('/:id/storage', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  const count = await storageClear(app.id)
+  return c.json({ cleared: count })
 })
 
 // ─── Serve (for iframe) ────────────────────────────────────────────────────

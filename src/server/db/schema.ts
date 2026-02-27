@@ -544,6 +544,19 @@ export const miniApps = sqliteTable('mini_apps', {
   index('idx_mini_apps_kin_id').on(table.kinId),
 ])
 
+// ─── Mini-App Key-Value Storage ──────────────────────────────────────────────
+
+export const miniAppStorage = sqliteTable('mini_app_storage', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  appId: text('app_id').notNull().references(() => miniApps.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),
+  value: text('value').notNull(),      // JSON-encoded
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  uniqueIndex('idx_mini_app_storage_app_key').on(table.appId, table.key),
+  index('idx_mini_app_storage_app_id').on(table.appId),
+])
+
 // ─── File Storage ────────────────────────────────────────────────────────────
 
 export const fileStorage = sqliteTable('file_storage', {

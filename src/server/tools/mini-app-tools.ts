@@ -38,7 +38,12 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.emit(event, data)` (send custom events to parent), ' +
         '`KinBot.toast(message, type)` (show a toast in KinBot UI, type: "info"|"success"|"warning"|"error"), ' +
         '`KinBot.navigate(path)` (navigate parent app, e.g. "/kins"), ' +
-        '`KinBot.ready()` (call when your app is loaded to receive app metadata). ' +
+        '`KinBot.storage.get(key)` → Promise<any|null> (read a persisted value), ' +
+        '`KinBot.storage.set(key, value)` → Promise (save any JSON-serializable value), ' +
+        '`KinBot.storage.delete(key)` → Promise<boolean>, ' +
+        '`KinBot.storage.list()` → Promise<[{key,size}]>, ' +
+        '`KinBot.storage.clear()` → Promise<number> (clear all keys), ' +
+        '`KinBot.ready()` (call when your app is loaded to receive app metadata — required before using storage). ' +
         'For additional files (CSS, JS, images), use write_mini_app_file after creation.',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),

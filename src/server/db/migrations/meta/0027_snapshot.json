@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e34ffe95-82d1-4cec-9c06-3d1ccf616e92",
-  "prevId": "778ca79d-8944-4531-b206-5e552e147f95",
+  "id": "03520943-35c3-4ff4-9f50-d8451dcf64a2",
+  "prevId": "e34ffe95-82d1-4cec-9c06-3d1ccf616e92",
   "tables": {
     "account": {
       "name": "account",
@@ -2340,6 +2340,81 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "mini_app_storage": {
+      "name": "mini_app_storage",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "app_id": {
+          "name": "app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_mini_app_storage_app_key": {
+          "name": "idx_mini_app_storage_app_key",
+          "columns": [
+            "app_id",
+            "key"
+          ],
+          "isUnique": true
+        },
+        "idx_mini_app_storage_app_id": {
+          "name": "idx_mini_app_storage_app_id",
+          "columns": [
+            "app_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "mini_app_storage_app_id_mini_apps_id_fk": {
+          "name": "mini_app_storage_app_id_mini_apps_id_fk",
+          "tableFrom": "mini_app_storage",
+          "tableTo": "mini_apps",
+          "columnsFrom": [
+            "app_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "mini_apps": {
       "name": "mini_apps",
       "columns": {
@@ -2841,6 +2916,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": true
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
