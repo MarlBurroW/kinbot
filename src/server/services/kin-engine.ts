@@ -382,6 +382,19 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
             break
           }
 
+          case 'tool-call-streaming-start': {
+            sseManager.sendToKin(kinId, {
+              type: 'chat:tool-call-start',
+              kinId,
+              data: {
+                messageId: assistantMessageId,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+              },
+            })
+            break
+          }
+
           case 'tool-call': {
             const contentOffset = fullContent.length
             toolCallsLog.push({
@@ -790,6 +803,14 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
               type: 'chat:token',
               kinId,
               data: { messageId: assistantMessageId, token: part.text, sessionId },
+            })
+            break
+          }
+          case 'tool-call-streaming-start': {
+            sseManager.sendToKin(kinId, {
+              type: 'chat:tool-call-start',
+              kinId,
+              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, sessionId },
             })
             break
           }

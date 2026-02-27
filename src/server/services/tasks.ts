@@ -315,6 +315,19 @@ async function executeSubKin(taskId: string) {
             })
             break
           }
+          case 'tool-call-streaming-start': {
+            sseManager.sendToKin(task.parentKinId, {
+              type: 'chat:tool-call-start',
+              kinId: task.parentKinId,
+              data: {
+                messageId: assistantMessageId,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                taskId,
+              },
+            })
+            break
+          }
           case 'tool-call': {
             const contentOffset = fullContent.length
             toolCallsLog.push({
