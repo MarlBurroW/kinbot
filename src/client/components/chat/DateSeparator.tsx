@@ -34,7 +34,7 @@ export function DateSeparator({ date }: DateSeparatorProps) {
   }, [date, t])
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-background/80 backdrop-blur-sm">
       <div className="h-px flex-1 bg-border" />
       <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
         {label}
