@@ -25,7 +25,7 @@ import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
 import { DateSeparator } from '@/client/components/chat/DateSeparator'
 import { SearchHighlightProvider } from '@/client/components/chat/SearchHighlightContext'
 import { cn } from '@/client/lib/utils'
-import { ArrowDown, Upload, Pin, PinOff } from 'lucide-react'
+import { ArrowDown, ArrowUp, Upload, Pin, PinOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 
@@ -67,6 +67,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
   const [newMessageCount, setNewMessageCount] = useState(0)
   const prevMessageCountRef = useRef(messages.length)
   const [autoScroll, setAutoScroll] = useState(() => {
@@ -199,6 +200,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       const nearBottom = scrollHeight - scrollTop - clientHeight < 100
       isNearBottomRef.current = nearBottom
       setShowScrollBottom(!nearBottom)
+      setShowScrollTop(scrollTop > 300)
       if (nearBottom) setNewMessageCount(0)
     }
     viewport.addEventListener('scroll', handleScroll)
@@ -228,6 +230,13 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
     setNewMessageCount(0)
+  }, [])
+
+  const scrollToTop = useCallback(() => {
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea) return
+    const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
+    if (viewport) viewport.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
   // Quote reply: insert quoted text into the draft and focus the input
@@ -535,6 +544,16 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
           </div>
           </SearchHighlightProvider>
         </ScrollArea>
+          {showScrollTop && !showScrollBottom && (
+            <button
+              onClick={scrollToTop}
+              className="absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-lg transition-opacity hover:opacity-90 hover:text-foreground"
+              title={t('chat.scrollToTop')}
+            >
+              <ArrowUp className="size-3.5" />
+              {t('chat.scrollToTop')}
+            </button>
+          )}
           {showScrollBottom && (
             <button
               onClick={scrollToBottom}

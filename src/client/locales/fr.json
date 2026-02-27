@@ -422,6 +422,7 @@
       "daysAgo": "il y a {{count}}j"
     },
     "scrollToBottom": "Aller en bas",
+    "scrollToTop": "Aller en haut",
     "autoScroll": {
       "on": "Défilement auto activé — cliquer pour désactiver",
       "off": "Défilement auto désactivé — cliquer pour activer"
