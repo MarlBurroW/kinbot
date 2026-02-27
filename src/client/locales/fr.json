@@ -474,7 +474,14 @@
       "start": "Lire à voix haute",
       "stop": "Arrêter la lecture"
     },
-    "inputHistory": "Appuyez sur ↑ pour parcourir les messages envoyés"
+    "inputHistory": "Appuyez sur ↑ pour parcourir les messages envoyés",
+    "format": {
+      "bold": "Gras",
+      "italic": "Italique",
+      "strikethrough": "Barré",
+      "code": "Code en ligne",
+      "codeBlock": "Bloc de code"
+    }
   },
   "quickChat": {
     "title": "Session rapide",

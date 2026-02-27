@@ -474,7 +474,14 @@
       "start": "Read aloud",
       "stop": "Stop reading"
     },
-    "inputHistory": "Press ↑ to browse sent messages"
+    "inputHistory": "Press ↑ to browse sent messages",
+    "format": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "strikethrough": "Strikethrough",
+      "code": "Inline code",
+      "codeBlock": "Code block"
+    }
   },
   "quickChat": {
     "title": "Quick Session",

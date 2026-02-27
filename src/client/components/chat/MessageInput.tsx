@@ -4,7 +4,7 @@ import { Button } from '@/client/components/ui/button'
 import { Textarea } from '@/client/components/ui/textarea'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 import { cn } from '@/client/lib/utils'
-import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2 } from 'lucide-react'
+import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2, Bold, Italic, Strikethrough, Code, Braces } from 'lucide-react'
 import { useInputHistory } from '@/client/hooks/useInputHistory'
 import type { PendingFile } from '@/client/hooks/useFileUpload'
 
@@ -52,6 +52,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [showToolbar, setShowToolbar] = useState(false)
   const dragCounterRef = useRef(0)
 
   useImperativeHandle(ref, () => ({
@@ -100,6 +101,16 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
     // Escape resets history browsing
     if (e.key === 'Escape') {
       history.reset()
+    }
+
+    // Formatting shortcuts
+    const mod = e.ctrlKey || e.metaKey
+    if (mod && !e.altKey) {
+      if (e.key === 'b') { e.preventDefault(); wrapSelection('**', '**') }
+      else if (e.key === 'i') { e.preventDefault(); wrapSelection('_', '_') }
+      else if (e.key === 'e' && e.shiftKey) { e.preventDefault(); wrapSelection('```\n', '\n```') }
+      else if (e.key === 'e') { e.preventDefault(); wrapSelection('`', '`') }
+      else if (e.key === 'x' && e.shiftKey) { e.preventDefault(); wrapSelection('~~', '~~') }
     }
   }
 
@@ -168,6 +179,42 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
     [onAddFiles],
   )
 
+  /** Wrap the current selection (or insert at cursor) with markdown syntax */
+  const wrapSelection = useCallback(
+    (prefix: string, suffix: string) => {
+      const textarea = textareaRef.current
+      if (!textarea) return
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selected = value.slice(start, end)
+
+      const newValue =
+        value.slice(0, start) + prefix + selected + suffix + value.slice(end)
+      onChange(newValue)
+
+      // Restore cursor position after React re-render
+      requestAnimationFrame(() => {
+        if (selected) {
+          // Select the wrapped text
+          textarea.setSelectionRange(start + prefix.length, end + prefix.length)
+        } else {
+          // Place cursor between prefix and suffix
+          textarea.setSelectionRange(start + prefix.length, start + prefix.length)
+        }
+        textarea.focus()
+      })
+    },
+    [value, onChange],
+  )
+
+  const formatActions = [
+    { key: 'bold', icon: Bold, prefix: '**', suffix: '**', shortcut: 'Ctrl+B' },
+    { key: 'italic', icon: Italic, prefix: '_', suffix: '_', shortcut: 'Ctrl+I' },
+    { key: 'strikethrough', icon: Strikethrough, prefix: '~~', suffix: '~~', shortcut: 'Ctrl+Shift+X' },
+    { key: 'code', icon: Code, prefix: '`', suffix: '`', shortcut: 'Ctrl+E' },
+    { key: 'codeBlock', icon: Braces, prefix: '```\n', suffix: '\n```', shortcut: 'Ctrl+Shift+E' },
+  ] as const
+
   return (
     <div
       className="relative border-t bg-background/80 backdrop-blur-sm p-4"
@@ -229,6 +276,34 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
           </div>
         )}
 
+        {/* Formatting toolbar — visible when input is focused or has content */}
+        {showToolbar && (
+          <div className="mb-1.5 flex items-center gap-0.5">
+            {formatActions.map(({ key, icon: Icon, prefix, suffix, shortcut }) => (
+              <Tooltip key={key}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onMouseDown={(e) => {
+                      // Prevent stealing focus from textarea
+                      e.preventDefault()
+                      wrapSelection(prefix, suffix)
+                    }}
+                    className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                    aria-label={t(`chat.format.${key}`)}
+                  >
+                    <Icon className="size-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {t(`chat.format.${key}`)} <kbd className="ml-1 text-[10px] text-muted-foreground">{shortcut.replace('Ctrl', navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl')}</kbd>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        )}
+
         {/* Input row */}
         <div className="flex items-end gap-2">
           {/* Attach button */}
@@ -265,6 +340,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            onFocus={() => setShowToolbar(true)}
+            onBlur={() => { if (!value) setShowToolbar(false) }}
             placeholder={disabledReason ?? t('chat.placeholder')}
             disabled={disabled || isStreaming}
             rows={1}
