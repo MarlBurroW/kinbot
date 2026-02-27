@@ -41,14 +41,14 @@ function splitMessage(text: string): string[] {
 }
 
 async function resolveToken(cfg: Record<string, unknown>): Promise<string> {
-  const vaultKey = (cfg as SlackChannelConfig).botTokenVaultKey
+  const vaultKey = (cfg as unknown as SlackChannelConfig).botTokenVaultKey
   const token = await getSecretValue(vaultKey)
   if (!token) throw new Error(`Vault key "${vaultKey}" not found`)
   return token
 }
 
 async function resolveSigningSecret(cfg: Record<string, unknown>): Promise<string> {
-  const vaultKey = (cfg as SlackChannelConfig).signingSecretVaultKey
+  const vaultKey = (cfg as unknown as SlackChannelConfig).signingSecretVaultKey
   const token = await getSecretValue(vaultKey)
   if (!token) throw new Error(`Vault key "${vaultKey}" not found`)
   return token
@@ -192,7 +192,7 @@ export class SlackAdapter implements ChannelAdapter {
   async start(channelId: string, cfg: Record<string, unknown>, onMessage: IncomingMessageHandler): Promise<void> {
     const token = await resolveToken(cfg)
     const signingSecret = await resolveSigningSecret(cfg)
-    const slackCfg = cfg as SlackChannelConfig
+    const slackCfg = cfg as unknown as SlackChannelConfig
 
     // Get bot user ID
     const authResult = await slackApi(token, 'auth.test') as { user_id?: string }

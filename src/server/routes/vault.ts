@@ -25,6 +25,7 @@ import {
 } from '@/server/services/vault-types'
 import { createLogger } from '@/server/logger'
 import { VAULT_BUILTIN_TYPES } from '@/shared/constants'
+import type { VaultFieldType, VaultTypeField } from '@/shared/types'
 
 const log = createLogger('routes:vault')
 const vaultRoutes = new Hono()
@@ -236,7 +237,7 @@ vaultRoutes.get('/attachments/:id', async (c) => {
     return c.json({ error: { code: 'ATTACHMENT_NOT_FOUND', message: 'Attachment not found' } }, 404)
   }
 
-  return new Response(result.data, {
+  return new Response(result.data as unknown as BodyInit, {
     headers: {
       'Content-Type': result.mimeType,
       'Content-Disposition': `attachment; filename="${encodeURIComponent(result.name)}"`,
@@ -271,7 +272,7 @@ vaultRoutes.post('/types', async (c) => {
     name: string
     slug: string
     icon?: string
-    fields: Array<{ name: string; label: string; type: string; required?: boolean; placeholder?: string }>
+    fields: VaultTypeField[]
   }
 
   if (!body.name || !body.slug || !body.fields || body.fields.length === 0) {
@@ -309,7 +310,7 @@ vaultRoutes.patch('/types/:id', async (c) => {
   const body = (await c.req.json()) as {
     name?: string
     icon?: string
-    fields?: Array<{ name: string; label: string; type: string; required?: boolean; placeholder?: string }>
+    fields?: VaultTypeField[]
   }
 
   try {

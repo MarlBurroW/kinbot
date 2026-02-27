@@ -35,8 +35,8 @@ describe('PROVIDER_META', () => {
     })
 
     it('noApiKey is boolean or undefined', () => {
-      if (meta.noApiKey !== undefined) {
-        expect(typeof meta.noApiKey).toBe('boolean')
+      if ((meta as ProviderMeta).noApiKey !== undefined) {
+        expect(typeof (meta as ProviderMeta).noApiKey).toBe('boolean')
       }
     })
   })
@@ -44,22 +44,22 @@ describe('PROVIDER_META', () => {
   // ── Capability coverage ──────────────────────────────────────────────
 
   it('has at least one LLM provider', () => {
-    const llmProviders = allTypes.filter((t) => PROVIDER_META[t].capabilities.includes('llm'))
+    const llmProviders = allTypes.filter((t) => (PROVIDER_META[t].capabilities as readonly string[]).includes('llm'))
     expect(llmProviders.length).toBeGreaterThanOrEqual(1)
   })
 
   it('has at least one embedding provider', () => {
-    const embeddingProviders = allTypes.filter((t) => PROVIDER_META[t].capabilities.includes('embedding'))
+    const embeddingProviders = allTypes.filter((t) => (PROVIDER_META[t].capabilities as readonly string[]).includes('embedding'))
     expect(embeddingProviders.length).toBeGreaterThanOrEqual(1)
   })
 
   it('has at least one search provider', () => {
-    const searchProviders = allTypes.filter((t) => PROVIDER_META[t].capabilities.includes('search'))
+    const searchProviders = allTypes.filter((t) => (PROVIDER_META[t].capabilities as readonly string[]).includes('search'))
     expect(searchProviders.length).toBeGreaterThanOrEqual(1)
   })
 
   it('has at least one image provider', () => {
-    const imageProviders = allTypes.filter((t) => PROVIDER_META[t].capabilities.includes('image'))
+    const imageProviders = allTypes.filter((t) => (PROVIDER_META[t].capabilities as readonly string[]).includes('image'))
     expect(imageProviders.length).toBeGreaterThanOrEqual(1)
   })
 

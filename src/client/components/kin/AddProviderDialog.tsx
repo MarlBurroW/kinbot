@@ -46,7 +46,7 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
   const [error, setError] = useState('')
 
   const types = providerTypes ?? PROVIDER_TYPES
-  const defaultType = types[0] ?? PROVIDER_TYPES[0]
+  const defaultType = types[0] ?? PROVIDER_TYPES[0] ?? ''
   const [providerType, setProviderType] = useState<string>(defaultType)
   const [providerName, setProviderName] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -75,7 +75,6 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
     setTestPassed(false)
     setIsTesting(false)
     setIsSaving(false)
-    setShowApiKey(false)
   }
 
   const handleClose = () => {

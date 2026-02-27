@@ -122,7 +122,7 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
   }
 
   const startAddNote = () => {
-    const firstKinId = kinInfo ? [...kinInfo.keys()][0] : ''
+    const firstKinId = kinInfo ? [...kinInfo.keys()][0] ?? '' : ''
     setNewNoteKinId(firstKinId)
     setNewNoteScope('global')
     setNewNoteContent('')

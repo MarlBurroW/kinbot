@@ -315,7 +315,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const handleRegenerate = useCallback(() => {
     // Find the last user message (walking backwards)
     for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i]
+      const msg = messages[i]!
       if (msg.role === 'user' && msg.sourceType === 'user') {
         sendMessage(msg.content)
         return
@@ -326,7 +326,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   // Determine the last assistant message id (for showing the regenerate button)
   const lastAssistantMsgId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant') return messages[i].id
+      if (messages[i]!.role === 'assistant') return messages[i]!.id
     }
     return null
   }, [messages])
@@ -408,8 +408,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   let dateSeparator: React.ReactNode = null
                   if (msg.createdAt) {
                     const msgDay = new Date(msg.createdAt).toDateString()
-                    const prevDay = idx > 0 && messages[idx - 1].createdAt
-                      ? new Date(messages[idx - 1].createdAt).toDateString()
+                    const prevDay = idx > 0 && messages[idx - 1]?.createdAt
+                      ? new Date(messages[idx - 1]!.createdAt).toDateString()
                       : null
                     if (idx === 0 || msgDay !== prevDay) {
                       dateSeparator = <DateSeparator key={`date-${msg.id}`} date={msg.createdAt} />

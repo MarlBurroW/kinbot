@@ -9,7 +9,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as typeof fetch
 }
 
 describe('geminiProvider', () => {
@@ -37,7 +37,7 @@ describe('geminiProvider', () => {
     it('returns invalid with error on HTTP failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Forbidden', { status: 403 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { geminiProvider } = await import('@/server/providers/gemini')
       const result = await geminiProvider.testConnection({ apiKey: 'bad-key' })
       expect(result.valid).toBe(false)
@@ -47,7 +47,7 @@ describe('geminiProvider', () => {
     it('returns invalid on network error', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Network error')),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { geminiProvider } = await import('@/server/providers/gemini')
       const result = await geminiProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -91,8 +91,8 @@ describe('geminiProvider', () => {
       const { geminiProvider } = await import('@/server/providers/gemini')
       const models = await geminiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('image')
-      expect(models[0].supportsImageInput).toBe(false)
+      expect(models[0]!.capability).toBe('image')
+      expect(models[0]!.supportsImageInput).toBe(false)
     })
 
     it('classifies gemini-image models as image with image input', async () => {
@@ -104,8 +104,8 @@ describe('geminiProvider', () => {
       const { geminiProvider } = await import('@/server/providers/gemini')
       const models = await geminiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('image')
-      expect(models[0].supportsImageInput).toBe(true)
+      expect(models[0]!.capability).toBe('image')
+      expect(models[0]!.supportsImageInput).toBe(true)
     })
 
     it('embedding takes priority over generateContent', async () => {
@@ -118,7 +118,7 @@ describe('geminiProvider', () => {
       const { geminiProvider } = await import('@/server/providers/gemini')
       const models = await geminiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('embedding')
+      expect(models[0]!.capability).toBe('embedding')
     })
 
     it('filters out models with no recognized generation methods', async () => {
@@ -131,7 +131,7 @@ describe('geminiProvider', () => {
       const { geminiProvider } = await import('@/server/providers/gemini')
       const models = await geminiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].id).toBe('gemini-2.0-flash')
+      expect(models[0]!.id).toBe('gemini-2.0-flash')
     })
 
     it('strips models/ prefix from model IDs', async () => {
@@ -142,13 +142,13 @@ describe('geminiProvider', () => {
       })
       const { geminiProvider } = await import('@/server/providers/gemini')
       const models = await geminiProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].id).toBe('gemini-2.0-flash')
+      expect(models[0]!.id).toBe('gemini-2.0-flash')
     })
 
     it('returns empty array on API error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Server Error', { status: 500 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { geminiProvider } = await import('@/server/providers/gemini')
       const models = await geminiProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -186,7 +186,7 @@ describe('geminiProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { geminiProvider } = await import('@/server/providers/gemini')
       await geminiProvider.listModels({ apiKey: 'test-key', baseUrl: 'https://custom.gemini.com' })
       expect(fetchMock).toHaveBeenCalledWith(
@@ -201,7 +201,7 @@ describe('geminiProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { geminiProvider } = await import('@/server/providers/gemini')
       await geminiProvider.listModels({ apiKey: 'test-key' })
       expect(fetchMock).toHaveBeenCalledWith(

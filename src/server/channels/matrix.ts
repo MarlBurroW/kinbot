@@ -42,14 +42,14 @@ function splitMessage(text: string): string[] {
 }
 
 async function resolveToken(cfg: Record<string, unknown>): Promise<string> {
-  const vaultKey = (cfg as MatrixChannelConfig).accessTokenVaultKey
+  const vaultKey = (cfg as unknown as MatrixChannelConfig).accessTokenVaultKey
   const token = await getSecretValue(vaultKey)
   if (!token) throw new Error(`Vault key "${vaultKey}" not found`)
   return token
 }
 
 function getHomeserverUrl(cfg: Record<string, unknown>): string {
-  const url = (cfg as MatrixChannelConfig).homeserverUrl
+  const url = (cfg as unknown as MatrixChannelConfig).homeserverUrl
   if (!url) throw new Error('homeserverUrl is required in Matrix channel config')
   return url.replace(/\/+$/, '')
 }
@@ -101,7 +101,7 @@ export class MatrixAdapter implements ChannelAdapter {
   async start(channelId: string, cfg: Record<string, unknown>, onMessage: IncomingMessageHandler): Promise<void> {
     const homeserver = getHomeserverUrl(cfg)
     const token = await resolveToken(cfg)
-    const matrixCfg = cfg as MatrixChannelConfig
+    const matrixCfg = cfg as unknown as MatrixChannelConfig
 
     this.handlers.set(channelId, { onMessage, cfg: matrixCfg })
 

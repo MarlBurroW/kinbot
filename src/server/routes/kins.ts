@@ -30,10 +30,11 @@ import {
   kinAvatarUrl,
 } from '@/server/services/kins'
 import { listModelsForProvider } from '@/server/providers/index'
+import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
 
 const log = createLogger('routes:kins')
-const kinRoutes = new Hono()
+const kinRoutes = new Hono<{ Variables: AppVariables }>()
 
 // GET /api/kins — list all kins
 kinRoutes.get('/', async (c) => {

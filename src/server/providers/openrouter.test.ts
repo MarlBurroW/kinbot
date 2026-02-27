@@ -89,7 +89,7 @@ describe('openrouterProvider', () => {
       })
 
       expect(mockFetch).toHaveBeenCalledTimes(1)
-      const calledUrl = mockFetch.mock.calls[0][0]
+      const calledUrl = (mockFetch as any).mock.calls[0][0]
       expect(calledUrl).toBe('https://custom.api.com/v1/models')
     })
 
@@ -105,7 +105,7 @@ describe('openrouterProvider', () => {
 
       await openrouterProvider.testConnection({ apiKey: 'key' })
 
-      const calledUrl = mockFetch.mock.calls[0][0]
+      const calledUrl = (mockFetch as any).mock.calls[0][0]
       expect(calledUrl).toBe('https://openrouter.ai/api/v1/models')
     })
   })
@@ -133,8 +133,8 @@ describe('openrouterProvider', () => {
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
       expect(models.length).toBe(2)
-      expect(models[0].capability).toBe('llm')
-      expect(models[1].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
+      expect(models[1]!.capability).toBe('llm')
     })
 
     it('should classify image models via output_modalities', async () => {
@@ -159,7 +159,7 @@ describe('openrouterProvider', () => {
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('image')
+      expect(models[0]!.capability).toBe('image')
     })
 
     it('should classify image models via modality string', async () => {
@@ -181,7 +181,7 @@ describe('openrouterProvider', () => {
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('image')
+      expect(models[0]!.capability).toBe('image')
     })
 
     it('should classify embedding models by id', async () => {
@@ -198,7 +198,7 @@ describe('openrouterProvider', () => {
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('embedding')
+      expect(models[0]!.capability).toBe('embedding')
     })
 
     it('should resolve supportsImageInput from input_modalities', async () => {
@@ -222,7 +222,7 @@ describe('openrouterProvider', () => {
       )
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
-      expect(models[0].supportsImageInput).toBe(true)
+      expect(models[0]!.supportsImageInput).toBe(true)
     })
 
     it('should not set supportsImageInput for LLM models', async () => {
@@ -243,7 +243,7 @@ describe('openrouterProvider', () => {
       )
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
-      expect(models[0].supportsImageInput).toBeUndefined()
+      expect(models[0]!.supportsImageInput).toBeUndefined()
     })
 
     it('should sort models alphabetically by id', async () => {
@@ -299,7 +299,7 @@ describe('openrouterProvider', () => {
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
       expect(models.length).toBe(1)
-      expect(models[0].id).toBe('bare-model')
+      expect(models[0]!.id).toBe('bare-model')
     })
 
     it('should return empty array on fetch error', async () => {
@@ -344,7 +344,7 @@ describe('openrouterProvider', () => {
       )
 
       const models = await openrouterProvider.listModels({ apiKey: 'key' })
-      expect(models[0].capability).toBe('image')
+      expect(models[0]!.capability).toBe('image')
     })
   })
 })

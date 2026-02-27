@@ -43,7 +43,7 @@ function splitMessage(text: string): string[] {
 }
 
 async function resolveApiUrl(cfg: Record<string, unknown>): Promise<string> {
-  const vaultKey = (cfg as SignalChannelConfig).apiUrlVaultKey
+  const vaultKey = (cfg as unknown as SignalChannelConfig).apiUrlVaultKey
   const url = await getSecretValue(vaultKey)
   if (!url) throw new Error(`Vault key "${vaultKey}" not found`)
   // Strip trailing slash
@@ -51,7 +51,7 @@ async function resolveApiUrl(cfg: Record<string, unknown>): Promise<string> {
 }
 
 function getPhoneNumber(cfg: Record<string, unknown>): string {
-  const phone = (cfg as SignalChannelConfig).phoneNumber
+  const phone = (cfg as unknown as SignalChannelConfig).phoneNumber
   if (!phone) throw new Error('phoneNumber is required in Signal channel config')
   return phone
 }
@@ -97,7 +97,7 @@ export class SignalAdapter implements ChannelAdapter {
   async start(channelId: string, cfg: Record<string, unknown>, onMessage: IncomingMessageHandler): Promise<void> {
     const apiUrl = await resolveApiUrl(cfg)
     const phone = getPhoneNumber(cfg)
-    const signalCfg = cfg as SignalChannelConfig
+    const signalCfg = cfg as unknown as SignalChannelConfig
 
     this.handlers.set(channelId, { onMessage, cfg: signalCfg })
 

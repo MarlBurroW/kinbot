@@ -73,7 +73,7 @@ export function ModelPicker({
     () =>
       filteredModels.reduce<Record<string, ModelPickerModel[]>>((acc, m) => {
         if (!acc[m.providerType]) acc[m.providerType] = []
-        acc[m.providerType].push(m)
+        acc[m.providerType]!.push(m)
         return acc
       }, {}),
     [filteredModels],

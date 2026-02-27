@@ -9,7 +9,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as typeof fetch
 }
 
 describe('xaiProvider', () => {
@@ -35,7 +35,7 @@ describe('xaiProvider', () => {
     it('returns invalid with error on HTTP failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { xaiProvider } = await import('@/server/providers/xai')
       const result = await xaiProvider.testConnection({ apiKey: 'bad-key' })
       expect(result.valid).toBe(false)
@@ -45,7 +45,7 @@ describe('xaiProvider', () => {
     it('returns invalid on network error', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Network error')),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { xaiProvider } = await import('@/server/providers/xai')
       const result = await xaiProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -56,7 +56,7 @@ describe('xaiProvider', () => {
       mockFetchResponse({ data: [{ id: 'grok-2', object: 'model' }] })
       const { xaiProvider } = await import('@/server/providers/xai')
       await xaiProvider.testConnection({ apiKey: 'test-key', baseUrl: 'https://custom.api/v1' })
-      const fetchCall = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0]
+      const fetchCall = (globalThis.fetch as unknown as ReturnType<typeof mock>).mock.calls[0]!
       expect(fetchCall[0]).toBe('https://custom.api/v1/models')
     })
   })
@@ -107,7 +107,7 @@ describe('xaiProvider', () => {
       const { xaiProvider } = await import('@/server/providers/xai')
       const models = await xaiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('returns sorted models by id', async () => {
@@ -127,7 +127,7 @@ describe('xaiProvider', () => {
     it('returns empty array on API error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Server Error', { status: 500 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { xaiProvider } = await import('@/server/providers/xai')
       const models = await xaiProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -136,7 +136,7 @@ describe('xaiProvider', () => {
     it('returns empty array on network error', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Connection refused')),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { xaiProvider } = await import('@/server/providers/xai')
       const models = await xaiProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -163,8 +163,8 @@ describe('xaiProvider', () => {
       mockFetchResponse({ data: [{ id: 'grok-2', object: 'model' }] })
       const { xaiProvider } = await import('@/server/providers/xai')
       const models = await xaiProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].name).toBe('grok-2')
-      expect(models[0].id).toBe('grok-2')
+      expect(models[0]!.name).toBe('grok-2')
+      expect(models[0]!.id).toBe('grok-2')
     })
   })
 

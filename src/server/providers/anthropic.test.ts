@@ -9,7 +9,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as typeof fetch
 }
 
 describe('anthropicProvider', () => {
@@ -37,7 +37,7 @@ describe('anthropicProvider', () => {
     it('returns invalid with error on HTTP failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       const result = await anthropicProvider.testConnection({ apiKey: 'bad-key' })
       expect(result.valid).toBe(false)
@@ -47,7 +47,7 @@ describe('anthropicProvider', () => {
     it('returns invalid on network error', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Network error')),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       const result = await anthropicProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -78,14 +78,14 @@ describe('anthropicProvider', () => {
       })
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       const models = await anthropicProvider.listModels({ apiKey: 'test-key' })
-      expect(models[0].id).toBe('claude-sonnet-4-20250514')
-      expect(models[0].name).toBe('Claude Sonnet 4')
+      expect(models[0]!.id).toBe('claude-sonnet-4-20250514')
+      expect(models[0]!.name).toBe('Claude Sonnet 4')
     })
 
     it('returns empty array on API error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Server Error', { status: 500 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       const models = await anthropicProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -94,7 +94,7 @@ describe('anthropicProvider', () => {
     it('returns empty array on network error', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Network error')),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       const models = await anthropicProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -107,7 +107,7 @@ describe('anthropicProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       await anthropicProvider.listModels({ apiKey: 'test-key', baseUrl: 'https://custom.api.com' })
       expect(fetchMock).toHaveBeenCalledWith(
@@ -125,7 +125,7 @@ describe('anthropicProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       await anthropicProvider.listModels({ apiKey: 'test-key' })
       expect(fetchMock).toHaveBeenCalledWith(
@@ -141,7 +141,7 @@ describe('anthropicProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { anthropicProvider } = await import('@/server/providers/anthropic')
       await anthropicProvider.listModels({ apiKey: 'test-key' })
       expect(fetchMock).toHaveBeenCalledWith(

@@ -173,7 +173,7 @@ export function TaskList({ llmModels }: TaskListProps) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadMore()
+        if (entries[0]?.isIntersecting) loadMore()
       },
       { root: scrollRef.current, threshold: 0.1 },
     )

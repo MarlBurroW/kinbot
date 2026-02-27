@@ -675,11 +675,13 @@ export async function listTasksPaginated(params: ListTasksPaginatedParams) {
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-  const [{ count }] = await db
+  const countResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(tasks)
     .where(whereClause)
     .all()
+
+  const total = countResult[0]?.count ?? 0
 
   const rows = await db
     .select()
@@ -690,7 +692,7 @@ export async function listTasksPaginated(params: ListTasksPaginatedParams) {
     .offset(offset)
     .all()
 
-  return { tasks: rows, total: count }
+  return { tasks: rows, total }
 }
 
 // ─── Cron Journal ────────────────────────────────────────────────────────────

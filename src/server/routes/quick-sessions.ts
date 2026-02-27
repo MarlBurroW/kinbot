@@ -8,6 +8,7 @@ import { abortQuickSessionStream } from '@/server/services/kin-engine'
 import { resolveKinId } from '@/server/services/kin-resolver'
 import { getFilesForMessages, serializeFile } from '@/server/services/files'
 import { config } from '@/server/config'
+import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
 import { sseManager } from '@/server/sse/index'
 import type { QuickSessionStatus, QuickSessionSummary } from '@/shared/types'
@@ -16,7 +17,7 @@ const log = createLogger('routes:quick-sessions')
 
 // ─── Kin-scoped routes: /api/kins/:kinId/quick-sessions ──────────────────────
 
-const kinScopedRoutes = new Hono()
+const kinScopedRoutes = new Hono<{ Variables: AppVariables }>()
 
 // POST / — create a new quick session
 kinScopedRoutes.post('/', async (c) => {
@@ -108,7 +109,7 @@ kinScopedRoutes.get('/', async (c) => {
 
 // ─── Session-scoped routes: /api/quick-sessions/:id ──────────────────────────
 
-const sessionRoutes = new Hono()
+const sessionRoutes = new Hono<{ Variables: AppVariables }>()
 
 // Helper: load session and verify ownership
 async function loadSession(sessionId: string, userId: string) {

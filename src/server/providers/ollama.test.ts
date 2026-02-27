@@ -5,10 +5,8 @@ import type { ProviderConfig } from '@/server/providers/types'
 // Since classifyModel is not exported, we test it indirectly through listModels.
 
 const mockConfig: ProviderConfig = {
-  type: 'ollama',
   baseUrl: 'http://localhost:11434',
   apiKey: '',
-  enabled: true,
 }
 
 const originalFetch = globalThis.fetch
@@ -17,7 +15,7 @@ function mockFetch(handler: (url: string) => Response) {
   globalThis.fetch = mock((input: RequestInfo | URL) => {
     const url = typeof input === 'string' ? input : input.toString()
     return Promise.resolve(handler(url))
-  }) as typeof fetch
+  }) as unknown as typeof fetch
 }
 
 function makeTagsResponse(models: Array<{ name: string; family?: string }>) {
@@ -65,7 +63,7 @@ describe('ollama provider', () => {
     })
 
     it('returns valid:false when fetch throws (connection refused)', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('Connection refused'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('Connection refused'))) as unknown as typeof fetch
       const result = await ollamaProvider.testConnection(mockConfig)
       expect(result.valid).toBe(false)
       expect(result.error).toBe('Connection refused')
@@ -82,7 +80,7 @@ describe('ollama provider', () => {
       globalThis.fetch = mock((input: RequestInfo | URL) => {
         calledUrl = typeof input === 'string' ? input : input.toString()
         return Promise.resolve(new Response(JSON.stringify(makeTagsResponse([])), { status: 200 }))
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await ollamaProvider.testConnection({ ...mockConfig, baseUrl: undefined })
       expect(calledUrl).toBe('http://localhost:11434/api/tags')
@@ -93,7 +91,7 @@ describe('ollama provider', () => {
       globalThis.fetch = mock((input: RequestInfo | URL) => {
         calledUrl = typeof input === 'string' ? input : input.toString()
         return Promise.resolve(new Response(JSON.stringify(makeTagsResponse([])), { status: 200 }))
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await ollamaProvider.testConnection({ ...mockConfig, baseUrl: 'http://myserver:11434' })
       expect(calledUrl).toBe('http://myserver:11434/api/tags')
@@ -109,8 +107,8 @@ describe('ollama provider', () => {
       )
       const models = await ollamaProvider.listModels(mockConfig)
       expect(models).toHaveLength(2)
-      expect(models[0].capability).toBe('llm')
-      expect(models[1].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
+      expect(models[1]!.capability).toBe('llm')
     })
 
     it('classifies embedding models correctly', async () => {
@@ -131,7 +129,7 @@ describe('ollama provider', () => {
       )
       const models = await ollamaProvider.listModels(mockConfig)
       expect(models).toHaveLength(1)
-      expect(models[0].capability).toBe('embedding')
+      expect(models[0]!.capability).toBe('embedding')
     })
 
     it('returns models sorted by id', async () => {
@@ -152,7 +150,7 @@ describe('ollama provider', () => {
     })
 
     it('returns empty array on network error', async () => {
-      globalThis.fetch = mock(() => Promise.reject(new Error('ECONNREFUSED'))) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject(new Error('ECONNREFUSED'))) as unknown as typeof fetch
       const models = await ollamaProvider.listModels(mockConfig)
       expect(models).toEqual([])
     })
@@ -168,8 +166,8 @@ describe('ollama provider', () => {
         new Response(JSON.stringify(makeTagsResponse([{ name: 'llama3:8b-instruct-q4_0' }])), { status: 200 }),
       )
       const models = await ollamaProvider.listModels(mockConfig)
-      expect(models[0].id).toBe('llama3:8b-instruct-q4_0')
-      expect(models[0].name).toBe('llama3:8b-instruct-q4_0')
+      expect(models[0]!.id).toBe('llama3:8b-instruct-q4_0')
+      expect(models[0]!.name).toBe('llama3:8b-instruct-q4_0')
     })
 
     it('handles mixed LLM and embedding models', async () => {

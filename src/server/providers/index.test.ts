@@ -149,7 +149,7 @@ describe('Provider Registry', () => {
             { status: 200 },
           ),
         ),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await listModelsForProvider('openai', { apiKey: 'fake' })
 
@@ -201,7 +201,7 @@ describe('Provider Registry', () => {
     it('returns empty array when API fails', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await listModelsForProvider('openai', { apiKey: 'bad' })
       expect(models).toEqual([])
@@ -220,7 +220,7 @@ describe('Provider Registry', () => {
             { status: 200 },
           ),
         ),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await listModelsForProvider('openai', { apiKey: 'fake' })
       expect(models[0]!.id).toBe('gpt-3.5-turbo')

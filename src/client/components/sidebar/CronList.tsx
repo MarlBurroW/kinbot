@@ -265,7 +265,7 @@ export function CronList({ kins, llmModels }: CronListProps) {
 
     const reordered = [...regularCrons]
     const [moved] = reordered.splice(oldIndex, 1)
-    reordered.splice(newIndex, 0, moved)
+    reordered.splice(newIndex, 0, moved!)
     reorderCrons(reordered.map((c) => c.id))
   }, [regularCrons, reorderCrons])
 

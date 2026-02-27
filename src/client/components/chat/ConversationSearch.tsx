@@ -22,7 +22,7 @@ export function ConversationSearch({ onClose, onSearchChange, messages }: Conver
     ? messages
         .map((msg, i) => ({ msgIndex: i, msgId: msg.id }))
         .filter(({ msgIndex }) =>
-          messages[msgIndex].content.toLowerCase().includes(query.toLowerCase()),
+          messages[msgIndex]!.content.toLowerCase().includes(query.toLowerCase()),
         )
     : []
 

@@ -12,7 +12,7 @@ function mockFetchResponse(data: unknown, status = 200) {
       status,
       headers: { 'Content-Type': 'application/json' },
     })),
-  ) as typeof fetch
+  ) as unknown as typeof fetch
 }
 
 describe('openaiProvider', () => {
@@ -38,7 +38,7 @@ describe('openaiProvider', () => {
     it('returns invalid with error on HTTP failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { openaiProvider } = await import('@/server/providers/openai')
       const result = await openaiProvider.testConnection({ apiKey: 'bad-key' })
       expect(result.valid).toBe(false)
@@ -48,7 +48,7 @@ describe('openaiProvider', () => {
     it('returns invalid on network error', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Network error')),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { openaiProvider } = await import('@/server/providers/openai')
       const result = await openaiProvider.testConnection({ apiKey: 'test-key' })
       expect(result.valid).toBe(false)
@@ -78,7 +78,7 @@ describe('openaiProvider', () => {
       const { openaiProvider } = await import('@/server/providers/openai')
       const models = await openaiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('llm')
+      expect(models[0]!.capability).toBe('llm')
     })
 
     it('classifies o-series models as LLM', async () => {
@@ -114,8 +114,8 @@ describe('openaiProvider', () => {
       const { openaiProvider } = await import('@/server/providers/openai')
       const models = await openaiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('image')
-      expect(models[0].supportsImageInput).toBe(false)
+      expect(models[0]!.capability).toBe('image')
+      expect(models[0]!.supportsImageInput).toBe(false)
     })
 
     it('classifies gpt-image as image with image input', async () => {
@@ -125,8 +125,8 @@ describe('openaiProvider', () => {
       const { openaiProvider } = await import('@/server/providers/openai')
       const models = await openaiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].capability).toBe('image')
-      expect(models[0].supportsImageInput).toBe(true)
+      expect(models[0]!.capability).toBe('image')
+      expect(models[0]!.supportsImageInput).toBe(true)
     })
 
     it('filters out fine-tuned models (ft: prefix)', async () => {
@@ -139,7 +139,7 @@ describe('openaiProvider', () => {
       const { openaiProvider } = await import('@/server/providers/openai')
       const models = await openaiProvider.listModels({ apiKey: 'test-key' })
       expect(models.length).toBe(1)
-      expect(models[0].id).toBe('gpt-4o')
+      expect(models[0]!.id).toBe('gpt-4o')
     })
 
     it('filters out unrecognized models', async () => {
@@ -172,7 +172,7 @@ describe('openaiProvider', () => {
     it('returns empty array on API error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Server Error', { status: 500 })),
-      ) as typeof fetch
+      ) as unknown as typeof fetch
       const { openaiProvider } = await import('@/server/providers/openai')
       const models = await openaiProvider.listModels({ apiKey: 'test-key' })
       expect(models).toEqual([])
@@ -185,7 +185,7 @@ describe('openaiProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { openaiProvider } = await import('@/server/providers/openai')
       await openaiProvider.listModels({ apiKey: 'test-key', baseUrl: 'https://custom.api.com/v1' })
       expect(fetchMock).toHaveBeenCalledWith(
@@ -203,7 +203,7 @@ describe('openaiProvider', () => {
           headers: { 'Content-Type': 'application/json' },
         })),
       )
-      globalThis.fetch = fetchMock as typeof fetch
+      globalThis.fetch = fetchMock as unknown as typeof fetch
       const { openaiProvider } = await import('@/server/providers/openai')
       await openaiProvider.listModels({ apiKey: 'test-key' })
       expect(fetchMock).toHaveBeenCalledWith(

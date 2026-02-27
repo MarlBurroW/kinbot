@@ -149,6 +149,9 @@ export const updateContactTool: ToolRegistration = {
         if (!updated) {
           return { error: 'Contact not found' }
         }
+        if ('error' in updated) {
+          return { error: `Cannot update: user is already linked to contact "${updated.linkedContactName}"` }
+        }
         // Add identifiers
         if (identifiers?.length) {
           for (const ident of identifiers) {

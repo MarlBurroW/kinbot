@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, blob, primaryKey, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, blob, primaryKey, uniqueIndex, index, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 
 // ─── Better Auth tables ────────────────────────────────────────────────────────
 // These tables are managed by Better Auth. Defined here for Drizzle relations
@@ -244,7 +244,7 @@ export const tasks = sqliteTable('tasks', {
   result: text('result'),
   error: text('error'),
   depth: integer('depth').notNull().default(1),
-  parentTaskId: text('parent_task_id').references(() => tasks.id),
+  parentTaskId: text('parent_task_id').references((): AnySQLiteColumn => tasks.id),
   cronId: text('cron_id').references(() => crons.id),
   requestInputCount: integer('request_input_count').notNull().default(0),
   allowHumanPrompt: integer('allow_human_prompt', { mode: 'boolean' }).notNull().default(true),

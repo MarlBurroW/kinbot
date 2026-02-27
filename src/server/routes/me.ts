@@ -2,10 +2,11 @@ import { Hono } from 'hono'
 import { eq } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { userProfiles, user } from '@/server/db/schema'
+import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
 
 const log = createLogger('routes:me')
-const meRoutes = new Hono()
+const meRoutes = new Hono<{ Variables: AppVariables }>()
 
 // GET /api/me — get current user profile
 meRoutes.get('/', async (c) => {

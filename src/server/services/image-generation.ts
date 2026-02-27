@@ -261,7 +261,7 @@ export async function buildAvatarPrompt(kin: {
     model,
     system: AVATAR_STYLE_SYSTEM,
     prompt: `Name: ${kin.name}\nRole: ${kin.role}\nPersonality: ${charSnippet}\nExpertise: ${expertSnippet}`,
-    maxTokens: 200,
+    maxOutputTokens: 200,
   })
 
   return text.trim()

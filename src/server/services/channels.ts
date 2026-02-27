@@ -170,7 +170,7 @@ export async function deleteChannel(channelId: string) {
     if (adapter) {
       try {
         const cfg = JSON.parse(existing.platformConfig) as Record<string, unknown>
-        await adapter.stop(channelId, cfg)
+        await adapter.stop(channelId)
       } catch (err) {
         log.warn({ channelId, err }, 'Failed to stop adapter during delete')
       }
@@ -231,7 +231,7 @@ export async function deactivateChannel(channelId: string) {
   if (adapter) {
     try {
       const cfg = JSON.parse(channel.platformConfig) as Record<string, unknown>
-      await adapter.stop(channelId, cfg)
+      await adapter.stop(channelId)
     } catch (err) {
       log.warn({ channelId, err }, 'Failed to stop adapter during deactivate')
     }

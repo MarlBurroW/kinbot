@@ -23,7 +23,7 @@ const { authMiddleware } = await import('@/server/auth/middleware')
 // ─── Test app factory ────────────────────────────────────────────────────────
 
 function createTestApp() {
-  const app = new Hono()
+  const app = new Hono<{ Variables: { user: unknown; session: unknown } }>()
   app.use('*', authMiddleware)
   // A catch-all handler that returns 200 if middleware didn't block
   app.all('*', (c) => {

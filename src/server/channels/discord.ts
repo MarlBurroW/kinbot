@@ -53,7 +53,7 @@ function splitMessage(text: string): string[] {
 }
 
 async function resolveToken(cfg: Record<string, unknown>): Promise<string> {
-  const vaultKey = (cfg as DiscordChannelConfig).botTokenVaultKey
+  const vaultKey = (cfg as unknown as DiscordChannelConfig).botTokenVaultKey
   const token = await getSecretValue(vaultKey)
   if (!token) throw new Error(`Vault key "${vaultKey}" not found`)
   return token
@@ -278,7 +278,7 @@ export class DiscordAdapter implements ChannelAdapter {
 
   async start(channelId: string, cfg: Record<string, unknown>, onMessage: IncomingMessageHandler): Promise<void> {
     const token = await resolveToken(cfg)
-    const discordCfg = cfg as DiscordChannelConfig
+    const discordCfg = cfg as unknown as DiscordChannelConfig
 
     const state: GatewayState = {
       ws: null,

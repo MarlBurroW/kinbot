@@ -209,9 +209,11 @@ export async function resolveMCPTools(
   const linkedIds = new Set(links.map((l) => l.mcpServerId))
 
   // Also include servers referenced in toolConfig.mcpAccess (may not be linked yet)
-  if (toolConfig?.mcpAccess) {
-    for (const serverId of Object.keys(toolConfig.mcpAccess)) {
-      if (toolConfig.mcpAccess[serverId].length > 0) {
+  const mcpAccess = toolConfig?.mcpAccess
+  if (mcpAccess) {
+    for (const serverId of Object.keys(mcpAccess)) {
+      const access = mcpAccess[serverId]
+      if (access && access.length > 0) {
         linkedIds.add(serverId)
       }
     }
