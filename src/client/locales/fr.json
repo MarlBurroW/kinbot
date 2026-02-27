@@ -758,7 +758,12 @@
         "bullet1": "Chaque Kin a son propre espace de fichiers pour éviter les conflits",
         "bullet2": "Supporte les images, documents, fichiers de code et tout autre type de fichier",
         "bullet3": "Les fichiers peuvent être partagés dans les messages de canaux et les payloads de webhooks"
-      }
+      },
+      "kinTip": "Le Kin propriétaire de ce fichier. Seul ce Kin peut y accéder sauf si le fichier est public.",
+      "publicTip": "Les fichiers publics ont une URL partageable. Les fichiers privés ne sont accessibles que par le Kin propriétaire.",
+      "passwordTip": "Protège le fichier par un mot de passe. Toute personne accédant au fichier devra le saisir.",
+      "expiresInTip": "Supprime automatiquement le fichier après ce nombre d'heures. Laisser vide pour le garder indéfiniment.",
+      "readAndBurnTip": "Le fichier est automatiquement supprimé après un seul téléchargement. Utile pour les données sensibles."
     },
     "memories": {
       "title": "Souvenirs",

@@ -15,6 +15,7 @@ import { Label } from '@/client/components/ui/label'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
 import { Switch } from '@/client/components/ui/switch'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { KinSelector } from '@/client/components/common/KinSelector'
 import { api, getErrorMessage } from '@/client/lib/api'
 import type { StoredFileData } from '@/client/components/file-storage/FileStorageCard'
@@ -168,7 +169,7 @@ export function FileStorageFormDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>{t('settings.files.kin')}</Label>
+                <Label className="inline-flex items-center gap-1.5">{t('settings.files.kin')} <InfoTip content={t('settings.files.kinTip')} /></Label>
                 <KinSelector
                   value={kinId}
                   onValueChange={setKinId}
@@ -200,14 +201,15 @@ export function FileStorageFormDialog({
           </div>
 
           <div className="flex items-center justify-between">
-            <Label>{t('settings.files.public')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.files.public')} <InfoTip content={t('settings.files.publicTip')} /></Label>
             <Switch checked={isPublic} onCheckedChange={setIsPublic} />
           </div>
 
           <div className="space-y-2">
-            <Label>
+            <Label className="inline-flex items-center gap-1.5">
               {t('settings.files.password')}
-              <span className="ml-1 text-xs text-muted-foreground">({t('common.optional')})</span>
+              <span className="text-xs text-muted-foreground">({t('common.optional')})</span>
+              <InfoTip content={t('settings.files.passwordTip')} />
             </Label>
             <PasswordInput
               value={password}
@@ -218,9 +220,10 @@ export function FileStorageFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>
+            <Label className="inline-flex items-center gap-1.5">
               {t('settings.files.expiresIn')}
-              <span className="ml-1 text-xs text-muted-foreground">({t('common.optional')})</span>
+              <span className="text-xs text-muted-foreground">({t('common.optional')})</span>
+              <InfoTip content={t('settings.files.expiresInTip')} />
             </Label>
             <Input
               type="number"
@@ -232,7 +235,7 @@ export function FileStorageFormDialog({
           </div>
 
           <div className="flex items-center justify-between">
-            <Label>{t('settings.files.readAndBurn')}</Label>
+            <Label className="inline-flex items-center gap-1.5">{t('settings.files.readAndBurn')} <InfoTip content={t('settings.files.readAndBurnTip')} /></Label>
             <Switch checked={readAndBurn} onCheckedChange={setReadAndBurn} />
           </div>
         </div>

@@ -758,7 +758,12 @@
         "bullet1": "Each Kin has its own file namespace to avoid conflicts",
         "bullet2": "Supports images, documents, code files, and any other file type",
         "bullet3": "Files can be shared in channel messages and webhook payloads"
-      }
+      },
+      "kinTip": "The Kin that owns this file. Only this Kin can access it unless the file is public.",
+      "publicTip": "Public files get a shareable URL. Private files are only accessible by the owning Kin.",
+      "passwordTip": "Protect the file with a password. Anyone accessing the file will need to enter it.",
+      "expiresInTip": "Auto-delete the file after this many hours. Leave empty to keep it indefinitely.",
+      "readAndBurnTip": "The file is automatically deleted after being downloaded once. Useful for sensitive data."
     },
     "memories": {
       "title": "Memories",
