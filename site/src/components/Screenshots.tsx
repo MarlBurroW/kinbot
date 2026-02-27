@@ -1,36 +1,53 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronLeft, ChevronRight, X, Maximize2 } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 
-interface Screenshot {
+interface Video {
   src: string
   title: string
   description: string
 }
 
-const screenshots: Screenshot[] = [
+const videos: Video[] = [
   {
-    src: '/kinbot/screenshots/frame_1.png',
-    title: 'Multi-Agent Workspace',
+    src: '/kinbot/videos/create-kin-wizard.mp4',
+    title: 'Create a Kin',
     description:
-      'Multiple specialized Kins in the sidebar, scheduled jobs running autonomously, and persistent memory indicators on every message.',
+      'Walk through the creation wizard to set up a new specialized agent with its own identity and expertise.',
   },
   {
-    src: '/kinbot/screenshots/frame_5.png',
-    title: 'Live Delegation & Sub-tasks',
+    src: '/kinbot/videos/inter-kin-communication.mp4',
+    title: 'Inter-Kin Communication',
     description:
-      'KinMaster delegates to Dorian (finance) and Axiom (tech) simultaneously, spawns sub-tasks, and pulls results back in real time.',
+      'Watch Kins collaborate and delegate tasks to each other in real time.',
   },
   {
-    src: '/kinbot/screenshots/frame_7.png',
-    title: 'Memory, Search & Contact Registry',
+    src: '/kinbot/videos/kin-add-mcp.mp4',
+    title: 'Add an MCP Server',
     description:
-      'Web search results, instant memory recall of 6 stored facts, shared contact registry across all Kins, and a sub-task running in parallel.',
+      'Connect external tools and services via the Model Context Protocol.',
+  },
+  {
+    src: '/kinbot/videos/kin-ask-prompt-choice.mp4',
+    title: 'Prompt Choice',
+    description:
+      'See how Kins can present options and let users pick the best direction.',
+  },
+  {
+    src: '/kinbot/videos/kin-create-mini-app.mp4',
+    title: 'Create Mini Apps',
+    description:
+      'Kins generate interactive mini applications on the fly, right in the chat.',
+  },
+  {
+    src: '/kinbot/videos/quick-ephemeral-chat.mp4',
+    title: 'Quick Ephemeral Chat',
+    description:
+      'Start fast, temporary conversations without needing a persistent Kin.',
   },
 ]
 
-function Lightbox({
-  screenshot,
-  screenshots: allScreenshots,
+function VideoLightbox({
+  video,
   index,
   onClose,
   onPrev,
@@ -38,8 +55,7 @@ function Lightbox({
   hasPrev,
   hasNext,
 }: {
-  screenshot: Screenshot
-  screenshots: Screenshot[]
+  video: Video
   index: number
   onClose: () => void
   onPrev: () => void
@@ -47,7 +63,8 @@ function Lightbox({
   hasPrev: boolean
   hasNext: boolean
 }) {
-  // Keyboard navigation
+  const videoRef = useRef<HTMLVideoElement>(null)
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -58,37 +75,34 @@ function Lightbox({
     return () => window.removeEventListener('keydown', handler)
   }, [onClose, onPrev, onNext, hasPrev, hasNext])
 
-  // Lock body scroll while lightbox is open
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    return () => {
+      document.body.style.overflow = prev
+    }
   }, [])
 
-  // Preload adjacent images
+  // Autoplay when opening or switching video
   useEffect(() => {
-    for (const offset of [-1, 1]) {
-      const adj = index + offset
-      if (adj >= 0 && adj < allScreenshots.length) {
-        const img = new Image()
-        img.src = allScreenshots[adj].src
-      }
-    }
-  }, [index, allScreenshots])
+    videoRef.current?.play()
+  }, [video.src])
 
-  // Touch swipe support
   const touchStartX = useRef<number | null>(null)
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX
   }, [])
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null) return
-    const dx = e.changedTouches[0].clientX - touchStartX.current
-    touchStartX.current = null
-    if (Math.abs(dx) < 50) return
-    if (dx > 0 && hasPrev) onPrev()
-    else if (dx < 0 && hasNext) onNext()
-  }, [hasPrev, hasNext, onPrev, onNext])
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (touchStartX.current === null) return
+      const dx = e.changedTouches[0].clientX - touchStartX.current
+      touchStartX.current = null
+      if (Math.abs(dx) < 50) return
+      if (dx > 0 && hasPrev) onPrev()
+      else if (dx < 0 && hasNext) onNext()
+    },
+    [hasPrev, hasNext, onPrev, onNext]
+  )
 
   return (
     <div
@@ -135,25 +149,103 @@ function Lightbox({
         </button>
       )}
 
-      <div
-        className="max-w-6xl w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <img
-          src={screenshot.src}
-          alt={screenshot.title}
+      <div className="max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
+        <video
+          ref={videoRef}
+          key={video.src}
+          src={video.src}
+          controls
+          autoPlay
           className="w-full rounded-xl shadow-2xl"
+          style={{ maxHeight: '75vh' }}
         />
         <div className="text-center mt-4">
-          <h3 className="text-lg font-semibold text-white">{screenshot.title}</h3>
-          <p className="text-sm text-white/60 mt-1 max-w-xl mx-auto">{screenshot.description}</p>
+          <h3 className="text-lg font-semibold text-white">{video.title}</h3>
+          <p className="text-sm text-white/60 mt-1 max-w-xl mx-auto">
+            {video.description}
+          </p>
           <p className="text-xs text-white/30 mt-2">
-            {index + 1} / {allScreenshots.length}
-            <span className="hidden sm:inline"> · Arrow keys to navigate · Esc to close</span>
+            {index + 1} / {videos.length}
+            <span className="hidden sm:inline">
+              {' '}
+              · Arrow keys to navigate · Esc to close
+            </span>
           </p>
         </div>
       </div>
     </div>
+  )
+}
+
+function VideoCard({
+  video,
+  onClick,
+}: {
+  video: Video
+  onClick: () => void
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isHovered, setIsHovered] = useState(false)
+
+  const handleMouseEnter = () => {
+    setIsHovered(true)
+    videoRef.current?.play()
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovered(false)
+    if (videoRef.current) {
+      videoRef.current.pause()
+      videoRef.current.currentTime = 0
+    }
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="group glass-strong gradient-border rounded-2xl overflow-hidden text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+      style={{ boxShadow: 'var(--shadow-md)' }}
+    >
+      <div className="relative overflow-hidden aspect-video bg-black/5">
+        <video
+          ref={videoRef}
+          src={video.src}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        {/* Play icon overlay */}
+        <div
+          className="absolute inset-0 flex items-center justify-center transition-opacity duration-300"
+          style={{
+            opacity: isHovered ? 0 : 1,
+            background: 'rgba(0,0,0,0.25)',
+          }}
+        >
+          <div className="w-14 h-14 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-sm">
+            <Play size={24} className="text-white ml-1" fill="white" />
+          </div>
+        </div>
+      </div>
+      <div className="p-5">
+        <h3
+          className="font-semibold text-base mb-1"
+          style={{ color: 'var(--color-foreground)' }}
+        >
+          {video.title}
+        </h3>
+        <p
+          className="text-sm leading-relaxed"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          {video.description}
+        </p>
+      </div>
+    </button>
   )
 }
 
@@ -165,72 +257,44 @@ export function Screenshots() {
       <section id="screenshots" className="px-6 py-24 max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-            <span style={{ color: 'var(--color-foreground)' }}>See it in </span>
+            <span style={{ color: 'var(--color-foreground)' }}>
+              See it in{' '}
+            </span>
             <span className="gradient-text">action.</span>
           </h2>
           <p
             className="text-lg max-w-2xl mx-auto"
             style={{ color: 'var(--color-muted-foreground)' }}
           >
-            Real screenshots from a live KinBot instance with multiple agents working together.
+            Real demos from a live KinBot instance — hover to preview, click to
+            watch.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {screenshots.map((screenshot, i) => (
-            <button
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {videos.map((video, i) => (
+            <VideoCard
               key={i}
+              video={video}
               onClick={() => setLightboxIndex(i)}
-              className="group glass-strong gradient-border rounded-2xl overflow-hidden text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
-              style={{ boxShadow: 'var(--shadow-md)' }}
-            >
-              <div className="relative overflow-hidden">
-                <img
-                  src={screenshot.src}
-                  alt={screenshot.title}
-                  className="w-full block transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div
-                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{ background: 'rgba(0,0,0,0.3)' }}
-                >
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                    <Maximize2 size={20} className="text-white" />
-                  </div>
-                </div>
-              </div>
-              <div className="p-5">
-                <h3
-                  className="font-semibold text-base mb-1"
-                  style={{ color: 'var(--color-foreground)' }}
-                >
-                  {screenshot.title}
-                </h3>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: 'var(--color-muted-foreground)' }}
-                >
-                  {screenshot.description}
-                </p>
-              </div>
-            </button>
+            />
           ))}
         </div>
       </section>
 
       {lightboxIndex !== null && (
-        <Lightbox
-          screenshot={screenshots[lightboxIndex]}
-          screenshots={screenshots}
+        <VideoLightbox
+          video={videos[lightboxIndex]}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onPrev={() => setLightboxIndex((i) => Math.max(0, (i ?? 0) - 1))}
           onNext={() =>
-            setLightboxIndex((i) => Math.min(screenshots.length - 1, (i ?? 0) + 1))
+            setLightboxIndex((i) =>
+              Math.min(videos.length - 1, (i ?? 0) + 1)
+            )
           }
           hasPrev={lightboxIndex > 0}
-          hasNext={lightboxIndex < screenshots.length - 1}
+          hasNext={lightboxIndex < videos.length - 1}
         />
       )}
     </>
