@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Activity sparkline in conversation statistics popover
+- Next run countdown display on cron cards and detail modal
+- Enhanced sidebar empty states with icons and action buttons
+- Contextual help tooltips to file storage form
+- Memory/swap pre-flight check in installer
+- ErrorBoundary string translations (i18n)
+
+### Changed
+- Use KinSelector in MemoryList, add `noneValue` prop
+
+### Tests
+- Add tests for Cohere provider
+
+---
+
+## [0.2.25] - 2026-02-27
+
+### Added
 - Focus mode for distraction-free chat with hidden sidebar & header (`Ctrl+Shift+F`)
 - Conversation statistics popover with message breakdown, tool calls, duration, and response time
 - Markdown formatting toolbar with keyboard shortcuts (Bold, Italic, Strikethrough, Code)
@@ -22,19 +40,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--config` flag to installer for reconfiguring port and URL interactively
 - Retry with exponential backoff for network operations in installer
 - Vault field type label translations (i18n)
+- Formatting & search shortcuts to keyboard shortcuts dialog
+- Favicon notification badge with unread count when tab is in background
+- Unread message count badge in browser tab title when tab is hidden
+- Real-time toast notifications for provider/channel status changes
+- Reading time estimate for long assistant messages
+- Sticky date separators while scrolling conversation history
+- Scroll-to-top button for quick navigation to conversation start
+- Contextual help panel to General Settings page
+- `--test` self-test mode for installation validation
+- `--reset` to installer for fixing broken installations without losing data
+- "Test All" button to provider settings pages
+- Screenshots to README for better first impression
 
 ### Fixed
 - Docker: remove unsupported `--production=false` flag from `bun install`
 - Installer: fix shellcheck warnings and backup/restore arg parsing
+- Resolve all TypeScript errors and enforce typecheck in CI/release
+- Add missing `perplexity` to ProviderType union
 
 ### Changed
 - Use `PasswordInput` in VaultEntryFormDialog for consistency
-- Extract shared `useCopyToClipboard` hook
+- Extract shared `useCopyToClipboard` hook and `useModels` hook
 - Consolidate duplicate PR templates
 - Improve docker-compose with image default, comments, and `PUBLIC_URL` hint
+- Use curated CHANGELOG.md in release notes instead of raw git log
 
 ### Tests
 - Add tests for Mistral, Together AI, Fireworks AI providers and Telegram channel adapter
+- Add tests for Perplexity provider
+- Add tests for compacting service (token estimation, keep/summarize split, JSON parsing, snapshot cleanup)
 
 ### Site
 - Add screenshots gallery section with lightbox viewer (keyboard nav, touch swipe, image preloading)
@@ -43,6 +78,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Staggered scroll animations for Features & Providers grids
 - SEO: robots.txt, sitemap.xml, refined meta description and structured data
 - Add OpenClaw to comparison table with new feature rows
+- Add scroll progress indicator to navbar
+
+### CI
+- Add stale issues & PRs workflow for repo hygiene
+- Add PRs Welcome badge and GitHub topics
 
 ---
 
