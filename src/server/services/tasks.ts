@@ -305,6 +305,22 @@ async function executeSubKin(taskId: string) {
 
     try {
       for await (const part of result.fullStream) {
+        // Handle tool-call-streaming-start (not yet in AI SDK type union)
+        if ((part.type as string) === 'tool-call-streaming-start') {
+          const p = part as unknown as { toolCallId: string; toolName: string }
+          sseManager.sendToKin(task.parentKinId, {
+            type: 'chat:tool-call-start',
+            kinId: task.parentKinId,
+            data: {
+              messageId: assistantMessageId,
+              toolCallId: p.toolCallId,
+              toolName: p.toolName,
+              taskId,
+            },
+          })
+          continue
+        }
+
         switch (part.type) {
           case 'text-delta': {
             fullContent += part.text
@@ -312,19 +328,6 @@ async function executeSubKin(taskId: string) {
               type: 'chat:token',
               kinId: task.parentKinId,
               data: { messageId: assistantMessageId, token: part.text, taskId },
-            })
-            break
-          }
-          case 'tool-call-streaming-start': {
-            sseManager.sendToKin(task.parentKinId, {
-              type: 'chat:tool-call-start',
-              kinId: task.parentKinId,
-              data: {
-                messageId: assistantMessageId,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                taskId,
-              },
             })
             break
           }

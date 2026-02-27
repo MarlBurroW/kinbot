@@ -371,6 +371,21 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     let wasAborted = false
     try {
       for await (const part of result.fullStream) {
+        // Handle tool-call-streaming-start (not yet in AI SDK type union)
+        if ((part.type as string) === 'tool-call-streaming-start') {
+          const p = part as unknown as { toolCallId: string; toolName: string }
+          sseManager.sendToKin(kinId, {
+            type: 'chat:tool-call-start',
+            kinId,
+            data: {
+              messageId: assistantMessageId,
+              toolCallId: p.toolCallId,
+              toolName: p.toolName,
+            },
+          })
+          continue
+        }
+
         switch (part.type) {
           case 'text-delta': {
             fullContent += part.text
@@ -378,19 +393,6 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
               type: 'chat:token',
               kinId,
               data: { messageId: assistantMessageId, token: part.text },
-            })
-            break
-          }
-
-          case 'tool-call-streaming-start': {
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-call-start',
-              kinId,
-              data: {
-                messageId: assistantMessageId,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-              },
             })
             break
           }
@@ -796,6 +798,17 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     let wasAborted = false
     try {
       for await (const part of result.fullStream) {
+        // Handle tool-call-streaming-start (not yet in AI SDK type union)
+        if ((part.type as string) === 'tool-call-streaming-start') {
+          const p = part as unknown as { toolCallId: string; toolName: string }
+          sseManager.sendToKin(kinId, {
+            type: 'chat:tool-call-start',
+            kinId,
+            data: { messageId: assistantMessageId, toolCallId: p.toolCallId, toolName: p.toolName, sessionId },
+          })
+          continue
+        }
+
         switch (part.type) {
           case 'text-delta': {
             fullContent += part.text
@@ -803,14 +816,6 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
               type: 'chat:token',
               kinId,
               data: { messageId: assistantMessageId, token: part.text, sessionId },
-            })
-            break
-          }
-          case 'tool-call-streaming-start': {
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-call-start',
-              kinId,
-              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, sessionId },
             })
             break
           }
