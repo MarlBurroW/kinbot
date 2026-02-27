@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
 import type { TaskSummary, TaskStatus } from '@/shared/types'
@@ -13,6 +15,7 @@ interface TasksResponse {
 }
 
 export function useTasks() {
+  const { t } = useTranslation()
   const [activeTasks, setActiveTasks] = useState<TaskSummary[]>([])
   const [historyTasks, setHistoryTasks] = useState<TaskSummary[]>([])
   const [hasMore, setHasMore] = useState(false)
@@ -21,6 +24,8 @@ export function useTasks() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const offsetRef = useRef(0)
+  // Track task IDs we've seen to only toast for tasks we knew about
+  const knownTaskIdsRef = useRef(new Set<string>())
 
   // Debounce search
   useEffect(() => {
@@ -36,7 +41,9 @@ export function useTasks() {
         api.get<TasksResponse>('/tasks?status=in_progress&limit=100&offset=0'),
         api.get<TasksResponse>('/tasks?status=awaiting_human_input&limit=100&offset=0'),
       ])
-      setActiveTasks([...awaitingHuman.tasks, ...inProgress.tasks, ...pending.tasks])
+      const all = [...awaitingHuman.tasks, ...inProgress.tasks, ...pending.tasks]
+      for (const task of all) knownTaskIdsRef.current.add(task.id)
+      setActiveTasks(all)
     } catch {
       // Silently fail — tasks are non-critical
     }
@@ -106,7 +113,8 @@ export function useTasks() {
           return prev.filter((t) => t.id !== taskId)
         }
         if (isActiveStatus) {
-          // New active task — refetch to get full data
+          // New active task — track and refetch to get full data
+          knownTaskIdsRef.current.add(taskId)
           fetchActiveTasks()
         }
         return prev
@@ -125,6 +133,7 @@ export function useTasks() {
     'task:done': (data) => {
       const taskId = data.taskId as string
       const status = data.status as TaskStatus
+      const title = (data.title as string) ?? null
       const now = new Date().toISOString()
 
       let wasKnown = false
@@ -133,6 +142,21 @@ export function useTasks() {
         if (prev.some((t) => t.id === taskId)) wasKnown = true
         return prev.filter((t) => t.id !== taskId)
       })
+
+      // Show toast notification for completed/failed tasks we were tracking
+      if (knownTaskIdsRef.current.has(taskId)) {
+        const label = title
+          ? title.length > 60 ? `${title.slice(0, 57)}...` : title
+          : t('sidebar.tasks.title')
+        if (status === 'completed') {
+          toast.success(t('sidebar.tasks.toast.completed', { title: label }))
+        } else if (status === 'failed') {
+          toast.error(t('sidebar.tasks.toast.failed', { title: label }))
+        } else if (status === 'cancelled') {
+          toast(t('sidebar.tasks.toast.cancelled', { title: label }))
+        }
+        knownTaskIdsRef.current.delete(taskId)
+      }
 
       setHistoryTasks((prev) => {
         const exists = prev.some((t) => t.id === taskId)

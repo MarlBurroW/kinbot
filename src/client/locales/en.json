@@ -158,7 +158,12 @@
         "failed": "Failed",
         "cancelled": "Cancelled"
       },
-      "emptyDescription": "Tasks will appear here when Kins are working"
+      "emptyDescription": "Tasks will appear here when Kins are working",
+      "toast": {
+        "completed": "Task completed: {{title}}",
+        "failed": "Task failed: {{title}}",
+        "cancelled": "Task cancelled: {{title}}"
+      }
     },
     "crons": {
       "title": "Scheduled Jobs",

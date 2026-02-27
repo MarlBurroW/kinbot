@@ -158,7 +158,12 @@
         "failed": "Échouée",
         "cancelled": "Annulée"
       },
-      "emptyDescription": "Les tâches apparaîtront ici quand vos Kins travaillent"
+      "emptyDescription": "Les tâches apparaîtront ici quand vos Kins travaillent",
+      "toast": {
+        "completed": "Tâche terminée : {{title}}",
+        "failed": "Tâche échouée : {{title}}",
+        "cancelled": "Tâche annulée : {{title}}"
+      }
     },
     "crons": {
       "title": "Tâches planifiées",
