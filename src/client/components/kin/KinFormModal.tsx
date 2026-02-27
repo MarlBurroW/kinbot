@@ -23,8 +23,7 @@ import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
-import { ProviderIcon } from '@/client/components/common/ProviderIcon'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select'
+import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Alert, AlertDescription } from '@/client/components/ui/alert'
 import { AvatarPickerModal, type AvatarPickerResult } from '@/client/components/kin/AvatarPickerModal'
@@ -650,27 +649,13 @@ export function KinFormModal({
                               {showProviderSelector && (
                                 <div className="space-y-2">
                                   <Label>{t('kin.create.provider')}</Label>
-                                  <Select
+                                  <ProviderSelector
                                     value={providerId ?? '__auto__'}
                                     onValueChange={(v) => setProviderId(v === '__auto__' ? null : v)}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="__auto__">
-                                        {t('kin.create.providerAuto')}
-                                      </SelectItem>
-                                      {providersForModel.map((p) => (
-                                        <SelectItem key={p.providerId} value={p.providerId}>
-                                          <span className="flex items-center gap-2">
-                                            <ProviderIcon providerType={p.providerType} className="size-4" />
-                                            {p.providerName}
-                                          </span>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                    providers={providersForModel.map((p) => ({ id: p.providerId, type: p.providerType, name: p.providerName }))}
+                                    noneLabel={t('kin.create.providerAuto')}
+                                    noneValue="__auto__"
+                                  />
                                   <p className="text-xs text-muted-foreground">{t('kin.create.providerHint')}</p>
                                 </div>
                               )}
