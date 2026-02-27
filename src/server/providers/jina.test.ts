@@ -29,7 +29,7 @@ describe('jinaProvider', () => {
     it('returns valid when models are returned', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response(JSON.stringify(sampleModels), { status: 200 }))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await jinaProvider.testConnection(baseConfig)
       expect(result.valid).toBe(true)
@@ -39,7 +39,7 @@ describe('jinaProvider', () => {
     it('returns invalid when API returns empty model list', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response(JSON.stringify({ data: [] }), { status: 200 }))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await jinaProvider.testConnection(baseConfig)
       expect(result.valid).toBe(false)
@@ -48,7 +48,7 @@ describe('jinaProvider', () => {
     it('returns invalid with error message on HTTP error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Unauthorized', { status: 401 }))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await jinaProvider.testConnection(baseConfig)
       expect(result.valid).toBe(false)
@@ -58,7 +58,7 @@ describe('jinaProvider', () => {
     it('returns invalid with error message on network failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('Network unreachable'))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const result = await jinaProvider.testConnection(baseConfig)
       expect(result.valid).toBe(false)
@@ -66,7 +66,7 @@ describe('jinaProvider', () => {
     })
 
     it('returns generic error for non-Error throws', async () => {
-      globalThis.fetch = mock(() => Promise.reject('string error')) as typeof fetch
+      globalThis.fetch = mock(() => Promise.reject('string error')) as unknown as typeof fetch
 
       const result = await jinaProvider.testConnection(baseConfig)
       expect(result.valid).toBe(false)
@@ -78,7 +78,7 @@ describe('jinaProvider', () => {
       globalThis.fetch = mock((url: string | URL | Request, init?: RequestInit) => {
         capturedHeaders = new Headers(init?.headers)
         return Promise.resolve(new Response(JSON.stringify(sampleModels), { status: 200 }))
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await jinaProvider.testConnection(baseConfig)
       expect(capturedHeaders?.get('Authorization')).toBe('Bearer test-jina-key')
@@ -89,7 +89,7 @@ describe('jinaProvider', () => {
       globalThis.fetch = mock((url: string | URL | Request) => {
         capturedUrl = url as string
         return Promise.resolve(new Response(JSON.stringify(sampleModels), { status: 200 }))
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await jinaProvider.testConnection({ ...baseConfig, baseUrl: 'https://custom.jina.ai/v1' })
       expect(capturedUrl).toBe('https://custom.jina.ai/v1/models')
@@ -100,7 +100,7 @@ describe('jinaProvider', () => {
       globalThis.fetch = mock((url: string | URL | Request) => {
         capturedUrl = url as string
         return Promise.resolve(new Response(JSON.stringify(sampleModels), { status: 200 }))
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       await jinaProvider.testConnection({ apiKey: 'key' })
       expect(capturedUrl).toBe('https://api.jina.ai/v1/models')
@@ -111,7 +111,7 @@ describe('jinaProvider', () => {
     it('returns models with embedding capability', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response(JSON.stringify(sampleModels), { status: 200 }))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await jinaProvider.listModels(baseConfig)
       expect(models).toHaveLength(2)
@@ -130,7 +130,7 @@ describe('jinaProvider', () => {
     it('returns empty array on HTTP error', async () => {
       globalThis.fetch = mock(() =>
         Promise.resolve(new Response('Server Error', { status: 500 }))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await jinaProvider.listModels(baseConfig)
       expect(models).toEqual([])
@@ -139,7 +139,7 @@ describe('jinaProvider', () => {
     it('returns empty array on network failure', async () => {
       globalThis.fetch = mock(() =>
         Promise.reject(new Error('timeout'))
-      ) as typeof fetch
+      ) as unknown as typeof fetch
 
       const models = await jinaProvider.listModels(baseConfig)
       expect(models).toEqual([])
