@@ -10,33 +10,37 @@ interface Row {
   openwebui: Support
   lobechat: Support
   anythingllm: Support
+  openclaw: Support
 }
 
-type Competitor = 'chatgpt' | 'openwebui' | 'lobechat' | 'anythingllm'
+type Competitor = 'chatgpt' | 'openwebui' | 'lobechat' | 'anythingllm' | 'openclaw'
 
 const competitors: { id: Competitor; label: string }[] = [
   { id: 'chatgpt', label: 'ChatGPT' },
   { id: 'openwebui', label: 'Open WebUI' },
   { id: 'lobechat', label: 'LobeChat' },
   { id: 'anythingllm', label: 'AnythingLLM' },
+  { id: 'openclaw', label: 'OpenClaw' },
 ]
 
 const rows: Row[] = [
-  { feature: 'Self-hosted / your data', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes' },
-  { feature: 'Persistent agent identity', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'partial', anythingllm: 'partial' },
-  { feature: 'Long-term memory', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'no', anythingllm: 'partial' },
-  { feature: 'Session compacting', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'Inter-agent communication', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'Sub-tasks / delegation', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'Cron jobs / autonomy', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'Encrypted vault', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'Multi-provider (23)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes' },
-  { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'Chat integrations (6 platforms)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no' },
-  { feature: 'RAG / document embedding', kinbot: 'no', chatgpt: 'partial', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes' },
-  { feature: 'Multi-user with roles', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes' },
-  { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes' },
+  { feature: 'Self-hosted / your data', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes' },
+  { feature: 'Persistent agent identity', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'partial', anythingllm: 'partial', openclaw: 'partial' },
+  { feature: 'Long-term memory', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'no', anythingllm: 'partial', openclaw: 'partial' },
+  { feature: 'Session compacting', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial' },
+  { feature: 'Multi-agent collaboration', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
+  { feature: 'Sub-tasks / delegation', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial' },
+  { feature: 'Cron jobs / autonomy', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'yes' },
+  { feature: 'Encrypted vault', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
+  { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
+  { feature: 'Multi-provider (23+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes' },
+  { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
+  { feature: 'Chat integrations (6 platforms)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'partial', openclaw: 'yes' },
+  { feature: 'RAG / document embedding', kinbot: 'no', chatgpt: 'partial', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes', openclaw: 'no' },
+  { feature: 'Multi-user with roles', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes', openclaw: 'no' },
+  { feature: 'Web UI', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'no' },
+  { feature: 'Zero-infra (no Postgres/Redis)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'partial', anythingllm: 'no', openclaw: 'yes' },
+  { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes' },
 ]
 
 const positioningBlurbs: { id: Competitor; title: string; text: string; when: string }[] = [
@@ -63,6 +67,12 @@ const positioningBlurbs: { id: Competitor; title: string; text: string; when: st
     title: 'vs AnythingLLM',
     text: "AnythingLLM is document-centric: you upload files, it RAGs over them. That's powerful for knowledge bases but fundamentally different from having agents with identities and ongoing memory. AnythingLLM doesn't remember your conversations, it remembers your documents. KinBot agents remember both, plus they extract knowledge automatically from every interaction.",
     when: "If your primary use case is corporate document Q&A rather than persistent AI agents.",
+  },
+  {
+    id: 'openclaw',
+    title: 'vs OpenClaw',
+    text: "OpenClaw is a powerful single-agent personal assistant. CLI-first, deeply integrated with system tools, great for power users who want one Swiss Army knife AI. KinBot takes a different approach: multi-agent, multi-user, web UI, with agents that have their own identities and can collaborate. OpenClaw is your personal Swiss Army knife. KinBot is your team.",
+    when: "If you want a single deeply-integrated personal assistant rather than a team of specialized agents.",
   },
 ]
 
