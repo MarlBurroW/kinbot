@@ -167,20 +167,33 @@ test.describe.serial('Scheduled jobs management', () => {
   })
 
   test('should toggle job active state', async ({ page }) => {
-    // Find the switch/toggle for the job
-    const jobCard = page.locator('div', { hasText: 'Updated Daily Report' }).first()
-    const toggle = jobCard.locator('[role="switch"]').first()
+    // Locate the switch next to 'Updated Daily Report' text
+    const toggle = page.getByText('Updated Daily Report').locator('..').locator('[role="switch"]').first()
 
     if (await toggle.isVisible({ timeout: 2_000 }).catch(() => false)) {
       const wasChecked = await toggle.getAttribute('aria-checked')
-      await toggle.click()
-
-      // Wait for state to update (API call + re-render)
       const expectedState = wasChecked === 'true' ? 'false' : 'true'
-      await expect(toggle).toHaveAttribute('aria-checked', expectedState, { timeout: 5_000 })
+
+      // Click and wait for the PATCH response to ensure the API completed
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/api/crons/') && r.request().method() === 'PATCH',
+          { timeout: 10_000 },
+        ),
+        toggle.click(),
+      ])
+
+      // Wait for the UI to reflect the new state
+      await expect(toggle).toHaveAttribute('aria-checked', expectedState, { timeout: 10_000 })
 
       // Toggle back
-      await toggle.click()
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/api/crons/') && r.request().method() === 'PATCH',
+          { timeout: 10_000 },
+        ),
+        toggle.click(),
+      ])
     }
   })
 
