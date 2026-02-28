@@ -6,10 +6,14 @@ interface MiniAppContextValue {
   activeAppId: string | null
   activeAppVersion: number
   isFullPage: boolean
+  customTitle: string | null
+  badges: Record<string, string>
   openApp: (appId: string) => void
   closePanel: () => void
   toggleFullPage: () => void
   setFullPage: (value: boolean) => void
+  setCustomTitle: (title: string | null) => void
+  setBadge: (appId: string, value: string | null) => void
 }
 
 const MiniAppContext = createContext<MiniAppContextValue | null>(null)
@@ -18,15 +22,19 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
   const [activeAppId, setActiveAppId] = useState<string | null>(null)
   const [activeAppVersion, setActiveAppVersion] = useState(0)
   const [isFullPage, setIsFullPage] = useState(false)
+  const [customTitle, setCustomTitle] = useState<string | null>(null)
+  const [badges, setBadgesState] = useState<Record<string, string>>({})
 
   const openApp = useCallback((appId: string) => {
     setActiveAppId(appId)
     setActiveAppVersion((v) => v + 1)
+    setCustomTitle(null) // Reset custom title when switching apps
   }, [])
 
   const closePanel = useCallback(() => {
     setActiveAppId(null)
     setIsFullPage(false)
+    setCustomTitle(null)
   }, [])
 
   const toggleFullPage = useCallback(() => {
@@ -35,6 +43,17 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
 
   const setFullPage = useCallback((value: boolean) => {
     setIsFullPage(value)
+  }, [])
+
+  const setBadge = useCallback((appId: string, value: string | null) => {
+    setBadgesState((prev) => {
+      if (value === null) {
+        const next = { ...prev }
+        delete next[appId]
+        return next
+      }
+      return { ...prev, [appId]: value }
+    })
   }, [])
 
   // Listen for file updates to reload the active app's iframe
@@ -61,10 +80,14 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
         activeAppId,
         activeAppVersion,
         isFullPage,
+        customTitle,
+        badges,
         openApp,
         closePanel,
         toggleFullPage,
         setFullPage,
+        setCustomTitle,
+        setBadge,
       }}
     >
       {children}

@@ -23,11 +23,13 @@ interface MiniAppListProps {
 function MiniAppCard({
   app,
   isActive,
+  badge,
   onClick,
   onDelete,
 }: {
   app: MiniAppSummary
   isActive: boolean
+  badge?: string | null
   onClick: () => void
   onDelete: () => void
 }) {
@@ -61,6 +63,11 @@ function MiniAppCard({
           </p>
         )}
       </div>
+      {badge && !isActive && (
+        <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+          {badge}
+        </span>
+      )}
       {isActive && (
         <div className="size-1.5 shrink-0 rounded-full bg-primary" />
       )}
@@ -86,7 +93,7 @@ function MiniAppCard({
 export function MiniAppList({ selectedKinId }: MiniAppListProps) {
   const { t } = useTranslation()
   const { apps, isLoading, deleteApp } = useMiniApps(selectedKinId)
-  const { activeAppId, openApp, closePanel } = useMiniAppPanel()
+  const { activeAppId, badges, openApp, closePanel } = useMiniAppPanel()
 
   const [isOpen, setIsOpen] = useState(() => {
     try {
@@ -155,6 +162,7 @@ export function MiniAppList({ selectedKinId }: MiniAppListProps) {
                       key={app.id}
                       app={app}
                       isActive={app.id === activeAppId}
+                      badge={badges[app.id]}
                       onClick={() => openApp(app.id)}
                       onDelete={() => handleDelete(app.id)}
                     />

@@ -22,7 +22,7 @@ import type { MiniAppSummary } from '@/shared/types'
 export function MiniAppViewer() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { panelOpen, activeAppId, activeAppVersion, isFullPage, closePanel, toggleFullPage, setFullPage } = useMiniAppPanel()
+  const { panelOpen, activeAppId, activeAppVersion, isFullPage, customTitle, closePanel, toggleFullPage, setFullPage, setCustomTitle, setBadge } = useMiniAppPanel()
   const [app, setApp] = useState<MiniAppSummary | null>(null)
   const [iframeKey, setIframeKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -161,12 +161,23 @@ export function MiniAppViewer() {
           })
           break
         }
+        case 'set-title': {
+          const title = String(msg.title || '')
+          setCustomTitle(title || null)
+          break
+        }
+        case 'set-badge': {
+          if (activeAppId) {
+            setBadge(activeAppId, msg.value ?? null)
+          }
+          break
+        }
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [navigate, sendAppMeta, setFullPage, t])
+  }, [navigate, sendAppMeta, setFullPage, setCustomTitle, setBadge, activeAppId, t])
 
   // Escape key exits full-page mode
   useEffect(() => {
@@ -244,7 +255,7 @@ export function MiniAppViewer() {
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
           {app?.icon && <span className="text-base">{app.icon}</span>}
           <span className="flex-1 truncate text-sm font-medium">
-            {app?.name ?? '...'}
+            {customTitle || (app?.name ?? '...')}
           </span>
           <Button
             variant="ghost"
@@ -302,7 +313,7 @@ export function MiniAppViewer() {
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
           {app?.icon && <span className="text-base">{app.icon}</span>}
           <span className="flex-1 truncate text-sm font-medium">
-            {app?.name ?? '...'}
+            {customTitle || (app?.name ?? '...')}
           </span>
           <Button
             variant="ghost"
