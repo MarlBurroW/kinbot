@@ -579,25 +579,10 @@
       "globalPromptPlaceholder": "Saisissez les instructions que tous les Kins doivent suivre...",
       "globalPromptHint": "Ce texte est injecté dans le prompt système de chaque Kin.",
       "saved": "Prompt global mis à jour",
-      "modelConfig": "Configuration des modèles",
-      "modelConfigDescription": "Modèles utilisés pour l'extraction mémorielle et la recherche sémantique",
-      "extractionModel": "Modèle d'extraction",
-      "extractionModelPlaceholder": "Utiliser le modèle de chaque Kin (défaut)",
-      "extractionModelHint": "LLM utilisé pour extraire les souvenirs lors du compactage. Laisser vide pour utiliser le modèle de chaque Kin.",
-      "embeddingModel": "Modèle d'embedding",
-      "embeddingModelPlaceholder": "Sélectionner un modèle d'embedding",
-      "embeddingModelHint": "Modèle utilisé pour générer les embeddings sémantiques lors de la recherche mémorielle.",
-      "embeddingModelWarning": "Attention : changer le modèle d'embedding nécessite de régénérer tous les souvenirs existants.",
-      "modelSaved": "Modèle sauvegardé",
       "globalPromptTip": "Instructions injectées dans le prompt système de chaque Kin. Utilisez-le pour des règles ou directives communes.",
-      "extractionModelTip": "Le LLM utilisé pour extraire les faits clés des conversations en mémoire long terme. Si vide, chaque Kin utilise son propre modèle.",
-      "embeddingModelTip": "Convertit le texte en vecteurs pour la recherche sémantique en mémoire. Changer ce modèle nécessite de recalculer tous les embeddings existants.",
       "help": {
-        "content": "Les paramètres généraux contrôlent le comportement global de la plateforme, applicable à tous vos Kins. Le prompt global permet de définir des instructions suivies par chaque Kin, et la configuration des modèles détermine comment les souvenirs sont extraits et recherchés.",
-        "bullet1": "Le prompt global est injecté dans le prompt système de chaque Kin. Utilisez-le pour des règles ou directives universelles",
-        "bullet2": "Le modèle d'extraction convertit les conversations en souvenirs long-terme lors du compactage",
-        "bullet3": "Le modèle d'embedding convertit le texte en vecteurs pour la recherche sémantique. Le changer nécessite de re-générer tous les embeddings existants",
-        "bullet4": "Si aucun modèle d'extraction n'est défini, chaque Kin utilise son propre modèle de chat"
+        "content": "Les paramètres généraux contrôlent le comportement global de la plateforme, applicable à tous vos Kins. Le prompt global permet de définir des instructions suivies par chaque Kin.",
+        "bullet1": "Le prompt global est injecté dans le prompt système de chaque Kin. Utilisez-le pour des règles ou directives universelles"
       }
     },
     "providers": {
@@ -811,6 +796,18 @@
     "memories": {
       "title": "Souvenirs",
       "description": "Consultez et gérez les souvenirs de tous les Kins.",
+      "modelConfig": "Configuration des modèles",
+      "modelConfigDescription": "Modèles utilisés pour l'extraction mémorielle et la recherche sémantique.",
+      "extractionModel": "Modèle d'extraction",
+      "extractionModelPlaceholder": "Utiliser le modèle de chaque Kin (défaut)",
+      "extractionModelHint": "LLM utilisé pour extraire les souvenirs lors du compactage. Laisser vide pour utiliser le modèle de chaque Kin.",
+      "extractionModelTip": "Le LLM utilisé pour extraire les faits clés des conversations en mémoire long terme. Si vide, chaque Kin utilise son propre modèle.",
+      "embeddingModel": "Modèle d'embedding",
+      "embeddingModelPlaceholder": "Sélectionner un modèle d'embedding",
+      "embeddingModelHint": "Modèle utilisé pour générer les embeddings sémantiques lors de la recherche mémorielle.",
+      "embeddingModelTip": "Convertit le texte en vecteurs pour la recherche sémantique en mémoire. Changer ce modèle nécessite de recalculer tous les embeddings existants.",
+      "embeddingModelWarning": "Attention : changer le modèle d'embedding nécessite de régénérer tous les souvenirs existants.",
+      "modelSaved": "Modèle sauvegardé",
       "empty": "Aucun souvenir",
       "add": "Ajouter un souvenir",
       "edit": "Modifier le souvenir",
@@ -846,11 +843,11 @@
       "emptyDescription": "Les souvenirs aident vos Kins à retenir les informations importantes d'une conversation à l'autre. Ajoutez-en manuellement ou laissez vos Kins les créer automatiquement.",
       "noResults": "Aucun souvenir ne correspond à vos filtres",
       "help": {
-        "content": "Les mémoires permettent à vos Kins de retenir des informations importantes entre les conversations. Elles sont extraites automatiquement ou ajoutées manuellement.",
-        "bullet1": "Les mémoires sont catégorisées (fait, préférence, décision, connaissance) pour une meilleure organisation",
-        "bullet2": "Chaque Kin a son propre espace mémoire isolé des autres",
+        "content": "Les mémoires permettent à vos Kins de retenir des informations importantes entre les conversations. Configurez les modèles d'extraction et de recherche, et gérez tous les souvenirs depuis cette page.",
+        "bullet1": "Le modèle d'extraction convertit les conversations en souvenirs long-terme lors du compactage",
+        "bullet2": "Le modèle d'embedding convertit le texte en vecteurs pour la recherche sémantique. Le changer nécessite de re-générer tous les embeddings existants",
         "bullet3": "Les mémoires sont recherchées sémantiquement : le Kin retrouve les infos pertinentes même si les mots exacts diffèrent",
-        "bullet4": "Utilisez le champ \"sujet\" pour regrouper les mémoires par thème (personne, projet, etc.)"
+        "bullet4": "Si aucun modèle d'extraction n'est défini, chaque Kin utilise son propre modèle de chat"
       }
     },
     "contacts": {

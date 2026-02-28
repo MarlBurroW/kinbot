@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from 'react'
-import { Cpu } from 'lucide-react'
+import { Cpu, Search } from 'lucide-react'
 import Claude from '@lobehub/icons/es/Claude'
 import OpenAI from '@lobehub/icons/es/OpenAI'
 import Gemini from '@lobehub/icons/es/Gemini'
@@ -42,6 +42,7 @@ const PROVIDER_MONO: Record<string, SvgIcon> = {
   replicate: Replicate,
   stability: Stability,
   fal: Fal,
+  serper: Search as unknown as SvgIcon,
 }
 
 /** Color icons — use .Color variant where available */
@@ -66,19 +67,20 @@ const PROVIDER_COLOR: Record<string, SvgIcon> = {
   ollama: Ollama,
   xai: XAI,
   jina: Jina,
+  serper: Search as unknown as SvgIcon,
 }
 
 /** Brand colors for providers that only have Mono icons */
 const PROVIDER_BRAND_COLORS: Record<string, string> = {
   groq: '#F55036',
   openrouter: '#6566F1',
+  serper: '#48BB78',
 }
 
 /** Image fallbacks for providers not in @lobehub/icons */
 const PROVIDER_IMG_FALLBACKS: Record<string, string> = {
   'brave-search': 'https://cdn.simpleicons.org/brave/fb542b',
   nomic: 'https://nomic.ai/favicon.ico',
-  serper: 'https://serper.dev/favicon.ico',
 }
 
 interface ProviderIconProps {

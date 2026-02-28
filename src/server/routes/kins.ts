@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, isNull, ne } from 'drizzle-orm'
 import { mkdirSync, existsSync } from 'fs'
 import { generateText } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { db } from '@/server/db/index'
-import { kins, kinMcpServers, mcpServers, queueItems, compactingSnapshots, memories, providers } from '@/server/db/schema'
+import { kins, kinMcpServers, mcpServers, queueItems, compactingSnapshots, memories, messages, providers } from '@/server/db/schema'
 import { config } from '@/server/config'
 import {
   generateAvatarImage,
@@ -32,6 +32,7 @@ import {
 import { listModelsForProvider } from '@/server/providers/index'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
+import { getModelContextWindow } from '@/shared/model-context-windows'
 
 const log = createLogger('routes:kins')
 const kinRoutes = new Hono<{ Variables: AppVariables }>()
@@ -282,6 +283,62 @@ kinRoutes.post('/avatar/preview', async (c) => {
       502,
     )
   }
+})
+
+// GET /api/kins/:id/context-usage — lightweight context token estimation
+kinRoutes.get('/:id/context-usage', async (c) => {
+  const kin = resolveKinByIdOrSlug(c.req.param('id'))
+  if (!kin) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  const contextWindow = getModelContextWindow(kin.model)
+
+  // Rough token estimation: ~4 chars per token
+  const estimateTokens = (text: string) => Math.ceil(text.length / 4)
+
+  let contextTokens = 0
+
+  // System prompt baseline: kin fields + overhead for tools/memories/formatting
+  contextTokens += estimateTokens([kin.name, kin.role, kin.character, kin.expertise].join(' '))
+  contextTokens += 1500 // baseline overhead for prompt template, tools, memories, etc.
+
+  // Compacted summary (if any)
+  const snapshot = await db
+    .select({ summary: compactingSnapshots.summary, createdAt: compactingSnapshots.createdAt })
+    .from(compactingSnapshots)
+    .where(and(eq(compactingSnapshots.kinId, kin.id), eq(compactingSnapshots.isActive, true)))
+    .get()
+
+  if (snapshot) {
+    contextTokens += estimateTokens(snapshot.summary)
+  }
+
+  // Recent messages (same logic as buildMessageHistory in kin-engine)
+  const recentMsgs = await db
+    .select({ content: messages.content, createdAt: messages.createdAt })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.kinId, kin.id),
+        isNull(messages.taskId),
+        isNull(messages.sessionId),
+        ne(messages.sourceType, 'compacting'),
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(50)
+    .all()
+
+  const filtered = snapshot
+    ? recentMsgs.filter((m) => m.createdAt && snapshot.createdAt && m.createdAt > snapshot.createdAt)
+    : recentMsgs
+
+  for (const msg of filtered) {
+    if (msg.content) contextTokens += estimateTokens(msg.content)
+  }
+
+  return c.json({ contextTokens, contextWindow })
 })
 
 // ─── Kin CRUD (parameterized routes) ───────────────────────────────────────

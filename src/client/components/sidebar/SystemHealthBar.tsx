@@ -85,7 +85,7 @@ export function SystemHealthBar({ onOpenSettings }: SystemHealthBarProps) {
 
   const channelStatus: 'ok' | 'warn' | 'error' =
     !channels || channels.total === 0
-      ? 'warn'
+      ? 'ok'
       : channels.active === channels.total
         ? 'ok'
         : channels.active === 0

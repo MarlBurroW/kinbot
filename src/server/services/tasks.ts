@@ -135,7 +135,7 @@ export async function spawnTask(params: SpawnParams) {
  */
 export const resumeSubKin = executeSubKin
 
-async function executeSubKin(taskId: string) {
+async function executeSubKin(taskId: string, isNudge = false) {
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get()
   if (!task) return
 
@@ -447,11 +447,34 @@ async function executeSubKin(taskId: string) {
     })
 
     // If the Kin didn't explicitly resolve the task via update_task_status(),
-    // treat it as a failure — the Kin must be explicit about success.
+    // give it one more chance (nudge turn) before marking as failed.
     const currentTask = await db.select().from(tasks).where(eq(tasks.id, taskId)).get()
     if (currentTask && currentTask.status === 'in_progress') {
-      log.warn({ taskId }, 'Sub-Kin finished without calling update_task_status — marking as failed')
-      await resolveTask(taskId, 'failed', undefined, 'Task did not explicitly report completion')
+      if (!isNudge) {
+        // First attempt — inject a reminder and re-run one more LLM turn
+        log.info({ taskId }, 'Sub-Kin finished without calling update_task_status — sending nudge turn')
+
+        await db.insert(messages).values({
+          id: uuid(),
+          kinId: task.parentKinId,
+          taskId,
+          role: 'user',
+          content:
+            '[System] You have not called update_task_status() yet. ' +
+            'You MUST finalize this task now:\n' +
+            '- Call update_task_status("completed", "<summary of what you accomplished>") if the task is done.\n' +
+            '- Call update_task_status("failed", undefined, "<reason>") if you could not complete it.\n' +
+            'Do this immediately.',
+          sourceType: 'system',
+          createdAt: new Date(),
+        })
+
+        await executeSubKin(taskId, true)
+      } else {
+        // Already nudged once — now fail for real
+        log.warn({ taskId }, 'Sub-Kin still did not call update_task_status after nudge — marking as failed')
+        await resolveTask(taskId, 'failed', undefined, 'Task did not explicitly report completion')
+      }
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Unknown error'

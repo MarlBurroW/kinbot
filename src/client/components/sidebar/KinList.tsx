@@ -121,6 +121,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
                 {t('sidebar.kins.noResults')}
               </p>
             ) : (
+          <div className="max-h-[40vh] overflow-y-auto">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={kinIds} strategy={verticalListSortingStrategy}>
               <div className="space-y-1 px-1">
@@ -149,6 +150,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
               </div>
             </SortableContext>
           </DndContext>
+          </div>
             )}
           </>
         )}

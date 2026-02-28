@@ -1,0 +1,165 @@
+name: Install Test
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'site/**'
+      - '*.md'
+      - 'LICENSE'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'site/**'
+      - '*.md'
+      - 'LICENSE'
+
+jobs:
+  native-install:
+    name: Native Install
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate install.sh syntax
+        run: bash -n install.sh
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Run database migrations
+        env:
+          KINBOT_DATA_DIR: ${{ runner.temp }}/kinbot-data
+        run: |
+          mkdir -p "$KINBOT_DATA_DIR"
+          DB_PATH="$KINBOT_DATA_DIR/kinbot.db" bun run db:migrate
+
+      - name: Start server
+        env:
+          PORT: '3333'
+          NODE_ENV: production
+          KINBOT_DATA_DIR: ${{ runner.temp }}/kinbot-data
+          DB_PATH: ${{ runner.temp }}/kinbot-data/kinbot.db
+        run: |
+          bun src/server/index.ts &
+          echo $! > /tmp/kinbot-server.pid
+
+      - name: Wait for health check
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3333/api/health > /dev/null 2>&1; then
+              echo "Server is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Health check failed after 30s"
+          exit 1
+
+      - name: Verify health endpoint
+        run: |
+          RESPONSE=$(curl -sf http://localhost:3333/api/health)
+          echo "Response: $RESPONSE"
+          echo "$RESPONSE" | jq -e '.status == "ok"'
+
+      - name: Verify frontend is served
+        run: |
+          HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:3333/)
+          echo "Frontend HTTP status: $HTTP_CODE"
+          [ "$HTTP_CODE" = "200" ]
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/kinbot-server.pid ]; then
+            kill "$(cat /tmp/kinbot-server.pid)" 2>/dev/null || true
+          fi
+
+  docker-install:
+    name: Docker Install
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: kinbot:test
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name kinbot-test \
+            -p 3000:3000 \
+            -v "${{ runner.temp }}/kinbot-docker-data:/app/data" \
+            kinbot:test
+
+      - name: Wait for container to be healthy
+        run: |
+          for i in $(seq 1 60); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' kinbot-test 2>/dev/null || echo "starting")
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Container is healthy after ${i}s"
+              exit 0
+            fi
+            if [ "$STATUS" = "unhealthy" ]; then
+              echo "::error::Container is unhealthy"
+              docker logs kinbot-test
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "::error::Container did not become healthy after 60s"
+          docker logs kinbot-test
+          exit 1
+
+      - name: Verify health endpoint
+        run: |
+          RESPONSE=$(curl -sf http://localhost:3000/api/health)
+          echo "Response: $RESPONSE"
+          echo "$RESPONSE" | jq -e '.status == "ok"'
+
+      - name: Verify frontend is served
+        run: |
+          HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:3000/)
+          echo "Frontend HTTP status: $HTTP_CODE"
+          [ "$HTTP_CODE" = "200" ]
+
+      - name: Container logs
+        if: always()
+        run: docker logs kinbot-test 2>&1 || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop kinbot-test 2>/dev/null || true
+          docker rm kinbot-test 2>/dev/null || true

@@ -11,12 +11,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
  */
 
 // Helper: import config fresh in a subprocess with custom env
-async function loadConfigWithEnv(env: Record<string, string>): Promise<Record<string, any>> {
+async function loadConfigWithEnv(env: Record<string, string | undefined>): Promise<Record<string, any>> {
   const script = `
     // Silence any console.log from the module (e.g. encryption key generation)
     const origLog = console.log;
     console.log = () => {};
-    process.env = { ...process.env, ...JSON.parse(process.argv[1]) };
+    const overrides = JSON.parse(process.argv[1]);
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v === null) delete process.env[k];
+      else process.env[k] = v;
+    }
     const m = await import('./src/server/config.ts');
     console.log = origLog;
     // Serialize (strip functions/symbols; NaN → "NaN" sentinel)
@@ -26,11 +30,13 @@ async function loadConfigWithEnv(env: Record<string, string>): Promise<Record<st
       return v;
     }));
   `
-  const proc = Bun.spawn(['bun', '-e', script, JSON.stringify(env)], {
+  // Serialize env for the in-process override (undefined → null for JSON)
+  const serialized = JSON.stringify(env, (_, v) => v === undefined ? null : v)
+  const proc = Bun.spawn([process.execPath, '-e', script, serialized], {
     cwd: process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',
-    env: { ...process.env, ...env },
+    env: { ...process.env, ...(Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined)) as Record<string, string>) },
   })
   const stdout = await new Response(proc.stdout).text()
   const stderr = await new Response(proc.stderr).text()
@@ -259,7 +265,7 @@ describe('config', () => {
     })
 
     it('publicUrl defaults to localhost with custom PORT', async () => {
-      const c = await loadConfigWithEnv({ PORT: '4444' })
+      const c = await loadConfigWithEnv({ PORT: '4444', PUBLIC_URL: undefined })
       expect(c.publicUrl).toBe('http://localhost:4444')
     })
   })

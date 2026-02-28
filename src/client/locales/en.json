@@ -579,25 +579,10 @@
       "globalPromptPlaceholder": "Enter instructions that all Kins should follow...",
       "globalPromptHint": "This text is injected into every Kin's system prompt.",
       "saved": "Global prompt updated",
-      "modelConfig": "Model Configuration",
-      "modelConfigDescription": "Models used for memory extraction and semantic search",
-      "extractionModel": "Extraction Model",
-      "extractionModelPlaceholder": "Use each Kin's own model (default)",
-      "extractionModelHint": "LLM used to extract long-term memories during compacting. Leave empty to use each Kin's own model.",
-      "embeddingModel": "Embedding Model",
-      "embeddingModelPlaceholder": "Select an embedding model",
-      "embeddingModelHint": "Model used to generate semantic embeddings for memory search.",
-      "embeddingModelWarning": "Warning: changing the embedding model requires regenerating all existing memories.",
-      "modelSaved": "Model saved",
       "globalPromptTip": "Instructions injected into every Kin's system prompt. Use this for rules or guidelines all your Kins should follow.",
-      "extractionModelTip": "The LLM used to extract key facts from conversations for long-term memory. If unset, each Kin uses its own model.",
-      "embeddingModelTip": "Converts text into vectors for semantic memory search. Changing this requires re-embedding all existing memories.",
       "help": {
-        "content": "General settings control platform-wide behavior that applies to all your Kins. The global prompt lets you define instructions every Kin follows, while model configuration determines how memories are extracted and searched.",
-        "bullet1": "The global prompt is injected into every Kin's system prompt. Use it for universal rules or guidelines",
-        "bullet2": "The extraction model handles converting conversations into long-term memories during compacting",
-        "bullet3": "The embedding model converts text into vectors for semantic memory search. Changing it requires re-embedding all memories",
-        "bullet4": "If no extraction model is set, each Kin uses its own chat model for memory extraction"
+        "content": "General settings control platform-wide behavior that applies to all your Kins. The global prompt lets you define instructions every Kin follows.",
+        "bullet1": "The global prompt is injected into every Kin's system prompt. Use it for universal rules or guidelines"
       }
     },
     "providers": {
@@ -811,6 +796,18 @@
     "memories": {
       "title": "Memories",
       "description": "View and manage all Kin memories.",
+      "modelConfig": "Model Configuration",
+      "modelConfigDescription": "Models used for memory extraction and semantic search.",
+      "extractionModel": "Extraction Model",
+      "extractionModelPlaceholder": "Use each Kin's own model (default)",
+      "extractionModelHint": "LLM used to extract long-term memories during compacting. Leave empty to use each Kin's own model.",
+      "extractionModelTip": "The LLM used to extract key facts from conversations for long-term memory. If unset, each Kin uses its own model.",
+      "embeddingModel": "Embedding Model",
+      "embeddingModelPlaceholder": "Select an embedding model",
+      "embeddingModelHint": "Model used to generate semantic embeddings for memory search.",
+      "embeddingModelTip": "Converts text into vectors for semantic memory search. Changing this requires re-embedding all existing memories.",
+      "embeddingModelWarning": "Warning: changing the embedding model requires regenerating all existing memories.",
+      "modelSaved": "Model saved",
       "empty": "No memories yet",
       "add": "Add memory",
       "edit": "Edit memory",
@@ -846,11 +843,11 @@
       "emptyDescription": "Memories help your Kins remember important information across conversations. Add one manually or let your Kins create them automatically.",
       "noResults": "No memories match your filters",
       "help": {
-        "content": "Memories let your Kins retain important information across conversations. They are extracted automatically during chats or added manually by you.",
-        "bullet1": "Memories are categorized (fact, preference, decision, knowledge) for better organization",
-        "bullet2": "Each Kin has its own isolated memory space",
+        "content": "Memories let your Kins retain important information across conversations. Configure the models used for extraction and search, and manage all memories from here.",
+        "bullet1": "The extraction model handles converting conversations into long-term memories during compacting",
+        "bullet2": "The embedding model converts text into vectors for semantic memory search. Changing it requires re-embedding all memories",
         "bullet3": "Memories are searched semantically: the Kin finds relevant info even if the exact words differ",
-        "bullet4": "Use the \"subject\" field to group related memories by theme (person, project, etc.)"
+        "bullet4": "If no extraction model is set, each Kin uses its own chat model for memory extraction"
       }
     },
     "contacts": {

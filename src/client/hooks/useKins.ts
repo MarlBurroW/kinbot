@@ -198,6 +198,28 @@ export function useKins() {
     }
   }, [fetchKinOrder])
 
+  // Fetch initial context usage for a kin (so the counter doesn't show "— / —")
+  const fetchContextUsage = useCallback(async (kinId: string) => {
+    try {
+      const data = await api.get<{ contextTokens: number; contextWindow: number }>(`/kins/${kinId}/context-usage`)
+      setKinQueueState((prev) => {
+        const existing = prev.get(kinId)
+        // Don't overwrite if SSE already provided fresh data
+        if (existing?.contextWindow && existing.contextWindow > 0) return prev
+        const next = new Map(prev)
+        next.set(kinId, {
+          isProcessing: existing?.isProcessing ?? false,
+          queueSize: existing?.queueSize ?? 0,
+          contextTokens: data.contextTokens,
+          contextWindow: data.contextWindow,
+        })
+        return next
+      })
+    } catch {
+      // Non-fatal — counter will just show "— / —" until first message
+    }
+  }, [])
+
   const getKin = useCallback(async (id: string): Promise<KinDetail> => {
     return api.get<KinDetail>(`/kins/${id}`)
   }, [])
@@ -293,6 +315,7 @@ export function useKins() {
     imageModels,
     isLoading,
     kinQueueState,
+    fetchContextUsage,
     getKin,
     createKin,
     updateKin,

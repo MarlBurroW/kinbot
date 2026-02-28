@@ -116,9 +116,6 @@ export function MiniAppList({ selectedKinId }: MiniAppListProps) {
     await deleteApp(appId)
   }, [activeAppId, closePanel, deleteApp])
 
-  // Don't render the section at all if there are no apps and we're not loading
-  if (!isLoading && apps.length === 0) return null
-
   return (
     <SidebarGroup>
       <Collapsible open={isOpen} onOpenChange={handleOpenChange}>

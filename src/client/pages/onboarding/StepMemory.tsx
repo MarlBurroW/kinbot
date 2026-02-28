@@ -36,7 +36,7 @@ export function StepMemory({ onComplete, onBack }: StepMemoryProps) {
           : Promise.resolve(),
       ])
     } catch {
-      // Non-blocking — settings can be configured later in General settings
+      // Non-blocking — settings can be configured later in Memories settings
     } finally {
       setSaving(false)
     }
@@ -71,7 +71,7 @@ export function StepMemory({ onComplete, onBack }: StepMemoryProps) {
           models={llmModels}
           value={extractionModel}
           onValueChange={setExtractionModel}
-          placeholder={t('settings.general.extractionModelPlaceholder')}
+          placeholder={t('settings.memories.extractionModelPlaceholder')}
           allowClear
         />
         <p className="text-xs text-muted-foreground">

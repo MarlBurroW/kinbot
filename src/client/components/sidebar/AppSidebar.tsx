@@ -89,6 +89,8 @@ export function AppSidebar({
           onReorderKins={onReorderKins}
         />
 
+        <MiniAppList selectedKinId={selectedKinId} />
+
         <SidebarSeparator />
 
         <TaskList llmModels={llmModels} />
@@ -99,10 +101,6 @@ export function AppSidebar({
           kins={kins.map((k) => ({ id: k.id, name: k.name, role: k.role, avatarUrl: k.avatarUrl }))}
           llmModels={llmModels}
         />
-
-        <SidebarSeparator />
-
-        <MiniAppList selectedKinId={selectedKinId} />
       </SidebarContent>
 
       {/* Footer */}
