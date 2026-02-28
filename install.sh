@@ -269,11 +269,40 @@ detect_os() {
 }
 
 # ─── Install a system package (sudo only for this) ───────────────────────────
+APT_UPDATED=false
+
 install_pkg() {
   local pkg="$1"
+
+  # Verify sudo is available when needed (not root, not brew)
+  if [ "$IS_ROOT" != true ] && ! command -v brew &>/dev/null; then
+    if ! command -v sudo &>/dev/null; then
+      echo "" >&2
+      error "$pkg is required but 'sudo' is not available to install it.\n\n  ${BOLD}Fix:${NC} Install $pkg manually as root, then re-run the installer.\n  ${DIM}Example: su -c 'apt-get update && apt-get install -y $pkg'${NC}"
+    fi
+    # Check that the user can actually sudo (cached credentials or NOPASSWD)
+    if ! sudo -n true 2>/dev/null; then
+      info "sudo password may be required to install $pkg"
+    fi
+  fi
+
   info "Installing $pkg..."
   if command -v apt-get &>/dev/null; then
-    sudo apt-get install -y "$pkg" -q
+    # Refresh package cache once per installer run (stale caches cause failures on fresh systems)
+    if [ "$APT_UPDATED" != true ]; then
+      info "Refreshing package cache..."
+      if [ "$IS_ROOT" = true ]; then
+        apt-get update -qq 2>/dev/null || warn "apt-get update failed (continuing anyway)"
+      else
+        sudo apt-get update -qq 2>/dev/null || warn "apt-get update failed (continuing anyway)"
+      fi
+      APT_UPDATED=true
+    fi
+    if [ "$IS_ROOT" = true ]; then
+      apt-get install -y "$pkg" -q
+    else
+      sudo apt-get install -y "$pkg" -q
+    fi
   elif command -v dnf &>/dev/null; then
     sudo dnf install -y "$pkg" -q
   elif command -v yum &>/dev/null; then
