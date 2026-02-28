@@ -52,7 +52,15 @@ export const createMiniAppTool: ToolRegistration = {
         '(1) shorthand `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}` or ' +
         '(2) full importmap `{"importmap": {"imports": {"react": "https://esm.sh/react@19"}}}`. ' +
         'The import map is auto-injected into the HTML. Then use `<script type="module">import React from "react";</script>` in your HTML. ' +
-        'Recommended CDN: esm.sh (ES module-ready). Example app.json: `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}`.',
+        'Recommended CDN: esm.sh (ES module-ready). Example app.json: `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}`. ' +
+        '**Backend API (_server.js):** Create a `_server.js` file using write_mini_app_file to add server-side API routes. ' +
+        'The file must export a default function that receives a context object and returns a Hono app. ' +
+        'Example _server.js: `export default function(ctx) { const app = new ctx.Hono(); app.get("/hello", (c) => c.json({ message: "Hello!" })); return app; }`. ' +
+        'Context provides: `ctx.Hono` (Hono constructor), `ctx.storage` (get/set/delete/list/clear — same as KinBot.storage), ' +
+        '`ctx.appId`, `ctx.kinId`, `ctx.appName`, `ctx.log` (info/warn/error/debug). ' +
+        'Routes are served at `/api/mini-apps/<appId>/api/*`. From the frontend, use `KinBot.api("/path")` (returns fetch Response), ' +
+        '`KinBot.api.json("/path")` (auto-parses JSON), or `KinBot.api.post("/path", data)` (POST with JSON body). ' +
+        'The backend auto-reloads when _server.js is updated.',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),
@@ -198,7 +206,7 @@ export const writeMiniAppFileTool: ToolRegistration = {
         'or modify index.html. After writing, the app reloads automatically in the UI. ' +
         'Path must be relative (e.g. "styles.css", "js/app.js", "img/logo.png"). ' +
         'For binary files (images), set is_base64 to true and pass base64-encoded content. ' +
-        'To add a backend, write a file named "_server.js" (see create_mini_app docs). ' +
+        'To add a backend, write a file named "_server.js" that exports a default function receiving ctx and returning a Hono app (see create_mini_app docs for full format). ' +
         'To add external dependencies, write an "app.json" file with a "dependencies" map (see create_mini_app docs for format).',
       inputSchema: z.object({
         app_id: z.string().describe('ID of the mini app'),

@@ -21,6 +21,7 @@ import {
   storageList,
   storageClear,
 } from '@/server/services/mini-apps'
+import { handleBackendRequest, invalidateBackend } from '@/server/services/mini-app-backend'
 import { sseManager } from '@/server/sse/index'
 
 export const miniAppRoutes = new Hono<{ Variables: AppVariables }>()
@@ -109,6 +110,7 @@ miniAppRoutes.delete('/:id', async (c) => {
     return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
   }
 
+  invalidateBackend(c.req.param('id'))
   await deleteMiniApp(c.req.param('id'))
   sseManager.broadcast({ type: 'miniapp:deleted', kinId: existing.kinId, data: { appId: existing.id } })
   return c.body(null, 204)
@@ -164,6 +166,11 @@ miniAppRoutes.put('/:id/files/*', async (c) => {
 
     const result = await writeAppFile(c.req.param('id'), filePath, content)
 
+    // Invalidate backend cache if _server.js was updated
+    if (filePath === '_server.js' || filePath === '_server.ts') {
+      invalidateBackend(c.req.param('id'))
+    }
+
     // Get updated app for version
     const app = await getMiniAppRow(c.req.param('id'))
     if (app) {
@@ -192,6 +199,11 @@ miniAppRoutes.delete('/:id/files/*', async (c) => {
     const deleted = await deleteAppFile(c.req.param('id'), filePath)
     if (!deleted) {
       return c.json({ error: { code: 'NOT_FOUND', message: 'File not found' } }, 404)
+    }
+
+    // Invalidate backend cache if _server.js was deleted
+    if (filePath === '_server.js' || filePath === '_server.ts') {
+      invalidateBackend(c.req.param('id'))
     }
 
     const app = await getMiniAppRow(c.req.param('id'))
@@ -271,6 +283,30 @@ miniAppRoutes.delete('/:id/storage', async (c) => {
 
   const count = await storageClear(app.id)
   return c.json({ cleared: count })
+})
+
+// ─── Backend API proxy ──────────────────────────────────────────────────────
+
+// Proxy requests to mini-app _server.js backends
+miniAppRoutes.all('/:id/api/*', async (c) => {
+  const appId = c.req.param('id')
+  const app = await getMiniAppRow(appId)
+  if (!app) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+  }
+  if (!app.hasBackend) {
+    return c.json({ error: { code: 'NO_BACKEND', message: 'This app has no backend. Write a _server.js file to add one.' } }, 404)
+  }
+
+  // Extract the path after /api/mini-apps/:id/api/
+  const apiPath = c.req.path.replace(`/api/mini-apps/${appId}/api`, '') || '/'
+
+  const response = await handleBackendRequest(appId, c.req.raw, apiPath)
+  if (!response) {
+    return c.json({ error: { code: 'BACKEND_UNAVAILABLE', message: 'Backend failed to load' } }, 500)
+  }
+
+  return response
 })
 
 // ─── Serve (for iframe) ────────────────────────────────────────────────────

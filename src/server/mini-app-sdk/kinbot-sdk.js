@@ -12,6 +12,7 @@
  *   KinBot.ready() — signal that the app has finished loading
  *   KinBot.fullpage(bool) — request full-page or side-panel mode
  *   KinBot.isFullPage — whether the app is currently in full-page mode
+ *   KinBot.api(path, options) — call backend API (_server.js) routes
  */
 ;(function () {
   'use strict'
@@ -214,6 +215,47 @@
     },
   }
 
+  // ─── Backend API ─────────────────────────────────────────────────────────
+
+  /**
+   * Call a backend API route defined in _server.js.
+   * @param {string} path — API path (e.g. '/hello', '/items/123')
+   * @param {RequestInit} [options] — fetch options (method, headers, body, etc.)
+   * @returns {Promise<Response>} — the raw fetch Response
+   */
+  function api(path, options) {
+    if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+    var url = '/api/mini-apps/' + _appMeta.id + '/api' + (path.startsWith('/') ? path : '/' + path)
+    return fetch(url, options)
+  }
+
+  /**
+   * Convenience: call backend API and parse JSON response.
+   * @param {string} path
+   * @param {RequestInit} [options]
+   * @returns {Promise<any>}
+   */
+  api.json = function (path, options) {
+    return api(path, options).then(function (r) {
+      if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'API error ' + r.status) })
+      return r.json()
+    })
+  }
+
+  /**
+   * Convenience: POST JSON to backend API.
+   * @param {string} path
+   * @param {any} data — will be JSON.stringify'd
+   * @returns {Promise<any>}
+   */
+  api.post = function (path, data) {
+    return api.json(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -227,6 +269,7 @@
     ready: ready,
     fullpage: fullpage,
     storage: storage,
-    version: '1.2.0',
+    api: api,
+    version: '1.3.0',
   }
 })()
