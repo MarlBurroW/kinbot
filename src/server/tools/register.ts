@@ -121,6 +121,7 @@ import {
   deleteMiniAppFileTool,
   listMiniAppFilesTool,
 } from '@/server/tools/mini-app-tools'
+import { getMiniAppTemplatesTool } from '@/server/tools/mini-app-templates'
 
 const log = createLogger('tools')
 
@@ -266,6 +267,7 @@ export function registerAllTools(): void {
   toolRegistry.register('read_mini_app_file', readMiniAppFileTool)
   toolRegistry.register('delete_mini_app_file', deleteMiniAppFileTool)
   toolRegistry.register('list_mini_app_files', listMiniAppFilesTool)
+  toolRegistry.register('get_mini_app_templates', getMiniAppTemplatesTool)
 
   log.info({ count: toolRegistry.registeredCount }, 'Native tools registered')
 }
