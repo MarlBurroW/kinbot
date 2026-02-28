@@ -329,6 +329,116 @@ export async function getMiniAppRow(id: string): Promise<MiniAppRow | null> {
 
 export { guessMimeType }
 
+// ─── Gallery (cross-kin browsing & cloning) ─────────────────────────────────
+
+export async function listAllMiniApps(): Promise<MiniAppSummary[]> {
+  const rows = await db.select().from(miniApps)
+    .where(eq(miniApps.isActive, true))
+    .orderBy(desc(miniApps.createdAt))
+    .all()
+
+  if (rows.length === 0) return []
+
+  // Batch-load kin info
+  const kinIds = [...new Set(rows.map((r) => r.kinId))]
+  const kinRows = await Promise.all(kinIds.map((id) => db.select().from(kins).where(eq(kins.id, id)).get()))
+  const kinMap = new Map<string, { name: string; avatarUrl: string | null }>()
+  for (let i = 0; i < kinIds.length; i++) {
+    const kinId = kinIds[i]!
+    const kin = kinRows[i]
+    const avatarPath = kin?.avatarPath ?? null
+    kinMap.set(kinId, {
+      name: kin?.name ?? 'Unknown',
+      avatarUrl: avatarPath ? `/api/uploads/kins/${kinId}/avatar${extname(avatarPath)}` : null,
+    })
+  }
+
+  return rows.map((row) => {
+    const info = kinMap.get(row.kinId) ?? { name: 'Unknown', avatarUrl: null }
+    return serializeApp(row, info.name, info.avatarUrl)
+  })
+}
+
+export async function cloneMiniApp(sourceAppId: string, targetKinId: string, newSlug?: string): Promise<MiniAppSummary> {
+  const source = await db.select().from(miniApps).where(eq(miniApps.id, sourceAppId)).get()
+  if (!source) throw new Error('Source app not found')
+
+  // Generate unique slug
+  const baseSlug = newSlug ?? source.slug
+  let slug = baseSlug
+  let attempt = 0
+  while (true) {
+    const exists = await db.select().from(miniApps)
+      .where(and(eq(miniApps.kinId, targetKinId), eq(miniApps.slug, slug)))
+      .get()
+    if (!exists) break
+    attempt++
+    slug = `${baseSlug}-${attempt}`
+    if (attempt > 50) throw new Error('Could not find a unique slug')
+  }
+
+  // Check max apps
+  const existing = await db.select().from(miniApps).where(eq(miniApps.kinId, targetKinId)).all()
+  if (existing.length >= config.miniApps.maxAppsPerKin) {
+    throw new Error(`Maximum of ${config.miniApps.maxAppsPerKin} apps per Kin reached`)
+  }
+
+  const newId = uuid()
+  const sourceDir = appDir(source.kinId, sourceAppId)
+  const targetDir = appDir(targetKinId, newId)
+  await mkdir(targetDir, { recursive: true })
+
+  // Copy all files
+  if (existsSync(sourceDir)) {
+    const files: { path: string }[] = []
+    const walkForCopy = async (dir: string, base: string) => {
+      const entries = await readdir(dir, { withFileTypes: true })
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          await walkForCopy(fullPath, base)
+        } else {
+          files.push({ path: fullPath.slice(base.length + 1) })
+        }
+      }
+    }
+    await walkForCopy(sourceDir, sourceDir)
+
+    for (const file of files) {
+      const srcPath = join(sourceDir, file.path)
+      const destPath = join(targetDir, file.path)
+      await mkdir(dirname(destPath), { recursive: true })
+      const content = await Bun.file(srcPath).arrayBuffer()
+      await Bun.write(destPath, content)
+    }
+  }
+
+  const now = new Date()
+  await db.insert(miniApps).values({
+    id: newId,
+    kinId: targetKinId,
+    name: source.name,
+    slug,
+    description: source.description,
+    icon: source.icon,
+    entryFile: source.entryFile,
+    hasBackend: source.hasBackend,
+    isActive: true,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  log.info({ sourceAppId, targetKinId, newAppId: newId, slug }, 'Mini-app cloned')
+
+  const kin = await db.select().from(kins).where(eq(kins.id, targetKinId)).get()
+  return serializeApp(
+    (await db.select().from(miniApps).where(eq(miniApps.id, newId)).get())!,
+    kin?.name ?? 'Unknown',
+    kin?.avatarPath ? `/api/uploads/kins/${targetKinId}/avatar${extname(kin.avatarPath)}` : null,
+  )
+}
+
 // ─── Key-Value Storage ──────────────────────────────────────────────────────
 
 const MAX_STORAGE_KEY_LENGTH = 256
