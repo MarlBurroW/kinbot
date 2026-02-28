@@ -181,7 +181,7 @@ describe('MatrixAdapter', () => {
 
       expect(result.platformMessageId).toBe('$event123')
       expect(sentRequests).toHaveLength(1)
-      expect(sentRequests[0].body).toMatchObject({ msgtype: 'm.text', body: 'Hello world' })
+      expect(sentRequests[0]!.body).toMatchObject({ msgtype: 'm.text', body: 'Hello world' })
     })
 
     it('includes reply threading when replyToMessageId is provided', async () => {
@@ -199,7 +199,7 @@ describe('MatrixAdapter', () => {
       )
 
       expect(result.platformMessageId).toBe('$reply456')
-      const body = sentRequests[0].body as Record<string, unknown>
+      const body = sentRequests[0]!.body as Record<string, unknown>
       expect(body.msgtype).toBe('m.text')
       expect(body.body).toBe('Reply text')
       const relates = body['m.relates_to'] as Record<string, unknown>
@@ -254,9 +254,9 @@ describe('MatrixAdapter', () => {
       expect(sentBodies.length).toBeGreaterThanOrEqual(2)
 
       // First chunk has reply (use bracket notation — key contains a dot)
-      expect('m.relates_to' in sentBodies[0]).toBe(true)
+      expect('m.relates_to' in sentBodies[0]!).toBe(true)
       // Second chunk does NOT
-      expect('m.relates_to' in sentBodies[1]).toBe(false)
+      expect('m.relates_to' in sentBodies[1]!).toBe(false)
     })
 
     it('strips trailing slashes from homeserver URL', async () => {
