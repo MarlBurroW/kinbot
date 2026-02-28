@@ -7,6 +7,7 @@ import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
+import { useSSE } from '@/client/hooks/useSSE'
 import { useKinList } from '@/client/hooks/useKinList'
 import { McpServerCard, type McpServerData } from '@/client/components/mcp/McpServerCard'
 import { McpServerFormDialog } from '@/client/components/mcp/McpServerFormDialog'
@@ -22,6 +23,15 @@ export function McpServersSettings() {
   useEffect(() => {
     fetchServers()
   }, [])
+
+  useSSE({
+    'mcp-server:created': () => fetchServers(),
+    'mcp-server:updated': () => fetchServers(),
+    'mcp-server:deleted': (data) => {
+      const serverId = data.serverId as string
+      setServers((prev) => prev.filter((s) => s.id !== serverId))
+    },
+  })
 
   const fetchServers = async () => {
     try {

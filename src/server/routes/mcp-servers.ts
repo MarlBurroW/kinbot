@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid'
 import { db } from '@/server/db/index'
 import { mcpServers } from '@/server/db/schema'
 import { disconnectServer } from '@/server/services/mcp'
+import { sseManager } from '@/server/sse/index'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
 
@@ -67,7 +68,14 @@ mcpServerRoutes.post('/', async (c) => {
   log.info({ serverId: id, name: body.name, command: body.command, status: body.status ?? 'active' }, 'MCP server created')
 
   const created = await db.select().from(mcpServers).where(eq(mcpServers.id, id)).get()
-  return c.json({ server: serialize(created!) }, 201)
+  const serialized = serialize(created!)
+
+  sseManager.broadcast({
+    type: 'mcp-server:created',
+    data: { serverId: id, server: serialized },
+  })
+
+  return c.json({ server: serialized }, 201)
 })
 
 // PATCH /api/mcp-servers/:id — update an MCP server
@@ -101,8 +109,15 @@ mcpServerRoutes.patch('/:id', async (c) => {
   }
 
   const updated = await db.select().from(mcpServers).where(eq(mcpServers.id, id)).get()
+  const serializedUpdated = serialize(updated!)
   log.info({ serverId: id, name: updated!.name, configChanged }, 'MCP server updated')
-  return c.json({ server: serialize(updated!) })
+
+  sseManager.broadcast({
+    type: 'mcp-server:updated',
+    data: { serverId: id, server: serializedUpdated },
+  })
+
+  return c.json({ server: serializedUpdated })
 })
 
 // POST /api/mcp-servers/:id/approve — approve a pending MCP server
@@ -121,8 +136,15 @@ mcpServerRoutes.post('/:id/approve', async (c) => {
   await db.update(mcpServers).set({ status: 'active', updatedAt: new Date() }).where(eq(mcpServers.id, id))
 
   const updated = await db.select().from(mcpServers).where(eq(mcpServers.id, id)).get()
+  const serializedApproved = serialize(updated!)
   log.info({ serverId: id, name: updated!.name }, 'MCP server approved')
-  return c.json({ server: serialize(updated!) })
+
+  sseManager.broadcast({
+    type: 'mcp-server:updated',
+    data: { serverId: id, server: serializedApproved },
+  })
+
+  return c.json({ server: serializedApproved })
 })
 
 // DELETE /api/mcp-servers/:id — delete an MCP server
@@ -141,5 +163,11 @@ mcpServerRoutes.delete('/:id', async (c) => {
   await db.delete(mcpServers).where(eq(mcpServers.id, id))
 
   log.info({ serverId: id, name: existing.name }, 'MCP server deleted')
+
+  sseManager.broadcast({
+    type: 'mcp-server:deleted',
+    data: { serverId: id },
+  })
+
   return c.json({ success: true })
 })
