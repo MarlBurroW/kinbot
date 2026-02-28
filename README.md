@@ -81,7 +81,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 #### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools; Kins can manage their own MCP connections
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
-- **Mini Apps** — Kins can build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar; auto-injected design system + JavaScript SDK with theme sync, toasts, inter-app navigation (`openApp`), dialogs (`confirm`/`prompt`), window title & badge control, starter templates, and parent-child event communication
+- **Mini Apps** — Kins can build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar; auto-injected design system + JavaScript SDK with theme sync, toasts, inter-app navigation (`openApp`), dialogs (`confirm`/`prompt`), window title & badge control, starter templates, parent-child event communication, and an App Gallery to browse and clone community apps
 - **Contacts** — manage contacts that Kins can reference and interact with
 - **Multi-provider** — 23 providers: Anthropic, Anthropic OAuth, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Serper, Perplexity, Replicate, Stability AI, FAL AI, Brave Search
 

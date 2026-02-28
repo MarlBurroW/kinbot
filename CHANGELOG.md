@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Mini Apps: App Gallery** — browse community apps and clone them into your Kins with one click
+- **Mini Apps: Additional SDK components** — select, checkbox, switch, radio, progress, alert, avatar, kbd, spinner CSS classes
+- **E2E Tests** — channel management spec (create, edit, test, delete, platform selector)
+- **E2E Tests** — Kin management spec (create, edit, delete, tabs, wizard)
+- **Installer** — HTTPS and encryption key security hints in post-install summary
+- **Installer** — update check in `--status` command
+- Pull request template
+- Husky pre-commit hooks (typecheck + tests + build)
+- Badge `size="xs"` variant
+
+### Fixed
+- Guard `config.tasks` access in prompt-builder to prevent CI failures
+- Read `PUBLIC_URL` from env on update, fixing empty URL in summary ([#9](https://github.com/MarlBurroW/kinbot/issues/9))
+- Remove husky prepare script in Docker production stage (bun ignores `HUSKY=0`)
+- Translate hardcoded Close button and URL label (i18n)
+
 ### Changed
 - Add Compare link to navbar (site)
+- Circular scroll progress indicator on back-to-top button (site)
 
 ---
 
