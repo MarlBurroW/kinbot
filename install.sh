@@ -1839,6 +1839,9 @@ show_help() {
   echo "  --help          Show this help message"
   echo "  --version       Show installed version and check for updates"
   echo "  --update        Check for updates and apply if available"
+  echo "  --start         Start the KinBot service"
+  echo "  --stop          Stop the KinBot service"
+  echo "  --restart       Restart the KinBot service"
   echo "  --status        Check current KinBot installation health"
   echo "  --test          Run self-tests to validate the installation works"
   echo "  --doctor        Generate a diagnostic report (for bug reports / support)"
@@ -1906,6 +1909,11 @@ show_help() {
   echo "  # Restore from a backup (interactive picker)"
   echo "  bash install.sh --restore"
   echo "  bash install.sh --restore /tmp/kinbot-backup.db"
+  echo ""
+  echo "  # Start / stop / restart the service"
+  echo "  bash install.sh --start"
+  echo "  bash install.sh --stop"
+  echo "  bash install.sh --restart"
   echo ""
   echo "  # Check installation health"
   echo "  bash install.sh --status"
@@ -2134,6 +2142,147 @@ check_status() {
 
 # Non-fatal error (for status checks)
 error_noexit() { echo -e "${RED}✗${NC} $*" >&2; }
+
+# ─── Service lifecycle (start/stop/restart) ──────────────────────────────────
+# Helpers to manage the KinBot service from the installer itself,
+# so users don't need to remember systemctl vs launchctl vs script commands.
+
+_service_env_setup() {
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+  detect_os
+}
+
+_service_start() {
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local plist="$HOME/Library/LaunchAgents/io.kinbot.server.plist"
+    if [ ! -f "$plist" ]; then
+      error "launchd service not installed. Run the installer first: bash install.sh"
+    fi
+    if launchctl list 2>/dev/null | grep -q io.kinbot.server; then
+      warn "KinBot is already running"
+      return 0
+    fi
+    launchctl load "$plist"
+    success "KinBot started (launchd)"
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local script_path="$KINBOT_DIR/kinbot"
+    if [ ! -x "$script_path" ]; then
+      error "Service script not found. Run the installer first: bash install.sh"
+    fi
+    "$script_path" start
+  elif [ "$IS_ROOT" = true ]; then
+    if ! systemctl is-enabled --quiet kinbot 2>/dev/null; then
+      error "systemd service not installed. Run the installer first: sudo bash install.sh"
+    fi
+    if systemctl is-active --quiet kinbot 2>/dev/null; then
+      warn "KinBot is already running"
+      return 0
+    fi
+    systemctl start kinbot
+    success "KinBot started (systemd)"
+  else
+    if ! systemctl --user is-enabled --quiet kinbot 2>/dev/null; then
+      error "systemd user service not installed. Run the installer first: bash install.sh"
+    fi
+    if systemctl --user is-active --quiet kinbot 2>/dev/null; then
+      warn "KinBot is already running"
+      return 0
+    fi
+    systemctl --user start kinbot
+    success "KinBot started (systemd user service)"
+  fi
+}
+
+_service_stop() {
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local plist="$HOME/Library/LaunchAgents/io.kinbot.server.plist"
+    if ! launchctl list 2>/dev/null | grep -q io.kinbot.server; then
+      warn "KinBot is not running"
+      return 0
+    fi
+    launchctl unload "$plist" 2>/dev/null || true
+    success "KinBot stopped (launchd)"
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local script_path="$KINBOT_DIR/kinbot"
+    if [ ! -x "$script_path" ]; then
+      error "Service script not found at $script_path"
+    fi
+    "$script_path" stop
+  elif [ "$IS_ROOT" = true ]; then
+    if ! systemctl is-active --quiet kinbot 2>/dev/null; then
+      warn "KinBot is not running"
+      return 0
+    fi
+    systemctl stop kinbot
+    success "KinBot stopped (systemd)"
+  else
+    if ! systemctl --user is-active --quiet kinbot 2>/dev/null; then
+      warn "KinBot is not running"
+      return 0
+    fi
+    systemctl --user stop kinbot
+    success "KinBot stopped (systemd user service)"
+  fi
+}
+
+do_start() {
+  echo ""
+  _service_env_setup
+  if [ ! -d "$KINBOT_DIR/.git" ]; then
+    error "KinBot is not installed at $KINBOT_DIR. Run the installer first: bash install.sh"
+  fi
+  _service_start
+  echo ""
+}
+
+do_stop() {
+  echo ""
+  _service_env_setup
+  if [ ! -d "$KINBOT_DIR/.git" ]; then
+    error "KinBot is not installed at $KINBOT_DIR. Run the installer first: bash install.sh"
+  fi
+  _service_stop
+  echo ""
+}
+
+do_restart() {
+  echo ""
+  _service_env_setup
+  if [ ! -d "$KINBOT_DIR/.git" ]; then
+    error "KinBot is not installed at $KINBOT_DIR. Run the installer first: bash install.sh"
+  fi
+  info "Restarting KinBot..."
+
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local plist="$HOME/Library/LaunchAgents/io.kinbot.server.plist"
+    launchctl unload "$plist" 2>/dev/null || true
+    sleep 1
+    launchctl load "$plist"
+    success "KinBot restarted (launchd)"
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local script_path="$KINBOT_DIR/kinbot"
+    if [ ! -x "$script_path" ]; then
+      error "Service script not found at $script_path"
+    fi
+    "$script_path" restart
+  elif [ "$IS_ROOT" = true ]; then
+    systemctl restart kinbot
+    success "KinBot restarted (systemd)"
+  else
+    systemctl --user restart kinbot
+    success "KinBot restarted (systemd user service)"
+  fi
+  echo ""
+}
 
 # ─── Doctor (diagnostic report for bug reports) ─────────────────────────────
 do_doctor() {
@@ -4009,6 +4158,21 @@ main() {
       --uninstall|uninstall)
         trap - INT TERM
         uninstall
+        exit 0
+        ;;
+      --start|start)
+        trap - INT TERM
+        do_start
+        exit 0
+        ;;
+      --stop|stop)
+        trap - INT TERM
+        do_stop
+        exit 0
+        ;;
+      --restart|restart)
+        trap - INT TERM
+        do_restart
         exit 0
         ;;
       --status|status)
