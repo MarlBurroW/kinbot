@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { Navbar } from './components/Navbar'
 import { Hero } from './components/Hero'
 import { ScrollReveal } from './components/ScrollReveal'
+import { SectionDivider } from './components/SectionDivider'
 import { Footer } from './components/Footer'
 import { BackToTop } from './components/BackToTop'
 
@@ -52,6 +53,7 @@ export default function App() {
             <Stats />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="glow" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <HowItWorks />
@@ -62,11 +64,13 @@ export default function App() {
             <WhatIsKin />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="wave" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <InteractiveDemo />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="glow" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Features />
@@ -77,11 +81,13 @@ export default function App() {
             <UseCases />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="wave" flip />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Screenshots />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="glow" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Comparison />
@@ -97,11 +103,13 @@ export default function App() {
             <Channels />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="fade" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Architecture />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="glow" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Install />
@@ -112,16 +120,19 @@ export default function App() {
             <Pricing />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="wave" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <FAQ />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="glow" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Changelog />
           </ScrollReveal>
         </Suspense>
+        <SectionDivider variant="fade" />
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <GitHubCTA />
