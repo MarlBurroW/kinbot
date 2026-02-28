@@ -210,7 +210,10 @@
     "health": {
       "providers": "{{healthy}}/{{total}} providers connectés",
       "channels": "{{active}}/{{total}} canaux actifs"
-    }
+    },
+    "toggleSidebar": "Basculer la barre latérale",
+    "mobileSidebar": "Barre latérale",
+    "mobileSidebarDesc": "Affiche la barre latérale mobile."
   },
   "kin": {
     "edit": {
@@ -539,7 +542,8 @@
       "minutes": "{{count}} min plus tard",
       "hours": "{{count}}h plus tard",
       "hoursMinutes": "{{hours}}h {{minutes}}min plus tard"
-    }
+    },
+    "quickChat": "Chat rapide"
   },
   "quickChat": {
     "title": "Session rapide",
