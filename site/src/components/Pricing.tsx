@@ -29,10 +29,10 @@ const usageLevels: Record<UsageLevel, CostEstimate> = {
     label: 'Light',
     messagesPerDay: '~20 messages/day',
     providers: [
-      { name: 'Ollama (local)', cost: '$0', note: 'Free forever. Run Llama, Mistral, etc. locally.' },
-      { name: 'Claude 3.5 Sonnet', cost: '~$3', note: 'Per month. ~600 messages × avg. 2K tokens.' },
-      { name: 'GPT-4o', cost: '~$4', note: 'Per month. Pay-as-you-go, no subscription.' },
-      { name: 'Gemini 2.0 Flash', cost: '~$0.50', note: 'Per month. Very cost-effective.' },
+      { name: 'Ollama (local)', cost: '$0', note: 'Free forever. Run Llama, Qwen, Mistral, etc. locally.' },
+      { name: 'Claude Sonnet 4', cost: '~$3', note: 'Per month. ~600 messages × avg. 2K tokens.' },
+      { name: 'Gemini 2.5 Flash', cost: '~$0.50', note: 'Per month. Very cost-effective.' },
+      { name: 'DeepSeek V3', cost: '~$0.40', note: 'Per month. Frontier quality at budget prices.' },
     ],
   },
   moderate: {
@@ -40,9 +40,9 @@ const usageLevels: Record<UsageLevel, CostEstimate> = {
     messagesPerDay: '~100 messages/day',
     providers: [
       { name: 'Ollama (local)', cost: '$0', note: 'Still free. Just need decent hardware.' },
-      { name: 'Claude 3.5 Sonnet', cost: '~$15', note: 'Per month. ~3K messages × avg. 2K tokens.' },
+      { name: 'Claude Sonnet 4', cost: '~$15', note: 'Per month. ~3K messages × avg. 2K tokens.' },
       { name: 'GPT-4o', cost: '~$18', note: 'Per month. Still cheaper than a ChatGPT Team seat.' },
-      { name: 'Gemini 2.0 Flash', cost: '~$2.50', note: 'Per month. Great for high-volume use.' },
+      { name: 'Gemini 2.5 Flash', cost: '~$2.50', note: 'Per month. Great for high-volume use.' },
     ],
   },
   heavy: {
@@ -50,7 +50,7 @@ const usageLevels: Record<UsageLevel, CostEstimate> = {
     messagesPerDay: '~500 messages/day',
     providers: [
       { name: 'Ollama (local)', cost: '$0', note: 'Free. Consider a GPU for faster inference.' },
-      { name: 'Claude 3.5 Sonnet', cost: '~$75', note: 'Per month. Still no per-seat pricing.' },
+      { name: 'Claude Sonnet 4', cost: '~$75', note: 'Per month. Still no per-seat pricing.' },
       { name: 'GPT-4o', cost: '~$90', note: 'Per month. Scale to your entire team.' },
       { name: 'DeepSeek V3', cost: '~$4', note: 'Per month. Extremely competitive pricing.' },
     ],
