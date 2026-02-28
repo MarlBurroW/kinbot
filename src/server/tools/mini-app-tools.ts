@@ -39,7 +39,15 @@ export const createMiniAppTool: ToolRegistration = {
         'Component classes: .btn, .btn-primary, .btn-secondary, .btn-destructive, .btn-ghost, .btn-sm, .btn-lg, ' +
         '.card, .card-header, .card-title, .card-description, .card-content, .card-footer, ' +
         '.input, .textarea, .badge, .badge-primary, .badge-success, .badge-warning, .badge-destructive, ' +
-        '.table, .label, .separator. ' +
+        '.table, .label, .separator, ' +
+        '.select (styled dropdown — use on <select>), ' +
+        '.checkbox (styled checkbox — use on <input type="checkbox">), ' +
+        '.switch (toggle switch — use on <input type="checkbox">), ' +
+        '.radio (styled radio — use on <input type="radio">), ' +
+        '.progress, .progress-sm, .progress-lg (progress bar — use on <progress value="70" max="100">), ' +
+        '.alert, .alert-info, .alert-success, .alert-warning, .alert-destructive, .alert-title, .alert-description (callout boxes), ' +
+        '.avatar, .avatar-sm, .avatar-lg, .avatar-xl (circular avatar containers), ' +
+        '.kbd (keyboard shortcut display), .spinner, .spinner-sm, .spinner-lg (loading spinner). ' +
         'The theme (light/dark) and palette are automatically synced from the parent app. ' +
         'A JavaScript SDK is also auto-injected, providing the global `KinBot` object: ' +
         '`KinBot.theme` (returns {mode, palette}), ' +
