@@ -6,6 +6,73 @@ import { SectionDivider } from './components/SectionDivider'
 import { Footer } from './components/Footer'
 import { BackToTop } from './components/BackToTop'
 
+/** Inject SoftwareApplication JSON-LD for rich search results */
+function useStructuredData() {
+  useEffect(() => {
+    const id = 'app-jsonld'
+    if (document.getElementById(id)) return
+    const script = document.createElement('script')
+    script.id = id
+    script.type = 'application/ld+json'
+    script.textContent = JSON.stringify([
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'KinBot',
+        url: 'https://marlburrow.github.io/kinbot/',
+        description:
+          'Self-hosted AI agent platform with persistent memory and multi-agent collaboration.',
+      },
+      {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'KinBot',
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Linux, macOS, Docker',
+      description:
+        'Self-hosted AI agent platform with persistent identity, continuous memory, and multi-agent collaboration. 23+ providers, 6 chat channels, zero cloud dependency.',
+      url: 'https://marlburrow.github.io/kinbot/',
+      downloadUrl: 'https://github.com/MarlBurroW/kinbot',
+      softwareVersion: '0.4.0',
+      license: 'https://spdx.org/licenses/AGPL-3.0-only.html',
+      isAccessibleForFree: true,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      author: {
+        '@type': 'Person',
+        name: 'MarlBurroW',
+        url: 'https://github.com/MarlBurroW',
+      },
+      codeRepository: 'https://github.com/MarlBurroW/kinbot',
+      programmingLanguage: ['TypeScript', 'React'],
+      runtimePlatform: 'Bun',
+      screenshot: 'https://marlburrow.github.io/kinbot/og-image.png',
+      featureList: [
+        'Persistent agent identity and personality',
+        'Long-term vector and full-text memory',
+        'Multi-agent collaboration and delegation',
+        'Cron jobs and webhooks for autonomy',
+        '23+ AI providers including Ollama',
+        '6 messaging channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix)',
+        'MCP tool server support',
+        'Custom tools created by agents at runtime',
+        'Mini Apps (agent-built UIs)',
+        'Encrypted secrets vault (AES-256-GCM)',
+        'Session compacting with smart summarization',
+        'Zero infrastructure (SQLite only)',
+      ],
+    },
+    ])
+    document.head.appendChild(script)
+    return () => {
+      document.getElementById(id)?.remove()
+    }
+  }, [])
+}
+
 // Lazy-load below-the-fold sections for faster initial paint
 const Stats = lazy(() => import('./components/Stats').then(m => ({ default: m.Stats })))
 const HowItWorks = lazy(() => import('./components/HowItWorks').then(m => ({ default: m.HowItWorks })))
@@ -34,6 +101,8 @@ export default function App() {
     if (stored) return stored === 'dark'
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
+
+  useStructuredData()
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
