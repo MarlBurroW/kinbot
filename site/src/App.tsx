@@ -5,6 +5,7 @@ import { ScrollReveal } from './components/ScrollReveal'
 import { SectionDivider } from './components/SectionDivider'
 import { Footer } from './components/Footer'
 import { BackToTop } from './components/BackToTop'
+import { CommandPalette, CommandPaletteHint } from './components/CommandPalette'
 
 /** Inject SoftwareApplication JSON-LD for rich search results */
 function useStructuredData() {
@@ -210,6 +211,8 @@ export default function App() {
       </main>
       <Footer />
       <BackToTop />
+      <CommandPalette />
+      <CommandPaletteHint />
     </div>
   )
 }
