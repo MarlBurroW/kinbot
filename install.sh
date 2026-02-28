@@ -524,6 +524,13 @@ configure() {
     # shellcheck disable=SC1090
     . "$env_file" 2>/dev/null || true
     KINBOT_PORT="${PORT:-$KINBOT_PORT}"
+    KINBOT_PUBLIC_URL="${PUBLIC_URL:-$KINBOT_PUBLIC_URL}"
+    # Fallback: build URL from local IP if still empty
+    if [ -z "$KINBOT_PUBLIC_URL" ]; then
+      local local_ip
+      local_ip="$(detect_local_ip)"
+      KINBOT_PUBLIC_URL="http://${local_ip}:${KINBOT_PORT}"
+    fi
     return
   fi
 

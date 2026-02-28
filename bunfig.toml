@@ -1,0 +1,3 @@
+[test]
+# Only run unit/integration tests under src/ — E2E tests run via: npx playwright test
+root = "./src"

@@ -1,13 +1,16 @@
-import { describe, it, expect, beforeAll } from 'bun:test'
+import { describe, it, expect, beforeAll, mock } from 'bun:test'
+
+// Mock config before importing the module under test
+const TEST_KEY = 'a'.repeat(64)
+mock.module('@/server/config', () => ({
+  config: {
+    encryptionKey: TEST_KEY,
+  },
+}))
+
 import { encrypt, decrypt } from './encryption'
 
 describe('encryption service', () => {
-  // Ensure ENCRYPTION_KEY env is set for tests (64 hex chars = 32 bytes)
-  beforeAll(() => {
-    if (!process.env.ENCRYPTION_KEY) {
-      process.env.ENCRYPTION_KEY = 'a'.repeat(64)
-    }
-  })
 
   it('encrypts and decrypts a simple string', async () => {
     const plaintext = 'hello world'
