@@ -983,10 +983,10 @@ case "${1:-}" in
     kill "$_pid" 2>/dev/null || true
 
     # Wait up to 10 seconds for graceful shutdown
-    local attempts=0
-    while [ $attempts -lt 20 ] && kill -0 "$_pid" 2>/dev/null; do
+    _attempts=0
+    while [ $_attempts -lt 20 ] && kill -0 "$_pid" 2>/dev/null; do
       sleep 0.5
-      attempts=$((attempts + 1))
+      _attempts=$((_attempts + 1))
     done
 
     # Force kill if still running
@@ -1006,60 +1006,55 @@ case "${1:-}" in
     ;;
   status)
     if is_running; then
-      local pid
-      pid="$(get_pid)"
-      echo "● KinBot is running (PID $pid)"
+      _pid="$(get_pid)"
+      echo "● KinBot is running (PID $_pid)"
 
       # Show uptime
-      if [ -d "/proc/$pid" ]; then
-        local start_time now_time uptime_s
-        start_time="$(stat -c %Y "/proc/$pid" 2>/dev/null)" || start_time=""
-        if [ -n "$start_time" ]; then
-          now_time="$(date +%s)"
-          uptime_s=$((now_time - start_time))
-          local days=$((uptime_s / 86400))
-          local hours=$(( (uptime_s % 86400) / 3600 ))
-          local mins=$(( (uptime_s % 3600) / 60 ))
-          if [ "$days" -gt 0 ]; then
-            echo "  Uptime:  ${days}d ${hours}h ${mins}m"
-          elif [ "$hours" -gt 0 ]; then
-            echo "  Uptime:  ${hours}h ${mins}m"
+      if [ -d "/proc/$_pid" ]; then
+        _start_time="$(stat -c %Y "/proc/$_pid" 2>/dev/null)" || _start_time=""
+        if [ -n "$_start_time" ]; then
+          _now_time="$(date +%s)"
+          _uptime_s=$((_now_time - _start_time))
+          _days=$((_uptime_s / 86400))
+          _hours=$(( (_uptime_s % 86400) / 3600 ))
+          _mins=$(( (_uptime_s % 3600) / 60 ))
+          if [ "$_days" -gt 0 ]; then
+            echo "  Uptime:  ${_days}d ${_hours}h ${_mins}m"
+          elif [ "$_hours" -gt 0 ]; then
+            echo "  Uptime:  ${_hours}h ${_mins}m"
           else
-            echo "  Uptime:  ${mins}m"
+            echo "  Uptime:  ${_mins}m"
           fi
         fi
       fi
 
       # Show memory usage
-      local mem_kb=""
-      if [ -f "/proc/$pid/status" ]; then
-        mem_kb="$(awk '/^VmRSS:/ {print $2}' "/proc/$pid/status" 2>/dev/null)" || mem_kb=""
+      _mem_kb=""
+      if [ -f "/proc/$_pid/status" ]; then
+        _mem_kb="$(awk '/^VmRSS:/ {print $2}' "/proc/$_pid/status" 2>/dev/null)" || _mem_kb=""
       fi
-      if [ -z "$mem_kb" ]; then
-        mem_kb="$(ps -p "$pid" -o rss= 2>/dev/null | tr -d ' ')" || mem_kb=""
+      if [ -z "$_mem_kb" ]; then
+        _mem_kb="$(ps -p "$_pid" -o rss= 2>/dev/null | tr -d ' ')" || _mem_kb=""
       fi
-      if [ -n "$mem_kb" ] && [ "$mem_kb" -gt 0 ] 2>/dev/null; then
-        local mem_mb=$((mem_kb / 1024))
-        echo "  Memory:  ${mem_mb}MB RSS"
+      if [ -n "$_mem_kb" ] && [ "$_mem_kb" -gt 0 ] 2>/dev/null; then
+        _mem_mb=$((_mem_kb / 1024))
+        echo "  Memory:  ${_mem_mb}MB RSS"
       fi
 
       # Show port from config
       if [ -f "$ENV_FILE" ]; then
-        local port
-        port="$(grep '^PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2)" || port=""
-        [ -n "$port" ] && echo "  Port:    $port"
+        _port="$(grep '^PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2)" || _port=""
+        [ -n "$_port" ] && echo "  Port:    $_port"
       fi
 
       # Show log file size
       if [ -f "$LOG_FILE" ]; then
-        local log_size
-        log_size="$(du -h "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || log_size=""
-        [ -n "$log_size" ] && echo "  Logs:    $LOG_FILE ($log_size)"
-        if [ -n "$log_size" ]; then
+        _log_size="$(du -h "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || _log_size=""
+        [ -n "$_log_size" ] && echo "  Logs:    $LOG_FILE ($_log_size)"
+        if [ -n "$_log_size" ]; then
           # Warn if log file is getting large (>100MB)
-          local log_kb
-          log_kb="$(du -k "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || log_kb="0"
-          if [ "$log_kb" -gt 102400 ] 2>/dev/null; then
+          _log_kb="$(du -k "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || _log_kb="0"
+          if [ "$_log_kb" -gt 102400 ] 2>/dev/null; then
             echo "  ⚠ Log file is large. Consider truncating: > $LOG_FILE"
           fi
         fi
@@ -1078,17 +1073,16 @@ case "${1:-}" in
     ;;
   logs)
     if [ "${2:-}" = "--recent" ] || [ "${2:-}" = "-n" ]; then
-      local n="${3:-50}"
-      tail -n "$n" "$LOG_FILE"
+      _n="${3:-50}"
+      tail -n "$_n" "$LOG_FILE"
     else
       tail -f "$LOG_FILE"
     fi
     ;;
   version)
     if [ -d "$KINBOT_DIR/.git" ]; then
-      local ver
-      ver="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
-      echo "KinBot $ver"
+      _ver="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+      echo "KinBot $_ver"
     else
       echo "KinBot (version unknown)"
     fi
