@@ -2,6 +2,17 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { Button } from '@/client/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/client/components/ui/alert-dialog'
+import { Input } from '@/client/components/ui/input'
 import { X, RotateCw, Maximize2, Minimize2 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
@@ -15,6 +26,30 @@ export function MiniAppViewer() {
   const [app, setApp] = useState<MiniAppSummary | null>(null)
   const [iframeKey, setIframeKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  // Dialog state for confirm/prompt
+  const [dialog, setDialog] = useState<{
+    type: 'confirm' | 'prompt'
+    callbackId: string
+    message: string
+    title: string
+    confirmLabel: string
+    cancelLabel: string
+    variant?: 'default' | 'destructive'
+    placeholder?: string
+    defaultValue?: string
+  } | null>(null)
+  const [promptValue, setPromptValue] = useState('')
+
+  const sendDialogResult = useCallback((callbackId: string, value: unknown) => {
+    if (!iframeRef.current?.contentWindow) return
+    iframeRef.current.contentWindow.postMessage({
+      source: 'kinbot-parent',
+      type: 'dialog-result',
+      callbackId,
+      value,
+    }, '*')
+  }, [])
 
   // Fetch app details when activeAppId changes
   useEffect(() => {
@@ -99,12 +134,39 @@ export function MiniAppViewer() {
           setFullPage(requested)
           break
         }
+        case 'confirm': {
+          setDialog({
+            type: 'confirm',
+            callbackId: String(msg.callbackId),
+            message: String(msg.message || ''),
+            title: String(msg.title || '') || t('miniApps.dialog.confirmTitle'),
+            confirmLabel: String(msg.confirmLabel || '') || t('miniApps.dialog.confirm'),
+            cancelLabel: String(msg.cancelLabel || '') || t('miniApps.dialog.cancel'),
+            variant: msg.variant === 'destructive' ? 'destructive' : 'default',
+          })
+          break
+        }
+        case 'prompt': {
+          const dv = String(msg.defaultValue || '')
+          setPromptValue(dv)
+          setDialog({
+            type: 'prompt',
+            callbackId: String(msg.callbackId),
+            message: String(msg.message || ''),
+            title: String(msg.title || '') || t('miniApps.dialog.promptTitle'),
+            confirmLabel: String(msg.confirmLabel || '') || t('miniApps.dialog.ok'),
+            cancelLabel: String(msg.cancelLabel || '') || t('miniApps.dialog.cancel'),
+            placeholder: String(msg.placeholder || ''),
+            defaultValue: dv,
+          })
+          break
+        }
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [navigate, sendAppMeta, setFullPage])
+  }, [navigate, sendAppMeta, setFullPage, t])
 
   // Escape key exits full-page mode
   useEffect(() => {
@@ -128,10 +190,56 @@ export function MiniAppViewer() {
     ? `/api/mini-apps/${activeAppId}/serve?v=${activeAppVersion}`
     : ''
 
+  const handleDialogCancel = useCallback(() => {
+    if (!dialog) return
+    sendDialogResult(dialog.callbackId, dialog.type === 'confirm' ? false : null)
+    setDialog(null)
+  }, [dialog, sendDialogResult])
+
+  const handleDialogConfirm = useCallback(() => {
+    if (!dialog) return
+    sendDialogResult(dialog.callbackId, dialog.type === 'confirm' ? true : promptValue)
+    setDialog(null)
+  }, [dialog, sendDialogResult, promptValue])
+
+  const dialogElement = dialog && (
+    <AlertDialog open onOpenChange={(open) => { if (!open) handleDialogCancel() }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{dialog.title}</AlertDialogTitle>
+          <AlertDialogDescription>{dialog.message}</AlertDialogDescription>
+        </AlertDialogHeader>
+        {dialog.type === 'prompt' && (
+          <div className="px-1 py-2">
+            <Input
+              autoFocus
+              placeholder={dialog.placeholder}
+              value={promptValue}
+              onChange={(e) => setPromptValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleDialogConfirm() }}
+            />
+          </div>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleDialogCancel}>
+            {dialog.cancelLabel}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDialogConfirm}
+            className={dialog.variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+          >
+            {dialog.confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+
   // Full-page mode: render as overlay
   if (isFullPage && panelOpen && activeAppId) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-background">
+        {dialogElement}
         {/* Header */}
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
           {app?.icon && <span className="text-base">{app.icon}</span>}
@@ -189,6 +297,7 @@ export function MiniAppViewer() {
       }`}
     >
       <div className="flex h-full w-[480px] lg:w-[600px] flex-col border-l border-border">
+        {dialogElement}
         {/* Header */}
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
           {app?.icon && <span className="text-base">{app.icon}</span>}

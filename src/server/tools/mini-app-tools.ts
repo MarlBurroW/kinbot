@@ -47,6 +47,10 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.isFullPage` (read-only, current full-page state), ' +
         '`KinBot.on("fullpage-changed", cb)` (listen for full-page mode changes, cb receives {isFullPage}), ' +
         '`KinBot.ready()` (call when your app is loaded to receive app metadata — required before using storage). ' +
+        '`KinBot.confirm(message, options?)` → Promise<boolean> (show a native confirmation dialog in KinBot UI; ' +
+        'options: {title?, confirmLabel?, cancelLabel?, variant?: "default"|"destructive"}), ' +
+        '`KinBot.prompt(message, options?)` → Promise<string|null> (show a prompt dialog with text input; ' +
+        'options: {title?, placeholder?, defaultValue?, confirmLabel?, cancelLabel?}; returns null if cancelled). ' +
         'For additional files (CSS, JS, images), use write_mini_app_file after creation. ' +
         '**Import Maps & Dependencies:** To use ES modules from CDN (React, etc.), create an `app.json` file with either: ' +
         '(1) shorthand `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}` or ' +

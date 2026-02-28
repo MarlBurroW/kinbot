@@ -1432,6 +1432,13 @@
     "delete": "Delete app",
     "deleteTitle": "Delete mini-app",
     "deleteConfirm": "\"{{name}}\" and all its files will be permanently deleted.",
-    "deleteAction": "Delete"
+    "deleteAction": "Delete",
+    "dialog": {
+      "confirmTitle": "Confirm",
+      "promptTitle": "Input",
+      "confirm": "Confirm",
+      "ok": "OK",
+      "cancel": "Cancel"
+    }
   }
 }

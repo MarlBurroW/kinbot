@@ -13,6 +13,8 @@
  *   KinBot.fullpage(bool) — request full-page or side-panel mode
  *   KinBot.isFullPage — whether the app is currently in full-page mode
  *   KinBot.api(path, options) — call backend API (_server.js) routes
+ *   KinBot.confirm(message, options) — show a confirmation dialog in the parent UI (returns Promise<boolean>)
+ *   KinBot.prompt(message, options) — show a prompt dialog in the parent UI (returns Promise<string|null>)
  */
 ;(function () {
   'use strict'
@@ -22,6 +24,8 @@
   var listeners = {} // event name → Set<callback>
   var _appMeta = null
   var _isFullPage = false
+  var _pendingDialogs = {} // callbackId → {resolve}
+  var _dialogCounter = 0
 
   // ─── Theme ──────────────────────────────────────────────────────────────
 
@@ -125,7 +129,13 @@
     var msg = ev.data
     if (!msg || msg.source !== 'kinbot-parent') return
 
-    if (msg.type === 'app-meta') {
+    if (msg.type === 'dialog-result') {
+      var pending = _pendingDialogs[msg.callbackId]
+      if (pending) {
+        delete _pendingDialogs[msg.callbackId]
+        pending.resolve(msg.value)
+      }
+    } else if (msg.type === 'app-meta') {
       _appMeta = msg.data || null
       if (_appMeta && _appMeta.isFullPage !== undefined) _isFullPage = _appMeta.isFullPage
       _dispatch('app-meta', _appMeta)
@@ -256,6 +266,74 @@
     })
   }
 
+  // ─── Confirm / Prompt Dialogs ─────────────────────────────────────────────
+
+  /**
+   * Show a confirmation dialog in the parent KinBot UI.
+   * @param {string} message — dialog body text
+   * @param {object} [options]
+   * @param {string} [options.title] — dialog title (default: "Confirm")
+   * @param {string} [options.confirmLabel] — confirm button text (default: "Confirm")
+   * @param {string} [options.cancelLabel] — cancel button text (default: "Cancel")
+   * @param {'default'|'destructive'} [options.variant] — confirm button variant
+   * @returns {Promise<boolean>} — true if confirmed, false if cancelled
+   */
+  function confirm(message, options) {
+    var id = String(++_dialogCounter)
+    var opts = options || {}
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'confirm',
+        callbackId: id,
+        message: String(message).slice(0, 1000),
+        title: opts.title || '',
+        confirmLabel: opts.confirmLabel || '',
+        cancelLabel: opts.cancelLabel || '',
+        variant: opts.variant || 'default',
+      }, '*')
+    } catch (e) {
+      return Promise.resolve(false)
+    }
+    return new Promise(function (resolve) {
+      _pendingDialogs[id] = { resolve: resolve }
+    })
+  }
+
+  /**
+   * Show a prompt dialog in the parent KinBot UI.
+   * @param {string} message — dialog body text
+   * @param {object} [options]
+   * @param {string} [options.title] — dialog title (default: "Input")
+   * @param {string} [options.placeholder] — input placeholder
+   * @param {string} [options.defaultValue] — pre-filled value
+   * @param {string} [options.confirmLabel] — confirm button text (default: "OK")
+   * @param {string} [options.cancelLabel] — cancel button text (default: "Cancel")
+   * @returns {Promise<string|null>} — the entered string, or null if cancelled
+   */
+  function prompt(message, options) {
+    var id = String(++_dialogCounter)
+    var opts = options || {}
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'prompt',
+        callbackId: id,
+        message: String(message).slice(0, 1000),
+        title: opts.title || '',
+        placeholder: opts.placeholder || '',
+        defaultValue: opts.defaultValue || '',
+        confirmLabel: opts.confirmLabel || '',
+        cancelLabel: opts.cancelLabel || '',
+      }, '*')
+    } catch (e) {
+      return Promise.resolve(null)
+    }
+    return new Promise(function (resolve) {
+      _pendingDialogs[id] = { resolve: resolve }
+    })
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -270,6 +348,8 @@
     fullpage: fullpage,
     storage: storage,
     api: api,
-    version: '1.3.0',
+    confirm: confirm,
+    prompt: prompt,
+    version: '1.4.0',
   }
 })()

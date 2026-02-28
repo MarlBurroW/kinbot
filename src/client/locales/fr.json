@@ -1432,6 +1432,13 @@
     "delete": "Supprimer l'app",
     "deleteTitle": "Supprimer la mini-app",
     "deleteConfirm": "« {{name}} » et tous ses fichiers seront supprimés définitivement.",
-    "deleteAction": "Supprimer"
+    "deleteAction": "Supprimer",
+    "dialog": {
+      "confirmTitle": "Confirmer",
+      "promptTitle": "Saisie",
+      "confirm": "Confirmer",
+      "ok": "OK",
+      "cancel": "Annuler"
+    }
   }
 }
