@@ -22,6 +22,7 @@ import {
   fileStorage,
   vaultSecrets,
   scheduledWakeups,
+  miniApps,
 } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { generateSlug, ensureUniqueSlug, isValidSlug } from '@/server/utils/slug'
@@ -246,6 +247,7 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   const kinWebhookIds = db.select({ id: webhooks.id }).from(webhooks).where(eq(webhooks.kinId, kinId)).all().map((w) => w.id)
   const kinChannelIds = db.select({ id: channels.id }).from(channels).where(eq(channels.kinId, kinId)).all().map((ch) => ch.id)
   const kinMemoryIds = db.select({ id: memories.id }).from(memories).where(eq(memories.kinId, kinId)).all().map((m) => m.id)
+  const kinMiniAppIds = db.select({ id: miniApps.id }).from(miniApps).where(eq(miniApps.kinId, kinId)).all().map((a) => a.id)
 
   // Clean up all related records — topological order (leaves first)
   // humanPrompts must come before messages and tasks (references both)
@@ -284,6 +286,7 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   await db.update(vaultSecrets).set({ createdByKinId: null }).where(eq(vaultSecrets.createdByKinId, kinId))
   await db.update(mcpServers).set({ createdByKinId: null }).where(eq(mcpServers.createdByKinId, kinId))
   await db.delete(kinMcpServers).where(eq(kinMcpServers.kinId, kinId))
+  await db.delete(miniApps).where(eq(miniApps.kinId, kinId))
   await db.delete(scheduledWakeups).where(
     or(eq(scheduledWakeups.callerKinId, kinId), eq(scheduledWakeups.targetKinId, kinId)),
   )
@@ -313,6 +316,9 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   }
   for (const memoryId of kinMemoryIds) {
     sseManager.broadcast({ type: 'memory:deleted', kinId, data: { memoryId, kinId } })
+  }
+  for (const appId of kinMiniAppIds) {
+    sseManager.broadcast({ type: 'miniapp:deleted', kinId, data: { appId, kinId } })
   }
 
   sseManager.broadcast({
