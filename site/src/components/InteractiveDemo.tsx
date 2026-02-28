@@ -186,7 +186,9 @@ export function InteractiveDemo() {
   const [isTyping, setIsTyping] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasAutoPlayed = useRef(false)
 
   const scenario = scenarios[activeScenario]
 
@@ -206,6 +208,28 @@ export function InteractiveDemo() {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [])
+
+  // Auto-play when scrolled into view (respect prefers-reduced-motion)
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el || hasAutoPlayed.current) return
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAutoPlayed.current && !isPlaying && visibleCount === 0) {
+          hasAutoPlayed.current = true
+          observer.disconnect()
+          // Small delay so the section is comfortably visible before animation starts
+          setTimeout(() => play(), 600)
+        }
+      },
+      { threshold: 0.4 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [isPlaying, visibleCount]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const reset = () => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -265,11 +289,12 @@ export function InteractiveDemo() {
   const switchScenario = (idx: number) => {
     if (idx === activeScenario) return
     reset()
+    hasAutoPlayed.current = true // don't auto-play after manual tab switch
     setActiveScenario(idx)
   }
 
   return (
-    <section id="demo" className="px-6 py-24 max-w-4xl mx-auto">
+    <section ref={sectionRef} id="demo" className="px-6 py-24 max-w-4xl mx-auto">
       <style>{`
         @keyframes typing-bounce {
           0%, 60%, 100% { transform: translateY(0); }
