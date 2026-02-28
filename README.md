@@ -7,6 +7,8 @@
 Self-hosted. Persistent memory. Real collaboration.
 
 [![CI](https://github.com/MarlBurroW/kinbot/actions/workflows/ci.yml/badge.svg)](https://github.com/MarlBurroW/kinbot/actions/workflows/ci.yml)
+[![E2E Tests](https://github.com/MarlBurroW/kinbot/actions/workflows/e2e.yml/badge.svg)](https://github.com/MarlBurroW/kinbot/actions/workflows/e2e.yml)
+[![CodeQL](https://github.com/MarlBurroW/kinbot/actions/workflows/codeql.yml/badge.svg)](https://github.com/MarlBurroW/kinbot/actions/workflows/codeql.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/MarlBurroW/kinbot?style=flat-square&color=a855f7)](https://github.com/MarlBurroW/kinbot/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/MarlBurroW/kinbot?style=flat-square&color=ec4899)](https://github.com/MarlBurroW/kinbot)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=flat-square)](LICENSE)
@@ -189,7 +191,7 @@ NODE_ENV=production bun run start
 │  └─────────────────────────────────────────────────────────┘ │
 └──────────┬───────────────────────────────────┬───────────────┘
            │                                   │
-   AI Providers (22+)                   Integrations
+   AI Providers (23)                   Integrations
    Anthropic · OpenAI · Gemini          MCP servers
    Mistral · DeepSeek · Groq            Webhooks
    Ollama · OpenRouter · xAI            Custom tools
