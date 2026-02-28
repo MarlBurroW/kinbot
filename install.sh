@@ -2023,6 +2023,43 @@ check_status() {
     fi
   fi
 
+  # Check for available updates
+  header "Updates"
+  if [ -d "$KINBOT_DIR/.git" ]; then
+    local local_ref remote_ref
+    local_ref="$(git -C "$KINBOT_DIR" rev-parse HEAD 2>/dev/null || echo "")"
+    local branch
+    branch="$(git -C "$KINBOT_DIR" branch --show-current 2>/dev/null || echo "main")"
+
+    if [ -n "$local_ref" ] && git -C "$KINBOT_DIR" fetch origin "$branch" --quiet 2>/dev/null; then
+      remote_ref="$(git -C "$KINBOT_DIR" rev-parse "origin/$branch" 2>/dev/null || echo "")"
+
+      if [ -n "$remote_ref" ] && [ "$local_ref" != "$remote_ref" ]; then
+        local behind_count
+        behind_count="$(git -C "$KINBOT_DIR" rev-list HEAD.."origin/$branch" --count 2>/dev/null || echo "0")"
+        if [ "$behind_count" -gt 0 ] 2>/dev/null; then
+          # Check if there's a newer tag on remote
+          local local_tag remote_tag
+          local_tag="$(git -C "$KINBOT_DIR" describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")"
+          remote_tag="$(git -C "$KINBOT_DIR" describe --tags --abbrev=0 "origin/$branch" 2>/dev/null || echo "")"
+
+          if [ -n "$remote_tag" ] && [ "$remote_tag" != "$local_tag" ]; then
+            echo -e "  ${CYAN}⬆${NC}  ${BOLD}Update available:${NC} ${local_tag:-$(echo "$local_ref" | cut -c1-8)} → ${BOLD}${remote_tag}${NC} (${behind_count} commit(s) behind)"
+          else
+            echo -e "  ${CYAN}⬆${NC}  ${BOLD}Update available:${NC} ${behind_count} new commit(s) on ${branch}"
+          fi
+          echo -e "  ${DIM}   Run: bash install.sh --update${NC}"
+        fi
+      else
+        success "Up to date"
+      fi
+    else
+      info "Could not check for updates (network unavailable)"
+    fi
+  else
+    info "Cannot check updates (not a git install)"
+  fi
+
   # Summary
   echo ""
   if [ "$has_issues" = true ]; then
