@@ -1439,6 +1439,7 @@
       "confirm": "Confirmer",
       "ok": "OK",
       "cancel": "Annuler"
-    }
+    },
+    "appNotFound": "Application \"{{slug}}\" introuvable"
   }
 }

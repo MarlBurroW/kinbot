@@ -17,6 +17,7 @@
  *   KinBot.prompt(message, options) — show a prompt dialog in the parent UI (returns Promise<string|null>)
  *   KinBot.setTitle(title) — dynamically update the panel header title
  *   KinBot.setBadge(value) — show a badge on the app in the sidebar (number, string, or null to clear)
+ *   KinBot.openApp(slug) — open another mini-app from the same Kin by its slug
  */
 ;(function () {
   'use strict'
@@ -372,6 +373,24 @@
     }
   }
 
+  // ─── Open App ───────────────────────────────────────────────────────────
+
+  /**
+   * Open another mini-app from the same Kin by its slug.
+   * @param {string} slug — the slug of the app to open (e.g. "todo-tracker")
+   */
+  function openApp(slug) {
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'open-app',
+        slug: String(slug),
+      }, '*')
+    } catch (e) {
+      console.warn('[KinBot SDK] openApp failed:', e)
+    }
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -390,6 +409,7 @@
     prompt: prompt,
     setTitle: setTitle,
     setBadge: setBadge,
-    version: '1.5.0',
+    openApp: openApp,
+    version: '1.6.0',
   }
 })()

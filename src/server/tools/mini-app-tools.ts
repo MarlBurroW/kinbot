@@ -53,6 +53,7 @@ export const createMiniAppTool: ToolRegistration = {
         'options: {title?, placeholder?, defaultValue?, confirmLabel?, cancelLabel?}; returns null if cancelled). ' +
         '`KinBot.setTitle(title)` (dynamically update the panel header title; empty string resets to app name), ' +
         '`KinBot.setBadge(value)` (show a badge on the app in the sidebar; pass a number, string, or null/0 to clear), ' +
+        '`KinBot.openApp(slug)` (open another mini-app from the same Kin by its slug — enables inter-app navigation), ' +
         'For additional files (CSS, JS, images), use write_mini_app_file after creation. ' +
         '**Import Maps & Dependencies:** To use ES modules from CDN (React, etc.), create an `app.json` file with either: ' +
         '(1) shorthand `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}` or ' +

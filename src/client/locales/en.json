@@ -1439,6 +1439,7 @@
       "confirm": "Confirm",
       "ok": "OK",
       "cancel": "Cancel"
-    }
+    },
+    "appNotFound": "App \"{{slug}}\" not found"
   }
 }

@@ -5,6 +5,7 @@ import type { AppVariables } from '@/server/app'
 import {
   createMiniApp,
   getMiniApp,
+  getMiniAppBySlug,
   listMiniApps,
   updateMiniApp,
   deleteMiniApp,
@@ -25,6 +26,17 @@ import { handleBackendRequest, invalidateBackend } from '@/server/services/mini-
 import { sseManager } from '@/server/sse/index'
 
 export const miniAppRoutes = new Hono<{ Variables: AppVariables }>()
+
+// ─── Lookup by slug ─────────────────────────────────────────────────────────
+
+miniAppRoutes.get('/by-slug/:kinId/:slug', async (c) => {
+  const { kinId, slug } = c.req.param()
+  const found = await getMiniAppBySlug(kinId, slug)
+  if (!found) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+  }
+  return c.json({ app: found })
+})
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
 

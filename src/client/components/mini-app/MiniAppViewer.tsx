@@ -22,7 +22,7 @@ import type { MiniAppSummary } from '@/shared/types'
 export function MiniAppViewer() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { panelOpen, activeAppId, activeAppVersion, isFullPage, customTitle, closePanel, toggleFullPage, setFullPage, setCustomTitle, setBadge } = useMiniAppPanel()
+  const { panelOpen, activeAppId, activeAppVersion, isFullPage, customTitle, openApp, closePanel, toggleFullPage, setFullPage, setCustomTitle, setBadge } = useMiniAppPanel()
   const [app, setApp] = useState<MiniAppSummary | null>(null)
   const [iframeKey, setIframeKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -172,12 +172,29 @@ export function MiniAppViewer() {
           }
           break
         }
+        case 'open-app': {
+          const slug = String(msg.slug || '')
+          if (!slug || !app?.kinId) break
+          // Resolve slug to appId via API, then open
+          api.get<{ app: MiniAppSummary }>(`/mini-apps/by-slug/${app.kinId}/${encodeURIComponent(slug)}`)
+            .then((data) => {
+              if (data.app?.id) {
+                openApp(data.app.id)
+              } else {
+                toast.error(t('miniApps.appNotFound', { slug }))
+              }
+            })
+            .catch(() => {
+              toast.error(t('miniApps.appNotFound', { slug }))
+            })
+          break
+        }
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [navigate, sendAppMeta, setFullPage, setCustomTitle, setBadge, activeAppId, t])
+  }, [navigate, sendAppMeta, setFullPage, setCustomTitle, setBadge, activeAppId, app, openApp, t])
 
   // Escape key exits full-page mode
   useEffect(() => {
