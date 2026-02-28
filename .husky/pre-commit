@@ -1,0 +1,29 @@
+#!/bin/sh
+
+echo "🔍 Pre-commit checks..."
+
+# 1. TypeScript type checking
+echo "📝 TypeScript typecheck..."
+bun run typecheck
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript typecheck failed. Fix type errors before committing."
+  exit 1
+fi
+
+# 2. Unit tests
+echo "🧪 Running unit tests..."
+bun test 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Unit tests failed. Fix failing tests before committing."
+  exit 1
+fi
+
+# 3. Build check
+echo "🏗️ Build check..."
+bun run build 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Fix build errors before committing."
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

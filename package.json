@@ -34,7 +34,8 @@
     "db:migrate": "drizzle-kit migrate",
     "test": "bun test",
     "test:e2e": "npx playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -46,6 +47,8 @@
     "@vitejs/plugin-react": "^5.1.4",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.9",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.0",
     "vite": "^7.3.1"
   },
   "peerDependencies": {
