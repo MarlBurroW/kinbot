@@ -387,6 +387,47 @@ preflight_checks() {
       error "Cannot reach github.com. Check your internet connection and firewall settings."
     fi
   fi
+
+  # Detect container environments (Docker, Podman, LXC, etc.)
+  local in_container=false
+  local container_type=""
+
+  if [ -f /.dockerenv ]; then
+    in_container=true
+    container_type="Docker"
+  elif [ -f /run/.containerenv ]; then
+    in_container=true
+    container_type="Podman"
+  elif grep -qa 'docker\|containerd' /proc/1/cgroup 2>/dev/null; then
+    in_container=true
+    container_type="Docker"
+  elif grep -qa 'lxc' /proc/1/cgroup 2>/dev/null; then
+    in_container=true
+    container_type="LXC"
+  elif [ -f /proc/1/sched ] 2>/dev/null; then
+    local pid1_name
+    pid1_name="$(head -1 /proc/1/sched 2>/dev/null | awk '{print $1}')"
+    if [ -n "$pid1_name" ] && [ "$pid1_name" != "systemd" ] && [ "$pid1_name" != "init" ]; then
+      # PID 1 is not init/systemd, likely a container
+      in_container=true
+      container_type="container"
+    fi
+  fi
+
+  if [ "$in_container" = true ]; then
+    warn "Running inside a $container_type environment"
+
+    # If this is a fresh install (not --docker mode), suggest Docker mode instead
+    if [ ! -d "$KINBOT_DIR/.git" ]; then
+      info "Consider using ${BOLD}bash install.sh --docker${NC} instead, which generates"
+      info "a docker-compose.yml and avoids building inside the container."
+    fi
+
+    if [ "$INIT_SYSTEM" = "script" ]; then
+      info "systemd is not available; a start/stop script will be used."
+      info "The service won't auto-restart. Use a container restart policy or supervisor."
+    fi
+  fi
 }
 
 # ─── Interactive prompt (works with curl | bash via /dev/tty) ─────────────────
