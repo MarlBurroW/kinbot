@@ -264,17 +264,32 @@ sessionRoutes.post('/:id/close', async (c) => {
 
   // Save memory if requested
   if (saveMemory && memorySummary?.trim()) {
+    const memoryId = uuid()
+    const now = new Date()
     await db.insert(memories).values({
-      id: uuid(),
+      id: memoryId,
       kinId: session!.kinId,
       content: memorySummary.trim(),
       category: 'knowledge',
       subject: session!.title ?? 'Quick session',
       sourceChannel: 'explicit',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     })
     log.debug({ sessionId: session!.id, kinId: session!.kinId }, 'Quick session memory saved')
+
+    sseManager.sendToKin(session!.kinId, {
+      type: 'memory:created',
+      kinId: session!.kinId,
+      data: {
+        memoryId,
+        kinId: session!.kinId,
+        content: memorySummary.trim(),
+        category: 'knowledge',
+        subject: session!.title ?? 'Quick session',
+        createdAt: now.getTime(),
+      },
+    })
   }
 
   // Close the session
