@@ -83,7 +83,7 @@ test.describe.serial('Scheduled jobs management', () => {
 
   test('should see empty scheduled jobs section in sidebar', async ({ page }) => {
     // The scheduled jobs section should be visible
-    await expect(page.getByText('Scheduled Jobs')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('Scheduled Jobs', { exact: true })).toBeVisible({ timeout: 5_000 })
 
     // Should show empty state
     await expect(page.getByText('No scheduled jobs')).toBeVisible({ timeout: 5_000 })
