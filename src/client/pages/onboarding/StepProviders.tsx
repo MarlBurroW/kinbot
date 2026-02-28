@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
-import { Label } from '@/client/components/ui/label'
 import { Brain, Image, Plus, Search } from 'lucide-react'
 import { api } from '@/client/lib/api'
-import { ProviderCard, type ProviderData } from '@/client/components/kin/ProviderCard'
+import { ProviderCard } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
-import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { AI_PROVIDER_TYPES } from '@/shared/constants'
 import { useProviders } from '@/client/hooks/useProviders'
-import { useModels } from '@/client/hooks/useModels'
 
 interface StepProvidersProps {
   onComplete: () => void
@@ -28,28 +25,11 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
   const { providers, refetch: fetchProviders } = useProviders()
   const [modalOpen, setModalOpen] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
-  const { llmModels, embeddingModels, refetch: refetchModels } = useModels()
-  const [extractionModel, setExtractionModel] = useState('')
-  const [embeddingModel, setEmbeddingModel] = useState('')
-  const [saving, setSaving] = useState(false)
 
   const aiProviders = providers.filter((p) => (AI_PROVIDER_TYPES as readonly string[]).includes(p.type))
   const allCapabilities = aiProviders.flatMap((p) => p.capabilities)
   const coveredCapabilities = new Set(allCapabilities)
   const canFinish = coveredCapabilities.has('llm') && coveredCapabilities.has('embedding')
-
-  useEffect(() => {
-    if (canFinish) {
-      refetchModels()
-    }
-  }, [canFinish])
-
-  // Pre-select first embedding model when models load
-  useEffect(() => {
-    if (embeddingModels.length > 0) {
-      setEmbeddingModel((prev) => prev || embeddingModels[0]!.id)
-    }
-  }, [embeddingModels])
 
   const handleTestProvider = async (id: string) => {
     setTestingId(id)
@@ -72,20 +52,7 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
     }
   }
 
-  const handleNext = async () => {
-    setSaving(true)
-    try {
-      await Promise.all([
-        api.put('/settings/extraction-model', { model: extractionModel || null }),
-        embeddingModel
-          ? api.put('/settings/embedding-model', { model: embeddingModel })
-          : Promise.resolve(),
-      ])
-    } catch {
-      // Non-blocking — settings can be configured later in General settings
-    } finally {
-      setSaving(false)
-    }
+  const handleNext = () => {
     onComplete()
   }
 
@@ -172,45 +139,6 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
         providerTypes={AI_PROVIDER_TYPES}
       />
 
-      {/* Model configuration — visible once LLM + Embedding are covered */}
-      {canFinish && (
-        <div className="rounded-lg border border-border/50 p-4 space-y-4">
-          <div>
-            <p className="text-sm font-medium">{t('onboarding.providers.modelConfig')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {t('onboarding.providers.modelConfigHint')}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('settings.general.extractionModel')}</Label>
-            <ModelPicker
-              models={llmModels}
-              value={extractionModel}
-              onValueChange={setExtractionModel}
-              placeholder={t('settings.general.extractionModelPlaceholder')}
-              allowClear
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('settings.general.extractionModelHint')}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('settings.general.embeddingModel')}</Label>
-            <ModelPicker
-              models={embeddingModels}
-              value={embeddingModel}
-              onValueChange={setEmbeddingModel}
-              placeholder={t('settings.general.embeddingModelPlaceholder')}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('settings.general.embeddingModelHint')}
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Navigation buttons */}
       <div className="pt-2">
         {!canFinish && aiProviders.length > 0 && (
@@ -230,11 +158,11 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
           )}
           <Button
             onClick={handleNext}
-            disabled={!canFinish || saving}
+            disabled={!canFinish}
             className="btn-shine flex-1"
             size="lg"
           >
-            {saving ? t('common.loading') : t('common.next')}
+            {t('common.next')}
           </Button>
         </div>
       </div>
