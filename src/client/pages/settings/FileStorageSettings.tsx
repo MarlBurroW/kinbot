@@ -2,16 +2,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog'
 import { Plus , FileUp} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
@@ -28,7 +18,6 @@ export function FileStorageSettings() {
   const { kins, kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingFile, setEditingFile] = useState<StoredFileData | null>(null)
-  const [deletingFile, setDeletingFile] = useState<StoredFileData | null>(null)
 
   useEffect(() => {
     fetchFiles()
@@ -45,16 +34,13 @@ export function FileStorageSettings() {
     }
   }
 
-  const handleDeleteFile = async () => {
-    if (!deletingFile) return
+  const handleDeleteFile = async (id: string) => {
     try {
-      await api.delete(`/file-storage/${deletingFile.id}`)
+      await api.delete(`/file-storage/${id}`)
       await fetchFiles()
       toast.success(t('settings.files.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingFile(null)
     }
   }
 
@@ -112,7 +98,7 @@ export function FileStorageSettings() {
           kinName={file.createdByKinId ? kinNames.get(file.createdByKinId) : undefined}
           kinAvatarUrl={file.createdByKinId ? kinAvatars.get(file.createdByKinId) : undefined}
           onEdit={() => openEdit(file)}
-          onDelete={() => setDeletingFile(file)}
+          onDelete={() => handleDeleteFile(file.id)}
         />
       ))}
 
@@ -129,22 +115,6 @@ export function FileStorageSettings() {
         kins={kins}
       />
 
-      <AlertDialog open={!!deletingFile} onOpenChange={(v) => { if (!v) setDeletingFile(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.files.delete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.files.deleteConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDeleteFile}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

@@ -10,16 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/client/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog'
 import { Progress } from '@/client/components/ui/progress'
 import { Plus, Search, RefreshCw, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
@@ -36,7 +26,6 @@ export function SearchProvidersSettings() {
   const { providers, isLoading, refetch: fetchProviders } = useProviders({ filterTypes: SEARCH_PROVIDER_TYPES })
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderData | null>(null)
-  const [deletingProvider, setDeletingProvider] = useState<ProviderData | null>(null)
   const [testingId, setTestingId] = useState<string | null>(null)
   const [defaultProviderId, setDefaultProviderId] = useState<string | null>(null)
   const [testAllState, setTestAllState] = useState<{
@@ -118,20 +107,16 @@ export function SearchProvidersSettings() {
     }
   }
 
-  const handleDeleteProvider = async () => {
-    if (!deletingProvider) return
+  const handleDeleteProvider = async (id: string) => {
     try {
-      await api.delete(`/providers/${deletingProvider.id}`)
-      // If we deleted the default, clear it locally
-      if (defaultProviderId === deletingProvider.id) {
+      await api.delete(`/providers/${id}`)
+      if (defaultProviderId === id) {
         setDefaultProviderId(null)
       }
       await fetchProviders()
       toast.success(t('settings.providers.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingProvider(null)
     }
   }
 
@@ -267,7 +252,7 @@ export function SearchProvidersSettings() {
           isTesting={testingId === provider.id}
           onTest={() => handleTestProvider(provider.id)}
           onEdit={() => openEdit(provider)}
-          onDelete={() => setDeletingProvider(provider)}
+          onDelete={() => handleDeleteProvider(provider.id)}
         />
       ))}
 
@@ -284,23 +269,6 @@ export function SearchProvidersSettings() {
         providerTypes={SEARCH_PROVIDER_TYPES}
       />
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deletingProvider} onOpenChange={(v) => { if (!v) setDeletingProvider(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.providers.delete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.providers.deleteConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDeleteProvider}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

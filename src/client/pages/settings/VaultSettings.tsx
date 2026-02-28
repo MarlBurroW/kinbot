@@ -2,16 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog'
 import { Plus, Lock, Settings2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
@@ -35,7 +25,6 @@ export function VaultSettings() {
   const { kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<VaultSecretData | null>(null)
-  const [deletingEntry, setDeletingEntry] = useState<VaultSecretData | null>(null)
   const [activeTab, setActiveTab] = useState(ALL_TAB)
   const [typeManagerOpen, setTypeManagerOpen] = useState(false)
 
@@ -64,16 +53,13 @@ export function VaultSettings() {
     }
   }
 
-  const handleDeleteEntry = async () => {
-    if (!deletingEntry) return
+  const handleDeleteEntry = async (id: string) => {
     try {
-      await api.delete(`/vault/entries/${deletingEntry.id}`)
+      await api.delete(`/vault/entries/${id}`)
       await fetchEntries()
       toast.success(t('settings.vault.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingEntry(null)
     }
   }
 
@@ -187,7 +173,7 @@ export function VaultSettings() {
           kinName={entry.createdByKinId ? kinNames.get(entry.createdByKinId) : undefined}
           kinAvatarUrl={entry.createdByKinId ? kinAvatars.get(entry.createdByKinId) : undefined}
           onEdit={() => openEdit(entry)}
-          onDelete={() => setDeletingEntry(entry)}
+          onDelete={() => handleDeleteEntry(entry.id)}
           onToggleFavorite={() => handleToggleFavorite(entry)}
         />
       ))}
@@ -212,22 +198,6 @@ export function VaultSettings() {
         onTypesChanged={fetchCustomTypes}
       />
 
-      <AlertDialog open={!!deletingEntry} onOpenChange={(v) => { if (!v) setDeletingEntry(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.vault.delete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.vault.deleteConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDeleteEntry}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

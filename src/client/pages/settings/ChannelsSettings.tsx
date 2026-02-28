@@ -2,16 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog'
 import { Collapsible, CollapsibleContent } from '@/client/components/ui/collapsible'
 import { Plus , MessageCircle} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
@@ -34,7 +24,6 @@ export function ChannelsSettings() {
   const kins: KinOption[] = kinList.map((k) => ({ id: k.id, name: k.name, role: k.role ?? '', avatarUrl: k.avatarUrl }))
   const [modalOpen, setModalOpen] = useState(false)
   const [editingChannel, setEditingChannel] = useState<ChannelSummary | null>(null)
-  const [deletingChannel, setDeletingChannel] = useState<ChannelSummary | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [testingId, setTestingId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -93,16 +82,13 @@ export function ChannelsSettings() {
     toast.success(t('settings.channels.saved'))
   }
 
-  const handleDelete = async () => {
-    if (!deletingChannel) return
+  const handleDelete = async (channelId: string) => {
     try {
-      await api.delete(`/channels/${deletingChannel.id}`)
+      await api.delete(`/channels/${channelId}`)
       await fetchChannels()
       toast.success(t('settings.channels.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingChannel(null)
     }
   }
 
@@ -197,7 +183,7 @@ export function ChannelsSettings() {
               testing={testingId === channel.id}
               onToggleExpand={() => setExpandedId(isExpanded ? null : channel.id)}
               onEdit={() => openEdit(channel)}
-              onDelete={() => setDeletingChannel(channel)}
+              onDelete={() => handleDelete(channel.id)}
               onToggle={() => handleToggle(channel)}
               onTest={() => handleTest(channel)}
             />
@@ -239,23 +225,6 @@ export function ChannelsSettings() {
         kins={kins}
       />
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deletingChannel} onOpenChange={(v) => { if (!v) setDeletingChannel(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.channels.delete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.channels.deleteConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDelete}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

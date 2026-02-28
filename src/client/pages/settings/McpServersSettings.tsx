@@ -2,16 +2,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog'
 import { Plus , Plug} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
@@ -28,7 +18,6 @@ export function McpServersSettings() {
   const { kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<McpServerData | null>(null)
-  const [deletingServer, setDeletingServer] = useState<McpServerData | null>(null)
 
   useEffect(() => {
     fetchServers()
@@ -55,16 +44,13 @@ export function McpServersSettings() {
     }
   }
 
-  const handleDeleteServer = async () => {
-    if (!deletingServer) return
+  const handleDeleteServer = async (id: string) => {
     try {
-      await api.delete(`/mcp-servers/${deletingServer.id}`)
+      await api.delete(`/mcp-servers/${id}`)
       await fetchServers()
       toast.success(t('settings.mcp.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingServer(null)
     }
   }
 
@@ -124,7 +110,7 @@ export function McpServersSettings() {
           kinAvatarUrl={server.createdByKinId ? kinAvatars.get(server.createdByKinId) : undefined}
           onApprove={() => handleApprove(server.id)}
           onEdit={() => openEdit(server)}
-          onDelete={() => setDeletingServer(server)}
+          onDelete={() => handleDeleteServer(server.id)}
         />
       ))}
 
@@ -140,22 +126,6 @@ export function McpServersSettings() {
         server={editingServer}
       />
 
-      <AlertDialog open={!!deletingServer} onOpenChange={(v) => { if (!v) setDeletingServer(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.mcp.delete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.mcp.deleteConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDeleteServer}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

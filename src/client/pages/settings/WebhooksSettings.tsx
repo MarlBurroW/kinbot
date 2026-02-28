@@ -48,7 +48,6 @@ export function WebhooksSettings() {
   const kins: KinOption[] = kinList.map((k) => ({ id: k.id, name: k.name, role: k.role ?? '', avatarUrl: k.avatarUrl }))
   const [modalOpen, setModalOpen] = useState(false)
   const [editingWebhook, setEditingWebhook] = useState<WebhookSummary | null>(null)
-  const [deletingWebhook, setDeletingWebhook] = useState<WebhookSummary | null>(null)
   const [regeneratingWebhook, setRegeneratingWebhook] = useState<WebhookSummary | null>(null)
   const [logsWebhook, setLogsWebhook] = useState<WebhookSummary | null>(null)
 
@@ -103,16 +102,13 @@ export function WebhooksSettings() {
     toast.success(t('settings.webhooks.saved'))
   }
 
-  const handleDelete = async () => {
-    if (!deletingWebhook) return
+  const handleDelete = async (id: string) => {
     try {
-      await api.delete(`/webhooks/${deletingWebhook.id}`)
+      await api.delete(`/webhooks/${id}`)
       await fetchWebhooks()
       toast.success(t('settings.webhooks.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingWebhook(null)
     }
   }
 
@@ -186,7 +182,7 @@ export function WebhooksSettings() {
           key={webhook.id}
           webhook={webhook}
           onEdit={() => openEdit(webhook)}
-          onDelete={() => setDeletingWebhook(webhook)}
+          onDelete={() => handleDelete(webhook.id)}
           onToggle={(isActive) => handleUpdate(webhook.id, { isActive })}
           onRegenerateToken={() => setRegeneratingWebhook(webhook)}
           onViewLogs={() => setLogsWebhook(webhook)}
@@ -207,24 +203,6 @@ export function WebhooksSettings() {
         webhook={editingWebhook}
         kins={kins}
       />
-
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deletingWebhook} onOpenChange={(v) => { if (!v) setDeletingWebhook(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.webhooks.delete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.webhooks.deleteConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDelete}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Regenerate token confirmation */}
       <AlertDialog open={!!regeneratingWebhook} onOpenChange={(v) => { if (!v) setRegeneratingWebhook(null) }}>

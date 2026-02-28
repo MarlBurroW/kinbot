@@ -2,16 +2,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog'
 import { Plus , Users} from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
@@ -29,7 +19,6 @@ export function ContactsSettings() {
   const kinInfo = new Map<string, KinInfo>(kinList.map((k) => [k.id, { name: k.name, avatarUrl: k.avatarUrl }]))
   const [modalOpen, setModalOpen] = useState(false)
   const [editingContact, setEditingContact] = useState<ContactData | null>(null)
-  const [deletingContact, setDeletingContact] = useState<ContactData | null>(null)
 
   useEffect(() => {
     fetchContacts()
@@ -46,16 +35,13 @@ export function ContactsSettings() {
     }
   }
 
-  const handleDeleteContact = async () => {
-    if (!deletingContact) return
+  const handleDeleteContact = async (id: string) => {
     try {
-      await api.delete(`/contacts/${deletingContact.id}`)
+      await api.delete(`/contacts/${id}`)
       await fetchContacts()
       toast.success(t('settings.contacts.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingContact(null)
     }
   }
 
@@ -113,7 +99,7 @@ export function ContactsSettings() {
           contact={contact}
           kinInfo={kinInfo}
           onEdit={() => openEdit(contact)}
-          onDelete={() => setDeletingContact(contact)}
+          onDelete={() => handleDeleteContact(contact.id)}
           onRefresh={fetchContacts}
         />
       ))}
@@ -130,22 +116,6 @@ export function ContactsSettings() {
         contact={editingContact}
       />
 
-      <AlertDialog open={!!deletingContact} onOpenChange={(v) => { if (!v) setDeletingContact(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.contacts.delete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.contacts.deleteConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDeleteContact}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
