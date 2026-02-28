@@ -34,7 +34,7 @@ function useStructuredData() {
         'Self-hosted AI agent platform with persistent identity, continuous memory, and multi-agent collaboration. 23+ providers, 6 chat channels, zero cloud dependency.',
       url: 'https://marlburrow.github.io/kinbot/',
       downloadUrl: 'https://github.com/MarlBurroW/kinbot',
-      softwareVersion: '0.4.0',
+      softwareVersion: '0.4.1',
       license: 'https://spdx.org/licenses/AGPL-3.0-only.html',
       isAccessibleForFree: true,
       offers: {

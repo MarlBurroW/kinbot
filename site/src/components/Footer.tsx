@@ -16,7 +16,7 @@ const resourceLinks = [
 ]
 
 const communityLinks = [
-  { label: 'Discussions', href: 'https://github.com/MarlBurroW/kinbot/discussions' },
+  { label: 'Star on GitHub', href: 'https://github.com/MarlBurroW/kinbot/stargazers' },
   { label: 'Report a Bug', href: 'https://github.com/MarlBurroW/kinbot/issues/new?template=bug_report.yml' },
   { label: 'Request a Feature', href: 'https://github.com/MarlBurroW/kinbot/issues/new?template=feature_request.yml' },
   { label: 'Request a Provider', href: 'https://github.com/MarlBurroW/kinbot/issues/new?template=provider_request.yml' },

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Cpu, MessageSquare, Puzzle, Users, Star, GitFork } from 'lucide-react'
+import { Cpu, MessageSquare, Puzzle, Users, Star, GitFork, GitCommit, AlertCircle } from 'lucide-react'
 
 interface StaticStat {
   icon: typeof Cpu
@@ -18,6 +18,8 @@ const staticStats: StaticStat[] = [
 interface GitHubData {
   stars: number | null
   forks: number | null
+  totalCommits: number | null
+  openIssues: number | null
 }
 
 function AnimatedNumber({ target, suffix }: { target: number; suffix: string }) {
@@ -121,17 +123,40 @@ function StatCard({
 }
 
 export function Stats() {
-  const [gh, setGh] = useState<GitHubData>({ stars: null, forks: null })
+  const [gh, setGh] = useState<GitHubData>({ stars: null, forks: null, totalCommits: null, openIssues: null })
 
   useEffect(() => {
+    // Fetch repo stats
     fetch('https://api.github.com/repos/MarlBurroW/kinbot')
       .then((r) => r.json())
       .then((data) => {
         if (data && typeof data.stargazers_count === 'number') {
-          setGh({
+          setGh(prev => ({
+            ...prev,
             stars: data.stargazers_count,
             forks: data.forks_count ?? null,
-          })
+            openIssues: data.open_issues_count ?? null,
+          }))
+        }
+      })
+      .catch(() => {})
+
+    // Fetch total commit count from the default branch
+    fetch('https://api.github.com/repos/MarlBurroW/kinbot/commits?per_page=1')
+      .then((r) => {
+        // GitHub returns total count in the Link header's last page
+        const link = r.headers.get('Link')
+        if (link) {
+          const match = link.match(/page=(\d+)>;\s*rel="last"/)
+          if (match) {
+            return parseInt(match[1], 10)
+          }
+        }
+        return null
+      })
+      .then((count) => {
+        if (count) {
+          setGh(prev => ({ ...prev, totalCommits: count }))
         }
       })
       .catch(() => {})
@@ -139,7 +164,7 @@ export function Stats() {
 
   return (
     <section className="px-6 py-16 max-w-5xl mx-auto">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
         {/* GitHub stars (live) */}
         {gh.stars !== null && (
           <StatCard
@@ -160,6 +185,28 @@ export function Stats() {
             suffix=""
             label="Forks"
             href="https://github.com/MarlBurroW/kinbot/network/members"
+          />
+        )}
+
+        {/* Total commits (live) */}
+        {gh.totalCommits !== null && (
+          <StatCard
+            icon={GitCommit}
+            value={gh.totalCommits}
+            suffix="+"
+            label="Commits"
+            href="https://github.com/MarlBurroW/kinbot/commits/main"
+          />
+        )}
+
+        {/* Open issues (live) */}
+        {gh.openIssues !== null && gh.openIssues > 0 && (
+          <StatCard
+            icon={AlertCircle}
+            value={gh.openIssues}
+            suffix=""
+            label="Open issues"
+            href="https://github.com/MarlBurroW/kinbot/issues"
           />
         )}
 
