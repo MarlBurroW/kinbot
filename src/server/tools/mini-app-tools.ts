@@ -30,6 +30,16 @@ export const createMiniAppTool: ToolRegistration = {
         'The KinBot design system CSS is automatically injected — use CSS variables like ' +
         'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border) ' +
         'and utility classes like .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +
+        'Layout utilities (Tailwind-like): .flex, .flex-col, .grid, .grid-cols-2, .items-center, .justify-between, .gap-4, ' +
+        '.p-4, .px-3, .py-2, .m-4, .mt-2, .mb-4, .mx-auto, .w-full, .h-full, .max-w-md, .min-h-screen, ' +
+        '.text-sm, .text-xl, .font-bold, .font-medium, .text-center, .truncate, .text-primary, .text-muted, ' +
+        '.bg-card, .bg-muted, .border, .border-t, .rounded-lg, .rounded-full, .shadow-md, .shadow-lg, ' +
+        '.space-y-4, .space-x-2, .overflow-auto, .relative, .absolute, .transition, .transition-colors, ' +
+        '.opacity-50, .cursor-pointer, .select-none, .sr-only, .container, .hidden, .block, .inline-flex. ' +
+        'Component classes: .btn, .btn-primary, .btn-secondary, .btn-destructive, .btn-ghost, .btn-sm, .btn-lg, ' +
+        '.card, .card-header, .card-title, .card-description, .card-content, .card-footer, ' +
+        '.input, .textarea, .badge, .badge-primary, .badge-success, .badge-warning, .badge-destructive, ' +
+        '.table, .label, .separator. ' +
         'The theme (light/dark) and palette are automatically synced from the parent app. ' +
         'A JavaScript SDK is also auto-injected, providing the global `KinBot` object: ' +
         '`KinBot.theme` (returns {mode, palette}), ' +
