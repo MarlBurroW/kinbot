@@ -20,6 +20,18 @@ const communityLinks = [
   { label: 'Report a Bug', href: 'https://github.com/MarlBurroW/kinbot/issues/new?template=bug_report.yml' },
   { label: 'Request a Feature', href: 'https://github.com/MarlBurroW/kinbot/issues/new?template=feature_request.yml' },
   { label: 'Request a Provider', href: 'https://github.com/MarlBurroW/kinbot/issues/new?template=provider_request.yml' },
+  { label: 'Request a Channel', href: 'https://github.com/MarlBurroW/kinbot/issues/new?template=channel_request.yml' },
+]
+
+const techStack = [
+  { name: 'Bun', url: 'https://bun.sh' },
+  { name: 'Hono', url: 'https://hono.dev' },
+  { name: 'React', url: 'https://react.dev' },
+  { name: 'TypeScript', url: 'https://www.typescriptlang.org' },
+  { name: 'SQLite', url: 'https://sqlite.org' },
+  { name: 'Drizzle', url: 'https://orm.drizzle.team' },
+  { name: 'Tailwind CSS', url: 'https://tailwindcss.com' },
+  { name: 'Vercel AI SDK', url: 'https://sdk.vercel.ai' },
 ]
 
 function FooterColumn({ title, links, external = false }: { title: string; links: { label: string; href: string }[]; external?: boolean }) {
@@ -93,6 +105,39 @@ export function Footer() {
           <FooterColumn title="Product" links={productLinks} />
           <FooterColumn title="Resources" links={resourceLinks} external />
           <FooterColumn title="Community" links={communityLinks} external />
+        </div>
+
+        {/* Tech stack */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+          <span className="text-xs font-medium mr-1" style={{ color: 'var(--color-muted-foreground)', opacity: 0.6 }}>
+            Built with
+          </span>
+          {techStack.map(({ name, url }) => (
+            <a
+              key={name}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium px-2.5 py-1 rounded-full transition-all duration-200 hover:scale-105"
+              style={{
+                background: 'color-mix(in oklch, var(--color-muted-foreground) 6%, transparent)',
+                color: 'var(--color-muted-foreground)',
+                border: '1px solid color-mix(in oklch, var(--color-border) 40%, transparent)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-primary)'
+                e.currentTarget.style.borderColor = 'color-mix(in oklch, var(--color-glow-1) 30%, transparent)'
+                e.currentTarget.style.background = 'color-mix(in oklch, var(--color-glow-1) 8%, transparent)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-muted-foreground)'
+                e.currentTarget.style.borderColor = 'color-mix(in oklch, var(--color-border) 40%, transparent)'
+                e.currentTarget.style.background = 'color-mix(in oklch, var(--color-muted-foreground) 6%, transparent)'
+              }}
+            >
+              {name}
+            </a>
+          ))}
         </div>
 
         {/* Divider */}
