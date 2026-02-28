@@ -7,13 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Add Compare link to navbar (site)
+
+---
+
+## [0.4.2] - 2026-02-28
+
 ### Added
 - **Mini Apps: `KinBot.openApp(slug)` for inter-app navigation** — apps can now navigate users to other mini apps
+- **Mini Apps: `KinBot.clipboard.write/read`** for clipboard access from sandboxed iframes
+- **Mini Apps: Layout utility classes** in SDK CSS (Tailwind-like)
+- **Onboarding: Dedicated Memory step** for embedding model configuration
+- **Installer: `--doctor` command** for diagnostic reports
+- Playwright E2E tests for onboarding, login, and chat
+- Unit tests for onboarding routes and notification-delivery service
+- Dependency-review workflow for PR security checks
+- E2E and CodeQL badges in README
 - Elapsed time tracking in installer install/update/reset summaries
-- Tests for notification-delivery service
+- Search and category filtering to FAQ section (site)
+- Live commit count and open issues to stats (site)
+
+### Fixed
+- SSE events for MCP servers and quick-session memories now properly emitted
+- Remove duplicate ALTER TABLE statements in migrations 0026 and 0027
+- Move pino-pretty to dependencies (needed at runtime in logger.ts)
+- E2E test stability improvements (provider delete, edit, route mocks)
+- Installer now refreshes apt cache before first package install
 
 ### Changed
 - Extract shared `FormErrorAlert` component for consistent form error display
+- Translate hardcoded strings in sidebar and chat panel (i18n)
+- Optimize bundle splitting for faster initial load (site)
+- Fix provider count in architecture diagram
 
 ---
 
