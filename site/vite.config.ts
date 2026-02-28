@@ -12,9 +12,19 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-icons': ['lucide-react'],
+        manualChunks(id) {
+          // React core + DOM in a stable, long-cached chunk
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+            return 'vendor-react'
+          }
+          // Lucide icons (used everywhere)
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons'
+          }
+          // Lobehub provider icons (large SVGs, rarely change)
+          if (id.includes('node_modules/@lobehub/icons')) {
+            return 'vendor-provider-icons'
+          }
         },
       },
     },
