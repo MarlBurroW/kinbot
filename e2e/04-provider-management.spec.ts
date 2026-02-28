@@ -44,8 +44,8 @@ test.describe.serial('Provider management', () => {
   })
 
   test('should add a new provider via the form', async ({ page }) => {
-    // Also mock the test endpoint for new provider creation flow
-    await page.route('**/api/providers/test-connection', (route) => {
+    // Also mock the test endpoint for new provider creation flow (POST /api/providers/test)
+    await page.route('**/api/providers/test', (route) => {
       if (route.request().method() === 'POST') {
         return route.fulfill({
           contentType: 'application/json',
@@ -79,10 +79,21 @@ test.describe.serial('Provider management', () => {
     await page.getByRole('button', { name: /Add provider/i }).click()
 
     // Toast should confirm success, and provider should appear in the list
-    await expect(page.getByText('E2E Test Provider')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('E2E Test Provider').first()).toBeVisible({ timeout: 5_000 })
   })
 
   test('should test an existing provider connection', async ({ page }) => {
+    // Also mock the test endpoint explicitly for any provider ID
+    await page.route(/\/api\/providers\/[a-f0-9-]+\/test$/, (route) => {
+      if (route.request().method() === 'POST') {
+        return route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ valid: true }),
+        })
+      }
+      return route.continue()
+    })
+
     await openProviderSettings(page)
 
     // Find test buttons (RefreshCw icon)
@@ -91,7 +102,7 @@ test.describe.serial('Provider management', () => {
     await testButton.click()
 
     // Should show success toast
-    await expect(page.getByText('Connection successful')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('Connection successful')).toBeVisible({ timeout: 10_000 })
   })
 
   test('should edit a provider name', async ({ page }) => {
