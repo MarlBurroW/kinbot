@@ -28,7 +28,7 @@ LABEL org.opencontainers.image.title="KinBot" \
 # Install production dependencies (better-sqlite3 needs build tools for node-gyp)
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production && \
+RUN HUSKY=0 bun install --frozen-lockfile --production && \
     apt-get purge -y python3 make g++ && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 # Copy built frontend
