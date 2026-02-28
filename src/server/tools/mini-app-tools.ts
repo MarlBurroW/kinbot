@@ -84,10 +84,17 @@ export const createMiniAppTool: ToolRegistration = {
         'The file must export a default function that receives a context object and returns a Hono app. ' +
         'Example _server.js: `export default function(ctx) { const app = new ctx.Hono(); app.get("/hello", (c) => c.json({ message: "Hello!" })); return app; }`. ' +
         'Context provides: `ctx.Hono` (Hono constructor), `ctx.storage` (get/set/delete/list/clear — same as KinBot.storage), ' +
+        '`ctx.events` (push real-time events to connected frontend clients: `ctx.events.emit(eventName, data)`, `ctx.events.subscriberCount`), ' +
         '`ctx.appId`, `ctx.kinId`, `ctx.appName`, `ctx.log` (info/warn/error/debug). ' +
         'Routes are served at `/api/mini-apps/<appId>/api/*`. From the frontend, use `KinBot.api("/path")` (returns fetch Response), ' +
         '`KinBot.api.json("/path")` (auto-parses JSON), or `KinBot.api.post("/path", data)` (POST with JSON body). ' +
-        'The backend auto-reloads when _server.js is updated.',
+        'The backend auto-reloads when _server.js is updated. ' +
+        '**Real-time Events (SSE):** The backend can push events to the frontend in real-time using `ctx.events.emit(eventName, data)`. ' +
+        'In the frontend, use `KinBot.events.on(eventName, callback)` to listen for specific events, ' +
+        '`KinBot.events.subscribe(callback)` to receive all events (callback receives eventName and data), ' +
+        '`KinBot.events.close()` to disconnect, and `KinBot.events.connected` to check connection status. ' +
+        'The SSE connection is established lazily on first subscribe/on call. ' +
+        'Example: backend does `ctx.events.emit("update", {count: 42})`, frontend does `KinBot.events.on("update", (data) => console.log(data.count))`.',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),

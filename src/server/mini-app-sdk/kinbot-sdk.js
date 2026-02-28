@@ -20,6 +20,11 @@
  *   KinBot.openApp(slug) — open another mini-app from the same Kin by its slug
  *   KinBot.clipboard.write(text) — copy text to system clipboard (bypasses iframe restrictions)
  *   KinBot.clipboard.read() — read text from system clipboard (may require permission)
+ *   KinBot.events — real-time event stream from backend (_server.js)
+ *     .subscribe(callback) — receive all events from ctx.events.emit() in the backend
+ *     .on(eventName, callback) — listen for a specific event name
+ *     .close() — disconnect the event stream
+ *     .connected — whether the SSE connection is active
  */
 ;(function () {
   'use strict'
@@ -442,6 +447,101 @@
     },
   }
 
+  // ─── Backend Events (SSE) ────────────────────────────────────────────────
+
+  var _eventSource = null
+  var _eventListeners = {} // eventName → Set<callback>
+  var _allEventListeners = new Set() // callbacks for all events
+  var _eventsConnected = false
+
+  /**
+   * Connect to the backend SSE event stream.
+   * Called lazily on first subscribe/on call.
+   */
+  function _connectEvents() {
+    if (_eventSource || !_appMeta || !_appMeta.id) return
+    try {
+      _eventSource = new EventSource('/api/mini-apps/' + _appMeta.id + '/events')
+
+      _eventSource.addEventListener('connected', function () {
+        _eventsConnected = true
+      })
+
+      _eventSource.addEventListener('app-event', function (ev) {
+        try {
+          var payload = JSON.parse(ev.data)
+          var eventName = payload.event
+          var data = payload.data
+
+          // Dispatch to all-event listeners
+          _allEventListeners.forEach(function (cb) {
+            try { cb(eventName, data) } catch (e) { console.error('[KinBot SDK] events callback error:', e) }
+          })
+
+          // Dispatch to specific event listeners
+          var specific = _eventListeners[eventName]
+          if (specific) {
+            specific.forEach(function (cb) {
+              try { cb(data) } catch (e) { console.error('[KinBot SDK] events.' + eventName + ' callback error:', e) }
+            })
+          }
+        } catch (e) {
+          console.warn('[KinBot SDK] Failed to parse event:', e)
+        }
+      })
+
+      _eventSource.onerror = function () {
+        _eventsConnected = false
+      }
+
+      _eventSource.onopen = function () {
+        _eventsConnected = true
+      }
+    } catch (e) {
+      console.warn('[KinBot SDK] Failed to connect to event stream:', e)
+    }
+  }
+
+  var events = {
+    /**
+     * Subscribe to all events from the backend.
+     * @param {function(eventName: string, data: any): void} callback
+     * @returns {function} unsubscribe function
+     */
+    subscribe: function (callback) {
+      _allEventListeners.add(callback)
+      _connectEvents()
+      return function () { _allEventListeners.delete(callback) }
+    },
+
+    /**
+     * Listen for a specific named event from the backend.
+     * @param {string} eventName
+     * @param {function(data: any): void} callback
+     * @returns {function} unsubscribe function
+     */
+    on: function (eventName, callback) {
+      if (!_eventListeners[eventName]) _eventListeners[eventName] = new Set()
+      _eventListeners[eventName].add(callback)
+      _connectEvents()
+      return function () {
+        if (_eventListeners[eventName]) _eventListeners[eventName].delete(callback)
+      }
+    },
+
+    /** Disconnect the event stream */
+    close: function () {
+      if (_eventSource) {
+        _eventSource.close()
+        _eventSource = null
+        _eventsConnected = false
+      }
+    },
+
+    /** Whether the SSE connection is active */
+    get connected() { return _eventsConnected },
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -462,6 +562,7 @@
     setBadge: setBadge,
     openApp: openApp,
     clipboard: clipboard,
-    version: '1.7.0',
+    events: events,
+    version: '1.8.0',
   }
 })()

@@ -30,6 +30,50 @@ import {
 
 const log = createLogger('mini-app-backend')
 
+// ─── Event Emitter for SSE ──────────────────────────────────────────────────
+
+type SSESubscriber = (event: string, data: unknown) => void
+
+class AppEventEmitter {
+  private subscribers = new Set<SSESubscriber>()
+
+  /** Emit an event to all connected SSE clients */
+  emit(event: string, data?: unknown): void {
+    for (const sub of this.subscribers) {
+      try { sub(event, data) } catch { /* ignore dead subscribers */ }
+    }
+  }
+
+  /** Internal: add a subscriber (used by SSE route) */
+  _subscribe(fn: SSESubscriber): () => void {
+    this.subscribers.add(fn)
+    return () => { this.subscribers.delete(fn) }
+  }
+
+  /** Number of active subscribers */
+  get subscriberCount(): number {
+    return this.subscribers.size
+  }
+}
+
+/** Per-app event emitters, created lazily */
+const appEmitters = new Map<string, AppEventEmitter>()
+
+/** Get or create the event emitter for an app */
+export function getAppEmitter(appId: string): AppEventEmitter {
+  let emitter = appEmitters.get(appId)
+  if (!emitter) {
+    emitter = new AppEventEmitter()
+    appEmitters.set(appId, emitter)
+  }
+  return emitter
+}
+
+/** Clean up emitter when backend is invalidated */
+function cleanupEmitter(appId: string): void {
+  appEmitters.delete(appId)
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 /** Context passed to the backend module's default export */
@@ -49,6 +93,13 @@ export interface MiniAppBackendContext {
     delete: (key: string) => Promise<boolean>
     list: () => Promise<{ key: string; size: number }[]>
     clear: () => Promise<number>
+  }
+  /** Push real-time events to connected frontend clients via SSE */
+  events: {
+    /** Emit a named event with optional data to all connected clients */
+    emit: (event: string, data?: unknown) => void
+    /** Number of currently connected SSE clients */
+    readonly subscriberCount: number
   }
   /** Simple logger */
   log: {
@@ -73,6 +124,7 @@ const backendCache = new Map<string, CachedBackend>()
 export function invalidateBackend(appId: string): void {
   if (backendCache.has(appId)) {
     backendCache.delete(appId)
+    cleanupEmitter(appId)
     log.info({ appId }, 'Backend cache invalidated')
   }
 }
@@ -86,6 +138,7 @@ export function invalidateAllBackends(): void {
 
 function buildContext(appId: string, kinId: string, appName: string): MiniAppBackendContext {
   const appLog = createLogger(`mini-app:${appId.slice(0, 8)}`)
+  const emitter = getAppEmitter(appId)
 
   return {
     appId,
@@ -104,6 +157,10 @@ function buildContext(appId: string, kinId: string, appName: string): MiniAppBac
       delete: (key: string) => storageDelete(appId, key),
       list: () => storageList(appId),
       clear: () => storageClear(appId),
+    },
+    events: {
+      emit: (event: string, data?: unknown) => emitter.emit(event, data),
+      get subscriberCount() { return emitter.subscriberCount },
     },
     log: {
       info: (...args: unknown[]) => appLog.info({ appId }, String(args[0]), ...args.slice(1)),

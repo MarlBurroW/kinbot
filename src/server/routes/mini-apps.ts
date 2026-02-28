@@ -22,7 +22,7 @@ import {
   storageList,
   storageClear,
 } from '@/server/services/mini-apps'
-import { handleBackendRequest, invalidateBackend } from '@/server/services/mini-app-backend'
+import { handleBackendRequest, invalidateBackend, getAppEmitter } from '@/server/services/mini-app-backend'
 import { sseManager } from '@/server/sse/index'
 
 export const miniAppRoutes = new Hono<{ Variables: AppVariables }>()
@@ -295,6 +295,66 @@ miniAppRoutes.delete('/:id/storage', async (c) => {
 
   const count = await storageClear(app.id)
   return c.json({ cleared: count })
+})
+
+// ─── Backend SSE Events ─────────────────────────────────────────────────────
+
+// SSE endpoint for real-time events from mini-app backends
+miniAppRoutes.get('/:id/events', async (c) => {
+  const appId = c.req.param('id')
+  const app = await getMiniAppRow(appId)
+  if (!app) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+  }
+
+  const emitter = getAppEmitter(appId)
+
+  // Create a readable stream that pushes SSE events
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder()
+
+      // Send initial connection event
+      controller.enqueue(encoder.encode(`event: connected\ndata: ${JSON.stringify({ appId })}\n\n`))
+
+      // Keep-alive ping every 30s
+      const pingInterval = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`: ping\n\n`))
+        } catch {
+          clearInterval(pingInterval)
+        }
+      }, 30_000)
+
+      // Subscribe to app events
+      const unsubscribe = emitter._subscribe((event: string, data: unknown) => {
+        try {
+          const payload = JSON.stringify({ event, data, timestamp: Date.now() })
+          controller.enqueue(encoder.encode(`event: app-event\ndata: ${payload}\n\n`))
+        } catch {
+          // Client disconnected
+          clearInterval(pingInterval)
+          unsubscribe()
+        }
+      })
+
+      // Clean up when the client disconnects
+      c.req.raw.signal.addEventListener('abort', () => {
+        clearInterval(pingInterval)
+        unsubscribe()
+        try { controller.close() } catch { /* already closed */ }
+      })
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  })
 })
 
 // ─── Backend API proxy ──────────────────────────────────────────────────────
