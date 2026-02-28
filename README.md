@@ -35,27 +35,6 @@ KinBot is different. You create **Kins** — AI agents with:
 
 ---
 
-<div align="center">
-
-### Chat with persistent agents
-
-<img src="docs/screenshots/frame_1.png" alt="KinBot chat interface showing multiple Kins, scheduled jobs, and a conversation with memory indicators" width="720" />
-
-### Multi-agent delegation & memory recall
-
-<img src="docs/screenshots/frame_5.png" alt="KinBot orchestrating sub-tasks across specialized Kins with real-time collaboration" width="720" />
-
-### Web search, contacts, and sub-task spawning
-
-<img src="docs/screenshots/frame_7.png" alt="KinBot performing live web search, instant memory recall, and contact management in one conversation" width="720" />
-
-<details>
-<summary>🎬 Watch the video demo</summary>
-<br>
-<video src="docs/screenshots/preview1.mp4" autoplay loop muted playsinline width="720"></video>
-</details>
-
-</div>
 
 ## ✨ Features
 
