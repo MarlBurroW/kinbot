@@ -1750,6 +1750,7 @@ show_help() {
   echo "  --update        Check for updates and apply if available"
   echo "  --status        Check current KinBot installation health"
   echo "  --test          Run self-tests to validate the installation works"
+  echo "  --doctor        Generate a diagnostic report (for bug reports / support)"
   echo "  --logs          Tail KinBot logs (works across all platforms)"
   echo "  --backup [path] Back up database (and config) to a file"
   echo "  --restore [path] Restore database from a backup (interactive picker if no path)"
@@ -1820,6 +1821,10 @@ show_help() {
   echo ""
   echo "  # Run self-tests (validates DB, build, API)"
   echo "  bash install.sh --test"
+  echo ""
+  echo "  # Generate a diagnostic report for bug reports"
+  echo "  bash install.sh --doctor"
+  echo "  bash install.sh --doctor > report.md  # Save to file"
   echo ""
   echo "  # Tail logs"
   echo "  bash install.sh --logs"
@@ -2001,6 +2006,289 @@ check_status() {
 
 # Non-fatal error (for status checks)
 error_noexit() { echo -e "${RED}✗${NC} $*" >&2; }
+
+# ─── Doctor (diagnostic report for bug reports) ─────────────────────────────
+do_doctor() {
+  # Minimal env setup
+  OS="$(uname -s)"
+  ARCH="$(uname -m)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  detect_os 2>/dev/null || true
+
+  # Everything goes to stdout as plain text, suitable for pasting into a GitHub issue
+  echo "# KinBot Diagnostic Report"
+  echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo ""
+
+  # ── System ──
+  echo "## System"
+  echo "- OS: $OS ($ARCH)"
+  echo "- Distro: ${DISTRO:-unknown}"
+  [ "$IS_WSL" = true ] && echo "- WSL: yes"
+  if [ -f /proc/version ]; then
+    echo "- Kernel: $(uname -r)"
+  elif [ "$OS" = "Darwin" ]; then
+    echo "- macOS: $(sw_vers -productVersion 2>/dev/null || echo unknown)"
+  fi
+  echo "- Init: ${INIT_SYSTEM:-unknown}"
+  echo "- User: $(id -un) (uid=$(id -u))"
+  echo "- Shell: ${SHELL:-unknown}"
+
+  # Container detection
+  local container="none"
+  if [ -f /.dockerenv ]; then
+    container="docker"
+  elif grep -qa 'container=' /proc/1/environ 2>/dev/null; then
+    container="$(grep -oP 'container=\K[^ ]+' /proc/1/environ 2>/dev/null || echo "yes")"
+  elif [ -f /run/host/container-manager ] 2>/dev/null; then
+    container="$(cat /run/host/container-manager 2>/dev/null)"
+  fi
+  [ "$container" != "none" ] && echo "- Container: $container"
+
+  # Memory
+  if [ "$OS" = "Linux" ] && [ -f /proc/meminfo ]; then
+    local mem_total mem_avail swap_total
+    mem_total="$(awk '/^MemTotal:/ {printf "%.0f", $2/1024}' /proc/meminfo 2>/dev/null)"
+    mem_avail="$(awk '/^MemAvailable:/ {printf "%.0f", $2/1024}' /proc/meminfo 2>/dev/null)"
+    swap_total="$(awk '/^SwapTotal:/ {printf "%.0f", $2/1024}' /proc/meminfo 2>/dev/null)"
+    echo "- Memory: ${mem_avail:-?}MB available / ${mem_total:-?}MB total, swap ${swap_total:-0}MB"
+  elif [ "$OS" = "Darwin" ]; then
+    local mem_bytes
+    mem_bytes="$(sysctl -n hw.memsize 2>/dev/null || echo 0)"
+    echo "- Memory: $((mem_bytes / 1024 / 1024))MB total"
+  fi
+
+  # Disk
+  local install_parent
+  install_parent="$(dirname "$KINBOT_DIR")"
+  local disk_info
+  disk_info="$(df -h "$install_parent" 2>/dev/null | awk 'NR==2 {printf "%s available / %s total (%s used)", $4, $2, $5}')"
+  [ -n "$disk_info" ] && echo "- Disk ($install_parent): $disk_info"
+
+  echo ""
+
+  # ── KinBot installation ──
+  echo "## KinBot"
+  if [ -d "$KINBOT_DIR/.git" ]; then
+    local version branch commit commit_date
+    version="$(git -C "$KINBOT_DIR" describe --tags 2>/dev/null || echo "no tags")"
+    branch="$(git -C "$KINBOT_DIR" branch --show-current 2>/dev/null || echo "unknown")"
+    commit="$(git -C "$KINBOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+    commit_date="$(git -C "$KINBOT_DIR" log -1 --format='%ci' 2>/dev/null | cut -d' ' -f1 || echo "unknown")"
+    echo "- Version: $version"
+    echo "- Branch: $branch"
+    echo "- Commit: $commit ($commit_date)"
+    echo "- Install dir: $KINBOT_DIR"
+
+    # Check if behind upstream
+    local behind=""
+    if git -C "$KINBOT_DIR" fetch --dry-run origin "$branch" 2>&1 | grep -q "$branch"; then
+      local local_head remote_head
+      local_head="$(git -C "$KINBOT_DIR" rev-parse HEAD 2>/dev/null)"
+      remote_head="$(git -C "$KINBOT_DIR" rev-parse "origin/$branch" 2>/dev/null)"
+      if [ "$local_head" != "$remote_head" ]; then
+        local count_behind
+        count_behind="$(git -C "$KINBOT_DIR" rev-list HEAD..origin/"$branch" --count 2>/dev/null || echo "?")"
+        echo "- Behind upstream: $count_behind commit(s)"
+      else
+        echo "- Up to date with origin/$branch"
+      fi
+    fi
+
+    # Dirty state
+    if ! git -C "$KINBOT_DIR" diff --quiet HEAD 2>/dev/null; then
+      echo "- Working tree: DIRTY (uncommitted changes)"
+    fi
+  else
+    echo "- Not installed at $KINBOT_DIR"
+  fi
+
+  echo "- Data dir: $KINBOT_DATA_DIR"
+  if [ -d "$KINBOT_DATA_DIR" ]; then
+    local data_size
+    data_size="$(du -sh "$KINBOT_DATA_DIR" 2>/dev/null | awk '{print $1}')"
+    echo "- Data size: $data_size"
+  fi
+
+  echo ""
+
+  # ── Runtime ──
+  echo "## Runtime"
+  BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  if command -v bun &>/dev/null; then
+    echo "- Bun: $(bun --version 2>/dev/null || echo error) ($(command -v bun))"
+  else
+    echo "- Bun: NOT FOUND"
+  fi
+  command -v git &>/dev/null && echo "- Git: $(git --version 2>/dev/null | awk '{print $3}')"
+  command -v curl &>/dev/null && echo "- Curl: $(curl --version 2>/dev/null | head -1 | awk '{print $2}')"
+  command -v sqlite3 &>/dev/null && echo "- SQLite3: $(sqlite3 --version 2>/dev/null | awk '{print $1}')"
+
+  echo ""
+
+  # ── Config (sanitized) ──
+  echo "## Config"
+  local env_file="$KINBOT_DATA_DIR/kinbot.env"
+  if [ -f "$env_file" ]; then
+    local perms
+    perms="$(stat -c '%a' "$env_file" 2>/dev/null || stat -f '%Lp' "$env_file" 2>/dev/null || echo "?")"
+    echo "- File: $env_file (permissions: $perms)"
+    echo '```'
+    # Show keys and redact sensitive values
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      [[ "$line" =~ ^# ]] && { echo "$line"; continue; }
+      local key="${line%%=*}"
+      local val="${line#*=}"
+      case "$key" in
+        *KEY*|*SECRET*|*TOKEN*|*PASSWORD*|*ENCRYPTION*)
+          if [ -n "$val" ]; then
+            echo "${key}=[REDACTED (${#val} chars)]"
+          else
+            echo "${key}="
+          fi
+          ;;
+        *)
+          echo "$line"
+          ;;
+      esac
+    done < "$env_file"
+    echo '```'
+  else
+    echo "- Config file not found at $env_file"
+  fi
+
+  echo ""
+
+  # ── Database ──
+  echo "## Database"
+  local db_file="$KINBOT_DATA_DIR/kinbot.db"
+  if [ -f "$db_file" ]; then
+    local db_size
+    db_size="$(du -h "$db_file" 2>/dev/null | awk '{print $1}')"
+    echo "- File: $db_file ($db_size)"
+    if command -v sqlite3 &>/dev/null; then
+      local integrity journal_mode table_count
+      integrity="$(sqlite3 "$db_file" "PRAGMA integrity_check;" 2>/dev/null || echo "error")"
+      journal_mode="$(sqlite3 "$db_file" "PRAGMA journal_mode;" 2>/dev/null || echo "unknown")"
+      table_count="$(sqlite3 "$db_file" "SELECT count(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "?")"
+      echo "- Integrity: $integrity"
+      echo "- Journal mode: $journal_mode"
+      echo "- Tables: $table_count"
+    else
+      echo "- sqlite3 not available for inspection"
+    fi
+  else
+    echo "- Not found at $db_file"
+  fi
+
+  # Backups
+  local backup_dir="$KINBOT_DATA_DIR/backups"
+  if [ -d "$backup_dir" ]; then
+    local backup_count
+    backup_count="$(find "$backup_dir" -maxdepth 1 -name 'kinbot-*.db' -type f 2>/dev/null | wc -l)"
+    echo "- Backups: $backup_count"
+  fi
+
+  echo ""
+
+  # ── Service ──
+  echo "## Service"
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    if launchctl list 2>/dev/null | grep -q io.kinbot.server; then
+      echo "- Status: loaded (launchd)"
+    else
+      echo "- Status: not loaded (launchd)"
+    fi
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local pid_file="$KINBOT_DATA_DIR/kinbot.pid"
+    if [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null; then
+      echo "- Status: running (PID $(cat "$pid_file"), script-managed)"
+    else
+      echo "- Status: not running (script-managed)"
+    fi
+  elif [ "$IS_ROOT" = true ]; then
+    local svc_status
+    svc_status="$(systemctl is-active kinbot 2>/dev/null || echo "unknown")"
+    echo "- Status: $svc_status (systemd system)"
+    if [ "$svc_status" = "failed" ]; then
+      echo "- Exit code: $(systemctl show kinbot -p ExecMainStatus --value 2>/dev/null || echo "?")"
+    fi
+  else
+    local svc_status
+    svc_status="$(systemctl --user is-active kinbot 2>/dev/null || echo "unknown")"
+    echo "- Status: $svc_status (systemd user)"
+    if [ "$svc_status" = "failed" ]; then
+      echo "- Exit code: $(systemctl --user show kinbot -p ExecMainStatus --value 2>/dev/null || echo "?")"
+    fi
+  fi
+
+  # Port check
+  local port="${KINBOT_PORT:-3000}"
+  if [ -f "$KINBOT_DATA_DIR/kinbot.env" ]; then
+    # shellcheck disable=SC1090
+    . "$KINBOT_DATA_DIR/kinbot.env" 2>/dev/null || true
+    port="${PORT:-$port}"
+  fi
+
+  local port_listening="no"
+  if command -v ss &>/dev/null; then
+    ss -tlnp 2>/dev/null | grep -q ":${port} " && port_listening="yes"
+  elif command -v lsof &>/dev/null; then
+    lsof -i ":${port}" -sTCP:LISTEN &>/dev/null && port_listening="yes"
+  fi
+  echo "- Port $port listening: $port_listening"
+
+  # HTTP check
+  if command -v curl &>/dev/null && [ "$port_listening" = "yes" ]; then
+    local http_code
+    http_code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${port}/" --max-time 3 2>/dev/null || echo "000")"
+    echo "- HTTP status: $http_code"
+    local api_code
+    api_code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${port}/api/health" --max-time 3 2>/dev/null || echo "000")"
+    echo "- API health: $api_code"
+  fi
+
+  echo ""
+
+  # ── Recent logs ──
+  echo "## Recent Logs (last 25 lines)"
+  echo '```'
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local log_file="$HOME/Library/Logs/kinbot/kinbot.log"
+    if [ -f "$log_file" ]; then
+      tail -25 "$log_file" 2>/dev/null
+    else
+      echo "(no log file found)"
+    fi
+  elif [ "$INIT_SYSTEM" = "script" ]; then
+    local log_file="$KINBOT_DATA_DIR/kinbot.log"
+    if [ -f "$log_file" ]; then
+      tail -25 "$log_file" 2>/dev/null
+    else
+      echo "(no log file found)"
+    fi
+  elif [ "$IS_ROOT" = true ]; then
+    journalctl -u kinbot --no-pager -n 25 2>/dev/null || echo "(no journal entries)"
+  else
+    journalctl --user -u kinbot --no-pager -n 25 2>/dev/null || echo "(no journal entries)"
+  fi
+  echo '```'
+
+  echo ""
+  echo "---"
+  echo "Paste this into a GitHub issue: https://github.com/$KINBOT_REPO/issues/new"
+}
 
 # ─── Dry run ─────────────────────────────────────────────────────────────────
 dry_run() {
@@ -3603,6 +3891,11 @@ main() {
       --test|test)
         trap - INT TERM
         do_test
+        exit 0
+        ;;
+      --doctor|doctor)
+        trap - INT TERM
+        do_doctor
         exit 0
         ;;
       --logs|logs)
