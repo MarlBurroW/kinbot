@@ -1,4 +1,20 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
+
+// Mock config before importing the module under test
+mock.module('@/server/config', () => ({
+  config: {
+    webBrowsing: {
+      blockedDomains: [],
+      maxConcurrentFetches: 5,
+      pageTimeout: 30000,
+      userAgent: 'KinBot/test',
+      maxContentLength: 100000,
+      headlessEnabled: false,
+      proxy: null,
+    },
+  },
+}))
+
 import { isBlockedUrl, extractContent, extractLinksFromHtml } from '@/server/services/web-browse'
 
 // ─── isBlockedUrl ────────────────────────────────────────────────────────────
