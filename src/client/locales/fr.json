@@ -1432,6 +1432,8 @@
     "openPanel": "Ouvrir l'app",
     "closePanel": "Fermer",
     "refresh": "Recharger",
+    "fullPage": "Plein écran",
+    "exitFullPage": "Quitter le plein écran",
     "delete": "Supprimer l'app",
     "deleteTitle": "Supprimer la mini-app",
     "deleteConfirm": "« {{name}} » et tous ses fichiers seront supprimés définitivement.",

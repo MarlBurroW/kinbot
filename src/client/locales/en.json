@@ -1432,6 +1432,8 @@
     "openPanel": "Open app",
     "closePanel": "Close",
     "refresh": "Reload",
+    "fullPage": "Full page",
+    "exitFullPage": "Exit full page",
     "delete": "Delete app",
     "deleteTitle": "Delete mini-app",
     "deleteConfirm": "\"{{name}}\" and all its files will be permanently deleted.",

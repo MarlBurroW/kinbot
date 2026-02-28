@@ -5,8 +5,11 @@ interface MiniAppContextValue {
   panelOpen: boolean
   activeAppId: string | null
   activeAppVersion: number
+  isFullPage: boolean
   openApp: (appId: string) => void
   closePanel: () => void
+  toggleFullPage: () => void
+  setFullPage: (value: boolean) => void
 }
 
 const MiniAppContext = createContext<MiniAppContextValue | null>(null)
@@ -14,6 +17,7 @@ const MiniAppContext = createContext<MiniAppContextValue | null>(null)
 export function MiniAppProvider({ children }: { children: ReactNode }) {
   const [activeAppId, setActiveAppId] = useState<string | null>(null)
   const [activeAppVersion, setActiveAppVersion] = useState(0)
+  const [isFullPage, setIsFullPage] = useState(false)
 
   const openApp = useCallback((appId: string) => {
     setActiveAppId(appId)
@@ -22,6 +26,15 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
 
   const closePanel = useCallback(() => {
     setActiveAppId(null)
+    setIsFullPage(false)
+  }, [])
+
+  const toggleFullPage = useCallback(() => {
+    setIsFullPage((v) => !v)
+  }, [])
+
+  const setFullPage = useCallback((value: boolean) => {
+    setIsFullPage(value)
   }, [])
 
   // Listen for file updates to reload the active app's iframe
@@ -47,8 +60,11 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
         panelOpen: activeAppId !== null,
         activeAppId,
         activeAppVersion,
+        isFullPage,
         openApp,
         closePanel,
+        toggleFullPage,
+        setFullPage,
       }}
     >
       {children}

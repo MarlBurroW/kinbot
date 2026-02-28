@@ -43,6 +43,9 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.storage.delete(key)` → Promise<boolean>, ' +
         '`KinBot.storage.list()` → Promise<[{key,size}]>, ' +
         '`KinBot.storage.clear()` → Promise<number> (clear all keys), ' +
+        '`KinBot.fullpage(bool)` (request full-page mode (true) or side-panel mode (false) — the user can also toggle via the UI), ' +
+        '`KinBot.isFullPage` (read-only, current full-page state), ' +
+        '`KinBot.on("fullpage-changed", cb)` (listen for full-page mode changes, cb receives {isFullPage}), ' +
         '`KinBot.ready()` (call when your app is loaded to receive app metadata — required before using storage). ' +
         'For additional files (CSS, JS, images), use write_mini_app_file after creation.',
       inputSchema: z.object({

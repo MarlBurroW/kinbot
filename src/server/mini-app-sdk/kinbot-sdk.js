@@ -10,6 +10,8 @@
  *   KinBot.toast() — show a toast notification in the parent UI
  *   KinBot.storage  — persistent key-value storage (get/set/delete/list/clear)
  *   KinBot.ready() — signal that the app has finished loading
+ *   KinBot.fullpage(bool) — request full-page or side-panel mode
+ *   KinBot.isFullPage — whether the app is currently in full-page mode
  */
 ;(function () {
   'use strict'
@@ -18,6 +20,7 @@
 
   var listeners = {} // event name → Set<callback>
   var _appMeta = null
+  var _isFullPage = false
 
   // ─── Theme ──────────────────────────────────────────────────────────────
 
@@ -102,6 +105,19 @@
     } catch (e) {}
   }
 
+  /**
+   * Request full-page or side-panel mode.
+   * @param {boolean} value — true for full-page, false for side panel
+   */
+  function fullpage(value) {
+    _isFullPage = !!value
+    try {
+      parent.postMessage({ source: 'kinbot-sdk', type: 'fullpage', value: _isFullPage }, '*')
+    } catch (e) {
+      console.warn('[KinBot SDK] fullpage failed:', e)
+    }
+  }
+
   // ─── Listen for messages from parent ────────────────────────────────────
 
   window.addEventListener('message', function (ev) {
@@ -110,7 +126,11 @@
 
     if (msg.type === 'app-meta') {
       _appMeta = msg.data || null
+      if (_appMeta && _appMeta.isFullPage !== undefined) _isFullPage = _appMeta.isFullPage
       _dispatch('app-meta', _appMeta)
+    } else if (msg.type === 'fullpage-changed') {
+      _isFullPage = !!(msg.data && msg.data.isFullPage)
+      _dispatch('fullpage-changed', { isFullPage: _isFullPage })
     } else if (msg.type === 'theme-changed') {
       _dispatch('theme-changed', getTheme())
     } else if (msg.type === 'event') {
@@ -199,12 +219,14 @@
   window.KinBot = {
     get theme() { return getTheme() },
     get app() { return _appMeta },
+    get isFullPage() { return _isFullPage },
     on: on,
     emit: emit,
     toast: toast,
     navigate: navigate,
     ready: ready,
+    fullpage: fullpage,
     storage: storage,
-    version: '1.1.0',
+    version: '1.2.0',
   }
 })()

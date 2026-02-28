@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { Button } from '@/client/components/ui/button'
-import { X, RotateCw } from 'lucide-react'
+import { X, RotateCw, Maximize2, Minimize2 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { toast } from 'sonner'
@@ -11,7 +11,7 @@ import type { MiniAppSummary } from '@/shared/types'
 export function MiniAppViewer() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { panelOpen, activeAppId, activeAppVersion, closePanel } = useMiniAppPanel()
+  const { panelOpen, activeAppId, activeAppVersion, isFullPage, closePanel, toggleFullPage, setFullPage } = useMiniAppPanel()
   const [app, setApp] = useState<MiniAppSummary | null>(null)
   const [iframeKey, setIframeKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -53,9 +53,20 @@ export function MiniAppViewer() {
         kinId: app.kinId,
         kinName: app.kinName,
         version: app.version,
+        isFullPage,
       },
     }, '*')
-  }, [app])
+  }, [app, isFullPage])
+
+  // Notify iframe when full-page mode changes
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return
+    iframeRef.current.contentWindow.postMessage({
+      source: 'kinbot-parent',
+      type: 'fullpage-changed',
+      data: { isFullPage },
+    }, '*')
+  }, [isFullPage])
 
   // Handle postMessage from mini-app SDK
   useEffect(() => {
@@ -83,12 +94,27 @@ export function MiniAppViewer() {
           sendAppMeta()
           break
         }
+        case 'fullpage': {
+          const requested = Boolean(msg.value)
+          setFullPage(requested)
+          break
+        }
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [navigate, sendAppMeta])
+  }, [navigate, sendAppMeta, setFullPage])
+
+  // Escape key exits full-page mode
+  useEffect(() => {
+    if (!isFullPage) return
+    function handleKeyDown(ev: KeyboardEvent) {
+      if (ev.key === 'Escape') setFullPage(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFullPage, setFullPage])
 
   const handleRefresh = useCallback(() => {
     setIframeKey((k) => k + 1)
@@ -102,6 +128,60 @@ export function MiniAppViewer() {
     ? `/api/mini-apps/${activeAppId}/serve?v=${activeAppVersion}`
     : ''
 
+  // Full-page mode: render as overlay
+  if (isFullPage && panelOpen && activeAppId) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-background">
+        {/* Header */}
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
+          {app?.icon && <span className="text-base">{app.icon}</span>}
+          <span className="flex-1 truncate text-sm font-medium">
+            {app?.name ?? '...'}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={handleRefresh}
+            title={t('miniApps.refresh')}
+          >
+            <RotateCw className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={toggleFullPage}
+            title={t('miniApps.exitFullPage')}
+          >
+            <Minimize2 className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={closePanel}
+            title={t('miniApps.closePanel')}
+          >
+            <X className="size-3.5" />
+          </Button>
+        </div>
+
+        {/* Iframe */}
+        <iframe
+          ref={iframeRef}
+          key={iframeKey}
+          src={iframeSrc}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+          className="min-h-0 flex-1 w-full border-0"
+          title={app?.name ?? 'Mini App'}
+          onLoad={handleIframeLoad}
+        />
+      </div>
+    )
+  }
+
+  // Side panel mode (default)
   return (
     <div
       className={`shrink-0 overflow-hidden transition-[width] duration-300 ease-out ${
@@ -123,6 +203,15 @@ export function MiniAppViewer() {
             title={t('miniApps.refresh')}
           >
             <RotateCw className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={toggleFullPage}
+            title={t('miniApps.fullPage')}
+          >
+            <Maximize2 className="size-3.5" />
           </Button>
           <Button
             variant="ghost"
