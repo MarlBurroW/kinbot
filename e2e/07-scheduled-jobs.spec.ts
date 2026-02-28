@@ -175,9 +175,9 @@ test.describe.serial('Scheduled jobs management', () => {
       const wasChecked = await toggle.getAttribute('aria-checked')
       await toggle.click()
 
-      // Verify state changed
-      const newState = await toggle.getAttribute('aria-checked')
-      expect(newState).not.toBe(wasChecked)
+      // Wait for state to update (API call + re-render)
+      const expectedState = wasChecked === 'true' ? 'false' : 'true'
+      await expect(toggle).toHaveAttribute('aria-checked', expectedState, { timeout: 5_000 })
 
       // Toggle back
       await toggle.click()
