@@ -46,3 +46,4 @@ test-results/
 # Claude Code
 .claude/
 .marlbot-context.md
+e2e-journal.md
