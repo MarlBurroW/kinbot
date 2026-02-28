@@ -1642,7 +1642,8 @@ show_help() {
   echo "  --reset         Fix broken install: re-clone & rebuild, keep data"
   echo "  --dry-run       Show what would happen without making changes"
   echo "  --docker        Docker Compose setup (no Bun/build needed)"
-  echo "  --env KEY=VALUE Set or update an env variable in the config file"
+  echo "  --env [KEY=VAL] Show, set, or remove env variables in the config file"
+  echo "                  No args: show all; KEY=VAL: set; KEY-: remove"
   echo "  --uninstall     Remove KinBot (keeps data unless confirmed)"
   echo ""
   echo -e "${BOLD}ENVIRONMENT VARIABLES${NC}"
@@ -1677,8 +1678,15 @@ show_help() {
   echo "  bash install.sh --update"
   echo ""
   echo "  # Set a config variable (scriptable)"
+  echo "  # Show all config variables"
+  echo "  bash install.sh --env"
+  echo ""
+  echo "  # Set a config variable (scriptable)"
   echo "  bash install.sh --env LOG_LEVEL=debug"
   echo "  bash install.sh --env ENCRYPTION_KEY=\$(openssl rand -hex 32)"
+  echo ""
+  echo "  # Remove a config variable"
+  echo "  bash install.sh --env LOG_LEVEL-"
   echo ""
   echo "  # Docker install (no Bun required)"
   echo "  bash install.sh --docker"
@@ -2530,15 +2538,7 @@ do_restore() {
 
 # ─── Set env variable ─────────────────────────────────────────────────────────
 do_env() {
-  local assignment="$1"
-
-  # Validate format
-  if [[ ! "$assignment" =~ ^[A-Za-z_][A-Za-z0-9_]*=.* ]]; then
-    error "Invalid format. Usage: bash install.sh --env KEY=VALUE"
-  fi
-
-  local key="${assignment%%=*}"
-  local value="${assignment#*=}"
+  local assignment="${1:-}"
 
   # Minimal env setup
   OS="$(uname -s)"
@@ -2551,6 +2551,89 @@ do_env() {
   fi
 
   local env_file="$KINBOT_DATA_DIR/kinbot.env"
+
+  # ── No argument: list all variables ──
+  if [ -z "$assignment" ]; then
+    if [ ! -f "$env_file" ]; then
+      error "No config file found at $env_file. Run the installer first: bash install.sh"
+    fi
+
+    echo ""
+    echo -e "${BOLD}KinBot Configuration${NC}"
+    echo -e "${DIM}$env_file${NC}"
+    echo ""
+
+    local secret_patterns="KEY TOKEN SECRET PASSWORD PASS"
+    while IFS= read -r line; do
+      # Skip empty lines and comments
+      [[ -z "$line" ]] && continue
+      if [[ "$line" =~ ^#.*$ ]]; then
+        echo -e "  ${DIM}$line${NC}"
+        continue
+      fi
+
+      local k="${line%%=*}"
+      local v="${line#*=}"
+
+      # Mask secret values
+      local masked=false
+      for sp in $secret_patterns; do
+        if echo "$k" | grep -qi "$sp"; then
+          if [ ${#v} -gt 8 ]; then
+            v="${v:0:4}...${v: -4}"
+          elif [ -n "$v" ]; then
+            v="****"
+          fi
+          masked=true
+          break
+        fi
+      done
+
+      if [ "$masked" = true ]; then
+        echo -e "  ${CYAN}${k}${NC}=${DIM}${v}${NC}"
+      else
+        echo -e "  ${CYAN}${k}${NC}=${v}"
+      fi
+    done < "$env_file"
+
+    echo ""
+    return
+  fi
+
+  # ── KEY- syntax: remove a variable ──
+  if [[ "$assignment" =~ ^[A-Za-z_][A-Za-z0-9_]*-$ ]]; then
+    local key="${assignment%-}"
+
+    if [ ! -f "$env_file" ]; then
+      error "No config file found at $env_file. Run the installer first: bash install.sh"
+    fi
+
+    if ! grep -q "^${key}=" "$env_file" 2>/dev/null; then
+      warn "$key is not set in $env_file"
+      return
+    fi
+
+    local tmp_env
+    tmp_env="$(mktemp)"
+    while IFS= read -r line; do
+      case "$line" in
+        "${key}="*) ;; # skip this line
+        *)          echo "$line" ;;
+      esac
+    done < "$env_file" > "$tmp_env"
+    mv "$tmp_env" "$env_file"
+    chmod 600 "$env_file"
+    success "$key removed from $env_file"
+    return
+  fi
+
+  # ── KEY=VALUE syntax: set a variable ──
+  if [[ ! "$assignment" =~ ^[A-Za-z_][A-Za-z0-9_]*=.* ]]; then
+    error "Invalid format. Usage: bash install.sh --env [KEY=VALUE | KEY-]"
+  fi
+
+  local key="${assignment%%=*}"
+  local value="${assignment#*=}"
 
   if [ ! -f "$env_file" ]; then
     # Create the file if it doesn't exist yet (pre-install config)
@@ -2623,12 +2706,12 @@ do_config() {
   fi
 
   # Read current values
-  local current_port current_url current_host
+  local current_port current_url
   # shellcheck disable=SC1090
   . "$env_file" 2>/dev/null || true
   current_port="${PORT:-3000}"
   current_url="${PUBLIC_URL:-}"
-  current_host="${HOST:-0.0.0.0}"
+  # current_host not used currently but kept for future --config expansion
 
   echo -e "  ${DIM}Current config: $env_file${NC}"
   echo -e "  ${DIM}Edit values below. Press Enter to keep current value.${NC}"
@@ -3430,19 +3513,15 @@ main() {
         ;;
       --env)
         trap - INT TERM
-        # Find the KEY=VALUE argument after --env
+        # Find the KEY=VALUE or KEY- argument after --env (optional)
         local env_val=""
         local found_env=false
         for a in "$@"; do
           if [ "$found_env" = true ]; then
-            env_val="$a"
-            break
+            [[ "$a" != --* ]] && env_val="$a" && break
           fi
           [ "$a" = "--env" ] && found_env=true
         done
-        if [ -z "$env_val" ]; then
-          error "Usage: bash install.sh --env KEY=VALUE"
-        fi
         do_env "$env_val"
         exit 0
         ;;
