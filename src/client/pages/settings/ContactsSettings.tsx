@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
@@ -8,6 +8,7 @@ import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { useKinList } from '@/client/hooks/useKinList'
+import { useSSE } from '@/client/hooks/useSSE'
 import { ContactCard, type ContactData, type KinInfo } from '@/client/components/contacts/ContactCard'
 import { ContactFormDialog } from '@/client/components/contacts/ContactFormDialog'
 
@@ -20,11 +21,7 @@ export function ContactsSettings() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingContact, setEditingContact] = useState<ContactData | null>(null)
 
-  useEffect(() => {
-    fetchContacts()
-  }, [])
-
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => {
     try {
       const data = await api.get<{ contacts: ContactData[] }>('/contacts')
       setContacts(data.contacts)
@@ -33,7 +30,21 @@ export function ContactsSettings() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchContacts()
+  }, [fetchContacts])
+
+  // Real-time updates via SSE
+  useSSE({
+    'contact:created': () => fetchContacts(),
+    'contact:updated': () => fetchContacts(),
+    'contact:deleted': (data) => {
+      const contactId = data.contactId as string
+      setContacts((prev) => prev.filter((c) => c.id !== contactId))
+    },
+  })
 
   const handleDeleteContact = async (id: string) => {
     try {

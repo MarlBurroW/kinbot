@@ -45,6 +45,9 @@ export type SSEEventType =
   | 'memory:created'
   | 'memory:updated'
   | 'memory:deleted'
+  | 'contact:created'
+  | 'contact:updated'
+  | 'contact:deleted'
   | 'connected'
 
 export interface SSEEvent {

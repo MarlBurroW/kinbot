@@ -2,6 +2,7 @@ import { eq, and, like, or, sql } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db } from '@/server/db/index'
 import { contacts, contactIdentifiers, contactNotes, kins, user, userProfiles } from '@/server/db/schema'
+import { sseManager } from '@/server/sse/index'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -142,7 +143,14 @@ export async function createContact(input: CreateContactInput) {
     }
   }
 
-  return db.select().from(contacts).where(eq(contacts.id, id)).get()!
+  const created = db.select().from(contacts).where(eq(contacts.id, id)).get()!
+
+  sseManager.broadcast({
+    type: 'contact:created',
+    data: { contactId: id, name: created.name, type: created.type },
+  })
+
+  return created
 }
 
 export async function updateContact(contactId: string, updates: UpdateContactInput) {
@@ -168,7 +176,14 @@ export async function updateContact(contactId: string, updates: UpdateContactInp
     .where(eq(contacts.id, contactId))
     .run()
 
-  return db.select().from(contacts).where(eq(contacts.id, contactId)).get()!
+  const updated = db.select().from(contacts).where(eq(contacts.id, contactId)).get()!
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId, name: updated.name, type: updated.type },
+  })
+
+  return updated
 }
 
 export async function deleteContact(contactId: string): Promise<boolean> {
@@ -177,6 +192,12 @@ export async function deleteContact(contactId: string): Promise<boolean> {
 
   // Cascade deletes identifiers and notes via FK
   db.delete(contacts).where(eq(contacts.id, contactId)).run()
+
+  sseManager.broadcast({
+    type: 'contact:deleted',
+    data: { contactId },
+  })
+
   return true
 }
 
