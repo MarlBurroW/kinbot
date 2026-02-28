@@ -7,19 +7,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] - 2026-02-28
+
 ### Added
+- **Mini Apps: Backend API support** — Mini Apps can now include a `_server.js` for server-side logic
+- **Mini Apps: `KinBot.confirm()` and `KinBot.prompt()` dialog APIs** for interactive user input
+- **Mini Apps: Import map support** via `app.json` manifest
+- **Mini Apps: Full-page mode** with maximize/minimize toggle
+- **Mini Apps: CSP headers and security hardening** for iframe sandbox
+- Comprehensive troubleshooting guide (`TROUBLESHOOTING.md`)
+- Interactive hover effects with per-card accent colors and cursor-tracking glow on Features section (site)
+- Dot grid background pattern to hero section (site)
+- Gradient section dividers between key sections (site)
+- Interactive demo section with simulated chat scenarios (site)
+- Capability filter to providers section (site)
+- Custom tools and mini apps rows to comparison table (site)
+- Score summary cards and KinBot column highlight to comparison section (site)
+- Live GitHub stars and forks to stats section (site)
+- Comprehensive environment variables reference to README
+- Screenshots to README for better GitHub first impression
+- `--env` flag to installer for listing config and removing variables
+- CodeQL security analysis workflow (CI)
+- Docker build validation to CI workflow
+
+### Changed
+- Rewrite channel descriptions from technical specs to user benefits (site)
+- Replace cosmetic feature cards with Mini Apps and Custom Tools (site)
+- Replace fake demo with real video gallery (site)
+- Remove fake testimonials section (site)
+- Remove "Meanwhile, cloud AI" comparison from pricing (site)
+- Remove focus mode feature
+
+### Fixed
+- Emit SSE events for mini-apps on kin cascade deletion
+- Emit `memory:deleted` SSE events during kin cascade deletion
+- Docker: bind to `0.0.0.0` and add compose healthcheck
+- Installer: fix `local` keyword used outside functions in generated service script
+- Cast mock fetch through unknown in `jina.test.ts`
+
+### Tests
+- Add tests for Signal, Matrix, WhatsApp, Slack, and Discord channel adapters
+- Add tests for Tavily, Replicate, Voyage, Nomic, and Serper providers
+
+---
+
+## [0.3.0] - 2026-02-27
+
+### Added
+- **Mini Apps** — Kins can create embedded web apps
+- **"What's New" changelog dialog** accessible from sidebar version badge
+- Search/filter field in the Kin list sidebar
+- Toast notifications when background tasks complete or fail
+- Right-click context menu on Kin cards with edit and delete actions
+- Auto-scroll toggle button in conversation view
+- Download code block as file button
+- Token estimates on Kin character and expertise prompt fields
 - Activity sparkline in conversation statistics popover
 - Next run countdown display on cron cards and detail modal
 - Enhanced sidebar empty states with icons and action buttons
 - Contextual help tooltips to file storage form
 - Memory/swap pre-flight check in installer
 - ErrorBoundary string translations (i18n)
+- Interactive demo section showcasing memory feature (site)
+- "How it works" step-by-step onboarding section (site)
+- Channel request issue template
+- `--quiet/-q` mode for scripted/automated installs
+- Installer: diagnose startup failures with actionable hints
 
 ### Changed
 - Use KinSelector in MemoryList, add `noneValue` prop
+- Extract shared ProviderSelector component
+- Show provider error message on card when connection is unhealthy
+- Fix French translations (opt-in, chat shortcut, accents)
+- Remove em-dashes from EN and FR translations
+
+### Fixed
+- Docker: install build tools before `bun install` for better-sqlite3 node-gyp
+- Resolve TypeScript errors in mini-apps domain icon and Buffer type
+- Correct fetch mock type cast in `fal.test.ts`
+- Resolve type errors in cohere provider tests
+- Fix EventBus test handler return types
 
 ### Tests
-- Add tests for Cohere provider
+- Add tests for Cohere, Groq, FAL AI providers
+- Add tests for EventBus (services/events)
 
 ---
 
