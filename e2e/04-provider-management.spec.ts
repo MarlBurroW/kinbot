@@ -127,8 +127,9 @@ test.describe.serial('Provider management', () => {
   test('should delete a provider with confirmation', async ({ page }) => {
     await openProviderSettings(page)
 
-    // Click delete button (Trash icon) on first provider
-    const deleteButton = page.getByRole('dialog').locator('button:has(.lucide-trash-2, .lucide-trash)').first()
+    // Click delete button (Trash icon) on the second provider (Anthropic / LLM only).
+    // The first provider (OpenAI) is the sole embedding provider and cannot be deleted.
+    const deleteButton = page.getByRole('dialog').locator('button:has(.lucide-trash-2, .lucide-trash)').last()
     await expect(deleteButton).toBeVisible({ timeout: 5_000 })
     await deleteButton.click()
 
@@ -163,8 +164,8 @@ test.describe.serial('Provider management', () => {
       const testButton = count > 1 ? allRefreshButtons.nth(1) : allRefreshButtons.first()
       await testButton.click()
 
-      // Should show failure toast
-      await expect(page.getByText('Connection failed')).toBeVisible({ timeout: 5_000 })
+      // Should show failure toast (displays the error message from the mock response)
+      await expect(page.getByText('Invalid API key')).toBeVisible({ timeout: 5_000 })
     }
   })
 })
