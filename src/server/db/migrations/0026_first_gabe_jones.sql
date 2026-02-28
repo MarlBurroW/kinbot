@@ -15,5 +15,4 @@ CREATE TABLE `mini_apps` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `idx_mini_apps_kin_slug` ON `mini_apps` (`kin_id`,`slug`);--> statement-breakpoint
-CREATE INDEX `idx_mini_apps_kin_id` ON `mini_apps` (`kin_id`);--> statement-breakpoint
-ALTER TABLE `user_profiles` ADD `cron_order` text;
+CREATE INDEX `idx_mini_apps_kin_id` ON `mini_apps` (`kin_id`);

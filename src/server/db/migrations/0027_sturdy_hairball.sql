@@ -8,5 +8,4 @@ CREATE TABLE `mini_app_storage` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `idx_mini_app_storage_app_key` ON `mini_app_storage` (`app_id`,`key`);--> statement-breakpoint
-CREATE INDEX `idx_mini_app_storage_app_id` ON `mini_app_storage` (`app_id`);--> statement-breakpoint
-ALTER TABLE `providers` ADD `last_error` text;
+CREATE INDEX `idx_mini_app_storage_app_id` ON `mini_app_storage` (`app_id`);
