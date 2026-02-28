@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Mini Apps: `KinBot.openApp(slug)` for inter-app navigation** — apps can now navigate users to other mini apps
+- Elapsed time tracking in installer install/update/reset summaries
+- Tests for notification-delivery service
+
+### Changed
+- Extract shared `FormErrorAlert` component for consistent form error display
+
+---
+
+## [0.4.1] - 2026-02-28
+
+### Added
+- **Mini Apps: `KinBot.setTitle()` and `KinBot.setBadge()` SDK APIs** for dynamic window title and notification badges
+- **Mini Apps: Starter templates** for quick app scaffolding
+- Tests for files service (`serializeFile`, `getExtension`, `uploadFile` validation)
+- SoftwareApplication and WebSite JSON-LD structured data for SEO (site)
+- Command palette (⌘K) for quick section navigation (site)
+- Container environment detection in installer preflight checks
+- Log rotation for script-based service manager (installer)
+
+### Fixed
+- SSE events for contacts (create/update/delete) now properly emitted
+
+### Changed
+- Updated architecture diagram with channels, mini-apps, and 22+ providers
+- Extract shared time formatting utilities into `lib/time.ts`
+
 ---
 
 ## [0.4.0] - 2026-02-28
