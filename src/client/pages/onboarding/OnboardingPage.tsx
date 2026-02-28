@@ -4,9 +4,10 @@ import { Progress } from '@/client/components/ui/progress'
 import { StepIdentity } from '@/client/pages/onboarding/StepIdentity'
 import { StepPreferences } from '@/client/pages/onboarding/StepPreferences'
 import { StepProviders } from '@/client/pages/onboarding/StepProviders'
+import { StepMemory } from '@/client/pages/onboarding/StepMemory'
 import { StepSearchProviders } from '@/client/pages/onboarding/StepSearchProviders'
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
 
 interface OnboardingPageProps {
   onComplete: () => void
@@ -58,7 +59,10 @@ export function OnboardingPage({ onComplete, initialStep = 1 }: OnboardingPagePr
             <StepProviders onComplete={() => setCurrentStep(4)} onBack={() => setCurrentStep(2)} />
           )}
           {currentStep === 4 && (
-            <StepSearchProviders onComplete={onComplete} onBack={() => setCurrentStep(3)} />
+            <StepMemory onComplete={() => setCurrentStep(5)} onBack={() => setCurrentStep(3)} />
+          )}
+          {currentStep === 5 && (
+            <StepSearchProviders onComplete={onComplete} onBack={() => setCurrentStep(4)} />
           )}
         </div>
       </div>

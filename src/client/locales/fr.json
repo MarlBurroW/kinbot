@@ -114,11 +114,18 @@
       "missing": "Manquant",
       "finish": "Terminer la configuration",
       "cannotFinish": "Configurez des fournisseurs couvrant les capacités LLM et Embedding",
-      "modelConfig": "Configuration des modèles",
-      "modelConfigHint": "Choisissez les modèles utilisés pour l'extraction mémorielle et la recherche sémantique",
       "nameTip": "Un nom pour identifier ce provider dans votre tableau de bord. Si vide, le nom du type de provider est utilisé.",
       "baseUrlTip": "Remplace l'URL par défaut de l'API. Utile pour les instances auto-hébergées, proxies, ou API tierces compatibles.",
       "getApiKey": "Obtenir votre clé API {{provider}}"
+    },
+    "memory": {
+      "title": "Mémoire",
+      "subtitle": "Configurez comment vos Kins mémorisent et recherchent l'information",
+      "extractionModel": "Modèle d'extraction",
+      "extractionModelHint": "LLM utilisé pour extraire les mémoires long-terme. Laissez vide pour utiliser le modèle propre à chaque Kin.",
+      "embeddingModel": "Modèle d'embedding",
+      "embeddingModelHint": "Modèle utilisé pour générer les embeddings sémantiques pour la recherche mémorielle",
+      "embeddingModelPlaceholder": "Sélectionner un modèle d'embedding"
     },
     "searchProviders": {
       "title": "Fournisseurs de recherche",

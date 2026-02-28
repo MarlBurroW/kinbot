@@ -114,11 +114,18 @@
       "missing": "Missing",
       "finish": "Finish setup",
       "cannotFinish": "Configure providers to cover LLM and Embedding capabilities",
-      "modelConfig": "Model Configuration",
-      "modelConfigHint": "Choose the models used for memory extraction and semantic search",
       "nameTip": "A friendly label to identify this provider in your dashboard. If left empty, the provider type name is used.",
       "baseUrlTip": "Override the default API endpoint. Useful for self-hosted instances, proxies, or compatible third-party APIs.",
       "getApiKey": "Get your {{provider}} API key"
+    },
+    "memory": {
+      "title": "Memory",
+      "subtitle": "Configure how your Kins remember and search information",
+      "extractionModel": "Extraction model",
+      "extractionModelHint": "LLM used to extract long-term memories. Leave empty to use each Kin's own model.",
+      "embeddingModel": "Embedding model",
+      "embeddingModelHint": "Model used to generate semantic embeddings for memory search",
+      "embeddingModelPlaceholder": "Select an embedding model"
     },
     "searchProviders": {
       "title": "Search Providers",
