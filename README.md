@@ -295,6 +295,154 @@ site/               # GitHub Pages landing site
 
 ---
 
+## ⚙️ Environment Variables
+
+All settings have sensible defaults. Override only what you need.
+
+<details>
+<summary><strong>Full configuration reference</strong></summary>
+
+#### Core
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3333` | HTTP server port |
+| `HOST` | `127.0.0.1` | Bind address (`0.0.0.0` to expose externally) |
+| `NODE_ENV` | `development` | Set to `production` for optimized builds |
+| `PUBLIC_URL` | `http://localhost:{PORT}` | Public-facing URL (for OAuth callbacks, webhooks) |
+| `KINBOT_DATA_DIR` | `./data` | Data directory (DB, uploads, workspaces) |
+| `ENCRYPTION_KEY` | Auto-generated | AES-256 key for vault encryption. Auto-generated and persisted on first run. Must be preserved across restarts. |
+| `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn`, `error` |
+| `DB_PATH` | `{dataDir}/kinbot.db` | SQLite database file path |
+
+#### Memory & Compacting
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COMPACTING_MESSAGE_THRESHOLD` | `50` | Messages before auto-compacting triggers |
+| `COMPACTING_TOKEN_THRESHOLD` | `30000` | Token count before auto-compacting triggers |
+| `COMPACTING_MODEL` | Provider default | Override the model used for session compacting |
+| `COMPACTING_MAX_SNAPSHOTS` | `10` | Max compacting snapshots per Kin |
+| `MEMORY_EXTRACTION_MODEL` | Provider default | Override the model used for memory extraction |
+| `MEMORY_MAX_RELEVANT` | `10` | Max relevant memories injected into context |
+| `MEMORY_SIMILARITY_THRESHOLD` | `0.7` | Minimum cosine similarity for memory retrieval |
+| `MEMORY_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model for memory vectors |
+| `MEMORY_EMBEDDING_DIMENSION` | `1536` | Vector dimension for embeddings |
+
+#### Tasks & Queues
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUEUE_POLL_INTERVAL` | `500` | Queue polling interval in ms |
+| `TASKS_MAX_DEPTH` | `3` | Maximum sub-task nesting depth |
+| `TASKS_MAX_REQUEST_INPUT` | `3` | Max concurrent task requests per input |
+| `TASKS_MAX_CONCURRENT` | `10` | Max concurrent tasks globally |
+| `TOOLS_MAX_STEPS` | `10` | Max tool call steps per LLM turn |
+
+#### Cron & Automation
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CRONS_MAX_ACTIVE` | `50` | Max active cron jobs |
+| `CRONS_MAX_CONCURRENT_EXEC` | `5` | Max concurrent cron executions |
+
+#### Inter-Kin Communication
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `INTER_KIN_MAX_CHAIN_DEPTH` | `5` | Max chain depth for Kin-to-Kin messages |
+| `INTER_KIN_RATE_LIMIT` | `20` | Max inter-Kin messages per minute |
+
+#### Channels & Webhooks
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHANNELS_MAX_PER_KIN` | `5` | Max channel connections per Kin |
+| `WEBHOOKS_MAX_PER_KIN` | `20` | Max webhooks per Kin |
+| `WEBHOOKS_MAX_PAYLOAD_BYTES` | `1048576` | Max webhook payload size (1 MB) |
+
+#### File Storage & Uploads
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UPLOAD_DIR` | `{dataDir}/uploads` | Upload directory |
+| `UPLOAD_MAX_FILE_SIZE` | `50` | Max upload size in MB |
+| `FILE_STORAGE_DIR` | `{dataDir}/storage` | Kin file storage directory |
+| `FILE_STORAGE_MAX_SIZE` | `100` | Max file size in MB |
+| `FILE_STORAGE_CLEANUP_INTERVAL` | `60` | Cleanup interval in minutes |
+
+#### Vault
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VAULT_ATTACHMENT_DIR` | `{dataDir}/vault` | Vault attachment directory |
+| `VAULT_MAX_ATTACHMENT_SIZE` | `50` | Max attachment size in MB |
+| `VAULT_MAX_ATTACHMENTS_PER_ENTRY` | `10` | Max attachments per vault entry |
+
+#### Workspaces & Mini Apps
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WORKSPACE_BASE_DIR` | `{dataDir}/workspaces` | Kin workspace base directory |
+| `MINI_APPS_DIR` | `{dataDir}/mini-apps` | Mini apps storage directory |
+| `MINI_APPS_MAX_PER_KIN` | `20` | Max mini apps per Kin |
+| `MINI_APPS_MAX_FILE_SIZE` | `5` | Max single file size in MB |
+| `MINI_APPS_MAX_TOTAL_SIZE` | `50` | Max total size per app in MB |
+| `MINI_APPS_BACKEND_ENABLED` | `true` | Enable mini app backend execution |
+
+#### Web Browsing
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WEB_BROWSING_PAGE_TIMEOUT` | `30000` | Page load timeout in ms |
+| `WEB_BROWSING_MAX_CONTENT_LENGTH` | `100000` | Max extracted content length |
+| `WEB_BROWSING_MAX_CONCURRENT` | `5` | Max concurrent fetches |
+| `WEB_BROWSING_USER_AGENT` | KinBot default | Custom User-Agent string |
+| `WEB_BROWSING_BLOCKED_DOMAINS` | *(empty)* | Comma-separated blocked domains |
+| `WEB_BROWSING_PROXY` | *(none)* | HTTP proxy for web requests |
+| `WEB_BROWSING_HEADLESS_ENABLED` | `false` | Enable headless browser (Puppeteer) |
+| `PUPPETEER_EXECUTABLE_PATH` | Auto-detected | Chrome/Chromium path for headless mode |
+| `WEB_BROWSING_MAX_BROWSERS` | `2` | Max concurrent browser instances |
+| `WEB_BROWSING_BROWSER_IDLE_TIMEOUT` | `60000` | Browser idle timeout in ms |
+
+#### MCP & Human-in-the-Loop
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_REQUIRE_APPROVAL` | `true` | Require user approval for MCP server management |
+| `HUMAN_PROMPTS_MAX_PENDING` | `5` | Max pending human-in-the-loop prompts per Kin |
+
+#### Sessions & Invitations
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUICK_SESSION_EXPIRATION_HOURS` | `24` | Quick session expiration time |
+| `QUICK_SESSION_MAX_PER_USER_KIN` | `1` | Max active quick sessions per user per Kin |
+| `QUICK_SESSION_RETENTION_DAYS` | `7` | Quick session data retention |
+| `QUICK_SESSION_CLEANUP_INTERVAL` | `60` | Cleanup interval in minutes |
+| `INVITATION_DEFAULT_EXPIRY_DAYS` | `7` | Default invitation link expiry |
+| `INVITATION_MAX_ACTIVE` | `50` | Max active invitations |
+
+#### Notifications
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NOTIFICATIONS_RETENTION_DAYS` | `30` | Notification retention period |
+| `NOTIFICATIONS_MAX_PER_USER` | `500` | Max stored notifications per user |
+| `NOTIFICATIONS_EXT_MAX_PER_USER` | `5` | Max external notification endpoints per user |
+| `NOTIFICATIONS_EXT_RATE_LIMIT` | `5` | External notification rate limit per minute |
+| `NOTIFICATIONS_EXT_MAX_ERRORS` | `5` | Max consecutive errors before disabling endpoint |
+
+#### Wakeups
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WAKEUPS_MAX_PENDING_PER_KIN` | `20` | Max pending wakeups per Kin |
+
+</details>
+
+---
+
 ## 🔧 Troubleshooting
 
 <details>
