@@ -39,7 +39,6 @@ export function ChatPage() {
     llmModels,
     imageModels,
     kinQueueState,
-    fetchContextUsage,
     getKin,
     createKin,
     updateKin,
@@ -114,13 +113,6 @@ export function ChatPage() {
   }, [updateKin])
 
   const selectedKin = kins.find((k) => k.slug === selectedKinSlug)
-
-  // Fetch initial context usage so the token counter doesn't show "— / —"
-  useEffect(() => {
-    if (selectedKin?.id) {
-      fetchContextUsage(selectedKin.id)
-    }
-  }, [selectedKin?.id, fetchContextUsage])
 
   // Dynamic browser tab title — shows selected Kin name + processing state
   const selectedKinProcessing = selectedKin
