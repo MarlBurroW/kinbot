@@ -47,7 +47,12 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.isFullPage` (read-only, current full-page state), ' +
         '`KinBot.on("fullpage-changed", cb)` (listen for full-page mode changes, cb receives {isFullPage}), ' +
         '`KinBot.ready()` (call when your app is loaded to receive app metadata — required before using storage). ' +
-        'For additional files (CSS, JS, images), use write_mini_app_file after creation.',
+        'For additional files (CSS, JS, images), use write_mini_app_file after creation. ' +
+        '**Import Maps & Dependencies:** To use ES modules from CDN (React, etc.), create an `app.json` file with either: ' +
+        '(1) shorthand `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}` or ' +
+        '(2) full importmap `{"importmap": {"imports": {"react": "https://esm.sh/react@19"}}}`. ' +
+        'The import map is auto-injected into the HTML. Then use `<script type="module">import React from "react";</script>` in your HTML. ' +
+        'Recommended CDN: esm.sh (ES module-ready). Example app.json: `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}`.',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),
@@ -193,7 +198,8 @@ export const writeMiniAppFileTool: ToolRegistration = {
         'or modify index.html. After writing, the app reloads automatically in the UI. ' +
         'Path must be relative (e.g. "styles.css", "js/app.js", "img/logo.png"). ' +
         'For binary files (images), set is_base64 to true and pass base64-encoded content. ' +
-        'To add a backend, write a file named "_server.js" (see create_mini_app docs).',
+        'To add a backend, write a file named "_server.js" (see create_mini_app docs). ' +
+        'To add external dependencies, write an "app.json" file with a "dependencies" map (see create_mini_app docs for format).',
       inputSchema: z.object({
         app_id: z.string().describe('ID of the mini app'),
         path: z.string().describe('Relative file path within the app (e.g. "styles.css", "js/app.js")'),

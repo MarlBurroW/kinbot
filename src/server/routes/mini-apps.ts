@@ -315,6 +315,37 @@ const MINI_APP_CSP = [
   "base-uri 'self'",
 ].join('; ')
 
+/** Try to read and parse app.json manifest from the app directory */
+async function readAppManifest(dir: string): Promise<Record<string, unknown> | null> {
+  const manifestPath = join(dir, 'app.json')
+  if (!existsSync(manifestPath)) return null
+  try {
+    return JSON.parse(await Bun.file(manifestPath).text())
+  } catch {
+    return null
+  }
+}
+
+/** Build an importmap script tag from app.json manifest */
+function buildImportMapTag(manifest: Record<string, unknown>): string {
+  // Support either full "importmap" object or shorthand "dependencies" map
+  let importmap: Record<string, unknown> | null = null
+
+  if (manifest.importmap && typeof manifest.importmap === 'object') {
+    importmap = manifest.importmap as Record<string, unknown>
+  } else if (manifest.dependencies && typeof manifest.dependencies === 'object') {
+    // Convert shorthand { "react": "https://esm.sh/react@19" } to importmap format
+    importmap = { imports: manifest.dependencies }
+  }
+
+  if (!importmap) return ''
+
+  // Validate: must have "imports" at minimum
+  if (!importmap.imports || typeof importmap.imports !== 'object') return ''
+
+  return `<script type="importmap">${JSON.stringify(importmap)}</script>`
+}
+
 // Serve the entry point HTML with injected SDK
 miniAppRoutes.get('/:id/serve', async (c) => {
   const app = await getMiniAppRow(c.req.param('id'))
@@ -334,14 +365,21 @@ miniAppRoutes.get('/:id/serve', async (c) => {
 
   let html = await Bun.file(entryPath).text()
 
+  // Read app.json manifest for import maps
+  const manifest = await readAppManifest(dir)
+  const importMapTag = manifest ? buildImportMapTag(manifest) : ''
+
+  // Build injection: importmap must come before any module scripts
+  const headInjection = [SDK_LINK, importMapTag, SDK_SCRIPT, THEME_SYNC_SCRIPT].filter(Boolean).join('\n')
+
   // Inject SDK CSS and theme sync script into <head>
   if (html.includes('<head>')) {
-    html = html.replace('<head>', `<head>\n${SDK_LINK}\n${SDK_SCRIPT}\n${THEME_SYNC_SCRIPT}`)
+    html = html.replace('<head>', `<head>\n${headInjection}`)
   } else if (html.includes('<html>')) {
-    html = html.replace('<html>', `<html>\n<head>\n${SDK_LINK}\n${SDK_SCRIPT}\n${THEME_SYNC_SCRIPT}\n</head>`)
+    html = html.replace('<html>', `<html>\n<head>\n${headInjection}\n</head>`)
   } else {
     // No HTML structure — wrap everything
-    html = `<!DOCTYPE html>\n<html>\n<head>\n${SDK_LINK}\n${SDK_SCRIPT}\n${THEME_SYNC_SCRIPT}\n</head>\n<body>\n${html}\n</body>\n</html>`
+    html = `<!DOCTYPE html>\n<html>\n<head>\n${headInjection}\n</head>\n<body>\n${html}\n</body>\n</html>`
   }
 
   return new Response(html, {
