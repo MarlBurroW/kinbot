@@ -81,7 +81,7 @@ export function buildSystemPrompt(params: PromptParams): string {
       `## Constraints\n` +
       `- Focus exclusively on this task.\n` +
       `- Use report_to_parent() to send intermediate progress updates if useful.\n` +
-      `- If blocked, use request_input() to ask for clarification (max ${config.tasks.maxRequestInput} times).\n\n` +
+      `- If blocked, use request_input() to ask for clarification (max ${config.tasks?.maxRequestInput ?? 3} times).\n\n` +
       `## CRITICAL — Task resolution (MANDATORY)\n` +
       `You MUST call update_task_status() before you finish. There is no auto-completion.\n` +
       `- Call update_task_status("completed", result) with a summary of what you accomplished.\n` +
