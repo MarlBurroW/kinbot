@@ -82,28 +82,28 @@ export function FileStorageCard({ file, kinName, kinAvatarUrl, onEdit, onDelete 
                 {formatFileSize(file.size)}
               </span>
               {file.isPublic ? (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 gap-0.5">
+ <Badge variant="secondary" size="xs" className="shrink-0 gap-0.5">
                   <Globe className="size-2.5" />
                   {t('settings.files.public')}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 gap-0.5">
+ <Badge variant="outline" size="xs" className="shrink-0 gap-0.5">
                   <Eye className="size-2.5" />
                   {t('settings.files.private')}
                 </Badge>
               )}
               {file.hasPassword && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 gap-0.5">
+ <Badge variant="outline" size="xs" className="shrink-0 gap-0.5">
                   <Lock className="size-2.5" />
                 </Badge>
               )}
               {file.readAndBurn && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 gap-0.5">
+ <Badge variant="destructive" size="xs" className="shrink-0 gap-0.5">
                   <Flame className="size-2.5" />
                 </Badge>
               )}
               {file.expiresAt && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 gap-0.5">
+ <Badge variant="outline" size="xs" className="shrink-0 gap-0.5">
                   <Timer className="size-2.5" />
                   {formatExpiry(file.expiresAt)}
                 </Badge>

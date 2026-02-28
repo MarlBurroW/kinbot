@@ -1103,15 +1103,15 @@ export function DesignSystemPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">API</span>
-                          <Badge className="bg-success text-success-foreground text-[10px]">Healthy</Badge>
+ <Badge size="xs" className="bg-success text-success-foreground">Healthy</Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Database</span>
-                          <Badge className="bg-success text-success-foreground text-[10px]">Connected</Badge>
+ <Badge size="xs" className="bg-success text-success-foreground">Connected</Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Queue</span>
-                          <Badge variant="secondary" className="text-[10px]">3 pending</Badge>
+ <Badge variant="secondary" size="xs">3 pending</Badge>
                         </div>
                       </div>
                     </div>
@@ -1744,7 +1744,7 @@ export function DesignSystemPage() {
                     <div className="flex flex-1 flex-col justify-center gap-1 p-3 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="truncate text-sm font-semibold">Financial Advisor</p>
-                        <Badge variant="secondary" className="shrink-0 text-[10px]">2</Badge>
+ <Badge variant="secondary" size="xs" className="shrink-0">2</Badge>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">Personal finance expert</p>
                       <div className="flex items-center justify-between mt-0.5">
@@ -1783,7 +1783,7 @@ export function DesignSystemPage() {
                     <div className="flex flex-1 flex-col justify-center gap-1 p-3 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="truncate text-sm font-medium">Research Agent</p>
-                        <Badge className="shrink-0 bg-warning text-warning-foreground text-[10px]">
+ <Badge size="xs" className="shrink-0 bg-warning text-warning-foreground">
                           <Loader2 className="size-3 animate-spin" />
                         </Badge>
                       </div>
@@ -1821,7 +1821,7 @@ export function DesignSystemPage() {
                         <span className="shrink-0 text-[9px] text-muted-foreground/60">· Sonnet</span>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">2</Badge>
+ <Badge variant="secondary" size="xs" className="shrink-0">2</Badge>
                   </div>
 
                   {/* Idle */}
@@ -1892,7 +1892,7 @@ export function DesignSystemPage() {
                         <span className="shrink-0 rounded-full bg-muted px-1.5 text-[9px] text-muted-foreground">Sonnet</span>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0 rounded-full">2</Badge>
+ <Badge variant="secondary" size="xs" className="shrink-0 rounded-full">2</Badge>
                   </div>
 
                   {/* Idle */}
@@ -2026,7 +2026,7 @@ export function DesignSystemPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-sm font-semibold gradient-primary-text">Financial Advisor</p>
-                        <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">2</Badge>
+ <Badge variant="secondary" size="xs" className="shrink-0">2</Badge>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <p className="truncate text-[11px] text-muted-foreground">Personal finance expert</p>

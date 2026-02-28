@@ -93,7 +93,7 @@ export function WebhookLogDialog({ open, onOpenChange, webhook }: WebhookLogDial
                         {new Date(log.createdAt).toLocaleString()}
                       </span>
                       {log.sourceIp && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+ <Badge variant="outline" size="xs" className="font-mono">
                           {log.sourceIp}
                         </Badge>
                       )}

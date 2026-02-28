@@ -93,7 +93,7 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
               </span>
               <Badge
                 variant={covered ? 'default' : meta.required ? 'destructive' : 'secondary'}
-                className="text-[10px] px-1.5 py-0"
+                size="xs"
               >
                 {covered
                   ? t('onboarding.providers.covered')

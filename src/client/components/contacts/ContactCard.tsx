@@ -163,11 +163,11 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium truncate">{contact.name}</p>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+ <Badge variant="secondary" size="xs" className="shrink-0">
                   {contact.type === 'kin' ? t('settings.contacts.typeKin') : t('settings.contacts.typeHuman')}
                 </Badge>
                 {contact.linkedUserName && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 gap-1">
+ <Badge variant="outline" size="xs" className="shrink-0 gap-1">
                     <User className="size-2.5" />
                     {contact.linkedUserName}
                   </Badge>
@@ -176,7 +176,7 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
               {contact.identifiers.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {contact.identifiers.map((ident) => (
-                    <Badge key={ident.id} variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+ <Badge key={ident.id} variant="outline" size="xs" className="font-normal">
                       {ident.label}: {ident.value}
                     </Badge>
                   ))}
@@ -206,7 +206,7 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
             </p>
             <div className="flex flex-wrap gap-1">
               {platformIds.map((pid) => (
-                <Badge key={pid.id} variant="outline" className="text-[10px] px-1.5 py-0 font-normal gap-1 group">
+ <Badge key={pid.id} variant="outline" size="xs" className="font-normal gap-1 group">
                   <PlatformIcon platform={pid.platform} variant="color" className="size-3" />
                   <span className="capitalize">{pid.platform}</span>: {pid.platformId}
                   <button

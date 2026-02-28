@@ -180,7 +180,7 @@ export function TaskDetailModal({
                     <Layers className="size-3" />
                     {t('taskDetail.depth')}: {task.depth}
                   </span>
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+ <Badge variant="outline" size="xs">
                     {task.mode === 'await'
                       ? t('taskDetail.modeAwait')
                       : t('taskDetail.modeAsync')}

@@ -32,11 +32,11 @@ export function NotificationChannelCard({ channel, onEdit, onDelete, onTest, onT
                 {channel.label ?? channel.channelName}
               </p>
               {channel.typeFilter ? (
-                <Badge variant="outline" className="text-[10px]">
+ <Badge variant="outline" size="xs">
                   {channel.typeFilter.length} {t('settings.notifications.typeFilter').toLowerCase()}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-[10px]">
+ <Badge variant="outline" size="xs">
                   {t('settings.notifications.typeFilterAll')}
                 </Badge>
               )}

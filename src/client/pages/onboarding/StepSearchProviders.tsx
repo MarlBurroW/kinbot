@@ -70,7 +70,7 @@ export function StepSearchProviders({ onComplete, onBack }: StepSearchProvidersP
           </span>
           <Badge
             variant={hasSearch ? 'default' : 'secondary'}
-            className="text-[10px] px-1.5 py-0"
+            size="xs"
           >
             {hasSearch ? t('onboarding.providers.covered') : t('common.optional')}
           </Badge>

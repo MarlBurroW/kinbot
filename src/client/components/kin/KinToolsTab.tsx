@@ -320,7 +320,7 @@ function DomainGroup({
               </span>
               <span className="text-sm font-medium">{t(meta.labelKey)}</span>
               {isOptIn && (
-                <Badge variant="secondary" className="text-[10px]">
+ <Badge variant="secondary" size="xs">
                   {t('kin.tools.optIn')}
                 </Badge>
               )}
@@ -388,7 +388,7 @@ function McpServerGroup({
               </span>
               <span className="text-sm font-medium">{serverName}</span>
               {autoEnabled && (
-                <Badge variant="secondary" className="text-[10px]">
+ <Badge variant="secondary" size="xs">
                   {t('kin.tools.autoEnabled')}
                 </Badge>
               )}

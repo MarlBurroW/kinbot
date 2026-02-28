@@ -71,7 +71,7 @@ export function ProviderCard({ provider, isTesting, onTest, onEdit, onDelete }: 
           {provider.capabilities.map((cap) => {
             const Icon = CAPABILITY_ICONS[cap]
             return (
-              <Badge key={cap} variant="secondary" className="gap-1 text-[10px] px-1.5 py-0">
+ <Badge key={cap} variant="secondary" size="xs" className="gap-1">
                 {Icon && <Icon className="size-3" />}
                 {t(`onboarding.providers.cap_${cap}`, cap)}
               </Badge>

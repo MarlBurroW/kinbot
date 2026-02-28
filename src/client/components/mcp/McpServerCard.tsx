@@ -44,11 +44,11 @@ export function McpServerCard({ server, kinName, kinAvatarUrl, onApprove, onEdit
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium truncate">{server.name}</p>
               {isPending ? (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-warning text-warning">
+ <Badge variant="outline" size="xs" className="shrink-0 border-warning text-warning">
                   {t('settings.mcp.statusPending')}
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+ <Badge variant="secondary" size="xs" className="shrink-0">
                   {t('settings.mcp.statusActive')}
                 </Badge>
               )}

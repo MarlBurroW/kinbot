@@ -175,7 +175,7 @@ export function UsersSettings() {
                   <span className="font-medium text-sm truncate">{u.firstName} {u.lastName}</span>
                   <span className="text-xs text-muted-foreground">@{u.pseudonym}</span>
                   {isSelf && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+ <Badge variant="outline" size="xs">
                       you
                     </Badge>
                   )}
@@ -187,7 +187,7 @@ export function UsersSettings() {
                   )}
                 </div>
               </div>
-              <Badge variant="secondary" className="text-[10px] uppercase">
+ <Badge variant="secondary" size="xs" className="uppercase">
                 {u.language}
               </Badge>
               {!isSelf && (
@@ -230,19 +230,19 @@ export function UsersSettings() {
                     {inv.label || inv.token.slice(0, 12) + '...'}
                   </span>
                   {status === 'active' && (
-                    <Badge variant="default" className="text-[10px]">
+ <Badge variant="default" size="xs">
                       <Clock className="size-3 mr-0.5" />
                       {t('settings.users.invitations.status.active')}
                     </Badge>
                   )}
                   {status === 'used' && (
-                    <Badge variant="secondary" className="text-[10px]">
+ <Badge variant="secondary" size="xs">
                       <CheckCircle2 className="size-3 mr-0.5" />
                       {t('settings.users.invitations.status.used')}
                     </Badge>
                   )}
                   {status === 'expired' && (
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
+ <Badge variant="outline" size="xs" className="text-muted-foreground">
                       <XCircle className="size-3 mr-0.5" />
                       {t('settings.users.invitations.status.expired')}
                     </Badge>

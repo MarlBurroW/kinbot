@@ -191,7 +191,7 @@ function InjectedMemoriesIndicator({ memories }: { memories: InjectedMemory[] })
         <div className="mt-1.5 space-y-1 rounded-lg border border-chart-2/20 bg-chart-2/5 px-3 py-2">
           {memories.map((mem) => (
             <div key={mem.id} className="flex items-start gap-2 text-xs">
-              <Badge variant="secondary" className="mt-0.5 shrink-0 px-1.5 py-0 text-[10px]">
+ <Badge variant="secondary" size="xs" className="mt-0.5 shrink-0">
                 {t(`settings.memories.category.${mem.category}`)}
               </Badge>
               <span className="text-muted-foreground whitespace-pre-wrap">

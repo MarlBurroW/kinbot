@@ -166,7 +166,7 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
           <Loader2 className="size-3.5 text-primary animate-spin" />
         )}
         {!isProcessing && queueSize > 0 && (
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+ <Badge variant="secondary" size="xs">
             {queueSize}
           </Badge>
         )}

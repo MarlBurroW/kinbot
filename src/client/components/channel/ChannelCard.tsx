@@ -43,13 +43,14 @@ export function ChannelCard({ channel, expanded, testing, onToggleExpand, onEdit
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-medium truncate">{channel.name}</p>
               <KinBadge name={channel.kinName} avatarUrl={channel.kinAvatarUrl} />
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 capitalize">
+ <Badge variant="outline" size="xs" className="shrink-0 capitalize">
                 {channel.platform}
               </Badge>
               <Badge
                 variant="outline"
+                size="xs"
                 className={cn(
-                  'text-[10px] px-1.5 py-0 shrink-0 capitalize',
+                  'shrink-0 capitalize',
                   channel.status === 'active' && 'text-emerald-600 border-emerald-300 dark:text-emerald-400 dark:border-emerald-600/40',
                   channel.status === 'error' && 'text-destructive border-destructive/30',
                   channel.status === 'inactive' && 'text-muted-foreground border-muted-foreground/30',
@@ -58,7 +59,7 @@ export function ChannelCard({ channel, expanded, testing, onToggleExpand, onEdit
                 {t(`settings.channels.status_${channel.status}`, channel.status)}
               </Badge>
               {channel.pendingApprovalCount > 0 && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-600/40">
+ <Badge variant="outline" size="xs" className="shrink-0 text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-600/40">
                   <Clock className="size-2.5" />
                   {channel.pendingApprovalCount} {t('settings.channels.pendingUsers')}
                 </Badge>
