@@ -13,7 +13,7 @@ Self-hosted. Persistent memory. Real collaboration.
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/MarlBurroW/kinbot/pkgs/container/kinbot)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/MarlBurroW/kinbot/pulls)
 
-[Website](https://marlburrow.github.io/kinbot/) · [Quick Start](#-quick-start) · [Features](#-features) · [Compare](#-how-does-kinbot-compare) · [Architecture](#-architecture) · [Changelog](CHANGELOG.md) · [Contributing](#contributing)
+[Website](https://marlburrow.github.io/kinbot/) · [Quick Start](#-quick-start) · [Features](#-features) · [Compare](#-how-does-kinbot-compare) · [Architecture](#-architecture) · [Troubleshooting](TROUBLESHOOTING.md) · [Changelog](CHANGELOG.md) · [Contributing](#contributing)
 
 </div>
 
