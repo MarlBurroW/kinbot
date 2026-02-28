@@ -1013,6 +1013,34 @@ get_pid() {
   cat "$PID_FILE" 2>/dev/null || echo ""
 }
 
+# Rotate log file if it exceeds the threshold
+# Keeps up to 3 archived logs: kinbot.log.1 (newest) .. kinbot.log.3 (oldest)
+rotate_logs() {
+  local max_bytes="${1:-52428800}"  # default 50MB
+  local max_archives=3
+
+  [ -f "$LOG_FILE" ] || return 0
+
+  local size_bytes
+  size_bytes="$(stat -c %s "$LOG_FILE" 2>/dev/null || stat -f %z "$LOG_FILE" 2>/dev/null || echo 0)"
+  [ "$size_bytes" -ge "$max_bytes" ] 2>/dev/null || return 0
+
+  # Shift existing archives: .3 -> deleted, .2 -> .3, .1 -> .2
+  local i=$max_archives
+  while [ "$i" -gt 1 ]; do
+    local prev=$((i - 1))
+    [ -f "${LOG_FILE}.${prev}" ] && mv -f "${LOG_FILE}.${prev}" "${LOG_FILE}.${i}"
+    i=$((i - 1))
+  done
+
+  # Current log becomes .1, start fresh
+  mv -f "$LOG_FILE" "${LOG_FILE}.1"
+  : > "$LOG_FILE"
+
+  local size_mb=$((size_bytes / 1048576))
+  echo "Log rotated (was ${size_mb}MB). Archived to ${LOG_FILE}.1"
+}
+
 case "${1:-}" in
   start)
     if is_running; then
@@ -1021,6 +1049,8 @@ case "${1:-}" in
     fi
     # Clean up stale PID file if present
     rm -f "$PID_FILE"
+    # Auto-rotate logs before starting if they're large
+    rotate_logs
     echo "Starting KinBot..."
     cd "$KINBOT_DIR"
     set -a
@@ -1115,7 +1145,7 @@ case "${1:-}" in
           # Warn if log file is getting large (>100MB)
           _log_kb="$(du -k "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || _log_kb="0"
           if [ "$_log_kb" -gt 102400 ] 2>/dev/null; then
-            echo "  ⚠ Log file is large. Consider truncating: > $LOG_FILE"
+            echo "  ⚠ Log file is large. Run: $0 log-rotate"
           fi
         fi
       fi
@@ -1147,18 +1177,29 @@ case "${1:-}" in
       echo "KinBot (version unknown)"
     fi
     ;;
+  log-rotate)
+    if [ -f "$LOG_FILE" ]; then
+      _size="$(du -h "$LOG_FILE" 2>/dev/null | awk '{print $1}')" || _size="?"
+      echo "Current log: $LOG_FILE ($_size)"
+      rotate_logs 0  # force rotation regardless of size
+      echo "Done."
+    else
+      echo "No log file found at $LOG_FILE"
+    fi
+    ;;
   *)
     echo "KinBot service manager"
     echo ""
-    echo "Usage: $0 {start|stop|restart|status|logs|version}"
+    echo "Usage: $0 {start|stop|restart|status|logs|log-rotate|version}"
     echo ""
     echo "Commands:"
-    echo "  start      Start KinBot in the background"
-    echo "  stop       Stop KinBot (graceful, then force after 10s)"
-    echo "  restart    Stop and start KinBot"
-    echo "  status     Show KinBot status, uptime, and resource usage"
-    echo "  logs       Tail the log file (use 'logs -n 50' for recent lines)"
-    echo "  version    Show installed version"
+    echo "  start       Start KinBot in the background"
+    echo "  stop        Stop KinBot (graceful, then force after 10s)"
+    echo "  restart     Stop and start KinBot"
+    echo "  status      Show KinBot status, uptime, and resource usage"
+    echo "  logs        Tail the log file (use 'logs -n 50' for recent lines)"
+    echo "  log-rotate  Rotate the log file now (archives to .1/.2/.3)"
+    echo "  version     Show installed version"
     exit 1
     ;;
 esac
