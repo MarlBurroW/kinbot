@@ -296,6 +296,53 @@ function MobileComparison() {
   )
 }
 
+/** Score summary bar */
+function ScoreSummary() {
+  const kinbotYes = rows.filter(r => r.kinbot === 'yes').length
+  const competitorScores = competitors.map(c => ({
+    ...c,
+    yes: rows.filter(r => r[c.id] === 'yes').length,
+  }))
+  const bestCompetitor = competitorScores.reduce((a, b) => (a.yes > b.yes ? a : b))
+  const lead = kinbotYes - bestCompetitor.yes
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+      {/* KinBot score */}
+      <div
+        className="relative rounded-xl p-4 text-center overflow-hidden lg:col-span-1"
+        style={{
+          background: 'color-mix(in oklch, var(--color-glow-1) 10%, transparent)',
+          border: '1px solid color-mix(in oklch, var(--color-glow-1) 30%, transparent)',
+        }}
+      >
+        <p className="text-2xl font-bold gradient-text">{kinbotYes}/{rows.length}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--color-primary)' }}>
+          KinBot
+        </p>
+      </div>
+      {/* Competitor scores */}
+      {competitorScores.map(c => (
+        <div
+          key={c.id}
+          className="rounded-xl p-4 text-center"
+          style={{
+            background: 'color-mix(in oklch, var(--color-muted-foreground) 5%, transparent)',
+            border: '1px solid color-mix(in oklch, var(--color-border) 40%, transparent)',
+          }}
+        >
+          <p className="text-2xl font-bold" style={{ color: 'var(--color-muted-foreground)' }}>
+            {c.yes}/{rows.length}
+          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
+            {c.label}
+          </p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Desktop: full comparison table */
 function DesktopComparison() {
   return (
@@ -313,7 +360,10 @@ function DesktopComparison() {
               >
                 Feature
               </th>
-              <th className="py-4 px-4 text-center font-semibold">
+              <th
+                className="py-4 px-4 text-center font-semibold"
+                style={{ background: 'color-mix(in oklch, var(--color-glow-1) 5%, transparent)' }}
+              >
                 <span className="gradient-text">KinBot</span>
               </th>
               {competitors.map(c => (
@@ -349,7 +399,12 @@ function DesktopComparison() {
                 <td className="py-3 px-5" style={{ color: 'var(--color-foreground)' }}>
                   {row.feature}
                 </td>
-                <td className="py-3 px-4 text-center">
+                <td
+                  className="py-3 px-4 text-center"
+                  style={{
+                    background: 'color-mix(in oklch, var(--color-glow-1) 3%, transparent)',
+                  }}
+                >
                   <Cell value={row.kinbot} />
                 </td>
                 {competitors.map(c => (
@@ -378,6 +433,7 @@ export function Comparison() {
         </p>
       </div>
 
+      <ScoreSummary />
       <MobileComparison />
       <DesktopComparison />
 
