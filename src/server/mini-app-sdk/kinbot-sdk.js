@@ -15,6 +15,8 @@
  *   KinBot.api(path, options) — call backend API (_server.js) routes
  *   KinBot.confirm(message, options) — show a confirmation dialog in the parent UI (returns Promise<boolean>)
  *   KinBot.prompt(message, options) — show a prompt dialog in the parent UI (returns Promise<string|null>)
+ *   KinBot.setTitle(title) — dynamically update the panel header title
+ *   KinBot.setBadge(value) — show a badge on the app in the sidebar (number, string, or null to clear)
  */
 ;(function () {
   'use strict'
@@ -334,6 +336,42 @@
     })
   }
 
+  // ─── Set Title ───────────────────────────────────────────────────────────
+
+  /**
+   * Dynamically update the panel header title.
+   * @param {string} title — new title to display (empty string resets to app name)
+   */
+  function setTitle(title) {
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'set-title',
+        title: String(title).slice(0, 200),
+      }, '*')
+    } catch (e) {
+      console.warn('[KinBot SDK] setTitle failed:', e)
+    }
+  }
+
+  // ─── Set Badge ──────────────────────────────────────────────────────────
+
+  /**
+   * Show a badge on the app in the sidebar.
+   * @param {number|string|null} value — badge content (null or 0 to clear)
+   */
+  function setBadge(value) {
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'set-badge',
+        value: value === null || value === 0 || value === '' ? null : String(value).slice(0, 20),
+      }, '*')
+    } catch (e) {
+      console.warn('[KinBot SDK] setBadge failed:', e)
+    }
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -350,6 +388,8 @@
     api: api,
     confirm: confirm,
     prompt: prompt,
-    version: '1.4.0',
+    setTitle: setTitle,
+    setBadge: setBadge,
+    version: '1.5.0',
   }
 })()
