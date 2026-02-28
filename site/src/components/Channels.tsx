@@ -129,11 +129,23 @@ export function Channels() {
       >
         The channel adapter architecture makes adding new platforms straightforward.{' '}
         <a
-          href="https://github.com/MarlBurroW/kinbot/blob/main/CONTRIBUTING.md"
+          href="https://github.com/MarlBurroW/kinbot/issues/new?template=channel_request.yml"
+          target="_blank"
+          rel="noopener noreferrer"
           className="underline"
           style={{ color: 'var(--color-primary)' }}
         >
-          Want to add one?
+          Request one
+        </a>
+        {' · '}
+        <a
+          href="https://github.com/MarlBurroW/kinbot/blob/main/CONTRIBUTING.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+          style={{ color: 'var(--color-primary)' }}
+        >
+          Build one
         </a>
       </p>
     </section>
