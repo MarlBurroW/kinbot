@@ -1347,7 +1347,6 @@
     "sendMessage": "Envoyer le message",
     "newLine": "Nouvelle ligne",
     "focusInput": "Activer la zone de message",
-    "focusMode": "Basculer le mode focus",
     "searchConversation": "Rechercher dans la conversation",
     "inputHistory": "Parcourir les messages envoyés",
     "formatBold": "Gras",
@@ -1399,10 +1398,6 @@
   "chat.stats.avgResponse": "Temps de réponse moy.",
   "chat.stats.totalWords": "Mots au total",
   "chat.newMessages": "{{count}} nouveau(x) message(s)",
-  "focusMode": {
-    "enter": "Mode focus (⌘⇧F)",
-    "exit": "Quitter le mode focus (⌘⇧F)"
-  },
   "statusNotifications": {
     "providerOnline": "{{name}} est de retour en ligne",
     "providerOffline": "Connexion à {{name}} échouée",

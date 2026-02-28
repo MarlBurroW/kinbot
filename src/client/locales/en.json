@@ -1347,7 +1347,6 @@
     "sendMessage": "Send message",
     "newLine": "New line",
     "focusInput": "Focus message input",
-    "focusMode": "Toggle focus mode",
     "searchConversation": "Search in conversation",
     "inputHistory": "Browse sent messages",
     "formatBold": "Bold",
@@ -1399,10 +1398,6 @@
   "chat.stats.avgResponse": "Avg. response time",
   "chat.stats.totalWords": "Total words",
   "chat.newMessages": "{{count}} new message(s)",
-  "focusMode": {
-    "enter": "Focus mode (⌘⇧F)",
-    "exit": "Exit focus mode (⌘⇧F)"
-  },
   "statusNotifications": {
     "providerOnline": "{{name}} is back online",
     "providerOffline": "{{name}} connection failed",
