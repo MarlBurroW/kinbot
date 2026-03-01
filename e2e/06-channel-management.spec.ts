@@ -100,14 +100,14 @@ test.describe.serial('Channel management', () => {
 
   test('should edit a channel name', async ({ page }) => {
     await openChannelSettings(page)
-    await expect(page.getByText('Test Telegram Channel')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Test Telegram Channel').first()).toBeVisible({ timeout: 10_000 })
 
     // Click pencil edit button
-    const channelCard = page.locator('.surface-card', { hasText: 'Test Telegram Channel' })
+    const channelCard = page.locator('.surface-card', { hasText: 'Test Telegram Channel' }).first()
     await channelCard.locator('button:has(.lucide-pencil)').click()
 
     // Wait for edit form
-    await expect(page.getByText('Edit', { exact: true })).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('heading', { name: 'Edit' })).toBeVisible({ timeout: 5_000 })
 
     // Change name
     const nameInput = page.getByPlaceholder('My Telegram bot')

@@ -38,8 +38,8 @@ const MOCK_GALLERY_APPS = [
   },
   {
     id: 'app-3',
-    kinId: 'kin-other-1',
-    kinName: 'Weather Bot',
+    kinId: 'kin-other-3',
+    kinName: 'Focus Kin',
     kinAvatarUrl: null,
     name: 'Pomodoro Timer',
     slug: 'pomodoro-timer',

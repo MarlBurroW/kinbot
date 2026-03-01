@@ -152,7 +152,7 @@ test.describe.serial('Scheduled jobs management', () => {
     await editBtn.click()
 
     // Should switch to edit form
-    await expect(page.getByText('Edit scheduled job')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('heading', { name: 'Edit scheduled job' })).toBeVisible({ timeout: 5_000 })
 
     // Change the name
     const nameInput = page.getByPlaceholder('e.g. Daily report, Weekly cleanup...')

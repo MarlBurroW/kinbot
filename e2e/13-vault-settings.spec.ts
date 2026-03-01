@@ -9,6 +9,15 @@ async function openVaultSettings(page: import('@playwright/test').Page) {
   await expect(page.getByText('Manage encrypted entries')).toBeVisible({ timeout: 5_000 })
 }
 
+/** Delete all existing vault entries via API so tests start clean */
+async function clearVaultEntries(page: import('@playwright/test').Page) {
+  const res = await page.request.get('/api/vault/entries')
+  const data = await res.json() as { entries: { id: string }[] }
+  for (const entry of data.entries) {
+    await page.request.delete(`/api/vault/entries/${entry.id}`)
+  }
+}
+
 test.describe.serial('Vault settings', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
@@ -17,6 +26,8 @@ test.describe.serial('Vault settings', () => {
   })
 
   test('should navigate to Vault settings and see empty state', async ({ page }) => {
+    // Clean up any vault entries created by previous test suites (e.g. channel bot tokens)
+    await clearVaultEntries(page)
     await openVaultSettings(page)
 
     await expect(page.getByText('No entries configured')).toBeVisible()
