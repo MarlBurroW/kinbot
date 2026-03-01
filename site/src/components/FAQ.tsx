@@ -122,6 +122,8 @@ function FAQEntry({ item, forceOpen }: { item: FAQItem; forceOpen?: boolean }) {
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between py-5 px-1 text-left gap-4 group"
+        aria-expanded={isOpen}
+        aria-controls={`faq-answer-${item.question.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}`}
       >
         <span
           className="text-base font-medium transition-colors"
@@ -132,6 +134,7 @@ function FAQEntry({ item, forceOpen }: { item: FAQItem; forceOpen?: boolean }) {
         <ChevronDown
           size={18}
           className="flex-shrink-0 transition-transform duration-300"
+          aria-hidden="true"
           style={{
             color: 'var(--color-muted-foreground)',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -139,6 +142,8 @@ function FAQEntry({ item, forceOpen }: { item: FAQItem; forceOpen?: boolean }) {
         />
       </button>
       <div
+        id={`faq-answer-${item.question.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}`}
+        role="region"
         className="overflow-hidden transition-all duration-300"
         style={{
           maxHeight: isOpen ? '300px' : '0',

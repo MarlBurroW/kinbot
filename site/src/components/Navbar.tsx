@@ -79,7 +79,7 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
         borderBottom: scrolled ? '1px solid color-mix(in oklch, var(--color-glow-1) 15%, transparent)' : '1px solid transparent',
       }}
     >
-      <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between" aria-label="Main navigation">
         <a href="#" className="flex items-center gap-2.5">
           <img src="/kinbot/kinbot.svg" alt="KinBot" width={32} height={32} className="rounded-lg" />
           <span className="text-xl font-extrabold gradient-text">KinBot</span>
@@ -138,7 +138,9 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
           <button
             onClick={() => setMobileOpen(o => !o)}
             className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center transition-all glass"
-            aria-label="Toggle menu"
+            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav-menu"
             style={{ color: 'var(--color-muted-foreground)' }}
           >
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
@@ -159,6 +161,9 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
       {/* Mobile menu */}
       {mobileOpen && (
         <div
+          id="mobile-nav-menu"
+          role="navigation"
+          aria-label="Mobile navigation"
           className="md:hidden border-t px-6 pb-6 pt-2"
           style={{
             borderColor: 'var(--color-border)',

@@ -200,7 +200,7 @@ type FilterCap = (typeof allCapabilities)[number]
 
 function CapabilityFilter({ active, onChange }: { active: FilterCap; onChange: (c: FilterCap) => void }) {
   return (
-    <div className="flex flex-wrap justify-center gap-2 mb-10">
+    <div className="flex flex-wrap justify-center gap-2 mb-10" role="tablist" aria-label="Filter providers by capability">
       {allCapabilities.map((cap) => {
         const isActive = active === cap
         const color = cap === 'All' ? 'var(--color-primary)' : (capabilityColors[cap] || 'var(--color-glow-1)')
@@ -208,6 +208,8 @@ function CapabilityFilter({ active, onChange }: { active: FilterCap; onChange: (
           <button
             key={cap}
             onClick={() => onChange(cap)}
+            role="tab"
+            aria-selected={isActive}
             className="text-sm font-medium px-4 py-2 rounded-full transition-all duration-200"
             style={{
               background: isActive

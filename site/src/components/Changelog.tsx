@@ -139,6 +139,8 @@ export function Changelog() {
                 onClick={() => setExpanded(!expanded)}
                 className="flex items-center gap-2 mx-auto mt-6 text-sm font-medium transition-colors hover:opacity-80"
                 style={{ color: 'var(--color-purple-400, #c084fc)' }}
+                aria-expanded={expanded}
+                aria-label={expanded ? 'Show fewer releases' : `Show all ${releases.length} releases`}
               >
                 {expanded ? (
                   <>
