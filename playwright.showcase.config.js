@@ -33,6 +33,7 @@ export default defineConfig({
       PORT: '3334',
       DB_PATH: process.env.E2E_DB_PATH || './data/kinbot-showcase.db',
       E2E_SKIP_PROVIDER_TEST: 'true',
+      E2E_MOCK_LLM: 'true',
       LOG_LEVEL: 'warn',
       TRUSTED_ORIGINS: 'http://localhost:3334',
       BETTER_AUTH_BASE_URL: 'http://localhost:3334',

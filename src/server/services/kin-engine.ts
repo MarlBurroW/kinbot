@@ -300,6 +300,40 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       compactingSummary,
     })
 
+    // ── E2E Mock LLM: stream a fake response without calling any provider ──
+    if (process.env.E2E_MOCK_LLM === 'true') {
+      const mockResponse = 'Great question! Fresh basil, oregano, rosemary, and thyme are the cornerstones of Italian cooking. Parsley and sage are also essential — together they bring depth to sauces, soups, and roasted dishes.'
+      const mockAssistantId = uuid()
+      const tokens = mockResponse.split(' ')
+      for (const token of tokens) {
+        sseManager.sendToKin(kinId, {
+          type: 'chat:token',
+          kinId,
+          data: { kinId, messageId: mockAssistantId, token: token + ' ' },
+        })
+        await new Promise((r) => setTimeout(r, 50))
+      }
+      await db.insert(messages).values({
+        id: mockAssistantId,
+        kinId,
+        role: 'assistant',
+        content: mockResponse,
+        sourceType: 'kin',
+        createdAt: new Date(),
+      })
+      sseManager.sendToKin(kinId, {
+        type: 'chat:done',
+        kinId,
+        data: { kinId, messageId: mockAssistantId },
+      })
+      sseManager.sendToKin(kinId, {
+        type: 'queue:update',
+        kinId,
+        data: { kinId, queueSize: 0, isProcessing: false },
+      })
+      return true
+    }
+
     // Resolve LLM model
     const model = await resolveLLMModel(kin.model, kin.providerId)
     if (!model) {
