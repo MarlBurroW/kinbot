@@ -1,5 +1,20 @@
 import type { ChannelPlatform } from '@/shared/types'
 
+// ─── Incoming attachments from an external platform ─────────────────────────
+
+export interface IncomingAttachment {
+  /** Platform-specific file identifier (e.g. Telegram file_id, Discord CDN URL) */
+  platformFileId: string
+  /** MIME type if known (e.g. 'image/jpeg', 'application/pdf') */
+  mimeType?: string
+  /** Original file name if available */
+  fileName?: string
+  /** File size in bytes if known */
+  fileSize?: number
+  /** Direct download URL if available (Discord CDN, Slack URL, etc.) */
+  url?: string
+}
+
 // ─── Incoming message from an external platform ─────────────────────────────
 
 export interface IncomingMessage {
@@ -9,6 +24,8 @@ export interface IncomingMessage {
   platformMessageId: string
   platformChatId: string
   content: string
+  /** File attachments (images, documents, audio, video) from the platform */
+  attachments?: IncomingAttachment[]
 }
 
 export type IncomingMessageHandler = (message: IncomingMessage) => Promise<void>
