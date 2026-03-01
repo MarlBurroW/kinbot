@@ -155,7 +155,7 @@ test.describe.serial('Sidebar navigation & layout', () => {
 
     // Settings dialog opens
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 })
-    await expect(page.getByText('General')).toBeVisible()
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'General' })).toBeVisible()
 
     // Close
     await page.getByRole('button', { name: 'Close' }).click()

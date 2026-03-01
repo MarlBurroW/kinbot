@@ -367,7 +367,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         && msg.sourceType !== 'compacting'
         && msg.sourceType !== 'task'
         && msg.createdAt && prev!.createdAt
-        && (msg.createdAt - prev!.createdAt) < GROUPING_WINDOW_MS
+        && (new Date(msg.createdAt).getTime() - new Date(prev!.createdAt).getTime()) < GROUPING_WINDOW_MS
 
       const showTimeGap = !showDateSeparator && idx > 0 && !!msg.createdAt && !!messages[idx - 1]?.createdAt
       const prevTimestamp = idx > 0 ? messages[idx - 1]?.createdAt : undefined
