@@ -91,7 +91,7 @@ test.describe.serial('Sidebar navigation & layout', () => {
     const sidebar = page.locator('[data-slot="sidebar"]')
 
     // Tasks section
-    const tasksToggle = sidebar.getByText('Tasks')
+    const tasksToggle = sidebar.getByRole('button', { name: 'Tasks' })
     await expect(tasksToggle).toBeVisible()
 
     // Should show empty state or task list
