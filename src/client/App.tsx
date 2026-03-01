@@ -1,15 +1,27 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from '@/client/hooks/useAuth'
-import { LoginPage } from '@/client/pages/login/LoginPage'
-import { OnboardingPage } from '@/client/pages/onboarding/OnboardingPage'
-import { ChatPage } from '@/client/pages/chat/ChatPage'
 import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { DesignSystemPage } from '@/client/pages/design-system/DesignSystemPage'
-import { InvitePage } from '@/client/pages/invite/InvitePage'
 import { api } from '@/client/lib/api'
 
+// Lazy-loaded pages for code splitting
+const ChatPage = lazy(() => import('@/client/pages/chat/ChatPage').then(m => ({ default: m.ChatPage })))
+const LoginPage = lazy(() => import('@/client/pages/login/LoginPage').then(m => ({ default: m.LoginPage })))
+const OnboardingPage = lazy(() => import('@/client/pages/onboarding/OnboardingPage').then(m => ({ default: m.OnboardingPage })))
+const DesignSystemPage = lazy(() => import('@/client/pages/design-system/DesignSystemPage').then(m => ({ default: m.DesignSystemPage })))
+const InvitePage = lazy(() => import('@/client/pages/invite/InvitePage').then(m => ({ default: m.InvitePage })))
+
 const isDev = import.meta.env.DEV
+
+function PageFallback() {
+  return (
+    <div className="surface-base flex min-h-screen items-center justify-center">
+      <div className="text-center animate-fade-in">
+        <h1 className="gradient-primary-text text-4xl font-bold tracking-tight">KinBot</h1>
+      </div>
+    </div>
+  )
+}
 
 interface OnboardingStatus {
   completed: boolean
@@ -78,12 +90,14 @@ function AppRoot() {
   // Fresh install — no admin exists, start onboarding from step 1
   if (onboardingStatus && !onboardingStatus.hasAdmin) {
     return (
-      <OnboardingPage
-        onComplete={async () => {
-          await refetch()
-          await checkOnboarding()
-        }}
-      />
+      <Suspense fallback={<PageFallback />}>
+        <OnboardingPage
+          onComplete={async () => {
+            await refetch()
+            await checkOnboarding()
+          }}
+        />
+      </Suspense>
     )
   }
 
@@ -91,31 +105,41 @@ function AppRoot() {
   // If authenticated, resume onboarding at step 3 (providers)
   if (onboardingStatus && !onboardingStatus.completed && isAuthenticated) {
     return (
-      <OnboardingPage
-        initialStep={3}
-        onComplete={async () => {
-          await refetch()
-          await checkOnboarding()
-        }}
-      />
+      <Suspense fallback={<PageFallback />}>
+        <OnboardingPage
+          initialStep={3}
+          onComplete={async () => {
+            await refetch()
+            await checkOnboarding()
+          }}
+        />
+      </Suspense>
     )
   }
 
   // Not authenticated — show login
   if (!isAuthenticated) {
-    return <LoginPage onLogin={login} />
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <LoginPage onLogin={login} />
+      </Suspense>
+    )
   }
 
   // Authenticated — main app
-  return <ChatPage />
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <ChatPage />
+    </Suspense>
+  )
 }
 
 export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {isDev && <Route path="/design-system" element={<DesignSystemPage />} />}
-        <Route path="/invite/:token" element={<InvitePage />} />
+        {isDev && <Route path="/design-system" element={<Suspense fallback={<PageFallback />}><DesignSystemPage /></Suspense>} />}
+        <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><InvitePage /></Suspense>} />
         <Route path="*" element={<AppRoot />} />
       </Routes>
     </BrowserRouter>
