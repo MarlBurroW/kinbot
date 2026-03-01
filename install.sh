@@ -1390,23 +1390,64 @@ case "${1:-}" in
     fi
     exec bash "$_install_sh" --test
     ;;
+  config)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    exec bash "$_install_sh" --config
+    ;;
+  env)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    # Pass remaining args (KEY=VAL, KEY-, or nothing for list)
+    exec bash "$_install_sh" --env "${2:-}"
+    ;;
+  restore)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    exec bash "$_install_sh" --restore "${2:-}"
+    ;;
+  reset)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    exec bash "$_install_sh" --reset
+    ;;
   *)
     echo "KinBot service manager"
     echo ""
-    echo "Usage: $0 {start|stop|restart|status|logs|log-rotate|update|backup|doctor|test|version}"
+    echo "Usage: $0 <command> [args]"
     echo ""
-    echo "Commands:"
-    echo "  start       Start KinBot in the background"
-    echo "  stop        Stop KinBot (graceful, then force after 10s)"
-    echo "  restart     Stop and start KinBot"
-    echo "  status      Show KinBot status, uptime, and resource usage"
-    echo "  logs        Tail the log file (use 'logs -n 50' for recent lines)"
-    echo "  log-rotate  Rotate the log file now (archives to .1/.2/.3)"
-    echo "  update      Check for updates and apply (wraps install.sh --update)"
-    echo "  backup      Back up the database (wraps install.sh --backup)"
-    echo "  doctor      Generate a diagnostic report (wraps install.sh --doctor)"
-    echo "  test        Run self-tests to validate the installation"
-    echo "  version     Show installed version"
+    echo "Service:"
+    echo "  start         Start KinBot in the background"
+    echo "  stop          Stop KinBot (graceful, then force after 10s)"
+    echo "  restart       Stop and start KinBot"
+    echo "  status        Show KinBot status, uptime, and resource usage"
+    echo "  logs          Tail the log file (use 'logs -n 50' for recent lines)"
+    echo "  log-rotate    Rotate the log file now (archives to .1/.2/.3)"
+    echo ""
+    echo "Configuration:"
+    echo "  config        Re-run the configuration wizard (change port, URL)"
+    echo "  env [K=V|K-]  Show, set, or remove config variables"
+    echo ""
+    echo "Maintenance:"
+    echo "  update        Check for updates and apply"
+    echo "  backup [path] Back up the database"
+    echo "  restore [path] Restore database from a backup"
+    echo "  reset         Fix broken install: re-clone & rebuild, keep data"
+    echo "  doctor        Generate a diagnostic report (for bug reports)"
+    echo "  test          Run self-tests to validate the installation"
+    echo "  version       Show installed version"
     exit 1
     ;;
 esac
