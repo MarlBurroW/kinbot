@@ -86,6 +86,8 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.clipboard.write(text)` → Promise<boolean> (copy text to system clipboard — works even in sandboxed iframes), ' +
         '`KinBot.clipboard.read()` → Promise<string|null> (read text from system clipboard — may require user permission), ' +
         'For additional files (CSS, JS, images), use write_mini_app_file after creation. ' +
+        'Relative paths work naturally: `<script src="app.js">`, `<link href="styles.css">`, `import "./utils.js"` — ' +
+        'all resolve to the app\'s static directory. Multi-file apps are fully supported. ' +
         '**Import Maps & Dependencies:** To use ES modules from CDN (React, etc.), create an `app.json` file with either: ' +
         '(1) shorthand `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}` or ' +
         '(2) full importmap `{"importmap": {"imports": {"react": "https://esm.sh/react@19"}}}`. ' +

@@ -502,6 +502,11 @@ const THEME_SYNC_SCRIPT = `<script>
 const SDK_LINK = '<link rel="stylesheet" href="/api/mini-apps/sdk/kinbot-sdk.css">'
 const SDK_SCRIPT = '<script src="/api/mini-apps/sdk/kinbot-sdk.js"></script>'
 
+/** Base tag so relative paths (src="app.js", import "./utils.js") resolve to the static directory */
+function baseTag(appId: string): string {
+  return `<base href="/api/mini-apps/${appId}/static/">`
+}
+
 // Content-Security-Policy for mini-app iframes.
 // Allows inline scripts/styles (needed for SDK injection and app code),
 // same-origin fetches (for storage API and static assets),
@@ -573,8 +578,8 @@ miniAppRoutes.get('/:id/serve', async (c) => {
   const manifest = await readAppManifest(dir)
   const importMapTag = manifest ? buildImportMapTag(manifest) : ''
 
-  // Build injection: importmap must come before any module scripts
-  const headInjection = [SDK_LINK, importMapTag, SDK_SCRIPT, THEME_SYNC_SCRIPT].filter(Boolean).join('\n')
+  // Build injection: base tag first (for relative path resolution), then importmap before module scripts
+  const headInjection = [baseTag(app.id), SDK_LINK, importMapTag, SDK_SCRIPT, THEME_SYNC_SCRIPT].filter(Boolean).join('\n')
 
   // Inject SDK CSS and theme sync script into <head>
   if (html.includes('<head>')) {
