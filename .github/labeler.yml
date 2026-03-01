@@ -1,0 +1,70 @@
+# Configuration for actions/labeler
+# Labels PRs based on changed file paths
+
+"frontend":
+  - changed-files:
+      - any-glob-to-any-file: "src/client/**"
+
+"backend":
+  - changed-files:
+      - any-glob-to-any-file: "src/server/**"
+
+"shared":
+  - changed-files:
+      - any-glob-to-any-file: "src/shared/**"
+
+"ci":
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+"docker":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docker/**"
+          - "Dockerfile"
+          - "docker-compose*.yml"
+
+"documentation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.md"
+          - "docs/**"
+
+"dependencies":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "bun.lock"
+
+"providers":
+  - changed-files:
+      - any-glob-to-any-file: "src/server/providers/**"
+
+"channels":
+  - changed-files:
+      - any-glob-to-any-file: "src/server/channels/**"
+
+"tools":
+  - changed-files:
+      - any-glob-to-any-file: "src/server/tools/**"
+
+"database":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/db/**"
+          - "drizzle.config.ts"
+
+"tests":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.test.ts"
+          - "**/*.spec.ts"
+          - "e2e/**"
+
+"site":
+  - changed-files:
+      - any-glob-to-any-file: "site/**"
+
+"i18n":
+  - changed-files:
+      - any-glob-to-any-file: "src/client/i18n/**"
