@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Input } from '@/client/components/ui/input'
@@ -58,6 +58,7 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingMemory, setEditingMemory] = useState<MemorySummary | null>(null)
   const [deletingMemory, setDeletingMemory] = useState<MemorySummary | null>(null)
+  const deletingMemoryRef = useRef<MemorySummary | null>(null)
 
   // Fetch Kins for global mode (filter + form dialog + card kin name)
   useEffect(() => {
@@ -104,8 +105,9 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
   }
 
   const handleDelete = async () => {
-    const target = deletingMemory
+    const target = deletingMemoryRef.current
     if (!target) return
+    deletingMemoryRef.current = null
     setDeletingMemory(null)
     try {
       await deleteMemory(target.id, target.kinId)
@@ -196,7 +198,7 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
               kinAvatarUrl={kinAvatars.get(memory.kinId)}
               showKinName={!kinId}
               onEdit={() => openEdit(memory)}
-              onDelete={() => setDeletingMemory(memory)}
+              onDelete={() => { deletingMemoryRef.current = memory; setDeletingMemory(memory) }}
             />
           ))}
         </div>
@@ -220,7 +222,7 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
       />
 
       {/* Delete confirmation */}
-      <AlertDialog open={!!deletingMemory} onOpenChange={(v) => { if (!v) setDeletingMemory(null) }}>
+      <AlertDialog open={!!deletingMemory} onOpenChange={(v) => { if (!v) { setDeletingMemory(null) } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('settings.memories.delete')}</AlertDialogTitle>
