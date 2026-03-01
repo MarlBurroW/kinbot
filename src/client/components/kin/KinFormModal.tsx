@@ -21,7 +21,7 @@ import { FormErrorAlert } from '@/client/components/common/FormErrorAlert'
 import { AvatarPickerModal, type AvatarPickerResult } from '@/client/components/kin/AvatarPickerModal'
 import { KinToolsTab } from '@/client/components/kin/KinToolsTab'
 import { MemoryList } from '@/client/components/memory/MemoryList'
-import { ArrowLeft, Bot, Brain, Camera, Loader2, Network, Settings, Sparkles, Trash2, User, Wrench } from 'lucide-react'
+import { ArrowLeft, Bot, Brain, Camera, Loader2, Network, Settings, Sparkles, Trash2, Upload, User, Wrench } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
 import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
@@ -195,6 +195,31 @@ export function KinFormModal({
 
   // Track if avatar generation was aborted (component unmount / new generation)
   const avatarAbortRef = useRef<AbortController | null>(null)
+  const importFileRef = useRef<HTMLInputElement | null>(null)
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string)
+        if (data.name) setName(data.name)
+        if (data.role) setRole(data.role)
+        if (data.character) setCharacter(data.character)
+        if (data.expertise) setExpertise(data.expertise)
+        if (data.model) setModel(data.model)
+        if (data.toolConfig) setToolConfig(data.toolConfig)
+        setWizardStep('form')
+        markDirty()
+      } catch {
+        setError('Invalid JSON file')
+      }
+    }
+    reader.readAsText(file)
+    // Reset the input so the same file can be re-imported
+    e.target.value = ''
+  }
 
   // Sync form when kin changes (edit mode) or reset for create mode
   useEffect(() => {
@@ -539,15 +564,36 @@ export function KinFormModal({
 
                   <FormErrorAlert error={error} animate />
 
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".json,.kinbot.json"
+                    className="hidden"
+                    onChange={handleImportFile}
+                  />
+
                   <div className="flex items-center justify-between">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setWizardStep('form')}
-                      disabled={isGenerating}
-                    >
-                      {t('kin.wizard.skipManual')}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setWizardStep('form')}
+                        disabled={isGenerating}
+                      >
+                        {t('kin.wizard.skipManual')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => importFileRef.current?.click()}
+                        disabled={isGenerating}
+                        className="text-xs"
+                      >
+                        <Upload className="size-3.5" />
+                        {t('kin.wizard.importFile', { defaultValue: 'Import' })}
+                      </Button>
+                    </div>
 
                     <Button
                       type="button"

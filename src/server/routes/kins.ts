@@ -890,4 +890,124 @@ kinRoutes.patch('/:id/memories/:memoryId', async (c) => {
   })
 })
 
+// GET /api/kins/:id/export — export a Kin's configuration as JSON
+kinRoutes.get('/:id/export', async (c) => {
+  const kin = resolveKinByIdOrSlug(c.req.param('id'))
+  if (!kin) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  const details = await getKinDetails(kin.id)
+  if (!details) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  // Get MCP server details for this kin
+  const kinMcpRows = await db
+    .select({ serverId: kinMcpServers.mcpServerId })
+    .from(kinMcpServers)
+    .where(eq(kinMcpServers.kinId, kin.id))
+    .all()
+
+  const mcpServerDetails = kinMcpRows.length > 0
+    ? await Promise.all(
+        kinMcpRows.map(async (row) => {
+          const [server] = await db
+            .select()
+            .from(mcpServers)
+            .where(eq(mcpServers.id, row.serverId))
+            .limit(1)
+          return server
+            ? { name: server.name, command: server.command, args: server.args, env: server.env }
+            : null
+        }),
+      ).then((results) => results.filter(Boolean))
+    : []
+
+  const exportData = {
+    _kinbot: {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+    },
+    name: details.name,
+    role: details.role,
+    character: details.character,
+    expertise: details.expertise,
+    model: details.model,
+    toolConfig: details.toolConfig ? JSON.parse(details.toolConfig) : null,
+    mcpServers: mcpServerDetails,
+  }
+
+  const filename = `${details.slug || details.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.kinbot.json`
+
+  c.header('Content-Disposition', `attachment; filename="${filename}"`)
+  c.header('Content-Type', 'application/json')
+  return c.json(exportData)
+})
+
+// POST /api/kins/import — create a new Kin from an exported JSON config
+kinRoutes.post('/import', async (c) => {
+  const user = c.get('user') as { id: string }
+  const body = await c.req.json()
+
+  // Validate required fields
+  const { name, role, character, expertise, model, toolConfig } = body as {
+    name?: string
+    role?: string
+    character?: string
+    expertise?: string
+    model?: string
+    toolConfig?: KinToolConfig | null
+    _kinbot?: { version?: number }
+  }
+
+  if (!name || !role || !character || !expertise || !model) {
+    return c.json(
+      {
+        error: {
+          code: 'INVALID_IMPORT',
+          message: 'Missing required fields: name, role, character, expertise, model',
+        },
+      },
+      400,
+    )
+  }
+
+  const newKin = await createKin({
+    name,
+    role,
+    character,
+    expertise,
+    model,
+    createdBy: user.id,
+  })
+
+  // Apply toolConfig if present
+  if (toolConfig) {
+    await updateKin(newKin.id, { toolConfig })
+  }
+
+  return c.json(
+    {
+      kin: {
+        id: newKin.id,
+        slug: newKin.slug,
+        name: newKin.name,
+        role: newKin.role,
+        avatarUrl: null,
+        character: newKin.character,
+        expertise: newKin.expertise,
+        model: newKin.model,
+        providerId: newKin.providerId ?? null,
+        workspacePath: newKin.workspacePath,
+        mcpServers: [],
+        queueSize: 0,
+        isProcessing: false,
+        createdAt: newKin.createdAt,
+      },
+    },
+    201,
+  )
+})
+
 export { kinRoutes }

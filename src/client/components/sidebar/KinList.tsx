@@ -24,7 +24,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
 } from '@/client/components/ui/sidebar'
-import { Plus, Bot } from 'lucide-react'
+import { Plus, Bot, Download } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 
 interface KinSummary {
@@ -91,6 +91,26 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
     onReorderKins(allIds)
   }, [regularKins, hubKin, onReorderKins])
 
+  const handleExportKin = useCallback(async (kinId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token') || ''
+      const res = await fetch(`/api/kins/${kinId}/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${data.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'kin'}.kinbot.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // silent fail
+    }
+  }, [])
+
   const regularKinIds = regularKins.map((k) => k.id)
 
   return (
@@ -148,6 +168,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
                   onClick={() => onSelectKin(hubKin.slug)}
                   onEdit={() => onEditKin(hubKin.id)}
                   onDelete={onDeleteKin ? () => onDeleteKin(hubKin.id) : undefined}
+                  onExport={() => handleExportKin(hubKin.id)}
                 />
                 {filteredKins.length > 0 && (
                   <div className="mx-2 mt-1 border-t border-border/40" />
@@ -176,6 +197,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
                       onClick={() => onSelectKin(kin.slug)}
                       onEdit={() => onEditKin(kin.id)}
                       onDelete={onDeleteKin ? () => onDeleteKin(kin.id) : undefined}
+                      onExport={() => handleExportKin(kin.id)}
                     />
                   )
                 })}
