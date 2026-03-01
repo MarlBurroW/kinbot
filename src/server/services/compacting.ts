@@ -323,11 +323,16 @@ async function extractMemories(
     `For each extracted piece of information, return a JSON object with:\n` +
     `- "content": the fact or knowledge (a clear, standalone sentence)\n` +
     `- "category": "fact" | "preference" | "decision" | "knowledge"\n` +
-    `- "subject": the person or context concerned (name or "general")\n\n` +
+    `- "subject": the person or context concerned (name or "general")\n` +
+    `- "importance": a number from 1 to 10 rating how important this memory is.\n` +
+    `  1 = mundane/trivial (e.g. "User said good morning")\n` +
+    `  5 = moderately useful (e.g. "User prefers dark mode")\n` +
+    `  10 = critical/life-changing (e.g. "User got married", "User's API key for production")\n\n` +
     `Rules:\n` +
     `- Only extract **durable** information (not ephemeral details)\n` +
     `- Check if the information contradicts or updates an existing memory\n` +
-    `- Do not duplicate information already present in existing memories\n\n` +
+    `- Do not duplicate information already present in existing memories\n` +
+    `- Be honest with importance scores — most memories should be 3-7\n\n` +
     `## Existing memories (to avoid duplicates)\n\n${existingMemoriesSummary}\n\n` +
     `## Exchanges to analyze\n\n${formattedMessages}\n\n` +
     `Return a JSON array. If nothing new to remember, return [].`
@@ -346,11 +351,17 @@ async function extractMemories(
       content: string
       category: string
       subject: string
+      importance?: number
     }>
 
     let count = 0
     for (const item of extracted) {
       if (!item.content || !item.category) continue
+
+      // Clamp importance to [1, 10], default to null if missing
+      const importance = typeof item.importance === 'number'
+        ? Math.max(1, Math.min(10, Math.round(item.importance)))
+        : null
 
       // Check for near-duplicates via semantic search
       const similar = await searchMemories(kinId, item.content, 3)
@@ -361,6 +372,7 @@ async function extractMemories(
           content: item.content,
           category: item.category as MemoryCategory,
           subject: item.subject || null,
+          importance,
           sourceMessageId: lastMessageId,
           sourceChannel: 'automatic',
         })

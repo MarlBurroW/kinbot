@@ -204,6 +204,13 @@
       "when": 1772331950658,
       "tag": "0028_abnormal_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1772370226566,
+      "tag": "0029_sour_joseph",
+      "breakpoints": true
     }
   ]
 }

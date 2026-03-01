@@ -85,6 +85,7 @@ export interface MemorySummary {
   category: MemoryCategory
   subject: string | null
   sourceChannel: 'automatic' | 'explicit'
+  importance: number | null
   createdAt: number
   updatedAt: number
 }

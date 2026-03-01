@@ -73,13 +73,21 @@ export const memorizeTool: ToolRegistration = {
           .string()
           .optional()
           .describe('Who or what this is about (e.g. a contact name, "general")'),
+        importance: z
+          .number()
+          .int()
+          .min(1)
+          .max(10)
+          .optional()
+          .describe('Importance score 1-10 (1=mundane, 5=useful, 10=critical). Default: 5'),
       }),
-      execute: async ({ content, category, subject }) => {
+      execute: async ({ content, category, subject, importance }) => {
         log.debug({ kinId: ctx.kinId, category, subject }, 'Memorize invoked')
         const memory = await createMemory(ctx.kinId, {
           content,
           category: category as MemoryCategory,
           subject,
+          importance: importance ?? null,
           sourceChannel: 'explicit',
         })
         return memory

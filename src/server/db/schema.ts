@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, blob, primaryKey, uniqueIndex, index, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, blob, primaryKey, uniqueIndex, index, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 
 // ─── Better Auth tables ────────────────────────────────────────────────────────
 // These tables are managed by Better Auth. Defined here for Drizzle relations
@@ -150,6 +150,7 @@ export const memories = sqliteTable('memories', {
   subject: text('subject'),
   sourceMessageId: text('source_message_id').references(() => messages.id),
   sourceChannel: text('source_channel').notNull().default('automatic'), // 'automatic' | 'explicit'
+  importance: real('importance'), // 1-10 scale, null = unscored (treated as 5)
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [

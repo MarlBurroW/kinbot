@@ -16,6 +16,7 @@ interface CreateMemoryInput {
   content: string
   category: MemoryCategory
   subject?: string | null
+  importance?: number | null
   sourceMessageId?: string | null
   sourceChannel?: 'automatic' | 'explicit'
 }
@@ -24,6 +25,7 @@ interface UpdateMemoryInput {
   content?: string
   category?: MemoryCategory
   subject?: string | null
+  importance?: number | null
 }
 
 interface MemorySearchResult {
@@ -31,6 +33,7 @@ interface MemorySearchResult {
   content: string
   category: string
   subject: string | null
+  importance: number | null
   score: number
 }
 
@@ -80,6 +83,7 @@ export async function createMemory(kinId: string, input: CreateMemoryInput) {
     embedding: embeddingBuf,
     category: input.category,
     subject: input.subject ?? null,
+    importance: input.importance ?? null,
     sourceMessageId: input.sourceMessageId ?? null,
     sourceChannel: input.sourceChannel ?? 'explicit',
     createdAt: now,
@@ -119,6 +123,7 @@ export async function updateMemory(memoryId: string, kinId: string, updates: Upd
   if (updates.content !== undefined) setValues.content = updates.content
   if (updates.category !== undefined) setValues.category = updates.category
   if (updates.subject !== undefined) setValues.subject = updates.subject
+  if (updates.importance !== undefined) setValues.importance = updates.importance
 
   // Re-generate embedding if content changed
   if (updates.content !== undefined) {
@@ -227,7 +232,7 @@ export async function searchMemories(
   ])
 
   // Reciprocal rank fusion
-  const scoreMap = new Map<string, { score: number; content: string; category: string; subject: string | null; updatedAt: Date | null }>()
+  const scoreMap = new Map<string, { score: number; content: string; category: string; subject: string | null; importance: number | null; updatedAt: Date | null }>()
 
   const K = 60 // RRF constant
   for (let i = 0; i < vecResults.length; i++) {
@@ -237,7 +242,7 @@ export async function searchMemories(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, updatedAt: r.updatedAt })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt })
     }
   }
   for (let i = 0; i < ftsResults.length; i++) {
@@ -247,18 +252,24 @@ export async function searchMemories(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, updatedAt: r.updatedAt })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt })
     }
   }
 
-  // Apply temporal decay to fused scores
+  // Apply temporal decay and importance weighting to fused scores
+  // Formula: finalScore = rrfScore * decayWeight * importanceWeight
+  // importanceWeight normalizes importance (1-10) to a [0.5, 1.5] range
+  // Unscored memories (null) default to 5 → weight 1.0 (neutral)
   for (const [, data] of scoreMap) {
-    data.score *= temporalDecayWeight(data.updatedAt, data.category)
+    const decay = temporalDecayWeight(data.updatedAt, data.category)
+    const imp = data.importance ?? 5 // Default: neutral importance
+    const importanceWeight = 0.5 + (imp / 10) // Maps 1→0.6, 5→1.0, 10→1.5
+    data.score *= decay * importanceWeight
   }
 
-  // Sort by decay-weighted score descending
+  // Sort by weighted score descending
   return Array.from(scoreMap.entries())
-    .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, score: data.score }))
+    .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, importance: data.importance, score: data.score }))
     .sort((a, b) => b.score - a.score)
     .slice(0, maxResults)
 }
@@ -270,7 +281,7 @@ async function searchByVector(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; distance: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; distance: number; updatedAt: Date | null }>> {
   try {
     const queryEmbedding = await generateEmbedding(query)
     const queryBuf = Buffer.from(new Float32Array(queryEmbedding).buffer)
@@ -296,10 +307,10 @@ async function searchByVector(
     const placeholders = matchingIds.map(() => '?').join(', ')
     const memRows = sqlite
       .query<
-        { id: string; content: string; category: string; subject: string | null; updated_at: string | null },
+        { id: string; content: string; category: string; subject: string | null; importance: number | null; updated_at: string | null },
         string[]
       >(
-        `SELECT id, content, category, subject, updated_at FROM memories
+        `SELECT id, content, category, subject, importance, updated_at FROM memories
          WHERE id IN (${placeholders}) AND kin_id = ?`,
       )
       .all(...matchingIds, kinId)
@@ -310,7 +321,7 @@ async function searchByVector(
       .filter((r) => memMap.has(r.memory_id))
       .map((r) => {
         const m = memMap.get(r.memory_id)!
-        return { id: m.id, content: m.content, category: m.category, subject: m.subject, distance: r.distance, updatedAt: m.updated_at ? new Date(m.updated_at) : null }
+        return { id: m.id, content: m.content, category: m.category, subject: m.subject, importance: m.importance, distance: r.distance, updatedAt: m.updated_at ? new Date(m.updated_at) : null }
       })
   } catch {
     // sqlite-vec or embedding provider not available
@@ -325,7 +336,7 @@ function searchByFTS(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; rank: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; rank: number; updatedAt: Date | null }>> {
   try {
     // Escape FTS5 special characters and build query
     const ftsQuery = query
@@ -339,10 +350,10 @@ function searchByFTS(
 
     const rows = sqlite
       .query<
-        { id: string; content: string; category: string; subject: string | null; rank: number; updated_at: string | null },
+        { id: string; content: string; category: string; subject: string | null; importance: number | null; rank: number; updated_at: string | null },
         [string, string, number]
       >(
-        `SELECT m.id, m.content, m.category, m.subject, fts.rank, m.updated_at
+        `SELECT m.id, m.content, m.category, m.subject, m.importance, fts.rank, m.updated_at
          FROM memories_fts fts
          JOIN memories m ON m.rowid = fts.rowid
          WHERE memories_fts MATCH ? AND m.kin_id = ?

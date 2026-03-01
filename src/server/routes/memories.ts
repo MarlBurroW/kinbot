@@ -26,6 +26,7 @@ memoryRoutes.get('/', async (c) => {
       content: memories.content,
       category: memories.category,
       subject: memories.subject,
+      importance: memories.importance,
       sourceChannel: memories.sourceChannel,
       createdAt: memories.createdAt,
       updatedAt: memories.updatedAt,
