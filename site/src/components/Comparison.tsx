@@ -443,7 +443,7 @@ export function Comparison() {
       <DesktopComparison />
 
       <p className="text-center mt-6 text-xs" style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}>
-        Comparison based on default capabilities as of February 2026. Some features may be available via plugins.
+        Comparison based on default capabilities as of March 2026. Some features may be available via plugins.
       </p>
 
       <PositioningSection />

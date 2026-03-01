@@ -1,9 +1,102 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Check, Copy, Github, ArrowRight, Star, GitFork, Tag } from 'lucide-react'
 import { useGitHubData } from './GitHubDataProvider'
 import previewVideo from '/preview1.mp4'
 
 const INSTALL_CMD = 'curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash'
+
+const TERMINAL_LINES = [
+  { text: '$ curl -fsSL .../install.sh | bash', color: 'var(--color-foreground)', delay: 0 },
+  { text: '', delay: 400 },
+  { text: '  ╭──────────────────────────────────╮', color: 'var(--color-primary)', delay: 600 },
+  { text: '  │        🤖 KinBot Installer        │', color: 'var(--color-primary)', delay: 700 },
+  { text: '  ╰──────────────────────────────────╯', color: 'var(--color-primary)', delay: 800 },
+  { text: '', delay: 900 },
+  { text: '  ✓ Bun v1.2.4 detected', color: '#10B981', delay: 1100 },
+  { text: '  ✓ Cloning MarlBurroW/kinbot...', color: '#10B981', delay: 1500 },
+  { text: '  ✓ Installing dependencies...', color: '#10B981', delay: 2100 },
+  { text: '  ✓ Building frontend...', color: '#10B981', delay: 2800 },
+  { text: '  ✓ Running migrations...', color: '#10B981', delay: 3300 },
+  { text: '  ✓ Creating system service...', color: '#10B981', delay: 3700 },
+  { text: '', delay: 4000 },
+  { text: '  🚀 KinBot is running at http://localhost:3000', color: 'var(--color-primary)', delay: 4200 },
+  { text: '     Open the URL to start the setup wizard.', color: 'var(--color-muted-foreground)', delay: 4400 },
+]
+
+function TerminalAnimation() {
+  const [visibleLines, setVisibleLines] = useState(0)
+  const [started, setStarted] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const hasStarted = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || hasStarted.current) return
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) {
+      setVisibleLines(TERMINAL_LINES.length)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasStarted.current) {
+          hasStarted.current = true
+          setStarted(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.5 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!started) return
+    const timers: ReturnType<typeof setTimeout>[] = []
+    TERMINAL_LINES.forEach((line, i) => {
+      timers.push(setTimeout(() => setVisibleLines(i + 1), line.delay))
+    })
+    // After all lines shown, wait and restart
+    const restartTimer = setTimeout(() => {
+      setVisibleLines(0)
+      setTimeout(() => {
+        TERMINAL_LINES.forEach((line, i) => {
+          timers.push(setTimeout(() => setVisibleLines(i + 1), line.delay))
+        })
+      }, 600)
+    }, TERMINAL_LINES[TERMINAL_LINES.length - 1].delay + 5000)
+    timers.push(restartTimer)
+    return () => timers.forEach(clearTimeout)
+  }, [started])
+
+  return (
+    <div ref={ref} className="hidden sm:block font-mono text-xs leading-relaxed" style={{ minHeight: '14rem' }}>
+      {TERMINAL_LINES.slice(0, visibleLines).map((line, i) => (
+        <div
+          key={i}
+          style={{
+            color: line.color || 'var(--color-muted-foreground)',
+            opacity: i === visibleLines - 1 ? 1 : 0.9,
+            transition: 'opacity 0.2s',
+          }}
+        >
+          {line.text || '\u00A0'}
+        </div>
+      ))}
+      {started && visibleLines < TERMINAL_LINES.length && visibleLines > 0 && (
+        <span
+          className="inline-block w-2 h-4 ml-0.5"
+          style={{
+            background: 'var(--color-primary)',
+            animation: 'terminal-blink 1s step-end infinite',
+          }}
+        />
+      )}
+    </div>
+  )
+}
 
 function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
@@ -197,6 +290,7 @@ export function Hero() {
 
       {/* Install command */}
       <div className="animate-fade-in-up w-full max-w-2xl mt-8" style={{ animationDelay: '0.4s' }}>
+        <style>{`@keyframes terminal-blink { 50% { opacity: 0; } }`}</style>
         <div className="glass-strong gradient-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
             <div className="flex gap-1.5">
@@ -217,9 +311,14 @@ export function Hero() {
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <div className="px-5 py-4 font-mono text-sm overflow-x-auto" style={{ color: 'var(--color-foreground)' }}>
-            <span style={{ color: 'var(--color-muted-foreground)' }}>$ </span>
-            <span>{INSTALL_CMD}</span>
+          <div className="px-5 py-4 overflow-x-auto">
+            {/* Static command for mobile / reduced motion */}
+            <div className="sm:hidden font-mono text-sm" style={{ color: 'var(--color-foreground)' }}>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>$ </span>
+              <span>{INSTALL_CMD}</span>
+            </div>
+            {/* Animated terminal for desktop */}
+            <TerminalAnimation />
           </div>
         </div>
         <p className="text-center text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
