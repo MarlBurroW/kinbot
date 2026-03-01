@@ -1,11 +1,17 @@
-import { describe, it, expect } from 'bun:test'
-import { encrypt, decrypt, encryptBuffer, decryptBuffer } from './encryption'
-
-// These tests verify encrypt/decrypt round-trip behavior using whatever
-// encryption key is configured. No custom test key needed — we only care
-// that encrypt → decrypt returns the original value.
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
+import { encrypt, decrypt, encryptBuffer, decryptBuffer, _setTestKey, _resetKeyCache } from './encryption'
 
 describe('encryption service', () => {
+  // Use a deterministic test key so tests work without config
+  const TEST_KEY = 'a'.repeat(64) // 32 bytes hex = AES-256
+
+  beforeAll(async () => {
+    await _setTestKey(TEST_KEY)
+  })
+
+  afterAll(() => {
+    _resetKeyCache()
+  })
   it('encrypts and decrypts a simple string', async () => {
     const plaintext = 'hello world'
     const encrypted = await encrypt(plaintext)

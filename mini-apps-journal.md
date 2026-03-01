@@ -1,5 +1,28 @@
 # Mini-Apps SDK Journal
 
+## 2026-03-01 (run 3) — SDK API Expansion: kin, user, resize, notification
+
+**What:** Added 4 new SDK APIs to `kinbot-sdk.js` (v1.12.0) and the corresponding parent-side handlers in `MiniAppViewer.tsx`.
+
+**New APIs:**
+- **`KinBot.kin`** — getter returning `{id, name, avatarUrl}` about the parent Kin. Derived from app-meta (added `kinAvatarUrl` to the payload).
+- **`KinBot.user`** — getter returning `{id, name, pseudonym, locale, timezone, avatarUrl}` about the current user. Viewer now sends user profile from `useAuth()` in app-meta.
+- **`KinBot.resize(width?, height?)`** — request panel resize. Width clamped 320-1200px, height clamped 200-2000px. Works in side-panel mode.
+- **`KinBot.notification(title, body?)`** — request a browser notification via the parent window (which has Notification permission). Returns `Promise<boolean>`. Handles permission request flow.
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-sdk.js` — added internal state, app-meta extraction, resize/notification functions, public API entries
+- `src/client/components/mini-app/MiniAppViewer.tsx` — imports `useAuth`, sends user/kinAvatarUrl in app-meta, handles resize/notification messages
+- `src/server/tools/mini-app-tools.ts` — documented new APIs in tool descriptions
+
+**Next priorities:**
+1. Add Grid component for responsive layouts
+2. Add Breadcrumbs, Popover components
+3. `KinBot.memory.search()` / `KinBot.memory.store()` — requires new API routes
+4. `KinBot.conversation.history()` / `KinBot.conversation.send()` — requires new API routes
+5. `KinBot.shortcut(key, callback)` — keyboard shortcut registration
+6. `KinBot.share(data)` — inter-app data sharing
+
 ## 2026-03-01 — React Component Library (@kinbot/components)
 
 **What:** Created `kinbot-components.js` — a full React component library served as ES module.
