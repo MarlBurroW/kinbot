@@ -145,7 +145,9 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 | RAG / document embedding | ❌ | ✅ | ⚠️ | ✅ |
 | Free & open source | ✅ | ✅ | ✅ | ✅ |
 
-✅ Full support · ⚠️ Partial · ❌ Not available · *Based on default capabilities as of Feb 2026*
+✅ Full support · ⚠️ Partial · ❌ Not available · *Based on default capabilities as of March 2026*
+
+**vs orchestration frameworks (CrewAI, AutoGPT):** These are task pipelines where agents execute a workflow and disappear. No persistence, no memory between runs. KinBot agents live permanently, accumulate knowledge, and work autonomously on schedules. Contractors vs. a team.
 
 👉 [Full comparison with positioning details](https://marlburrow.github.io/kinbot/#comparison)
 

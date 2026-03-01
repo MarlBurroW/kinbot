@@ -45,7 +45,9 @@ const rows: Row[] = [
   { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes' },
 ]
 
-const positioningBlurbs: { id: Competitor; title: string; text: string; when: string }[] = [
+type BlurbId = Competitor | 'crewai'
+
+const positioningBlurbs: { id: BlurbId; title: string; text: string; when: string }[] = [
   {
     id: 'chatgpt',
     title: 'vs ChatGPT',
@@ -75,6 +77,12 @@ const positioningBlurbs: { id: Competitor; title: string; text: string; when: st
     title: 'vs OpenClaw',
     text: "OpenClaw is a powerful single-agent personal assistant. CLI-first, deeply integrated with system tools, great for power users who want one Swiss Army knife AI. KinBot takes a different approach: multi-agent, multi-user, web UI, with agents that have their own identities and can collaborate. OpenClaw is your personal Swiss Army knife. KinBot is your team.",
     when: "If you want a single deeply-integrated personal assistant rather than a team of specialized agents.",
+  },
+  {
+    id: 'crewai',
+    title: 'vs CrewAI / AutoGPT',
+    text: "CrewAI and AutoGPT are task orchestration frameworks: you define a workflow, agents execute it, then they're gone. No persistence between runs. No memory. No identity continuity. KinBot agents live permanently, accumulate knowledge over time, and can be triggered by schedules or external events. It's the difference between hiring contractors and building a team.",
+    when: 'If you need one-shot task pipelines with complex multi-step workflows rather than persistent conversational agents.',
   },
 ]
 
@@ -117,7 +125,7 @@ function CellLabel({ value }: { value: Support }) {
 
 /** Expandable positioning blurbs */
 function PositioningSection() {
-  const [expanded, setExpanded] = useState<Competitor | null>(null)
+  const [expanded, setExpanded] = useState<BlurbId | null>(null)
 
   return (
     <div className="mt-10 space-y-3">
