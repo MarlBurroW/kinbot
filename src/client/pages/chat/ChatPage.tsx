@@ -1,13 +1,15 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/client/components/ui/sidebar'
 import { AppSidebar } from '@/client/components/sidebar/AppSidebar'
 import { MiniAppProvider } from '@/client/contexts/MiniAppContext'
-import { KinFormModal } from '@/client/components/kin/KinFormModal'
 import { ChatPanel } from '@/client/components/chat/ChatPanel'
-import { SettingsModal } from '@/client/pages/settings/SettingsPage'
-import { AccountDialog } from '@/client/pages/account/AccountPage'
+
+// Lazy-load modals — not needed on initial render
+const KinFormModal = lazy(() => import('@/client/components/kin/KinFormModal').then(m => ({ default: m.KinFormModal })))
+const SettingsModal = lazy(() => import('@/client/pages/settings/SettingsPage').then(m => ({ default: m.SettingsModal })))
+const AccountDialog = lazy(() => import('@/client/pages/account/AccountPage').then(m => ({ default: m.AccountDialog })))
 import { useKins } from '@/client/hooks/useKins'
 import { useAuth } from '@/client/hooks/useAuth'
 import { Separator } from '@/client/components/ui/separator'
@@ -322,56 +324,65 @@ export function ChatPage() {
         </div>
       </SidebarInset>
 
-      {/* Create Kin modal */}
-      <KinFormModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        llmModels={llmModels}
-        imageModels={imageModels}
-        onCreateKin={createKin}
-        onUpdateKin={updateKin}
-        onUploadAvatar={uploadAvatar}
-        onGenerateAvatarPreview={generateAvatarPreview}
-        onGenerateKinConfig={generateKinConfig}
-        onGenerateAvatarPreviewFromConfig={generateAvatarPreviewFromConfig}
-        hasImageCapability={hasImageCapability}
-      />
+      {/* Lazy-loaded modals */}
+      <Suspense fallback={null}>
+        {/* Create Kin modal */}
+        {showCreateModal && (
+          <KinFormModal
+            open={showCreateModal}
+            onOpenChange={setShowCreateModal}
+            llmModels={llmModels}
+            imageModels={imageModels}
+            onCreateKin={createKin}
+            onUpdateKin={updateKin}
+            onUploadAvatar={uploadAvatar}
+            onGenerateAvatarPreview={generateAvatarPreview}
+            onGenerateKinConfig={generateKinConfig}
+            onGenerateAvatarPreviewFromConfig={generateAvatarPreviewFromConfig}
+            hasImageCapability={hasImageCapability}
+          />
+        )}
 
-      {/* Create Hub Kin modal */}
-      <KinFormModal
-        open={showCreateHubModal}
-        onOpenChange={setShowCreateHubModal}
-        llmModels={llmModels}
-        imageModels={imageModels}
-        onCreateKin={handleCreateHubKin}
-        onUpdateKin={updateKin}
-        onUploadAvatar={uploadAvatar}
-        onGenerateAvatarPreview={generateAvatarPreview}
-        onGenerateKinConfig={generateKinConfig}
-        onGenerateAvatarPreviewFromConfig={generateAvatarPreviewFromConfig}
-        hasImageCapability={hasImageCapability}
-        hubMode
-      />
+        {/* Create Hub Kin modal */}
+        {showCreateHubModal && (
+          <KinFormModal
+            open={showCreateHubModal}
+            onOpenChange={setShowCreateHubModal}
+            llmModels={llmModels}
+            imageModels={imageModels}
+            onCreateKin={handleCreateHubKin}
+            onUpdateKin={updateKin}
+            onUploadAvatar={uploadAvatar}
+            onGenerateAvatarPreview={generateAvatarPreview}
+            onGenerateKinConfig={generateKinConfig}
+            onGenerateAvatarPreviewFromConfig={generateAvatarPreviewFromConfig}
+            hasImageCapability={hasImageCapability}
+            hubMode
+          />
+        )}
 
-      {/* Edit Kin modal */}
-      <KinFormModal
-        open={showEditModal}
-        onOpenChange={setShowEditModal}
-        llmModels={llmModels}
-        imageModels={imageModels}
-        kin={editingKin}
-        onUpdateKin={updateKin}
-        onDeleteKin={handleDeleteKin}
-        onUploadAvatar={uploadAvatar}
-        onGenerateAvatarPreview={generateAvatarPreview}
-        hasImageCapability={hasImageCapability}
-      />
+        {/* Edit Kin modal */}
+        {showEditModal && (
+          <KinFormModal
+            open={showEditModal}
+            onOpenChange={setShowEditModal}
+            llmModels={llmModels}
+            imageModels={imageModels}
+            kin={editingKin}
+            onUpdateKin={updateKin}
+            onDeleteKin={handleDeleteKin}
+            onUploadAvatar={uploadAvatar}
+            onGenerateAvatarPreview={generateAvatarPreview}
+            hasImageCapability={hasImageCapability}
+          />
+        )}
 
-      {/* Account modal */}
-      <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+        {/* Account modal */}
+        {accountOpen && <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />}
 
-      {/* Settings modal */}
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} initialSection={settingsInitialSection} />
+        {/* Settings modal */}
+        {settingsOpen && <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} initialSection={settingsInitialSection} />}
+      </Suspense>
 
       {/* Command palette (Cmd+K) */}
       <CommandPalette
