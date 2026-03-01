@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
@@ -180,6 +181,9 @@ export function CronFormModal({
           <DialogTitle>
             {isEdit ? t('cron.edit.title') : t('cron.create.title')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit ? t('cron.edit.title') : t('cron.create.title')}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">

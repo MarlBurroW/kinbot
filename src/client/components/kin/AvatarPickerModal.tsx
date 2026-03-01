@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogOverlay,
 } from '@/client/components/ui/dialog'
 import { Button } from '@/client/components/ui/button'
 import { Textarea } from '@/client/components/ui/textarea'
@@ -153,6 +153,7 @@ export function AvatarPickerModal({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('kin.avatar.title')}</DialogTitle>
+            <DialogDescription className="sr-only">{t('kin.avatar.title')}</DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col items-center gap-5">
@@ -375,6 +376,7 @@ export function AvatarPickerModal({
           <DialogPrimitive.Content
             className="fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
             aria-label="Avatar preview"
+            aria-describedby={undefined}
           >
             <img
               src={displayAvatar ?? ''}

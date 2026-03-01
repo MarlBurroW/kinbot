@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/client/components/ui/dialog'
@@ -431,6 +432,9 @@ export function KinFormModal({
                 <DialogTitle className="gradient-primary-text">
                   {hubMode ? t('hub.wizard.title') : t('kin.wizard.title')}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {hubMode ? t('hub.wizard.title') : t('kin.wizard.title')}
+                </DialogDescription>
               </DialogHeader>
 
               <div className="flex flex-1 flex-col items-center justify-center px-8 py-10">
@@ -574,6 +578,9 @@ export function KinFormModal({
                 <DialogTitle>
                   {isEdit ? t('kin.edit.title') : t('kin.create.title')}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {isEdit ? t('kin.edit.title') : t('kin.create.title')}
+                </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="flex min-h-0 flex-1">

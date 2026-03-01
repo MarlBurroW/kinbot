@@ -7,6 +7,7 @@ import { Label } from '@/client/components/ui/label'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -105,6 +106,9 @@ export function MemoryFormDialog({
           <DialogTitle>
             {isEdit ? t('settings.memories.edit') : t('settings.memories.add')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit ? t('settings.memories.edit') : t('settings.memories.add')}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

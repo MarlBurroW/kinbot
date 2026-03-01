@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -144,6 +145,7 @@ export function CronDetailModal({
               </Avatar>
               <div className="min-w-0 flex-1">
                 <DialogTitle className="text-base truncate">{cron.name}</DialogTitle>
+                <DialogDescription className="sr-only">{cron.name}</DialogDescription>
                 <p className="text-xs text-muted-foreground truncate">{kinName}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
