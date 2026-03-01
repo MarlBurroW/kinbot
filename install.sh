@@ -3094,11 +3094,21 @@ docker_install() {
   cat > "$output_dir/.env" << ENV
 # KinBot Docker configuration
 # Edit these values, then run: docker compose up -d
+#
+# For all options, see: https://github.com/MarlBurroW/kinbot
 
+# ── Core ─────────────────────────────────────────────────────────
 PORT=${KINBOT_PORT}
 PUBLIC_URL=${KINBOT_PUBLIC_URL}
 ENCRYPTION_KEY=${enc_key}
 LOG_LEVEL=info
+
+# ── Resource limits ──────────────────────────────────────────────
+# Adjust based on your machine. Defaults are safe for 2GB+ RAM.
+# Small machines (1GB RAM): MEMORY_LIMIT=512m CPU_LIMIT=1.0
+# Larger machines:          MEMORY_LIMIT=2g   CPU_LIMIT=4.0
+MEMORY_LIMIT=1g
+CPU_LIMIT=2.0
 ENV
   chmod 600 "$output_dir/.env"
 
@@ -3106,13 +3116,15 @@ ENV
   cat > "$output_dir/docker-compose.yml" << 'COMPOSE'
 # KinBot — Self-hosted AI agent platform
 # Docs: https://github.com/MarlBurroW/kinbot
+#
+# Quick start:  docker compose up -d
+# Update:       docker compose pull && docker compose up -d
+# Logs:         docker compose logs -f kinbot
 
 services:
   kinbot:
     image: ghcr.io/marlburrow/kinbot:latest
-    build:
-      context: https://github.com/MarlBurroW/kinbot.git
-      dockerfile: docker/Dockerfile
+    container_name: kinbot
     ports:
       - "${PORT:-3000}:3000"
     volumes:
@@ -3126,11 +3138,44 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     restart: unless-stopped
+
+    # ── Resource limits ──────────────────────────────────────────────
+    # Prevents runaway memory/CPU from affecting the host.
+    # Adjust to your machine: 512m is fine for small usage,
+    # increase to 1g or 2g for heavier workloads.
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-1g}
+          cpus: "${CPU_LIMIT:-2.0}"
+        reservations:
+          memory: 256m
+
+    # ── Logging ──────────────────────────────────────────────────────
+    # Prevents Docker logs from filling up the disk on long-running
+    # installations. Keeps up to 3 x 10MB rotated log files.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # ── Security hardening ───────────────────────────────────────────
+    # read_only: prevents writes outside of mounted volumes
+    # no-new-privileges: blocks privilege escalation inside container
+    # tmpfs: provides writable /tmp without persisting to disk
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64m
+
+    # ── Health check ─────────────────────────────────────────────────
     healthcheck:
       test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/api/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
-      start_period: 15s
+      start_period: 30s
       retries: 3
 
 volumes:
@@ -3195,6 +3240,11 @@ COMPOSE
   echo -e "    $compose_cmd pull && $compose_cmd up -d  ${DIM}# Update${NC}"
   echo -e "    $compose_cmd down              ${DIM}# Stop${NC}"
   echo -e "    $compose_cmd down -v           ${DIM}# Stop & remove data${NC}"
+  echo ""
+  echo -e "  ${BOLD}Resource tuning:${NC} ${DIM}(edit .env, then: $compose_cmd up -d)${NC}"
+  echo -e "    ${DIM}Small machine (1GB):  MEMORY_LIMIT=512m CPU_LIMIT=1.0${NC}"
+  echo -e "    ${DIM}Default (2GB+):       MEMORY_LIMIT=1g   CPU_LIMIT=2.0${NC}"
+  echo -e "    ${DIM}Larger (4GB+):        MEMORY_LIMIT=2g   CPU_LIMIT=4.0${NC}"
   echo ""
 }
 
