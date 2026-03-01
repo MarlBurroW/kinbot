@@ -104,14 +104,14 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
   }
 
   const handleDelete = async () => {
-    if (!deletingMemory) return
+    const target = deletingMemory
+    if (!target) return
+    setDeletingMemory(null)
     try {
-      await deleteMemory(deletingMemory.id, deletingMemory.kinId)
+      await deleteMemory(target.id, target.kinId)
       toast.success(t('settings.memories.deleted'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
-    } finally {
-      setDeletingMemory(null)
     }
   }
 
