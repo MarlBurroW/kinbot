@@ -12,6 +12,11 @@ import {
   deleteAppFile,
   listAppFiles,
   getMiniAppRow,
+  storageGet,
+  storageSet,
+  storageDelete,
+  storageList,
+  storageClear,
 } from '@/server/services/mini-apps'
 import { sseManager } from '@/server/sse/index'
 import type { ToolRegistration } from '@/server/tools/types'
@@ -368,6 +373,144 @@ export const listMiniAppFilesTool: ToolRegistration = {
           return { files }
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Failed to list files'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── get_mini_app_storage ───────────────────────────────────────────────────
+
+export const getMiniAppStorageTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Read a value from a mini app\'s key-value storage. ' +
+        'This is the same storage accessible via KinBot.storage in the frontend SDK. ' +
+        'Useful for inspecting app state, debugging, or reading data set by the frontend.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+        key: z.string().describe('Storage key to read'),
+      }),
+      execute: async ({ app_id, key }) => {
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only access your own apps' }
+
+        const value = await storageGet(app_id, key)
+        if (value === null) return { key, value: null, found: false }
+        try {
+          return { key, value: JSON.parse(value), found: true }
+        } catch {
+          return { key, value, found: true }
+        }
+      },
+    }),
+}
+
+// ─── set_mini_app_storage ───────────────────────────────────────────────────
+
+export const setMiniAppStorageTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Set a value in a mini app\'s key-value storage. ' +
+        'Values must be JSON-serializable. Max 64KB per value, 500 keys per app. ' +
+        'Use this to pre-populate data for an app, configure settings, or seed initial content.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+        key: z.string().describe('Storage key to set'),
+        value: z.any().describe('Value to store (any JSON-serializable type: string, number, boolean, array, object)'),
+      }),
+      execute: async ({ app_id, key, value }) => {
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only access your own apps' }
+
+        try {
+          await storageSet(app_id, key, JSON.stringify(value))
+          return { key, message: `Storage key "${key}" set successfully` }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Storage error'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── delete_mini_app_storage ────────────────────────────────────────────────
+
+export const deleteMiniAppStorageTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description: 'Delete a key from a mini app\'s key-value storage.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+        key: z.string().describe('Storage key to delete'),
+      }),
+      execute: async ({ app_id, key }) => {
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only access your own apps' }
+
+        const deleted = await storageDelete(app_id, key)
+        if (!deleted) return { key, deleted: false, message: 'Key not found' }
+        return { key, deleted: true, message: `Storage key "${key}" deleted` }
+      },
+    }),
+}
+
+// ─── list_mini_app_storage ──────────────────────────────────────────────────
+
+export const listMiniAppStorageTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'List all storage keys for a mini app with their sizes. ' +
+        'Use this to inspect what data an app has stored.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+      }),
+      execute: async ({ app_id }) => {
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only access your own apps' }
+
+        try {
+          const keys = await storageList(app_id)
+          return { keys, count: keys.length }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Storage error'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── clear_mini_app_storage ─────────────────────────────────────────────────
+
+export const clearMiniAppStorageTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description: 'Clear all storage keys for a mini app. Use with caution — this removes all persisted data.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+      }),
+      execute: async ({ app_id }) => {
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only access your own apps' }
+
+        try {
+          const cleared = await storageClear(app_id)
+          return { cleared, message: `Cleared ${cleared} storage key(s)` }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Storage error'
           return { error: message }
         }
       },
