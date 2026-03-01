@@ -2011,6 +2011,122 @@ show_version() {
   fi
 }
 
+# ─── Changelog ────────────────────────────────────────────────────────────────
+show_changelog() {
+  # Detect OS first for correct default dirs
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+  fi
+
+  if [ ! -d "$KINBOT_DIR/.git" ]; then
+    echo "KinBot is not installed at $KINBOT_DIR"
+    exit 1
+  fi
+
+  local branch
+  branch="$(git -C "$KINBOT_DIR" branch --show-current 2>/dev/null || echo "main")"
+
+  # Fetch latest from remote
+  info "Fetching latest changes..."
+  if ! git -C "$KINBOT_DIR" fetch origin "$branch" --quiet 2>/dev/null; then
+    error "Could not fetch from remote. Check your internet connection."
+  fi
+
+  local local_ref remote_ref
+  local_ref="$(git -C "$KINBOT_DIR" rev-parse HEAD 2>/dev/null)"
+  remote_ref="$(git -C "$KINBOT_DIR" rev-parse "origin/$branch" 2>/dev/null)"
+
+  if [ "$local_ref" = "$remote_ref" ]; then
+    local version
+    version="$(get_installed_version)"
+    echo ""
+    echo -e "  ${GREEN}✓ Up to date${NC} ($version)"
+    echo -e "  ${DIM}No new changes on ${branch}.${NC}"
+    echo ""
+    exit 0
+  fi
+
+  local behind
+  behind="$(git -C "$KINBOT_DIR" rev-list HEAD.."origin/$branch" --count 2>/dev/null || echo "0")"
+  local current_version new_version
+  current_version="$(get_installed_version)"
+  new_version="$(git -C "$KINBOT_DIR" describe --tags "origin/$branch" 2>/dev/null || git -C "$KINBOT_DIR" rev-parse --short "origin/$branch")"
+
+  echo ""
+  echo -e "${BOLD}KinBot Changelog${NC}"
+  echo ""
+  echo -e "  ${CYAN}Installed:${NC}  $current_version"
+  echo -e "  ${CYAN}Latest:${NC}     $new_version"
+  echo -e "  ${CYAN}Changes:${NC}    $behind commit(s) on ${branch}"
+  echo ""
+
+  # Categorize commits by conventional commit prefix
+  local commits
+  commits="$(git -C "$KINBOT_DIR" log --oneline "HEAD..origin/$branch" 2>/dev/null)"
+
+  if [ -z "$commits" ]; then
+    echo -e "  ${DIM}No commits to show.${NC}"
+    echo ""
+    exit 0
+  fi
+
+  # Extract categories
+  local feats fixes installer docs refactor other
+  feats="$(echo "$commits" | grep -iE '^\w+ feat' || true)"
+  fixes="$(echo "$commits" | grep -iE '^\w+ fix' || true)"
+  installer="$(echo "$commits" | grep -iE '^\w+ installer' || true)"
+  docs="$(echo "$commits" | grep -iE '^\w+ (docs?|readme)' || true)"
+  refactor="$(echo "$commits" | grep -iE '^\w+ (refactor|chore|ci|build|perf|test)' || true)"
+  # "other" = anything not matching the above
+  other="$(echo "$commits" | grep -viE '^\w+ (feat|fix|installer|docs?|readme|refactor|chore|ci|build|perf|test)' || true)"
+
+  _show_section() {
+    local title="$1" icon="$2" lines="$3"
+    [ -z "$lines" ] && return
+    local count
+    count="$(echo "$lines" | wc -l)"
+    echo -e "  ${icon} ${BOLD}${title}${NC} ${DIM}(${count})${NC}"
+    echo "$lines" | while IFS= read -r line; do
+      # Strip the commit hash prefix for cleaner output
+      local hash="${line%% *}"
+      local msg="${line#"$hash" }"
+      echo -e "    ${DIM}•${NC} $msg"
+    done
+    echo ""
+  }
+
+  _show_section "Features" "✨" "$feats"
+  _show_section "Bug Fixes" "🐛" "$fixes"
+  _show_section "Installer" "📦" "$installer"
+  _show_section "Documentation" "📝" "$docs"
+  _show_section "Maintenance" "🔧" "$refactor"
+  _show_section "Other" "📋" "$other"
+
+  # Show tags in the range (version milestones)
+  local tags_in_range
+  tags_in_range="$(git -C "$KINBOT_DIR" tag --sort=-version:refname --contains HEAD --no-contains "origin/$branch" 2>/dev/null || true)"
+  # Actually we want tags between HEAD and origin/branch
+  tags_in_range="$(git -C "$KINBOT_DIR" log --simplify-by-decoration --decorate=short --pretty=format:'%D' "HEAD..origin/$branch" 2>/dev/null | grep -oE 'tag: [^,)]+' | sed 's/tag: //' || true)"
+  if [ -n "$tags_in_range" ]; then
+    echo -e "  ${CYAN}${BOLD}Version tags in this range:${NC}"
+    echo "$tags_in_range" | while IFS= read -r tag; do
+      [ -z "$tag" ] && continue
+      local tag_date
+      tag_date="$(git -C "$KINBOT_DIR" log -1 --format='%ci' "$tag" 2>/dev/null | cut -d' ' -f1 || echo "")"
+      echo -e "    ${BOLD}$tag${NC} ${DIM}($tag_date)${NC}"
+    done
+    echo ""
+  fi
+
+  echo -e "  ${DIM}To apply these changes: bash install.sh --update${NC}"
+  echo ""
+}
+
 # ─── Help ────────────────────────────────────────────────────────────────────
 show_help() {
   echo ""
@@ -2023,6 +2139,7 @@ show_help() {
   echo -e "${BOLD}OPTIONS${NC}"
   echo "  --help          Show this help message"
   echo "  --version       Show installed version and check for updates"
+  echo "  --changelog     Show what changed between installed and latest version"
   echo "  --update        Check for updates and apply if available"
   echo "  --start         Start the KinBot service"
   echo "  --stop          Stop the KinBot service"
@@ -2131,6 +2248,9 @@ show_help() {
   echo ""
   echo "  # Logs from last hour (systemd only)"
   echo "  bash install.sh --logs 500 --since '1 hour ago'"
+  echo ""
+  echo "  # See what's new before updating"
+  echo "  bash install.sh --changelog"
   echo ""
   echo "  # Fix a broken installation (keeps your data)"
   echo "  bash install.sh --reset"
@@ -4548,6 +4668,11 @@ main() {
       --version|-v|version)
         trap - INT TERM
         show_version
+        exit 0
+        ;;
+      --changelog|changelog)
+        trap - INT TERM
+        show_changelog
         exit 0
         ;;
       --dry-run|dry-run)
