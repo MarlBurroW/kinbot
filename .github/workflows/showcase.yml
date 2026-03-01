@@ -60,20 +60,23 @@ jobs:
       - name: Build frontend
         run: bun run build
 
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
       # ── Record dark mode ──
       - name: Record showcase (dark)
         env:
-          E2E_DB_PATH: ${{ runner.temp }}/kinbot-showcase.db
+          E2E_DB_PATH: ${{ runner.temp }}/kinbot-showcase-dark.db
           SHOWCASE_THEME: dark
         run: |
           npx playwright test --config=playwright.showcase.config.js
           mkdir -p showcase-raw
           find test-results -name "*.webm" -exec cp {} showcase-raw/dark.webm \;
 
-      # ── Record light mode ──
+      # ── Record light mode (separate DB to avoid port/state conflicts) ──
       - name: Record showcase (light)
         env:
-          E2E_DB_PATH: ${{ runner.temp }}/kinbot-showcase.db
+          E2E_DB_PATH: ${{ runner.temp }}/kinbot-showcase-light.db
           SHOWCASE_THEME: light
         run: |
           rm -rf test-results
