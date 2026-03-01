@@ -47,3 +47,5 @@ test-results/
 .claude/
 .marlbot-context.md
 e2e-journal.md
+memory-research.md
+memory-experiments/
