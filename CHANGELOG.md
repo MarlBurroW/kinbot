@@ -8,25 +8,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Context** — move compacting summary from fake messages to system prompt for cleaner context
+- **Health check** — version and uptime in `/api/health` response ([#18](https://github.com/MarlBurroW/kinbot/issues/18))
+
+---
+
+## [0.6.0] - 2026-03-01
+
+### Added
+- **Hub Kin** — new Hub Kin concept with routing, onboarding rework, and account dialog
+- **Mini Apps: `KinBot.sendMessage()`** — SDK API for app-to-Kin communication
+- **Mini Apps: `KinBot.ready()` promise** — returns app metadata on resolution
+- **Mini Apps: `KinBot.locale` API** — i18n-aware mini apps
+- **Mini Apps: template parameter** — `create_mini_app` tool now accepts a template
+- **Memory: importance scoring** — memories now have an importance score
+- **Memory: improved FTS5 query building** — prefix matching and AND/OR fallback
+- **Channels: `IncomingAttachment`** — attachments field on `IncomingMessage`
+- **Installer** — `--changelog` command to preview changes before updating
+- Auto-labeler workflow for PRs
+- CrewAI/AutoGPT positioning in comparison table (site)
+
+### Fixed
+- Scroll freeze in chat with memoization and `startTransition`
+- Dialog gap styling
+- E2E test stability (strict mode violations, vault select-trigger scoping)
+- Consolidate duplicate PR templates
+
+### Changed
+- Troubleshooting and security links in site footer
+- Animated terminal install sequence in Hero section (site)
+- Simplified WhatIsKin diagram (site)
+
+---
+
+## [0.5.0] - 2026-02-28
+
+### Added
+- **Built-in tools reference** — 90+ tools documented in README
 - **Mini Apps: App Gallery** — browse community apps and clone them into your Kins with one click
+- **Mini Apps: `KinBot.http()` server-side proxy** — external API requests from sandboxed apps
+- **Mini Apps: snapshot/rollback tools** — Kins can snapshot and rollback mini app state
+- **Mini Apps: storage tools** — `get`/`set`/`delete`/`list`/`clear` persistent key-value storage
+- **Mini Apps: real-time SSE events** — backend-to-frontend event streaming
+- **Mini Apps: responsive breakpoints** — `sm`/`md`/`lg` CSS utility classes
+- **Mini Apps: base tag** — relative path resolution in multi-file apps
 - **Mini Apps: Additional SDK components** — select, checkbox, switch, radio, progress, alert, avatar, kbd, spinner CSS classes
-- **E2E Tests** — channel management spec (create, edit, test, delete, platform selector)
-- **E2E Tests** — Kin management spec (create, edit, delete, tabs, wizard)
-- **Installer** — HTTPS and encryption key security hints in post-install summary
-- **Installer** — update check in `--status` command
-- Pull request template
+- **Memory: temporal decay** — time-based scoring in memory search
+- **@mention system** — autocomplete, styled pills, and notifications
+- **E2E Tests** — channel management, Kin management, settings, contacts, webhooks, search providers, vault
+- **Installer** — `--start`/`--stop`/`--restart` for service lifecycle; `--doctor` diagnostic report; `--yes`/`-y` non-interactive mode; self-update check; HTTPS/encryption key hints; `config`/`env`/`restore`/`reset` subcommands; `--logs` with grep/since filtering
+- Comparison table in README
 - Husky pre-commit hooks (typecheck + tests + build)
 - Badge `size="xs"` variant
+- Pull request template and CODEOWNERS
+- Dependabot monitoring for `site/` dependencies
+- Concurrency groups to cancel superseded workflow runs
+- Cached Playwright browsers in E2E workflow
 
 ### Fixed
 - Guard `config.tasks` access in prompt-builder to prevent CI failures
 - Read `PUBLIC_URL` from env on update, fixing empty URL in summary ([#9](https://github.com/MarlBurroW/kinbot/issues/9))
 - Remove husky prepare script in Docker production stage (bun ignores `HUSKY=0`)
 - Translate hardcoded Close button and URL label (i18n)
+- SSE events for MCP servers, quick-session memories, contacts, webhooks now properly emitted
+- Race condition in memory deletion
+- Type error in `useMentionables`
+- E2E test stability improvements across multiple specs
 
 ### Changed
 - Add Compare link to navbar (site)
 - Circular scroll progress indicator on back-to-top button (site)
+- Interactive cost estimator, cross-platform context demo, autonomy demo on site
+- Shared `ProviderSelector` and `FormErrorAlert` components
+- Minimal `EmptyState` variant replacing inline dashed empty states
 
 ---
 
@@ -523,7 +577,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/MarlBurroW/kinbot/compare/v0.2.23...HEAD
+[Unreleased]: https://github.com/MarlBurroW/kinbot/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/MarlBurroW/kinbot/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/MarlBurroW/kinbot/compare/v0.4.2...v0.5.0
+[0.4.2]: https://github.com/MarlBurroW/kinbot/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/MarlBurroW/kinbot/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/MarlBurroW/kinbot/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/MarlBurroW/kinbot/compare/v0.2.25...v0.3.0
+[0.2.25]: https://github.com/MarlBurroW/kinbot/compare/v0.2.24...v0.2.25
+[0.2.24]: https://github.com/MarlBurroW/kinbot/compare/v0.2.23...v0.2.24
 [0.2.23]: https://github.com/MarlBurroW/kinbot/compare/v0.2.22...v0.2.23
 [0.2.22]: https://github.com/MarlBurroW/kinbot/compare/v0.2.21...v0.2.22
 [0.2.21]: https://github.com/MarlBurroW/kinbot/compare/v0.2.20...v0.2.21
