@@ -243,9 +243,30 @@ export function useTaskDetail(taskId: string | null) {
     'chat:tool-call': (data) => {
       if (data.taskId !== taskId) return
 
+      const messageId = data.messageId as string
+
+      // Ensure streaming state is initialised (tool-call-streaming-start
+      // is provider-dependent and may never fire).
+      if (!streamingMessageIdRef.current) {
+        streamingMessageIdRef.current = messageId
+        streamingContentRef.current = ''
+        setIsStreaming(true)
+
+        setStreamingMessage({
+          id: messageId,
+          role: 'assistant',
+          content: '',
+          sourceType: 'kin',
+          sourceId: null,
+          isRedacted: false,
+          toolCalls: null,
+          createdAt: Date.now(),
+        })
+      }
+
       const item: ToolCallViewItem = {
         id: data.toolCallId as string,
-        messageId: data.messageId as string,
+        messageId,
         name: data.toolName as string,
         domain: getToolDomain(data.toolName as string),
         args: data.args,
@@ -297,6 +318,17 @@ export function useTaskDetail(taskId: string | null) {
       fetchDetail()
     },
   })
+
+  // Polling fallback — if SSE events are lost (e.g. reconnection gap),
+  // periodically refresh the task detail so messages still appear.
+  useEffect(() => {
+    if (!taskId) return
+    const status = task?.status
+    if (!status || status === 'completed' || status === 'failed' || status === 'cancelled') return
+
+    const interval = setInterval(fetchDetail, 3000)
+    return () => clearInterval(interval)
+  }, [taskId, task?.status, fetchDetail])
 
   // Extract tool calls from persisted messages
   const historicalToolCalls = useMemo(() => {
