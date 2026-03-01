@@ -44,6 +44,24 @@ updates:
           - "minor"
           - "patch"
 
+  # Landing site dependencies (site/)
+  - package-ecosystem: "npm"
+    directory: "/site"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "site"
+    groups:
+      site-deps:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
   # Docker base images
   - package-ecosystem: "docker"
     directory: "/docker"
