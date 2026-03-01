@@ -731,6 +731,40 @@ function buildImportMapTag(manifest: Record<string, unknown>): string {
   return `<script type="importmap">${JSON.stringify(importmap)}</script>`
 }
 
+// ─── JSX transpilation (Bun built-in) ────────────────────────────────────────
+
+const JSX_TSCONFIG = JSON.stringify({
+  compilerOptions: { jsx: 'react', jsxFactory: 'React.createElement', jsxFragmentFactory: 'React.Fragment' },
+})
+const jsxTranspiler = new Bun.Transpiler({ loader: 'jsx', tsconfig: JSX_TSCONFIG })
+const tsxTranspiler = new Bun.Transpiler({ loader: 'tsx', tsconfig: JSX_TSCONFIG })
+
+/** Ensure `import React from 'react'` is present (needed for classic JSX transform). */
+function ensureReactImport(code: string): string {
+  // Check if React is already imported as default or namespace
+  if (/import\s+React[\s,{]/m.test(code) || /import\s+\*\s+as\s+React/m.test(code)) return code
+  return "import React from 'react';\n" + code
+}
+
+/**
+ * Find <script type="text/jsx"> blocks in HTML and transpile them to ES modules.
+ * Uses Bun's built-in transpiler in classic mode (React.createElement).
+ */
+function transpileInlineJsx(html: string): string {
+  return html.replace(
+    /<script\s+type="text\/jsx">([\s\S]*?)<\/script>/gi,
+    (_, code: string) => {
+      try {
+        const transpiled = jsxTranspiler.transformSync(ensureReactImport(code))
+        return `<script type="module">${transpiled}</script>`
+      } catch (err) {
+        console.error('[mini-app] JSX transpilation failed:', err)
+        return `<script type="module">console.error('[KinBot] JSX transpilation failed — check your JSX syntax');</script>`
+      }
+    },
+  )
+}
+
 // Serve the entry point HTML with injected SDK
 miniAppRoutes.get('/:id/serve', async (c) => {
   const app = await getMiniAppRow(c.req.param('id'))
@@ -749,6 +783,9 @@ miniAppRoutes.get('/:id/serve', async (c) => {
   }
 
   let html = await Bun.file(entryPath).text()
+
+  // Transpile inline JSX blocks: <script type="text/jsx"> → <script type="module">
+  html = transpileInlineJsx(html)
 
   // Read app.json manifest for import maps
   const manifest = await readAppManifest(dir)
@@ -804,6 +841,28 @@ miniAppRoutes.get('/:id/static/*', async (c) => {
     return c.json({ error: { code: 'NOT_FOUND', message: 'File not found' } }, 404)
   }
 
+  // Transpile .jsx/.tsx files on-the-fly before serving
+  if (assetPath.endsWith('.jsx') || assetPath.endsWith('.tsx')) {
+    try {
+      const source = ensureReactImport(await Bun.file(fullPath).text())
+      const transpiler = assetPath.endsWith('.tsx') ? tsxTranspiler : jsxTranspiler
+      const transpiled = transpiler.transformSync(source)
+      return new Response(transpiled, {
+        headers: {
+          'Content-Type': 'application/javascript',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      })
+    } catch (err) {
+      console.error('[mini-app] JSX/TSX transpilation failed for', assetPath, err)
+      return new Response(`console.error('[KinBot] Failed to transpile ${assetPath}');`, {
+        headers: { 'Content-Type': 'application/javascript' },
+        status: 500,
+      })
+    }
+  }
+
   const file = Bun.file(fullPath)
   return new Response(file, {
     headers: {
@@ -822,6 +881,19 @@ miniAppSdkRoutes.get('/kinbot-sdk.js', async (c) => {
   const jsPath = join(import.meta.dir, '../mini-app-sdk/kinbot-sdk.js')
   if (!existsSync(jsPath)) {
     return new Response('/* KinBot SDK JS not found */', {
+      headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=3600' },
+    })
+  }
+  const js = await Bun.file(jsPath).text()
+  return new Response(js, {
+    headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=3600' },
+  })
+})
+
+miniAppSdkRoutes.get('/kinbot-react.js', async (c) => {
+  const jsPath = join(import.meta.dir, '../mini-app-sdk/kinbot-react.js')
+  if (!existsSync(jsPath)) {
+    return new Response('/* KinBot React SDK not found */', {
       headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=3600' },
     })
   }

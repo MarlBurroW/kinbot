@@ -12,7 +12,13 @@
  *   KinBot.ready() — signal that the app has finished loading
  *   KinBot.fullpage(bool) — request full-page or side-panel mode
  *   KinBot.isFullPage — whether the app is currently in full-page mode
- *   KinBot.api(path, options) — call backend API (_server.js) routes
+ *   KinBot.api(path, options) — call backend API (_server.js) routes (raw Response)
+ *     .json(path, options?) — shorthand: call and parse JSON
+ *     .get(path, headers?) — shorthand: GET JSON
+ *     .post(path, data) — shorthand: POST JSON
+ *     .put(path, data) — shorthand: PUT JSON
+ *     .patch(path, data) — shorthand: PATCH JSON
+ *     .delete(path) — shorthand: DELETE and parse response
  *   KinBot.confirm(message, options) — show a confirmation dialog in the parent UI (returns Promise<boolean>)
  *   KinBot.prompt(message, options) — show a prompt dialog in the parent UI (returns Promise<string|null>)
  *   KinBot.setTitle(title) — dynamically update the panel header title
@@ -312,6 +318,57 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * Convenience: GET JSON from backend API.
+   * @param {string} path
+   * @param {Record<string,string>} [headers] — optional extra headers
+   * @returns {Promise<any>}
+   */
+  api.get = function (path, headers) {
+    return api.json(path, headers ? { headers: headers } : undefined)
+  }
+
+  /**
+   * Convenience: PUT JSON to backend API.
+   * @param {string} path
+   * @param {any} data — will be JSON.stringify'd
+   * @returns {Promise<any>}
+   */
+  api.put = function (path, data) {
+    return api.json(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * Convenience: PATCH JSON to backend API.
+   * @param {string} path
+   * @param {any} data — will be JSON.stringify'd
+   * @returns {Promise<any>}
+   */
+  api.patch = function (path, data) {
+    return api.json(path, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * Convenience: DELETE via backend API.
+   * @param {string} path
+   * @returns {Promise<any|null>} — parsed JSON response, or null for 204
+   */
+  api.delete = function (path) {
+    return api(path, { method: 'DELETE' }).then(function (r) {
+      if (r.status === 204) return null
+      if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'API error ' + r.status) })
+      return r.json()
     })
   }
 
