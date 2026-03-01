@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Cpu, MessageSquare, Puzzle, Users, Star, GitFork, GitCommit, AlertCircle } from 'lucide-react'
+import { Cpu, MessageSquare, Puzzle, Users, Star, GitFork, GitCommit, AlertCircle, Wrench } from 'lucide-react'
 import { useGitHubData } from './GitHubDataProvider'
 
 interface StaticStat {
@@ -12,6 +12,7 @@ interface StaticStat {
 const staticStats: StaticStat[] = [
   { icon: Cpu, value: 23, suffix: '+', label: 'AI providers' },
   { icon: MessageSquare, value: 6, suffix: '', label: 'Chat platforms' },
+  { icon: Wrench, value: 90, suffix: '+', label: 'Built-in tools' },
   { icon: Puzzle, value: 0, suffix: '∞', label: 'MCP tools' },
   { icon: Users, value: 0, suffix: '∞', label: 'Kins per instance' },
 ]

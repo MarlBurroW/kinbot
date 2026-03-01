@@ -246,8 +246,8 @@ export function Features() {
           <span style={{ color: 'var(--color-foreground)' }}>Nothing you don't.</span>
         </h2>
         <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--color-muted-foreground)' }}>
-          KinBot is a complete self-hosted AI platform — not a wrapper, not a demo.
-          Built for real, long-term use on hardware you control.
+          90+ built-in tools, 23 providers, 6 chat platforms. Not a wrapper, not a demo.
+          A complete AI platform built for long-term use on hardware you control.
         </p>
       </div>
 

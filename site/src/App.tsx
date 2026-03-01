@@ -30,7 +30,7 @@ function useStructuredData() {
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Linux, macOS, Docker',
       description:
-        'Self-hosted AI agent platform with persistent identity, continuous memory, and multi-agent collaboration. 23+ providers, 6 chat channels, zero cloud dependency.',
+        'Self-hosted AI agent platform with persistent identity, continuous memory, and multi-agent collaboration. 90+ built-in tools, 23+ providers, 6 chat channels, zero cloud dependency.',
       url: 'https://marlburrow.github.io/kinbot/',
       downloadUrl: 'https://github.com/MarlBurroW/kinbot',
       license: 'https://spdx.org/licenses/AGPL-3.0-only.html',
