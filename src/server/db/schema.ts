@@ -557,6 +557,20 @@ export const miniAppStorage = sqliteTable('mini_app_storage', {
   index('idx_mini_app_storage_app_id').on(table.appId),
 ])
 
+// ─── Mini-App Version Snapshots ──────────────────────────────────────────────
+
+export const miniAppSnapshots = sqliteTable('mini_app_snapshots', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  appId: text('app_id').notNull().references(() => miniApps.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull(),
+  label: text('label'),                      // optional human-readable label (e.g. "before major refactor")
+  fileManifest: text('file_manifest').notNull(), // JSON: [{path, size, hash}]
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_mini_app_snapshots_app_id').on(table.appId),
+  index('idx_mini_app_snapshots_app_version').on(table.appId, table.version),
+])
+
 // ─── File Storage ────────────────────────────────────────────────────────────
 
 export const fileStorage = sqliteTable('file_storage', {

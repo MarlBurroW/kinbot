@@ -197,6 +197,13 @@
       "when": 1772223490206,
       "tag": "0027_sturdy_hairball",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1772331950658,
+      "tag": "0028_abnormal_marvel_zombies",
+      "breakpoints": true
     }
   ]
 }

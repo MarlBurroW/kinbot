@@ -5,7 +5,7 @@ import { mkdir, unlink, readdir, stat, rm } from 'fs/promises'
 import { existsSync } from 'fs'
 import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
-import { miniApps, miniAppStorage, kins } from '@/server/db/schema'
+import { miniApps, miniAppStorage, miniAppSnapshots, kins } from '@/server/db/schema'
 import { config } from '@/server/config'
 import type { MiniAppSummary } from '@/shared/types'
 
@@ -506,4 +506,189 @@ export async function storageClear(appId: string): Promise<number> {
   const result = await db.delete(miniAppStorage)
     .where(eq(miniAppStorage.appId, appId))
   return (result as any).changes ?? 0
+}
+
+// ─── Version Snapshots ──────────────────────────────────────────────────────
+
+const MAX_SNAPSHOTS_PER_APP = 20
+
+export interface SnapshotSummary {
+  id: number
+  version: number
+  label: string | null
+  files: { path: string; size: number }[]
+  createdAt: number
+}
+
+function snapshotDir(kinId: string, appId: string, version: number): string {
+  return join(config.miniApps.dir, kinId, appId, '.snapshots', String(version))
+}
+
+/**
+ * Create a snapshot of all current app files at the current version.
+ * Called automatically before destructive operations (file writes/deletes).
+ */
+export async function createSnapshot(appId: string, label?: string): Promise<SnapshotSummary | null> {
+  const app = await db.select().from(miniApps).where(eq(miniApps.id, appId)).get()
+  if (!app) return null
+
+  const dir = appDir(app.kinId, appId)
+  if (!existsSync(dir)) return null
+
+  // Collect current files (excluding .snapshots dir)
+  const files: { path: string; size: number }[] = []
+  await walkDirForSnapshot(dir, dir, files)
+
+  if (files.length === 0) return null
+
+  // Copy files to snapshot directory
+  const snapDir = snapshotDir(app.kinId, appId, app.version)
+  await mkdir(snapDir, { recursive: true })
+
+  for (const file of files) {
+    const srcPath = join(dir, file.path)
+    const destPath = join(snapDir, file.path)
+    await mkdir(dirname(destPath), { recursive: true })
+    const content = await Bun.file(srcPath).arrayBuffer()
+    await Bun.write(destPath, content)
+  }
+
+  // Record in DB
+  const now = new Date()
+  const result = await db.insert(miniAppSnapshots).values({
+    appId,
+    version: app.version,
+    label: label ?? null,
+    fileManifest: JSON.stringify(files),
+    createdAt: now,
+  })
+
+  const insertedId = Number((result as any).lastInsertRowid)
+
+  // Auto-prune oldest snapshots if over limit
+  const allSnapshots = await db.select({ id: miniAppSnapshots.id, version: miniAppSnapshots.version })
+    .from(miniAppSnapshots)
+    .where(eq(miniAppSnapshots.appId, appId))
+    .orderBy(desc(miniAppSnapshots.version))
+    .all()
+
+  if (allSnapshots.length > MAX_SNAPSHOTS_PER_APP) {
+    const toDelete = allSnapshots.slice(MAX_SNAPSHOTS_PER_APP)
+    for (const snap of toDelete) {
+      await db.delete(miniAppSnapshots).where(eq(miniAppSnapshots.id, snap.id))
+      // Remove snapshot files
+      const oldSnapDir = snapshotDir(app.kinId, appId, snap.version)
+      if (existsSync(oldSnapDir)) {
+        await rm(oldSnapDir, { recursive: true, force: true }).catch(() => {})
+      }
+    }
+  }
+
+  log.debug({ appId, version: app.version, fileCount: files.length }, 'Snapshot created')
+
+  return {
+    id: insertedId,
+    version: app.version,
+    label: label ?? null,
+    files,
+    createdAt: now.getTime(),
+  }
+}
+
+/**
+ * List all snapshots for an app, newest first.
+ */
+export async function listSnapshots(appId: string): Promise<SnapshotSummary[]> {
+  const rows = await db.select()
+    .from(miniAppSnapshots)
+    .where(eq(miniAppSnapshots.appId, appId))
+    .orderBy(desc(miniAppSnapshots.version))
+    .all()
+
+  return rows.map((row) => ({
+    id: row.id,
+    version: row.version,
+    label: row.label,
+    files: JSON.parse(row.fileManifest),
+    createdAt: (row.createdAt as unknown as Date).getTime(),
+  }))
+}
+
+/**
+ * Rollback an app to a specific snapshot version.
+ * Creates a snapshot of the current state first (so rollback is reversible).
+ */
+export async function rollbackToSnapshot(appId: string, targetVersion: number): Promise<{ success: boolean; message: string }> {
+  const app = await db.select().from(miniApps).where(eq(miniApps.id, appId)).get()
+  if (!app) return { success: false, message: 'App not found' }
+
+  const snapshot = await db.select()
+    .from(miniAppSnapshots)
+    .where(and(eq(miniAppSnapshots.appId, appId), eq(miniAppSnapshots.version, targetVersion)))
+    .get()
+
+  if (!snapshot) return { success: false, message: `Snapshot for version ${targetVersion} not found` }
+
+  const snapDir = snapshotDir(app.kinId, appId, targetVersion)
+  if (!existsSync(snapDir)) return { success: false, message: 'Snapshot files not found on disk' }
+
+  // Create a snapshot of current state first (auto-backup)
+  await createSnapshot(appId, `auto-backup before rollback to v${targetVersion}`)
+
+  // Clear current app files (except .snapshots)
+  const dir = appDir(app.kinId, appId)
+  const currentFiles: { path: string }[] = []
+  await walkDirForSnapshot(dir, dir, currentFiles)
+  for (const file of currentFiles) {
+    const filePath = join(dir, file.path)
+    await unlink(filePath).catch(() => {})
+  }
+
+  // Copy snapshot files back
+  const manifest: { path: string; size: number }[] = JSON.parse(snapshot.fileManifest)
+  let hasBackend = false
+  for (const file of manifest) {
+    const srcPath = join(snapDir, file.path)
+    const destPath = join(dir, file.path)
+    if (existsSync(srcPath)) {
+      await mkdir(dirname(destPath), { recursive: true })
+      const content = await Bun.file(srcPath).arrayBuffer()
+      await Bun.write(destPath, content)
+      if (file.path === '_server.js' || file.path === '_server.ts') hasBackend = true
+    }
+  }
+
+  // Update app version
+  const newVersion = app.version + 1
+  await db.update(miniApps).set({
+    version: newVersion,
+    hasBackend,
+    updatedAt: new Date(),
+  }).where(eq(miniApps.id, appId))
+
+  log.info({ appId, fromVersion: app.version, toVersion: targetVersion, newVersion }, 'App rolled back')
+
+  return {
+    success: true,
+    message: `Rolled back to version ${targetVersion}. New version: ${newVersion}. ${manifest.length} files restored.`,
+  }
+}
+
+/** Walk directory excluding .snapshots */
+async function walkDirForSnapshot(base: string, current: string, results: { path: string; size: number }[]): Promise<void> {
+  if (!existsSync(current)) return
+  const entries = await readdir(current, { withFileTypes: true })
+  for (const entry of entries) {
+    if (entry.name === '.snapshots') continue
+    const fullPath = join(current, entry.name)
+    if (entry.isDirectory()) {
+      await walkDirForSnapshot(base, fullPath, results)
+    } else {
+      const fileStat = await stat(fullPath)
+      results.push({
+        path: fullPath.slice(base.length + 1),
+        size: fileStat.size,
+      })
+    }
+  }
 }
