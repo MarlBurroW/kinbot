@@ -1,4 +1,4 @@
-import { Github, Star, GitFork, ArrowRight, Clock } from 'lucide-react'
+import { Github, Star, GitFork, ArrowRight, Clock, CheckCircle, FlaskConical, ShieldCheck } from 'lucide-react'
 import { useGitHubData } from './GitHubDataProvider'
 
 interface RepoStats {
@@ -143,6 +143,48 @@ export function GitHubCTA() {
             Last commit {timeAgo(stats.pushedAt)}
           </div>
         )}
+
+        {/* CI & Quality badges */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+          {([
+            {
+              icon: CheckCircle,
+              label: 'CI',
+              href: 'https://github.com/MarlBurroW/kinbot/actions/workflows/ci.yml',
+              color: '#22C55E',
+            },
+            {
+              icon: FlaskConical,
+              label: 'E2E Tests',
+              href: 'https://marlburrow.github.io/kinbot/e2e-report/',
+              color: '#A78BFA',
+            },
+            {
+              icon: ShieldCheck,
+              label: 'CodeQL',
+              href: 'https://github.com/MarlBurroW/kinbot/actions/workflows/codeql.yml',
+              color: '#38BDF8',
+            },
+          ] as const).map(({ icon: Icon, label, href, color }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105 glass"
+              style={{ color: 'var(--color-muted-foreground)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = color; e.currentTarget.style.borderColor = `color-mix(in oklch, ${color} 40%, transparent)` }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; e.currentTarget.style.borderColor = '' }}
+            >
+              <Icon size={15} style={{ color }} />
+              {label}
+            </a>
+          ))}
+        </div>
+
+        <p className="text-xs mb-8" style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}>
+          Every commit runs unit tests, E2E tests, and security analysis. Results are public.
+        </p>
 
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
