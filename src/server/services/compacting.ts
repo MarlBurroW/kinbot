@@ -233,6 +233,18 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
   // Extract memories (awaited so we can report count)
   const memoriesExtracted = await extractMemories(kinId, kin.model, kin.providerId, messagesToSummarize, lastSummarizedMessage.id)
 
+  // Run memory consolidation to merge near-duplicate memories
+  let memoriesConsolidated = 0
+  try {
+    const { consolidateMemories } = await import('@/server/services/consolidation')
+    memoriesConsolidated = await consolidateMemories(kinId)
+    if (memoriesConsolidated > 0) {
+      log.info({ kinId, memoriesConsolidated }, 'Memories consolidated after extraction')
+    }
+  } catch (err) {
+    log.error({ kinId, err }, 'Memory consolidation error')
+  }
+
   // Persist a system message so the compaction trace survives page refresh
   // role='system' is skipped by buildMessageHistory → won't pollute LLM context
   const compactingMessageId = uuid()
@@ -244,7 +256,7 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     sourceType: 'compacting',
     isRedacted: false,
     redactPending: false,
-    metadata: JSON.stringify({ memoriesExtracted }),
+    metadata: JSON.stringify({ memoriesExtracted, memoriesConsolidated }),
     createdAt: new Date(),
   })
 

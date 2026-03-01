@@ -211,6 +211,13 @@
       "when": 1772370226566,
       "tag": "0029_sour_joseph",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1772391705001,
+      "tag": "0030_known_scourge",
+      "breakpoints": true
     }
   ]
 }

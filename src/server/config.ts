@@ -53,6 +53,9 @@ export const config = {
     embeddingModel: process.env.MEMORY_EMBEDDING_MODEL ?? 'text-embedding-3-small',
     embeddingDimension: Number(process.env.MEMORY_EMBEDDING_DIMENSION ?? 1536),
     temporalDecayLambda: Number(process.env.MEMORY_TEMPORAL_DECAY_LAMBDA ?? 0.01),
+    consolidationSimilarityThreshold: Number(process.env.MEMORY_CONSOLIDATION_SIMILARITY ?? 0.85),
+    consolidationMaxGeneration: Number(process.env.MEMORY_CONSOLIDATION_MAX_GEN ?? 5),
+    consolidationModel: process.env.MEMORY_CONSOLIDATION_MODEL ?? undefined,
   },
 
   queue: {
