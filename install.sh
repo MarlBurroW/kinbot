@@ -1355,10 +1355,45 @@ case "${1:-}" in
       echo "No log file found at $LOG_FILE"
     fi
     ;;
+  update)
+    # Convenience wrapper: re-run the installer in update mode
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      echo "Download and run manually:"
+      echo "  curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash"
+      exit 1
+    fi
+    exec bash "$_install_sh" --update "$@"
+    ;;
+  backup)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    exec bash "$_install_sh" --backup "${2:-}"
+    ;;
+  doctor)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    exec bash "$_install_sh" --doctor
+    ;;
+  test)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    exec bash "$_install_sh" --test
+    ;;
   *)
     echo "KinBot service manager"
     echo ""
-    echo "Usage: $0 {start|stop|restart|status|logs|log-rotate|version}"
+    echo "Usage: $0 {start|stop|restart|status|logs|log-rotate|update|backup|doctor|test|version}"
     echo ""
     echo "Commands:"
     echo "  start       Start KinBot in the background"
@@ -1367,6 +1402,10 @@ case "${1:-}" in
     echo "  status      Show KinBot status, uptime, and resource usage"
     echo "  logs        Tail the log file (use 'logs -n 50' for recent lines)"
     echo "  log-rotate  Rotate the log file now (archives to .1/.2/.3)"
+    echo "  update      Check for updates and apply (wraps install.sh --update)"
+    echo "  backup      Back up the database (wraps install.sh --backup)"
+    echo "  doctor      Generate a diagnostic report (wraps install.sh --doctor)"
+    echo "  test        Run self-tests to validate the installation"
     echo "  version     Show installed version"
     exit 1
     ;;
