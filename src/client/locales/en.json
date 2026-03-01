@@ -422,7 +422,9 @@
     "taskResult": {
       "showResult": "Show result",
       "showError": "Show error details",
-      "openDetail": "View task details"
+      "showInstructions": "Show instructions",
+      "openDetail": "View task details",
+      "assigned": "Assigned"
     },
     "attachFile": "Attach file",
     "dropFiles": "Drop files here",
@@ -477,6 +479,7 @@
     },
     "scrollToBottom": "Scroll to bottom",
     "scrollToTop": "Scroll to top",
+    "loadingOlder": "Loading older messages...",
     "autoScroll": {
       "on": "Auto-scroll enabled. Click to disable",
       "off": "Auto-scroll disabled. Click to enable"
