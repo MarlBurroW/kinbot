@@ -61,7 +61,7 @@ interface ChatPanelProps {
 export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin }: ChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, streamingMessage, liveTasks, liveCompacting, isStreaming, sendMessage, stopStreaming, clearConversation } = useChat(kin.id)
+  const { messages, streamingMessage, liveTasks, liveCompacting, isStreaming, hasMore, isLoadingMore, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
@@ -97,8 +97,11 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const [isDragOver, setIsDragOver] = useState(false)
   const dragCounterRef = useRef(0)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const topSentinelRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<MessageInputHandle>(null)
+  const prevScrollHeightRef = useRef<number | null>(null)
+  const isLoadingMoreRef = useRef(false)
 
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
   const toggleSearch = useCallback(() => {
@@ -197,12 +200,12 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
 
   // Instant scroll when conversation changes — runs before paint so the user
   // never sees the old scroll position on a long conversation.
-  const lastScrolledFirstMsgRef = useRef<string | null>(null)
+  // Tracked by kin.id so prepending older messages doesn't re-trigger.
+  const lastScrolledKinRef = useRef<string | null>(null)
   const justDidInstantScrollRef = useRef(false)
-  const firstMsgId = messages.length > 0 ? messages[0]!.id : null
 
   useLayoutEffect(() => {
-    if (firstMsgId && firstMsgId !== lastScrolledFirstMsgRef.current) {
+    if (messages.length > 0 && kin.id !== lastScrolledKinRef.current) {
       const scrollArea = scrollAreaRef.current
       if (scrollArea) {
         const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
@@ -211,10 +214,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         }
       }
       isNearBottomRef.current = true
-      lastScrolledFirstMsgRef.current = firstMsgId
+      lastScrolledKinRef.current = kin.id
       justDidInstantScrollRef.current = true
     }
-  }, [firstMsgId])
+  }, [kin.id, messages.length])
 
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
@@ -234,6 +237,49 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     viewport.addEventListener('scroll', handleScroll)
     return () => viewport.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // IntersectionObserver — trigger loading older messages when top sentinel is visible
+  useEffect(() => {
+    const sentinel = topSentinelRef.current
+    const scrollArea = scrollAreaRef.current
+    if (!sentinel || !scrollArea) return
+    const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
+    if (!viewport) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isLoadingMoreRef.current) {
+          // Save scroll height before fetch so we can restore position after prepend
+          prevScrollHeightRef.current = viewport.scrollHeight
+          isLoadingMoreRef.current = true
+          fetchOlderMessages()
+        }
+      },
+      { root: viewport, threshold: 0 },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [fetchOlderMessages])
+
+  // Keep isLoadingMoreRef in sync for the observer guard
+  useEffect(() => {
+    isLoadingMoreRef.current = isLoadingMore
+  }, [isLoadingMore])
+
+  // Restore scroll position after older messages are prepended
+  useLayoutEffect(() => {
+    if (prevScrollHeightRef.current === null) return
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea) return
+    const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
+    if (!viewport) return
+
+    const delta = viewport.scrollHeight - prevScrollHeightRef.current
+    if (delta > 0) {
+      viewport.scrollTop += delta
+    }
+    prevScrollHeightRef.current = null
+  })
 
   // Track new messages arriving while scrolled up
   useEffect(() => {
@@ -470,6 +516,14 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
           <SearchHighlightProvider value={searchQuery}>
           <MentionLookupProvider users={mentionableUsers} kins={mentionableKins}>
           <div className="mx-auto max-w-3xl py-4">
+            {/* Sentinel for infinite scroll — triggers loading older messages */}
+            {hasMore && <div ref={topSentinelRef} className="h-px" />}
+            {isLoadingMore && (
+              <div className="flex items-center justify-center py-4">
+                <div className="size-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+                <span className="ml-2 text-xs text-muted-foreground">{t('chat.loadingOlder')}</span>
+              </div>
+            )}
             {messages.length === 0 && liveTasks.length === 0 ? (
               <ChatEmptyState
                 kinName={kin.name}

@@ -58,6 +58,8 @@ export function useChat(kinId: string | null) {
   const [liveCompacting, setLiveCompacting] = useState<LiveCompacting | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const streamingContentRef = useRef('')
   const streamingMessageIdRef = useRef<string | null>(null)
   const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -92,6 +94,7 @@ export function useChat(kinId: string | null) {
       }
 
       setMessages(data.messages)
+      setHasMore(data.hasMore)
 
       // Remove live tasks whose result already appears as a persisted message.
       // Only match by resolvedTaskId (precise) and never remove tasks still active.
@@ -118,6 +121,8 @@ export function useChat(kinId: string | null) {
     setStreamingMessage(null)
     setLiveTasks([])
     setLiveCompacting(null)
+    setHasMore(false)
+    setIsLoadingMore(false)
     streamingContentRef.current = ''
     streamingMessageIdRef.current = null
     taskIdByTitleRef.current.clear()
@@ -126,6 +131,39 @@ export function useChat(kinId: string | null) {
       batchTimerRef.current = null
     }
   }, [fetchMessages])
+
+  // Fetch older messages (pagination — prepend to existing)
+  const fetchOlderMessages = useCallback(async () => {
+    if (!kinId || !hasMore || isLoadingMore) return
+    const firstMsg = messages[0]
+    if (!firstMsg) return
+
+    setIsLoadingMore(true)
+    try {
+      const data = await api.get<MessagesResponse>(
+        `/kins/${kinId}/messages?before=${firstMsg.id}&limit=50`,
+      )
+
+      // Enrich task result messages
+      for (const msg of data.messages) {
+        if (msg.sourceType === 'task' && !msg.resolvedTaskId) {
+          for (const [title, taskId] of taskIdByTitleRef.current) {
+            if (msg.content.includes(title)) {
+              msg.resolvedTaskId = taskId
+              break
+            }
+          }
+        }
+      }
+
+      setMessages((prev) => [...data.messages, ...prev])
+      setHasMore(data.hasMore)
+    } catch {
+      toast.error(t('errors.loadMessagesFailed'))
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [kinId, hasMore, isLoadingMore, messages])
 
   // SSE handlers
   useSSE({
@@ -425,9 +463,12 @@ export function useChat(kinId: string | null) {
     liveCompacting,
     isLoading,
     isStreaming,
+    hasMore,
+    isLoadingMore,
     sendMessage,
     stopStreaming,
     clearConversation,
+    fetchOlderMessages,
     refetch: fetchMessages,
   }
 }
