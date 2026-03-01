@@ -41,6 +41,7 @@ import {
   respondToTaskTool,
   cancelTaskTool,
   listTasksTool,
+  getTaskDetailTool,
 } from '@/server/tools/task-tools'
 import {
   reportToParentTool,
@@ -187,6 +188,7 @@ export function registerAllTools(): void {
   toolRegistry.register('respond_to_task', respondToTaskTool)
   toolRegistry.register('cancel_task', cancelTaskTool)
   toolRegistry.register('list_tasks', listTasksTool)
+  toolRegistry.register('get_task_detail', getTaskDetailTool)
 
   // Phase 15: Sub-Kin tools (sub-kin only)
   toolRegistry.register('report_to_parent', reportToParentTool)

@@ -133,7 +133,7 @@ messageRoutes.get('/', async (c) => {
         sourceAvatarUrl: kinInfo?.avatarUrl ?? null,
         isRedacted: m.isRedacted,
         toolCalls,
-        resolvedTaskId: meta?.resolvedTaskId ?? null,
+        resolvedTaskId: meta?.resolvedTaskId ?? meta?.relatedTaskId ?? null,
         injectedMemories: meta?.injectedMemories ?? null,
         memoriesExtracted: meta?.memoriesExtracted ?? null,
         files: (fileMap.get(m.id) ?? []).map(serializeFile),

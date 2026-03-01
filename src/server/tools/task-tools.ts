@@ -1,15 +1,17 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import { eq, inArray } from 'drizzle-orm'
+import { eq, and, asc, inArray } from 'drizzle-orm'
 import {
   spawnTask,
   respondToTask,
   cancelTask,
   listKinTasks,
+  listSourceKinTasks,
+  getTask,
 } from '@/server/services/tasks'
 import { resolveKinId } from '@/server/services/kin-resolver'
 import { db } from '@/server/db/index'
-import { kins } from '@/server/db/schema'
+import { kins, messages } from '@/server/db/schema'
 import { createLogger } from '@/server/logger'
 import type { ToolRegistration } from '@/server/tools/types'
 
@@ -168,25 +170,32 @@ export const listTasksTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'List all sub-Kin tasks spawned by you, with their current status.',
+      description:
+        'List all tasks — both tasks you spawned and tasks where you were spawned as the executing Kin by another Kin.',
       inputSchema: z.object({}),
       execute: async () => {
-        const allTasks = await listKinTasks(ctx.kinId)
+        const spawnedTasks = await listKinTasks(ctx.kinId)
+        const assignedTasks = await listSourceKinTasks(ctx.kinId)
 
-        // Resolve source Kin slugs for 'other' spawn type tasks
-        const sourceKinIds = [...new Set(
-          allTasks
+        // Deduplicate (shouldn't overlap but safety first)
+        const seenIds = new Set(spawnedTasks.map((t) => t.id))
+        const allTasks = [...spawnedTasks, ...assignedTasks.filter((t) => !seenIds.has(t.id))]
+
+        // Resolve related Kin slugs
+        const relatedKinIds = [...new Set([
+          ...allTasks
             .filter((t) => t.spawnType === 'other' && t.sourceKinId)
             .map((t) => t.sourceKinId!),
-        )]
+          ...assignedTasks.map((t) => t.parentKinId),
+        ])]
         const kinSlugMap = new Map<string, string>()
-        if (sourceKinIds.length > 0) {
-          const sourceKins = await db
+        if (relatedKinIds.length > 0) {
+          const relatedKins = await db
             .select({ id: kins.id, slug: kins.slug, name: kins.name })
             .from(kins)
-            .where(inArray(kins.id, sourceKinIds))
+            .where(inArray(kins.id, relatedKinIds))
             .all()
-          for (const k of sourceKins) {
+          for (const k of relatedKins) {
             kinSlugMap.set(k.id, k.slug ?? k.name)
           }
         }
@@ -199,11 +208,71 @@ export const listTasksTool: ToolRegistration = {
             status: t.status,
             mode: t.mode,
             spawnType: t.spawnType,
+            relationship: t.parentKinId === ctx.kinId ? 'spawned_by_me' : 'assigned_to_me',
             sourceKinSlug: t.sourceKinId ? kinSlugMap.get(t.sourceKinId) ?? null : null,
+            parentKinSlug: t.parentKinId !== ctx.kinId ? kinSlugMap.get(t.parentKinId) ?? null : null,
+            result: t.result,
+            error: t.error,
             depth: t.depth,
             createdAt: t.createdAt,
             updatedAt: t.updatedAt,
           })),
+        }
+      },
+    }),
+}
+
+/**
+ * get_task_detail — fetch full details and message history of a task.
+ * Works for tasks you spawned OR tasks where you were the executing Kin.
+ */
+export const getTaskDetailTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Get detailed information about a specific task, including its full message history. ' +
+        'Works for tasks you spawned OR tasks where you were the executing Kin.',
+      inputSchema: z.object({
+        task_id: z.string().describe('ID of the task to inspect'),
+      }),
+      execute: async ({ task_id }) => {
+        const task = await getTask(task_id)
+        if (!task) return { error: 'Task not found' }
+
+        // Verify the Kin has access (either parent or source)
+        if (task.parentKinId !== ctx.kinId && task.sourceKinId !== ctx.kinId) {
+          return { error: 'Access denied — you are not related to this task' }
+        }
+
+        // Fetch task messages
+        const taskMessages = await db
+          .select({
+            role: messages.role,
+            content: messages.content,
+            sourceType: messages.sourceType,
+            createdAt: messages.createdAt,
+          })
+          .from(messages)
+          .where(and(eq(messages.kinId, task.parentKinId), eq(messages.taskId, task_id)))
+          .orderBy(asc(messages.createdAt))
+          .all()
+
+        return {
+          task: {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            mode: task.mode,
+            spawnType: task.spawnType,
+            result: task.result,
+            error: task.error,
+            depth: task.depth,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+          },
+          messages: taskMessages,
         }
       },
     }),

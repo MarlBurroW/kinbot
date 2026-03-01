@@ -43,6 +43,58 @@ export function recoverStaleTasks() {
   }
 }
 
+// ─── Source Kin Notification ─────────────────────────────────────────────────
+
+/**
+ * Deposit an informational message in the source Kin's main session.
+ * No queue entry → no LLM turn triggered.
+ * Follows the same pattern as inter-kin 'inform' messages.
+ * Only used for spawn_type = 'other' tasks.
+ */
+async function notifySourceKin(
+  sourceKinId: string,
+  parentKinId: string,
+  content: string,
+  taskId: string,
+) {
+  // Guard: source Kin must still exist
+  const sourceKin = await db.select({ id: kins.id }).from(kins).where(eq(kins.id, sourceKinId)).get()
+  if (!sourceKin) return
+
+  const parentKin = await db
+    .select({ name: kins.name })
+    .from(kins)
+    .where(eq(kins.id, parentKinId))
+    .get()
+
+  const msgId = uuid()
+  await db.insert(messages).values({
+    id: msgId,
+    kinId: sourceKinId,
+    role: 'user',
+    content,
+    sourceType: 'task',
+    sourceId: parentKinId,
+    metadata: JSON.stringify({ relatedTaskId: taskId, fromParentKinId: parentKinId }),
+    createdAt: new Date(),
+  })
+
+  sseManager.sendToKin(sourceKinId, {
+    type: 'chat:message',
+    kinId: sourceKinId,
+    data: {
+      id: msgId,
+      role: 'user',
+      content,
+      sourceType: 'task',
+      sourceId: parentKinId,
+      sourceName: parentKin?.name ?? null,
+      resolvedTaskId: taskId,
+      createdAt: Date.now(),
+    },
+  })
+}
+
 // ─── Spawn ───────────────────────────────────────────────────────────────────
 
 interface SpawnParams {
@@ -118,6 +170,17 @@ export async function spawnTask(params: SpawnParams) {
   })
 
   log.info({ taskId, parentKinId: params.parentKinId, mode: params.mode, spawnType: params.spawnType, depth }, 'Task spawned')
+
+  // Notify source Kin about being spawned (only for spawn_type = 'other')
+  if (params.spawnType === 'other' && params.sourceKinId) {
+    const taskLabel = params.title ?? params.description
+    notifySourceKin(
+      params.sourceKinId,
+      params.parentKinId,
+      `[Task assigned: ${taskLabel}] ${params.description}`,
+      taskId,
+    ).catch((err) => log.warn({ taskId, sourceKinId: params.sourceKinId, err }, 'Failed to notify source Kin on spawn'))
+  }
 
   // Execute the sub-Kin in the background
   executeSubKin(taskId).catch((err) =>
@@ -548,6 +611,15 @@ export async function resolveTask(
   // Use title for UI display, fall back to description
   const taskLabel = task.title ?? task.description
 
+  // Notify source Kin about task completion/failure (only for spawn_type = 'other')
+  if (task.spawnType === 'other' && task.sourceKinId) {
+    const sourceMsg = status === 'completed'
+      ? `[Task completed: ${taskLabel}] ${result ?? ''}`
+      : `[Task failed: ${taskLabel}] Error: ${error ?? 'Unknown error'}`
+    notifySourceKin(task.sourceKinId, task.parentKinId, sourceMsg, taskId)
+      .catch((err) => log.warn({ taskId, sourceKinId: task.sourceKinId, err }, 'Failed to notify source Kin on resolve'))
+  }
+
   const taskMetadata = JSON.stringify({ resolvedTaskId: taskId })
 
   // If await mode, deposit result (or failure) in parent's queue
@@ -678,6 +750,17 @@ export async function cancelTask(taskId: string, kinId: string) {
     },
   })
 
+  // Notify source Kin about cancellation (only for spawn_type = 'other')
+  if (task.spawnType === 'other' && task.sourceKinId) {
+    const taskLabel = task.title ?? task.description
+    notifySourceKin(
+      task.sourceKinId,
+      kinId,
+      `[Task cancelled: ${taskLabel}]`,
+      task.id,
+    ).catch((err) => log.warn({ taskId: task.id, sourceKinId: task.sourceKinId, err }, 'Failed to notify source Kin on cancel'))
+  }
+
   return true
 }
 
@@ -693,6 +776,16 @@ export async function listKinTasks(kinId: string, statusFilter?: TaskStatus) {
     .select()
     .from(tasks)
     .where(and(...conditions))
+    .orderBy(desc(tasks.createdAt))
+    .all()
+}
+
+/** List tasks where this Kin was the executing source (spawned by another Kin). */
+export async function listSourceKinTasks(kinId: string) {
+  return db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.sourceKinId, kinId), eq(tasks.spawnType, 'other')))
     .orderBy(desc(tasks.createdAt))
     .all()
 }

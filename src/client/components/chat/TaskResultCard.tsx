@@ -6,7 +6,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/client/components/ui/collapsible'
-import { CheckCircle2, AlertCircle, ChevronRight, Loader2, Clock, XCircle, ExternalLink, UserCheck } from 'lucide-react'
+import { CheckCircle2, AlertCircle, ChevronRight, Loader2, Clock, XCircle, ExternalLink, UserCheck, ArrowDownToLine } from 'lucide-react'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { cn } from '@/client/lib/utils'
 import type { TaskStatus } from '@/shared/types'
@@ -41,8 +41,11 @@ export type TaskResultCardProps = TaskResultFromMessage | TaskResultFromLive
 
 // ─── Parsed task data (unified internal format) ─────────────────────────────
 
+/** Display-only status extends TaskStatus with 'assigned' for trace-back messages */
+type DisplayTaskStatus = TaskStatus | 'assigned'
+
 interface ParsedTask {
-  status: TaskStatus
+  status: DisplayTaskStatus
   taskName: string
   result: string
   senderName: string | null
@@ -66,6 +69,18 @@ function parseTaskContent(content: string): ParsedTask | null {
   const resultMatch = content.match(/^\[Task: (.+?)\]\s*Result:\s*(.*)$/s)
   if (resultMatch?.[1]) {
     return { status: 'completed', taskName: resultMatch[1], result: resultMatch[2] ?? '', senderName: null, avatarUrl: null }
+  }
+
+  // "[Task assigned: description] instructions"
+  const assignedMatch = content.match(/^\[Task assigned: (.+?)\]\s*(.*)$/s)
+  if (assignedMatch?.[1]) {
+    return { status: 'assigned', taskName: assignedMatch[1], result: assignedMatch[2] ?? '', senderName: null, avatarUrl: null }
+  }
+
+  // "[Task cancelled: description]"
+  const cancelledMatch = content.match(/^\[Task cancelled: (.+?)\]\s*(.*)$/s)
+  if (cancelledMatch?.[1]) {
+    return { status: 'cancelled', taskName: cancelledMatch[1], result: cancelledMatch[2] ?? '', senderName: null, avatarUrl: null }
   }
 
   return null
@@ -93,7 +108,7 @@ function resolveTask(props: TaskResultCardProps): ParsedTask | null {
 
 // ─── Status visual config ───────────────────────────────────────────────────
 
-function getStatusConfig(status: TaskStatus, t: (key: string) => string) {
+function getStatusConfig(status: DisplayTaskStatus, t: (key: string) => string) {
   switch (status) {
     case 'pending':
       return {
@@ -135,6 +150,13 @@ function getStatusConfig(status: TaskStatus, t: (key: string) => string) {
         icon: XCircle,
         colorClass: 'text-muted-foreground',
         label: t('sidebar.tasks.status.cancelled'),
+        animate: false,
+      }
+    case 'assigned':
+      return {
+        icon: ArrowDownToLine,
+        colorClass: 'text-primary',
+        label: t('chat.taskResult.assigned'),
         animate: false,
       }
   }
@@ -226,7 +248,7 @@ export const TaskResultCard = memo(function TaskResultCard(props: TaskResultCard
           {hasResult && !isActive && (
             <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer w-full">
               <ChevronRight className={cn('size-3 shrink-0 transition-transform duration-200', open && 'rotate-90')} />
-              <span>{t(isError ? 'chat.taskResult.showError' : 'chat.taskResult.showResult')}</span>
+              <span>{t(isError ? 'chat.taskResult.showError' : task.status === 'assigned' ? 'chat.taskResult.showInstructions' : 'chat.taskResult.showResult')}</span>
             </CollapsibleTrigger>
           )}
 
