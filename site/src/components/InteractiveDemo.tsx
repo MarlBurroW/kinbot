@@ -226,10 +226,12 @@ export function InteractiveDemo() {
   const [showMemory, setShowMemory] = useState<number | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [autoRotate, setAutoRotate] = useState(true)
   const chatRef = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasAutoPlayed = useRef(false)
+  const autoRotateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const scenario = scenarios[activeScenario]
 
@@ -243,12 +245,56 @@ export function InteractiveDemo() {
     }
   }, [visibleCount, isTyping, showMemory])
 
-  // Clean up timer
+  // Clean up timers
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
+      if (autoRotateTimerRef.current) clearTimeout(autoRotateTimerRef.current)
     }
   }, [])
+
+  // Keyboard navigation: ← → to switch scenarios
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Only handle if the demo section is somewhat visible
+      const el = sectionRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      if (rect.bottom < 0 || rect.top > window.innerHeight) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        setAutoRotate(false)
+        switchScenario((activeScenario - 1 + scenarios.length) % scenarios.length)
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        setAutoRotate(false)
+        switchScenario((activeScenario + 1) % scenarios.length)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [activeScenario]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-rotate to next scenario after current one finishes
+  useEffect(() => {
+    if (autoRotateTimerRef.current) clearTimeout(autoRotateTimerRef.current)
+    if (!autoRotate || isPlaying || visibleCount === 0) return
+
+    // Only auto-rotate if the demo has finished (all messages shown)
+    if (visibleCount >= scenario.messages.length) {
+      autoRotateTimerRef.current = setTimeout(() => {
+        const next = (activeScenario + 1) % scenarios.length
+        switchScenario(next)
+        // Small delay before playing the next scenario
+        setTimeout(() => play(), 500)
+      }, 4000) // Wait 4s after completion before rotating
+    }
+
+    return () => {
+      if (autoRotateTimerRef.current) clearTimeout(autoRotateTimerRef.current)
+    }
+  }, [isPlaying, visibleCount, autoRotate, activeScenario, scenario.messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-play when scrolled into view (respect prefers-reduced-motion)
   useEffect(() => {
@@ -328,7 +374,7 @@ export function InteractiveDemo() {
   }
 
   const switchScenario = (idx: number) => {
-    if (idx === activeScenario) return
+    if (idx === activeScenario && !isPlaying) return
     reset()
     hasAutoPlayed.current = true // don't auto-play after manual tab switch
     setActiveScenario(idx)
@@ -340,6 +386,10 @@ export function InteractiveDemo() {
         @keyframes typing-bounce {
           0%, 60%, 100% { transform: translateY(0); }
           30% { transform: translateY(-4px); }
+        }
+        @keyframes demo-progress {
+          from { width: 0%; }
+          to { width: 100%; }
         }
       `}</style>
 
@@ -355,30 +405,44 @@ export function InteractiveDemo() {
 
       {/* Scenario tabs */}
       <div className="flex flex-wrap justify-center gap-2 mb-6">
-        {scenarios.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => switchScenario(i)}
-            className="text-sm font-medium px-4 py-2 rounded-full transition-all duration-200"
-            style={{
-              background:
-                activeScenario === i
+        {scenarios.map((s, i) => {
+          const isActive = activeScenario === i
+          const isCompleted = isActive && !isPlaying && visibleCount >= scenario.messages.length && autoRotate
+          return (
+            <button
+              key={i}
+              onClick={() => {
+                setAutoRotate(false)
+                switchScenario(i)
+              }}
+              className="relative text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 overflow-hidden"
+              style={{
+                background: isActive
                   ? 'color-mix(in oklch, var(--color-glow-1) 20%, transparent)'
                   : 'color-mix(in oklch, var(--color-muted-foreground) 8%, transparent)',
-              color:
-                activeScenario === i
+                color: isActive
                   ? 'var(--color-primary)'
                   : 'var(--color-muted-foreground)',
-              border:
-                activeScenario === i
+                border: isActive
                   ? '1px solid color-mix(in oklch, var(--color-glow-1) 40%, transparent)'
                   : '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)',
-              transform: activeScenario === i ? 'scale(1.05)' : 'scale(1)',
-            }}
-          >
-            {s.title}
-          </button>
-        ))}
+                transform: isActive ? 'scale(1.05)' : 'scale(1)',
+              }}
+            >
+              {s.title}
+              {/* Auto-rotate progress bar */}
+              {isCompleted && (
+                <span
+                  className="absolute bottom-0 left-0 h-0.5 rounded-full"
+                  style={{
+                    background: 'var(--color-primary)',
+                    animation: 'demo-progress 4s linear forwards',
+                  }}
+                />
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* Chat window */}
@@ -502,12 +566,23 @@ export function InteractiveDemo() {
         )}
       </div>
 
-      <p
-        className="text-center mt-4 text-sm"
-        style={{ color: 'var(--color-muted-foreground)' }}
-      >
-        This is a simulation. Real Kins remember across sessions, days, and months.
-      </p>
+      <div className="text-center mt-4 space-y-1">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+          This is a simulation. Real Kins remember across sessions, days, and months.
+        </p>
+        <p className="text-xs hidden sm:block" style={{ color: 'var(--color-muted-foreground)', opacity: 0.5 }}>
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{
+            background: 'color-mix(in oklch, var(--color-muted-foreground) 10%, transparent)',
+            border: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)',
+          }}>←</kbd>
+          {' '}
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{
+            background: 'color-mix(in oklch, var(--color-muted-foreground) 10%, transparent)',
+            border: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)',
+          }}>→</kbd>
+          {' '}to switch scenarios
+        </p>
+      </div>
     </section>
   )
 }
