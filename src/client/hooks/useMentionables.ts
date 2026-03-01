@@ -32,9 +32,9 @@ export function useMentionables() {
     let cancelled = false
 
     api.get('/users/mentionables')
-      .then((res: Mentionables) => {
+      .then((res) => {
         if (!cancelled) {
-          setData(res)
+          setData(res as Mentionables)
           setIsLoading(false)
         }
       })
