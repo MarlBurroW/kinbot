@@ -23,6 +23,7 @@
  *   KinBot.http(url, options) — fetch external URLs through server proxy (bypasses CORS)
  *     .json(url, headers?) — shorthand: GET and parse JSON
  *     .post(url, data, headers?) — shorthand: POST JSON and parse response
+ *   KinBot.sendMessage(text, options?) — send a message to the Kin's conversation (returns Promise<boolean>)
  *   KinBot.locale — current UI language code (e.g. 'en', 'fr')
  *   KinBot.on('locale-changed', cb) — listen for language changes (cb receives {locale})
  *   KinBot.events — real-time event stream from backend (_server.js)
@@ -644,6 +645,37 @@
     })
   }
 
+  // ─── Send Message to Kin ──────────────────────────────────────────────────
+
+  /**
+   * Send a message to the Kin that owns this app.
+   * The message appears in the Kin's conversation as if sent by the current user,
+   * prefixed with the app name for context.
+   *
+   * @param {string} text — message content (max 2000 chars)
+   * @param {object} [options]
+   * @param {boolean} [options.silent] — if true, don't show a toast confirmation (default: false)
+   * @returns {Promise<boolean>} — true if the message was sent successfully
+   */
+  function sendMessage(text, options) {
+    var id = String(++_dialogCounter)
+    var opts = options || {}
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'send-message',
+        callbackId: id,
+        text: String(text).slice(0, 2000),
+        silent: !!opts.silent,
+      }, '*')
+    } catch (e) {
+      return Promise.resolve(false)
+    }
+    return new Promise(function (resolve) {
+      _pendingDialogs[id] = { resolve: resolve }
+    })
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -667,6 +699,7 @@
     clipboard: clipboard,
     events: events,
     http: http,
-    version: '1.10.0',
+    sendMessage: sendMessage,
+    version: '1.11.0',
   }
 })()

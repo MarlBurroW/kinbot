@@ -1455,6 +1455,11 @@
       "cancel": "Annuler"
     },
     "appNotFound": "Application \"{{slug}}\" introuvable",
+    "sendMessage": {
+      "sent": "Message envoyé au Kin",
+      "error": "Échec de l'envoi du message",
+      "rateLimited": "Trop de messages, veuillez patienter"
+    },
     "gallery": {
       "title": "Galerie d'apps",
       "description": "Parcourez et clonez des mini-apps d'autres Kins.",

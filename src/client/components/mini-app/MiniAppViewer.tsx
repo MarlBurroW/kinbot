@@ -19,6 +19,9 @@ import { api } from '@/client/lib/api'
 import { toast } from 'sonner'
 import type { MiniAppSummary } from '@/shared/types'
 
+/** Rate limiter for sendMessage: max 5 messages per 30 seconds per app */
+const messageCooldowns = new Map<string, number[]>()
+
 export function MiniAppViewer() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -248,6 +251,43 @@ export function MiniAppViewer() {
             })
             .catch(() => {
               toast.error(t('miniApps.appNotFound', { slug }))
+            })
+          break
+        }
+        case 'send-message': {
+          const callbackId = String(msg.callbackId)
+          const text = String(msg.text || '').trim()
+          const silent = Boolean(msg.silent)
+
+          if (!text || !app?.kinId) {
+            sendDialogResult(callbackId, false)
+            break
+          }
+
+          // Rate limiting: max 5 messages per 30 seconds
+          const now = Date.now()
+          const appKey = app.id
+          const timestamps = messageCooldowns.get(appKey) ?? []
+          const recent = timestamps.filter((ts) => now - ts < 30_000)
+          if (recent.length >= 5) {
+            if (!silent) toast.warning(t('miniApps.sendMessage.rateLimited'))
+            sendDialogResult(callbackId, false)
+            break
+          }
+          recent.push(now)
+          messageCooldowns.set(appKey, recent)
+
+          // Prefix message with app context
+          const prefixed = `[${app.icon || '📦'} ${app.name}] ${text}`
+
+          api.post<{ messageId: string }>(`/kins/${app.kinId}/messages`, { content: prefixed })
+            .then(() => {
+              if (!silent) toast.success(t('miniApps.sendMessage.sent'))
+              sendDialogResult(callbackId, true)
+            })
+            .catch(() => {
+              if (!silent) toast.error(t('miniApps.sendMessage.error'))
+              sendDialogResult(callbackId, false)
             })
           break
         }

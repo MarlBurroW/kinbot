@@ -93,6 +93,9 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.http.json(url, headers?)` → Promise<any> (shorthand: GET and parse JSON), ' +
         '`KinBot.http.post(url, data, headers?)` → Promise<any> (shorthand: POST JSON). ' +
         'Rate limited to 60 requests/minute, 5MB max response, 15s timeout. ' +
+        '`KinBot.sendMessage(text, options?)` → Promise<boolean> (send a message to the Kin\'s conversation from the mini-app; ' +
+        'the message is prefixed with the app name for context; options: {silent?: boolean} — if true, suppresses toast notification; ' +
+        'rate limited to 5 messages per 30 seconds; useful for interactive apps that need to trigger Kin actions or send data to the conversation). ' +
         'For additional files (CSS, JS, images), use write_mini_app_file after creation. ' +
         'Relative paths work naturally: `<script src="app.js">`, `<link href="styles.css">`, `import "./utils.js"` — ' +
         'all resolve to the app\'s static directory. Multi-file apps are fully supported. ' +

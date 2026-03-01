@@ -1455,6 +1455,11 @@
       "cancel": "Cancel"
     },
     "appNotFound": "App \"{{slug}}\" not found",
+    "sendMessage": {
+      "sent": "Message sent to Kin",
+      "error": "Failed to send message",
+      "rateLimited": "Too many messages, please wait"
+    },
     "gallery": {
       "title": "App Gallery",
       "description": "Browse and clone mini-apps from other Kins.",
