@@ -71,9 +71,15 @@ app.onError((err, c) => {
 
 app.use('/api/*', authMiddleware)
 
-// Health check
+// Health check (no auth required — used by Docker HEALTHCHECK and orchestrators)
+const serverStartedAt = Date.now()
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', timestamp: Date.now() })
+  return c.json({
+    status: 'ok',
+    version: process.env.npm_package_version ?? '0.0.0',
+    uptime: Math.floor((Date.now() - serverStartedAt) / 1000),
+    timestamp: Date.now(),
+  })
 })
 
 // Changelog (authenticated — returns CHANGELOG.md content)
