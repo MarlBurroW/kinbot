@@ -264,6 +264,7 @@ export function ChatPage() {
               element={
                 selectedKin ? (
                   <ChatPanel
+                    key={selectedKin.id}
                     kin={{
                       id: selectedKin.id,
                       name: selectedKin.name,
