@@ -84,7 +84,7 @@ test.describe.serial('MCP server management', () => {
 
     // Server should appear in list with Active badge
     await expect(page.getByText('E2E GitHub Server').first()).toBeVisible({ timeout: 5_000 })
-    await expect(page.getByText('Active')).toBeVisible()
+    await expect(page.getByText('Active', { exact: true })).toBeVisible()
     await expect(page.getByText('npx -y @modelcontextprotocol/server-github')).toBeVisible()
   })
 
