@@ -276,14 +276,31 @@ async function executeSubKin(taskId: string, isNudge = false) {
       messageHistory.push({ role: 'user', content: task.description })
 
       // Save to DB
+      const initialMsgId = uuid()
+      const initialMsgCreatedAt = new Date()
       await db.insert(messages).values({
-        id: uuid(),
+        id: initialMsgId,
         kinId: task.parentKinId,
         taskId,
         role: 'user',
         content: task.description,
         sourceType: 'system',
-        createdAt: new Date(),
+        createdAt: initialMsgCreatedAt,
+      })
+
+      // Notify the frontend so the task detail modal can show this message
+      // immediately instead of waiting for the next fetchDetail() call.
+      sseManager.sendToKin(task.parentKinId, {
+        type: 'chat:message',
+        kinId: task.parentKinId,
+        data: {
+          id: initialMsgId,
+          taskId,
+          role: 'user',
+          content: task.description,
+          sourceType: 'system',
+          createdAt: initialMsgCreatedAt.getTime(),
+        },
       })
     }
 

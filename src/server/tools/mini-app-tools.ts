@@ -36,89 +36,52 @@ export const createMiniAppTool: ToolRegistration = {
       description:
         'Create a new mini web application. The app will appear in the KinBot sidebar and can be opened in a side panel. ' +
         'Provide the full HTML content for the initial index.html. ' +
-        'The KinBot design system CSS is automatically injected — use CSS variables like ' +
-        'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border) ' +
-        'and utility classes like .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +
-        'Layout utilities (Tailwind-like): .flex, .flex-col, .grid, .grid-cols-2, .items-center, .justify-between, .gap-4, ' +
-        '.p-4, .px-3, .py-2, .m-4, .mt-2, .mb-4, .mx-auto, .w-full, .h-full, .max-w-md, .min-h-screen, ' +
-        '.text-sm, .text-xl, .font-bold, .font-medium, .text-center, .truncate, .text-primary, .text-muted, ' +
-        '.bg-card, .bg-muted, .border, .border-t, .rounded-lg, .rounded-full, .shadow-md, .shadow-lg, ' +
-        '.space-y-4, .space-x-2, .overflow-auto, .relative, .absolute, .transition, .transition-colors, ' +
-        '.opacity-50, .cursor-pointer, .select-none, .sr-only, .container, .hidden, .block, .inline-flex. ' +
-        'Component classes: .btn, .btn-primary, .btn-secondary, .btn-destructive, .btn-ghost, .btn-sm, .btn-lg, ' +
-        '.card, .card-header, .card-title, .card-description, .card-content, .card-footer, ' +
-        '.input, .textarea, .badge, .badge-primary, .badge-success, .badge-warning, .badge-destructive, ' +
-        '.table, .label, .separator, ' +
-        '.select (styled dropdown — use on <select>), ' +
-        '.checkbox (styled checkbox — use on <input type="checkbox">), ' +
-        '.switch (toggle switch — use on <input type="checkbox">), ' +
-        '.radio (styled radio — use on <input type="radio">), ' +
-        '.progress, .progress-sm, .progress-lg (progress bar — use on <progress value="70" max="100">), ' +
-        '.alert, .alert-info, .alert-success, .alert-warning, .alert-destructive, .alert-title, .alert-description (callout boxes), ' +
-        '.avatar, .avatar-sm, .avatar-lg, .avatar-xl (circular avatar containers), ' +
-        '.kbd (keyboard shortcut display), .spinner, .spinner-sm, .spinner-lg (loading spinner). ' +
-        'Responsive breakpoints: prefix any layout/display/grid/spacing/text utility with sm: (≥640px), md: (≥768px), or lg: (≥1024px). ' +
-        'Examples: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3", "hidden lg:block", "p-2 sm:p-4 lg:p-8", "flex-col sm:flex-row". ' +
-        'Useful for apps that adapt between side-panel (480-600px) and full-page mode. ' +
-        'The theme (light/dark) and palette are automatically synced from the parent app. ' +
-        'A JavaScript SDK is also auto-injected, providing the global `KinBot` object: ' +
-        '`KinBot.theme` (returns {mode, palette}), ' +
-        '`KinBot.app` (returns app metadata after ready: {id, name, slug, description, icon, kinId, kinName, version}), ' +
-        '`KinBot.on(event, callback)` (listen for events: "theme-changed", "app-meta", or custom events), ' +
-        '`KinBot.emit(event, data)` (send custom events to parent), ' +
-        '`KinBot.toast(message, type)` (show a toast in KinBot UI, type: "info"|"success"|"warning"|"error"), ' +
-        '`KinBot.navigate(path)` (navigate parent app, e.g. "/kins"), ' +
-        '`KinBot.storage.get(key)` → Promise<any|null> (read a persisted value), ' +
-        '`KinBot.storage.set(key, value)` → Promise (save any JSON-serializable value), ' +
-        '`KinBot.storage.delete(key)` → Promise<boolean>, ' +
-        '`KinBot.storage.list()` → Promise<[{key,size}]>, ' +
-        '`KinBot.storage.clear()` → Promise<number> (clear all keys), ' +
-        '`KinBot.fullpage(bool)` (request full-page mode (true) or side-panel mode (false) — the user can also toggle via the UI), ' +
-        '`KinBot.isFullPage` (read-only, current full-page state), ' +
-        '`KinBot.on("fullpage-changed", cb)` (listen for full-page mode changes, cb receives {isFullPage}), ' +
-        '`KinBot.ready()` → Promise<appMeta> (call when your app is loaded — returns a Promise that resolves with app metadata once the parent responds; MUST be awaited before using storage, api, or http: `await KinBot.ready()`). ' +
-        '`KinBot.confirm(message, options?)` → Promise<boolean> (show a native confirmation dialog in KinBot UI; ' +
-        'options: {title?, confirmLabel?, cancelLabel?, variant?: "default"|"destructive"}), ' +
-        '`KinBot.prompt(message, options?)` → Promise<string|null> (show a prompt dialog with text input; ' +
-        'options: {title?, placeholder?, defaultValue?, confirmLabel?, cancelLabel?}; returns null if cancelled). ' +
-        '`KinBot.setTitle(title)` (dynamically update the panel header title; empty string resets to app name), ' +
-        '`KinBot.setBadge(value)` (show a badge on the app in the sidebar; pass a number, string, or null/0 to clear), ' +
-        '`KinBot.openApp(slug)` (open another mini-app from the same Kin by its slug — enables inter-app navigation), ' +
-        '`KinBot.locale` (current UI language code, e.g. "en" or "fr" — use for i18n in your app), ' +
-        '`KinBot.on("locale-changed", cb)` (listen for language changes, cb receives {locale}), ' +
-        '`KinBot.clipboard.write(text)` → Promise<boolean> (copy text to system clipboard — works even in sandboxed iframes), ' +
-        '`KinBot.clipboard.read()` → Promise<string|null> (read text from system clipboard — may require user permission), ' +
-        '`KinBot.http(url, options?)` → Promise<{status, statusText, headers, body, ok, json(), text()}> (fetch external URLs through server proxy — bypasses CORS restrictions; ' +
-        'options: {method?, headers?, body?}), ' +
-        '`KinBot.http.json(url, headers?)` → Promise<any> (shorthand: GET and parse JSON), ' +
-        '`KinBot.http.post(url, data, headers?)` → Promise<any> (shorthand: POST JSON). ' +
-        'Rate limited to 60 requests/minute, 5MB max response, 15s timeout. ' +
-        '`KinBot.sendMessage(text, options?)` → Promise<boolean> (send a message to the Kin\'s conversation from the mini-app; ' +
-        'the message is prefixed with the app name for context; options: {silent?: boolean} — if true, suppresses toast notification; ' +
-        'rate limited to 5 messages per 30 seconds; useful for interactive apps that need to trigger Kin actions or send data to the conversation). ' +
-        'For additional files (CSS, JS, images), use write_mini_app_file after creation. ' +
-        'Relative paths work naturally: `<script src="app.js">`, `<link href="styles.css">`, `import "./utils.js"` — ' +
-        'all resolve to the app\'s static directory. Multi-file apps are fully supported. ' +
-        '**Import Maps & Dependencies:** To use ES modules from CDN (React, etc.), create an `app.json` file with either: ' +
-        '(1) shorthand `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}` or ' +
-        '(2) full importmap `{"importmap": {"imports": {"react": "https://esm.sh/react@19"}}}`. ' +
-        'The import map is auto-injected into the HTML. Then use `<script type="module">import React from "react";</script>` in your HTML. ' +
-        'Recommended CDN: esm.sh (ES module-ready). Example app.json: `{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client"}}`. ' +
-        '**Backend API (_server.js):** Create a `_server.js` file using write_mini_app_file to add server-side API routes. ' +
-        'The file must export a default function that receives a context object and returns a Hono app. ' +
-        'Example _server.js: `export default function(ctx) { const app = new ctx.Hono(); app.get("/hello", (c) => c.json({ message: "Hello!" })); return app; }`. ' +
-        'Context provides: `ctx.Hono` (Hono constructor), `ctx.storage` (get/set/delete/list/clear — same as KinBot.storage), ' +
-        '`ctx.events` (push real-time events to connected frontend clients: `ctx.events.emit(eventName, data)`, `ctx.events.subscriberCount`), ' +
-        '`ctx.appId`, `ctx.kinId`, `ctx.appName`, `ctx.log` (info/warn/error/debug). ' +
-        'Routes are served at `/api/mini-apps/<appId>/api/*`. From the frontend, use `KinBot.api("/path")` (returns fetch Response), ' +
-        '`KinBot.api.json("/path")` (auto-parses JSON), or `KinBot.api.post("/path", data)` (POST with JSON body). ' +
-        'The backend auto-reloads when _server.js is updated. ' +
-        '**Real-time Events (SSE):** The backend can push events to the frontend in real-time using `ctx.events.emit(eventName, data)`. ' +
-        'In the frontend, use `KinBot.events.on(eventName, callback)` to listen for specific events, ' +
-        '`KinBot.events.subscribe(callback)` to receive all events (callback receives eventName and data), ' +
-        '`KinBot.events.close()` to disconnect, and `KinBot.events.connected` to check connection status. ' +
-        'The SSE connection is established lazily on first subscribe/on call. ' +
-        'Example: backend does `ctx.events.emit("update", {count: 42})`, frontend does `KinBot.events.on("update", (data) => console.log(data.count))`.',
+        '**IMPORTANT: Use React for all mini-apps.** JSX is transpiled server-side — no build step needed. ' +
+        'Use `<script type="text/jsx">` for inline JSX (automatically transpiled to ES modules), or `.jsx`/`.tsx` files for external scripts. ' +
+        '**React Setup:** Create an `app.json` file via write_mini_app_file with these dependencies: ' +
+        '`{"dependencies": {"react": "https://esm.sh/react@19", ' +
+        '"react-dom/client": "https://esm.sh/react-dom@19/client", "@kinbot/react": "/api/mini-apps/sdk/kinbot-react.js"}}`. ' +
+        '**React App Pattern:** `<div id="root"></div>` + `<script type="text/jsx">` containing: ' +
+        '`import { useState } from "react"; import { createRoot } from "react-dom/client"; import { useKinBot, useStorage, toast } from "@kinbot/react"; ' +
+        'function App() { const { ready } = useKinBot(); if (!ready) return <div>Loading...</div>; return <AppContent />; } ' +
+        'createRoot(document.getElementById("root")).render(<App />);`. ' +
+        '**@kinbot/react Hooks:** ' +
+        '`useKinBot()` → `{ app, ready, theme, locale, isFullPage, api }` (handles the KinBot lifecycle — MUST be called at root, wait for `ready` before rendering content; ' +
+        '`api` is the backend API client — use it after ready is true), ' +
+        '`useStorage(key, defaultValue)` → `[value, setValue, loading]` (reactive key-value storage with auto-persist — like useState but persistent; ' +
+        'setValue accepts a value or an updater function like useState; loading is true while fetching initial value), ' +
+        '`useTheme()` → `{ mode, palette }` (reactive theme, lighter alternative to useKinBot when you only need theme). ' +
+        '**@kinbot/react Exports (convenience re-exports from KinBot SDK):** ' +
+        '`toast(message, type)` (type: "info"|"success"|"warning"|"error"), ' +
+        '`confirm(message, options?)` → Promise<boolean> (options: {title?, confirmLabel?, cancelLabel?, variant?: "default"|"destructive"}), ' +
+        '`prompt(message, options?)` → Promise<string|null> (options: {title?, placeholder?, defaultValue?, confirmLabel?, cancelLabel?}), ' +
+        '`navigate(path)`, `fullpage(bool)`, `setTitle(title)`, `setBadge(value)`, `openApp(slug)`, ' +
+        '`clipboard` (.write(text) → Promise<boolean>, .read() → Promise<string|null>), ' +
+        '`storage` (.get/.set/.delete/.list/.clear — direct access to KV storage), ' +
+        '`api` (call backend routes: `api.get("/path")` → GET JSON, `api.post("/path", data)` → POST JSON, ' +
+        '`api.put("/path", data)` → PUT JSON, `api.patch("/path", data)` → PATCH JSON, `api.delete("/path")` → DELETE, ' +
+        '`api.json("/path", options?)` → any method with JSON parsing, `api("/path", options?)` → raw Response), ' +
+        '`http` (external HTTP proxy: `http(url, opts?)`, `http.json(url)`, `http.post(url, data)` — 60 req/min, 5MB max, 15s timeout), ' +
+        '`events` (SSE from backend: `.on(event, cb)`, `.subscribe(cb)`, `.close()`, `.connected`). ' +
+        '**Design System CSS** (auto-injected): CSS variables like ' +
+        'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border). ' +
+        'Utility classes: .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +
+        'Layout (Tailwind-like): .flex, .flex-col, .grid, .grid-cols-2, .items-center, .justify-between, .gap-4, ' +
+        '.p-4, .px-3, .py-2, .m-4, .mx-auto, .w-full, .h-full, .max-w-md, .text-sm, .text-xl, .font-bold, .text-center, ' +
+        '.bg-card, .bg-muted, .border, .rounded-lg, .shadow-md, .space-y-4, .overflow-auto, .relative, .absolute, .transition. ' +
+        'Components: .btn, .btn-primary, .btn-secondary, .btn-destructive, .btn-ghost, .btn-sm, .btn-lg, ' +
+        '.card, .card-header, .card-title, .card-content, .input, .textarea, .badge, .table, .label, .separator, ' +
+        '.select, .checkbox, .switch, .radio, .progress, .alert, .avatar, .kbd, .spinner. ' +
+        'Responsive breakpoints: sm: (≥640px), md: (≥768px), lg: (≥1024px). ' +
+        'Theme (light/dark) and palette are automatically synced. ' +
+        'For additional files, use write_mini_app_file after creation. Relative paths resolve to the app\'s static directory. ' +
+        '**Backend API (_server.js):** Create via write_mini_app_file. Must export default function receiving ctx, returning a Hono app. ' +
+        'Example: `export default function(ctx) { const app = new ctx.Hono(); app.get("/hello", (c) => c.json({ message: "Hello!" })); return app; }`. ' +
+        'Context: `ctx.Hono`, `ctx.storage`, `ctx.events` (.emit(event, data)), `ctx.appId`, `ctx.kinId`, `ctx.appName`, `ctx.log`. ' +
+        'Routes at `/api/mini-apps/<appId>/api/*`. Frontend: `const { api } = useKinBot()` then `api.get("/path")`, `api.post("/path", data)`, `api.delete("/path")`. ' +
+        '**Real-time Events (SSE):** Backend: `ctx.events.emit("update", {count: 42})`. Frontend: `events.on("update", (data) => ...)`. ' +
+        '`KinBot.sendMessage(text, options?)` → Promise<boolean> (send a message to the Kin\'s conversation; ' +
+        'options: {silent?: boolean}; rate limited to 5 per 30s).',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),
