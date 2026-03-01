@@ -1,19 +1,15 @@
-import { describe, it, expect, beforeAll, mock } from 'bun:test'
-
-// Mock config before importing the module under test
-const TEST_KEY = 'a'.repeat(64)
-mock.module('@/server/config', () => ({
-  config: {
-    encryptionKey: TEST_KEY,
-  },
-}))
-
+import { describe, it, expect, beforeAll } from 'bun:test'
+import { config } from '@/server/config'
 import { encrypt, decrypt, _resetKeyCache } from './encryption'
+
+const TEST_KEY = 'a'.repeat(64)
 
 describe('encryption service', () => {
   beforeAll(() => {
-    // Reset cached key to ensure our mocked config is used,
-    // even if another test file imported encryption.ts first
+    // Directly set the encryption key on the real config object and reset
+    // the cached CryptoKey so our test key is used even if another test
+    // file already loaded encryption.ts with a different key.
+    ;(config as { encryptionKey: string }).encryptionKey = TEST_KEY
     _resetKeyCache()
   })
 
