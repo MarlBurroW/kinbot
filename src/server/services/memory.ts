@@ -35,6 +35,7 @@ interface MemorySearchResult {
   subject: string | null
   importance: number | null
   score: number
+  updatedAt: Date | null
 }
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -269,7 +270,7 @@ export async function searchMemories(
 
   // Sort by weighted score descending
   return Array.from(scoreMap.entries())
-    .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, importance: data.importance, score: data.score }))
+    .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, importance: data.importance, score: data.score, updatedAt: data.updatedAt }))
     .sort((a, b) => b.score - a.score)
     .slice(0, maxResults)
 }
@@ -386,7 +387,7 @@ function searchByFTS(
 export async function getRelevantMemories(
   kinId: string,
   query: string,
-): Promise<Array<{ id: string; category: string; content: string; subject: string | null }>> {
+): Promise<Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null }>> {
   const results = await searchMemories(kinId, query, config.memory.maxRelevantMemories)
-  return results.map((r) => ({ id: r.id, category: r.category, content: r.content, subject: r.subject }))
+  return results.map((r) => ({ id: r.id, category: r.category, content: r.content, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt }))
 }

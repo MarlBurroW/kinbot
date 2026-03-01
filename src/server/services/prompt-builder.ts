@@ -13,6 +13,8 @@ interface Memory {
   category: string
   content: string
   subject: string | null
+  importance?: number | null
+  updatedAt?: Date | null
 }
 
 interface KinDirectoryEntry {
@@ -63,6 +65,45 @@ interface PromptParams {
   isHub?: boolean
   hubKinDirectory?: HubKinDirectoryEntry[]
   compactingSummary?: string | null
+}
+
+/**
+ * Format a date as a relative time string (e.g. "2 days ago", "3 months ago").
+ */
+function formatRelativeTime(date: Date | null | undefined): string | null {
+  if (!date) return null
+  const diffMs = Date.now() - date.getTime()
+  const diffMin = Math.round(diffMs / 60000)
+  if (diffMin < 60) return 'just now'
+  const diffHours = Math.round(diffMin / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.round(diffHours / 24)
+  if (diffDays < 30) return `${diffDays}d ago`
+  const diffMonths = Math.round(diffDays / 30)
+  if (diffMonths < 12) return `${diffMonths}mo ago`
+  const diffYears = Math.round(diffDays / 365)
+  return `${diffYears}y ago`
+}
+
+/**
+ * Format a single memory line with optional metadata (importance, recency).
+ */
+function formatMemoryLine(m: Memory): string {
+  const parts: string[] = []
+  // Importance indicator: ★ for high (7-10), · for normal
+  if (m.importance != null && m.importance >= 7) {
+    parts.push('★')
+  }
+  parts.push(`[${m.category}]`)
+  parts.push(m.content)
+  if (m.subject) {
+    parts.push(`(subject: ${m.subject})`)
+  }
+  const relTime = formatRelativeTime(m.updatedAt)
+  if (relTime) {
+    parts.push(`— ${relTime}`)
+  }
+  return `- ${parts.join(' ')}`
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -167,11 +208,9 @@ export function buildSystemPrompt(params: PromptParams): string {
   if (params.isQuickSession) {
     // [5] Relevant memories (read-only)
     if (params.relevantMemories.length > 0) {
-      const memoryLines = params.relevantMemories
-        .map((m) => `- [${m.category}] ${m.content}${m.subject ? ` (subject: ${m.subject})` : ''}`)
-        .join('\n')
+      const memoryLines = params.relevantMemories.map(formatMemoryLine).join('\n')
       blocks.push(
-        `## Memories\n\nRelevant information from your past interactions:\n\n${memoryLines}`,
+        `## Memories\n\nRelevant information from your past interactions (★ = high importance):\n\n${memoryLines}`,
       )
     }
 
@@ -272,11 +311,9 @@ export function buildSystemPrompt(params: PromptParams): string {
 
   // [5] Relevant memories
   if (params.relevantMemories.length > 0) {
-    const memoryLines = params.relevantMemories
-      .map((m) => `- [${m.category}] ${m.content}${m.subject ? ` (subject: ${m.subject})` : ''}`)
-      .join('\n')
+    const memoryLines = params.relevantMemories.map(formatMemoryLine).join('\n')
     blocks.push(
-      `## Memories\n\nRelevant information from your past interactions:\n\n${memoryLines}`,
+      `## Memories\n\nRelevant information from your past interactions (★ = high importance):\n\n${memoryLines}`,
     )
   }
 

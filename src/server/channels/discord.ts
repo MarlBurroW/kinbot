@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { createLogger } from '@/server/logger'
@@ -207,6 +207,13 @@ function handleDispatch(state: GatewayState, event: string, data: Record<string,
       channel_id: string
       content: string
       author: { id: string; username: string; global_name?: string; bot?: boolean }
+      attachments?: Array<{
+        id: string
+        filename: string
+        content_type?: string
+        size: number
+        url: string
+      }>
     }
 
     // Ignore messages from bots (including self)
@@ -215,8 +222,20 @@ function handleDispatch(state: GatewayState, event: string, data: Record<string,
     // Filter by allowed channels if configured
     if (state.allowedChannelIds && !state.allowedChannelIds.has(msg.channel_id)) return
 
-    // Ignore empty messages (e.g. embeds-only, attachments-only)
-    if (!msg.content) return
+    // Extract file attachments from Discord CDN
+    let attachments: IncomingAttachment[] | undefined
+    if (msg.attachments?.length) {
+      attachments = msg.attachments.map((att) => ({
+        platformFileId: att.id,
+        mimeType: att.content_type,
+        fileName: att.filename,
+        fileSize: att.size,
+        url: att.url,
+      }))
+    }
+
+    // Ignore empty messages (no text and no attachments)
+    if (!msg.content && !attachments) return
 
     state.onMessage({
       platformUserId: msg.author.id,
@@ -224,7 +243,8 @@ function handleDispatch(state: GatewayState, event: string, data: Record<string,
       platformDisplayName: msg.author.global_name ?? msg.author.username,
       platformMessageId: msg.id,
       platformChatId: msg.channel_id,
-      content: msg.content,
+      content: msg.content || '',
+      attachments,
     }).catch((err) => {
       log.error({ channelId: state.channelId, err }, 'Error handling Discord message')
     })
