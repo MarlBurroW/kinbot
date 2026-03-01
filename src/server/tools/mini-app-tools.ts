@@ -17,6 +17,9 @@ import {
   storageDelete,
   storageList,
   storageClear,
+  createSnapshot,
+  listSnapshots,
+  rollbackToSnapshot,
 } from '@/server/services/mini-apps'
 import { sseManager } from '@/server/sse/index'
 import type { ToolRegistration } from '@/server/tools/types'
@@ -511,6 +514,125 @@ export const clearMiniAppStorageTool: ToolRegistration = {
           return { cleared, message: `Cleared ${cleared} storage key(s)` }
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Storage error'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── create_mini_app_snapshot ───────────────────────────────────────────────
+
+export const createMiniAppSnapshotTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Create a snapshot (backup) of the current state of a mini app. ' +
+        'Snapshots capture all files at the current version and can be restored later with rollback_mini_app. ' +
+        'Useful before making risky changes. Max 20 snapshots per app (oldest auto-pruned).',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+        label: z.string().optional().describe('Optional label for the snapshot (e.g. "before redesign", "working version")'),
+      }),
+      execute: async ({ app_id, label }) => {
+        log.debug({ kinId: ctx.kinId, appId: app_id }, 'create_mini_app_snapshot invoked')
+
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only snapshot your own apps' }
+
+        try {
+          const snapshot = await createSnapshot(app_id, label)
+          if (!snapshot) return { error: 'No files to snapshot' }
+          return {
+            version: snapshot.version,
+            label: snapshot.label,
+            fileCount: snapshot.files.length,
+            message: `Snapshot created at version ${snapshot.version}${label ? ` (${label})` : ''}`,
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to create snapshot'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── list_mini_app_snapshots ────────────────────────────────────────────────
+
+export const listMiniAppSnapshotsTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'List all available snapshots for a mini app. Shows version, label, file count, and creation date. ' +
+        'Use the version number with rollback_mini_app to restore a previous state.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+      }),
+      execute: async ({ app_id }) => {
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only list snapshots of your own apps' }
+
+        try {
+          const snapshots = await listSnapshots(app_id)
+          return {
+            currentVersion: existing.version,
+            snapshots: snapshots.map((s) => ({
+              version: s.version,
+              label: s.label,
+              fileCount: s.files.length,
+              files: s.files.map((f) => f.path),
+              createdAt: new Date(s.createdAt).toISOString(),
+            })),
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to list snapshots'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── rollback_mini_app ──────────────────────────────────────────────────────
+
+export const rollbackMiniAppTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Rollback a mini app to a previous snapshot version. ' +
+        'This restores all files from the snapshot and creates an auto-backup of the current state first (so the rollback itself is reversible). ' +
+        'Use list_mini_app_snapshots to see available versions.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+        version: z.number().int().positive().describe('Version number to rollback to (from list_mini_app_snapshots)'),
+      }),
+      execute: async ({ app_id, version }) => {
+        log.debug({ kinId: ctx.kinId, appId: app_id, version }, 'rollback_mini_app invoked')
+
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only rollback your own apps' }
+
+        try {
+          const result = await rollbackToSnapshot(app_id, version)
+          if (!result.success) return { error: result.message }
+
+          // Broadcast update so UI refreshes
+          const updated = await getMiniApp(app_id)
+          if (updated) {
+            sseManager.broadcast({
+              type: 'miniapp:updated',
+              kinId: ctx.kinId,
+              data: { app: updated },
+            })
+          }
+
+          return { message: result.message }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to rollback'
           return { error: message }
         }
       },

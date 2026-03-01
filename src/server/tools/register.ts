@@ -125,6 +125,9 @@ import {
   deleteMiniAppStorageTool,
   listMiniAppStorageTool,
   clearMiniAppStorageTool,
+  createMiniAppSnapshotTool,
+  listMiniAppSnapshotsTool,
+  rollbackMiniAppTool,
 } from '@/server/tools/mini-app-tools'
 import { getMiniAppTemplatesTool } from '@/server/tools/mini-app-templates'
 import { browseMiniAppsTool, cloneMiniAppTool } from '@/server/tools/mini-app-gallery'
@@ -278,6 +281,9 @@ export function registerAllTools(): void {
   toolRegistry.register('delete_mini_app_storage', deleteMiniAppStorageTool)
   toolRegistry.register('list_mini_app_storage', listMiniAppStorageTool)
   toolRegistry.register('clear_mini_app_storage', clearMiniAppStorageTool)
+  toolRegistry.register('create_mini_app_snapshot', createMiniAppSnapshotTool)
+  toolRegistry.register('list_mini_app_snapshots', listMiniAppSnapshotsTool)
+  toolRegistry.register('rollback_mini_app', rollbackMiniAppTool)
   toolRegistry.register('get_mini_app_templates', getMiniAppTemplatesTool)
   toolRegistry.register('browse_mini_apps', browseMiniAppsTool)
   toolRegistry.register('clone_mini_app', cloneMiniAppTool)

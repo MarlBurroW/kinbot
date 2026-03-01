@@ -23,6 +23,9 @@ import {
   storageDelete,
   storageList,
   storageClear,
+  createSnapshot,
+  listSnapshots,
+  rollbackToSnapshot,
 } from '@/server/services/mini-apps'
 import { handleBackendRequest, invalidateBackend, getAppEmitter } from '@/server/services/mini-app-backend'
 import { sseManager } from '@/server/sse/index'
@@ -322,6 +325,72 @@ miniAppRoutes.delete('/:id/storage', async (c) => {
 
   const count = await storageClear(app.id)
   return c.json({ cleared: count })
+})
+
+// ─── Snapshots ──────────────────────────────────────────────────────────────
+
+// List snapshots for an app
+miniAppRoutes.get('/:id/snapshots', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  try {
+    const snapshots = await listSnapshots(app.id)
+    return c.json({
+      currentVersion: app.version,
+      snapshots: snapshots.map((s) => ({
+        version: s.version,
+        label: s.label,
+        fileCount: s.files.length,
+        files: s.files.map((f: { path: string }) => f.path),
+        createdAt: new Date(s.createdAt).toISOString(),
+      })),
+    })
+  } catch (err) {
+    return c.json({ error: { code: 'SNAPSHOT_ERROR', message: String(err) } }, 500)
+  }
+})
+
+// Create a snapshot
+miniAppRoutes.post('/:id/snapshots', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  const body = await c.req.json<{ label?: string }>().catch(() => ({ label: undefined }))
+  try {
+    const snapshot = await createSnapshot(app.id, body.label)
+    if (!snapshot) return c.json({ error: { code: 'NO_FILES', message: 'No files to snapshot' } }, 400)
+    return c.json({ snapshot: { version: snapshot.version, label: snapshot.label, fileCount: snapshot.files.length } }, 201)
+  } catch (err) {
+    return c.json({ error: { code: 'SNAPSHOT_ERROR', message: String(err) } }, 500)
+  }
+})
+
+// Rollback to a snapshot version
+miniAppRoutes.post('/:id/snapshots/:version/rollback', async (c) => {
+  const app = await getMiniAppRow(c.req.param('id'))
+  if (!app) return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
+
+  const version = parseInt(c.req.param('version'), 10)
+  if (isNaN(version) || version < 1) {
+    return c.json({ error: { code: 'INVALID_VERSION', message: 'Invalid version number' } }, 400)
+  }
+
+  try {
+    const result = await rollbackToSnapshot(app.id, version)
+    if (!result.success) {
+      return c.json({ error: { code: 'ROLLBACK_FAILED', message: result.message } }, 400)
+    }
+
+    const updated = await getMiniApp(app.id)
+    if (updated) {
+      sseManager.broadcast({ type: 'miniapp:updated', kinId: app.kinId, data: { app: updated } })
+    }
+
+    return c.json({ message: result.message })
+  } catch (err) {
+    return c.json({ error: { code: 'ROLLBACK_ERROR', message: String(err) } }, 500)
+  }
 })
 
 // ─── Backend SSE Events ─────────────────────────────────────────────────────
