@@ -62,6 +62,7 @@ interface PromptParams {
   userLanguage: 'fr' | 'en'
   isHub?: boolean
   hubKinDirectory?: HubKinDirectoryEntry[]
+  compactingSummary?: string | null
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -356,6 +357,16 @@ export function buildSystemPrompt(params: PromptParams): string {
       `You are connected to the following external messaging platforms:\n\n${channelLines}\n\n` +
       `Messages prefixed with [platform:Name] come from these platforms. Your responses are automatically sent back to the originating conversation.\n` +
       `Keep responses concise for external platforms. Avoid referencing internal tools, UI elements, or administrative details.`,
+    )
+  }
+
+  // [6.9] Compacting summary (older conversation context)
+  if (params.compactingSummary) {
+    blocks.push(
+      `## Previous conversation summary\n\n` +
+      `The following is a summary of older exchanges that are no longer in the message history. ` +
+      `Use this as background context — it is a faithful summary of what was discussed previously.\n\n` +
+      params.compactingSummary,
     )
   }
 

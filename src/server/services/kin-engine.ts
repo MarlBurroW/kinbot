@@ -282,6 +282,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       )
     }
 
+    // Build message history (also returns compacting summary for system prompt injection)
+    const { messages: messageHistory, compactingSummary } = await buildMessageHistory(kinId)
+
     const systemPrompt = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: contactsWithSlug,
@@ -294,10 +297,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       userLanguage,
       isHub,
       hubKinDirectory,
+      compactingSummary,
     })
-
-    // Build message history
-    const messageHistory = await buildMessageHistory(kinId)
 
     // Resolve LLM model
     const model = await resolveLLMModel(kin.model, kin.providerId)
@@ -977,26 +978,15 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
  * Build the message history for LLM context.
  * Includes compacted summary (if any) + recent non-compacted messages.
  */
-async function buildMessageHistory(kinId: string): Promise<ModelMessage[]> {
+async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null }> {
   const history: ModelMessage[] = []
 
-  // [9] Compacted summary — injected as a synthetic user message at the start
+  // Fetch active compacting snapshot (used to filter messages, summary is injected via system prompt)
   const activeSnapshot = await db
     .select()
     .from(compactingSnapshots)
     .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
     .get()
-
-  if (activeSnapshot) {
-    history.push({
-      role: 'user',
-      content: `[System — Summary of previous exchanges]\n\n${activeSnapshot.summary}`,
-    })
-    history.push({
-      role: 'assistant',
-      content: 'Understood. I have the context from our previous exchanges.',
-    })
-  }
 
   // [10] Recent messages (main session only, not task or quick session messages)
   const recentMessages = await db
@@ -1157,7 +1147,7 @@ async function buildMessageHistory(kinId: string): Promise<ModelMessage[]> {
     // tool results are reconstructed from the assistant's toolCalls JSON above
   }
 
-  return history
+  return { messages: history, compactingSummary: activeSnapshot?.summary ?? null }
 }
 
 /**
