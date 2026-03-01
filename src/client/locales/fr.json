@@ -422,7 +422,9 @@
     "taskResult": {
       "showResult": "Voir le résultat",
       "showError": "Voir les détails de l'erreur",
-      "openDetail": "Voir les détails de la tâche"
+      "showInstructions": "Voir les instructions",
+      "openDetail": "Voir les détails de la tâche",
+      "assigned": "Assignée"
     },
     "attachFile": "Joindre un fichier",
     "dropFiles": "Déposez les fichiers ici",
@@ -477,6 +479,7 @@
     },
     "scrollToBottom": "Aller en bas",
     "scrollToTop": "Aller en haut",
+    "loadingOlder": "Chargement des anciens messages...",
     "autoScroll": {
       "on": "Défilement auto activé. Cliquer pour désactiver",
       "off": "Défilement auto désactivé. Cliquer pour activer"
