@@ -159,7 +159,11 @@ export async function downloadAndStoreAttachment(params: DownloadAttachmentParam
   const { kinId, attachment, downloadUrl } = params
 
   try {
-    const response = await fetch(downloadUrl)
+    const fetchOpts: RequestInit = {}
+    if (attachment.headers) {
+      fetchOpts.headers = attachment.headers
+    }
+    const response = await fetch(downloadUrl, fetchOpts)
     if (!response.ok) {
       log.warn({ url: downloadUrl, status: response.status }, 'Failed to download channel attachment')
       return null

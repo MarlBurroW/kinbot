@@ -59,10 +59,12 @@ channelWhatsAppRoutes.post('/:channelId', async (c) => {
     return c.json({ ok: true })
   }
 
+  const cfg = JSON.parse(channel.platformConfig) as Record<string, unknown>
+
   try {
     await handleWhatsAppWebhook(channelId, body, async (msg) => {
       await handleIncomingChannelMessage(channelId, msg)
-    })
+    }, cfg)
   } catch (err) {
     log.error({ channelId, err }, 'Error handling WhatsApp webhook')
   }

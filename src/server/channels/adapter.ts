@@ -13,6 +13,8 @@ export interface IncomingAttachment {
   fileSize?: number
   /** Direct download URL if available (Discord CDN, Slack URL, etc.) */
   url?: string
+  /** Optional headers required for downloading (e.g. WhatsApp auth) */
+  headers?: Record<string, string>
 }
 
 // ─── Incoming message from an external platform ─────────────────────────────

@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { config } from '@/server/config'
@@ -159,15 +159,85 @@ export class WhatsAppAdapter implements ChannelAdapter {
   }
 }
 
+/** MIME type mapping for WhatsApp media types */
+const WHATSAPP_MEDIA_MIME: Record<string, string> = {
+  image: 'image/jpeg',
+  audio: 'audio/ogg',
+  voice: 'audio/ogg',
+  video: 'video/mp4',
+  sticker: 'image/webp',
+}
+
+/** Media message types that carry file attachments */
+const MEDIA_TYPES = new Set(['image', 'document', 'audio', 'voice', 'video', 'sticker'])
+
+/** Extract attachment from a WhatsApp media message.
+ *  WhatsApp Cloud API provides a media ID; the download URL must be resolved
+ *  via GET /{media-id} with the access token, which returns { url }.
+ *  We store the resolved download URL in `url` and the media ID in `platformFileId`.
+ */
+async function extractWhatsAppAttachment(
+  message: Record<string, unknown>,
+  accessToken: string,
+): Promise<IncomingAttachment | null> {
+  const type = message.type as string
+  if (!MEDIA_TYPES.has(type)) return null
+
+  const media = message[type] as Record<string, unknown> | undefined
+  if (!media) return null
+
+  const mediaId = media.id as string
+  if (!mediaId) return null
+
+  // Resolve the download URL via WhatsApp Cloud API
+  let downloadUrl: string | undefined
+  try {
+    const resp = await fetch(`${GRAPH_API}/${mediaId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (resp.ok) {
+      const data = (await resp.json()) as { url?: string }
+      downloadUrl = data.url
+    }
+  } catch (err) {
+    log.warn({ mediaId, err }, 'Failed to resolve WhatsApp media URL')
+  }
+
+  const mimeType = (media.mime_type as string) ?? WHATSAPP_MEDIA_MIME[type]
+  const fileName = (media.filename as string) ?? undefined
+  const fileSize = media.file_size ? Number(media.file_size) : undefined
+
+  return {
+    platformFileId: mediaId,
+    mimeType,
+    fileName,
+    fileSize,
+    url: downloadUrl,
+    // WhatsApp media downloads require the access token as Authorization header
+    ...(downloadUrl ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}),
+  }
+}
+
 /** Handle incoming WhatsApp webhook — called from the route handler */
 export async function handleWhatsAppWebhook(
   channelId: string,
   body: Record<string, unknown>,
   onMessage: (msg: Parameters<IncomingMessageHandler>[0]) => Promise<void>,
+  cfg?: Record<string, unknown>,
 ): Promise<void> {
   // WhatsApp sends webhook payloads with entry[].changes[].value.messages[]
   const entries = body.entry as Array<Record<string, unknown>> | undefined
   if (!entries) return
+
+  // Resolve access token for media downloads (if cfg provided)
+  let accessToken: string | undefined
+  if (cfg) {
+    try {
+      accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
+    } catch {
+      log.warn({ channelId }, 'Could not resolve WhatsApp access token for media downloads')
+    }
+  }
 
   for (const entry of entries) {
     const changes = entry.changes as Array<Record<string, unknown>> | undefined
@@ -183,11 +253,32 @@ export async function handleWhatsAppWebhook(
       const contacts = value.contacts as Array<Record<string, unknown>> | undefined
 
       for (const message of messages) {
-        if (message.type !== 'text') continue
+        const type = message.type as string
+        let text = ''
+        let attachments: IncomingAttachment[] | undefined
 
-        const textObj = message.text as { body?: string } | undefined
-        const text = textObj?.body
-        if (!text) continue
+        if (type === 'text') {
+          const textObj = message.text as { body?: string } | undefined
+          text = textObj?.body ?? ''
+        } else if (MEDIA_TYPES.has(type)) {
+          // Media message — may have a caption as text
+          const media = message[type] as Record<string, unknown> | undefined
+          const caption = (message.caption ?? media?.caption) as string | undefined
+          text = caption ?? ''
+
+          if (accessToken) {
+            const attachment = await extractWhatsAppAttachment(message, accessToken)
+            if (attachment) {
+              attachments = [attachment]
+            }
+          }
+        } else {
+          // Unsupported type (contacts, location, etc.) — skip
+          continue
+        }
+
+        // Skip if no text and no attachments
+        if (!text && !attachments) continue
 
         const from = message.from as string
         const messageId = message.id as string
@@ -203,6 +294,7 @@ export async function handleWhatsAppWebhook(
           platformMessageId: messageId,
           platformChatId: from, // In WhatsApp, chatId is the sender's phone number
           content: text,
+          attachments,
         })
       }
     }
