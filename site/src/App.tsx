@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { Navbar } from './components/Navbar'
+import { ScrollProgress } from './components/ScrollProgress'
 import { Hero } from './components/Hero'
 import { ScrollReveal } from './components/ScrollReveal'
 import { SectionDivider } from './components/SectionDivider'
@@ -115,6 +116,7 @@ export default function App() {
       <a href="#main-content" className="skip-to-content">
         Skip to content
       </a>
+      <ScrollProgress />
       <Navbar dark={dark} onToggleDark={() => setDark(d => !d)} />
       <main id="main-content">
         <Hero />
