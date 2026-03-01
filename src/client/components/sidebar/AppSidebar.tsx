@@ -20,6 +20,9 @@ interface KinSummary {
   role: string
   avatarUrl: string | null
   model: string
+  providerId: string | null
+  createdAt: string
+  isHub: boolean
 }
 
 interface AppSidebarProps {
