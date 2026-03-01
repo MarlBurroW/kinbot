@@ -27,9 +27,9 @@ const TEMPLATES: MiniAppTemplate[] = [
   {
     id: 'dashboard',
     name: 'Dashboard',
-    description: 'A responsive dashboard with stat cards, a chart area, and a recent activity list. Great starting point for data visualization apps.',
+    description: 'A responsive dashboard using @kinbot/components (Card, Stat, Badge, Table, ProgressBar, Tabs). Great starting point for data visualization apps.',
     icon: '📊',
-    tags: ['data', 'charts', 'statistics'],
+    tags: ['data', 'charts', 'statistics', 'components'],
     suggestedSlug: 'dashboard',
     files: {
       'app.json': REACT_APP_JSON,
@@ -47,86 +47,114 @@ const TEMPLATES: MiniAppTemplate[] = [
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
-    .stat-card { padding: 1.25rem; border-radius: var(--radius-lg); }
-    .stat-value { font-size: 1.75rem; font-weight: 700; margin: 0.25rem 0; }
-    .stat-label { font-size: 0.8rem; color: var(--color-muted-foreground); }
-    .stat-change { font-size: 0.75rem; margin-top: 0.25rem; }
-    .stat-change.positive { color: var(--color-success); }
-    .stat-change.negative { color: var(--color-destructive); }
     .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
     @media (max-width: 640px) { .main-grid { grid-template-columns: 1fr; } }
-    .section { padding: 1.25rem; border-radius: var(--radius-lg); }
-    .section-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; }
     .chart-placeholder {
       height: 200px; border-radius: var(--radius-md); background: var(--color-muted);
       display: flex; align-items: center; justify-content: center;
       color: var(--color-muted-foreground); font-size: 0.875rem;
     }
-    .activity-list { list-style: none; }
-    .activity-item {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.625rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.85rem;
-    }
-    .activity-item:last-child { border-bottom: none; }
-    .activity-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-primary); flex-shrink: 0; }
-    .activity-time { margin-left: auto; color: var(--color-muted-foreground); font-size: 0.75rem; }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/jsx">
+    import { useState } from 'react'
     import { createRoot } from 'react-dom/client'
     import { useKinBot } from '@kinbot/react'
+    import { Card, Stat, Badge, Table, List, ProgressBar, Tabs, Spinner, Stack } from '@kinbot/components'
 
     const stats = [
-      { label: 'Total Users', value: '2,847', change: '+12.5%', positive: true },
-      { label: 'Revenue', value: '$48.2k', change: '+8.1%', positive: true },
-      { label: 'Active Now', value: '142', change: '-3.2%', positive: false },
+      { label: 'Total Users', value: '2,847', trend: '\\u2191 12.5%', trendUp: true },
+      { label: 'Revenue', value: '$48.2k', trend: '\\u2191 8.1%', trendUp: true },
+      { label: 'Active Now', value: '142', trend: '\\u2193 3.2%', trendUp: false },
+      { label: 'Conversion', value: '3.6%', trend: '\\u2191 0.4%', trendUp: true },
+    ]
+
+    const tableColumns = [
+      { key: 'name', label: 'Name' },
+      { key: 'status', label: 'Status', render: (v) => <Badge variant={v === 'active' ? 'success' : v === 'pending' ? 'warning' : 'outline'}>{v}</Badge> },
+      { key: 'revenue', label: 'Revenue', align: 'right' },
+      { key: 'progress', label: 'Progress', render: (v) => <ProgressBar value={v} height={6} /> },
+    ]
+
+    const tableData = [
+      { id: 1, name: 'Landing Page', status: 'active', revenue: '$12.4k', progress: 78 },
+      { id: 2, name: 'Mobile App', status: 'active', revenue: '$8.1k', progress: 45 },
+      { id: 3, name: 'API v2', status: 'pending', revenue: '$0', progress: 12 },
+      { id: 4, name: 'Dashboard', status: 'active', revenue: '$24.8k', progress: 92 },
     ]
 
     const activities = [
-      { text: 'New user signed up', time: '2m ago' },
-      { text: 'Order #1234 completed', time: '15m ago' },
-      { text: 'Report generated', time: '1h ago' },
-      { text: 'Settings updated', time: '3h ago' },
+      { id: '1', content: <Stack direction="row" align="center" justify="space-between"><span>New user signed up</span><Badge variant="outline">2m ago</Badge></Stack> },
+      { id: '2', content: <Stack direction="row" align="center" justify="space-between"><span>Order #1234 completed</span><Badge variant="outline">15m ago</Badge></Stack> },
+      { id: '3', content: <Stack direction="row" align="center" justify="space-between"><span>Report generated</span><Badge variant="outline">1h ago</Badge></Stack> },
+      { id: '4', content: <Stack direction="row" align="center" justify="space-between"><span>Settings updated</span><Badge variant="outline">3h ago</Badge></Stack> },
     ]
 
     function App() {
       const { ready } = useKinBot()
-      if (!ready) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-muted-foreground)' }}>Loading...</div>
+      const [tab, setTab] = useState('overview')
+
+      if (!ready) return <Stack align="center" style={{ padding: '2rem' }}><Spinner /></Stack>
 
       return (
         <div>
           <h2 className="gradient-primary-text" style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.25rem' }}>Dashboard</h2>
+
           <div className="stats-grid">
             {stats.map((s, i) => (
-              <div key={i} className={"stat-card surface-card card-hover animate-fade-in-up delay-" + i}>
-                <div className="stat-label">{s.label}</div>
-                <div className="stat-value">{s.value}</div>
-                <div className={"stat-change " + (s.positive ? 'positive' : 'negative')}>
-                  {s.positive ? '\\u2191' : '\\u2193'} {s.change}
-                </div>
-              </div>
+              <Card key={i} hover className={"animate-fade-in-up delay-" + i}>
+                <Card.Content>
+                  <Stat value={s.value} label={s.label} trend={s.trend} trendUp={s.trendUp} />
+                </Card.Content>
+              </Card>
             ))}
           </div>
-          <div className="main-grid">
-            <div className="section surface-card animate-fade-in-up delay-3">
-              <div className="section-title">Overview</div>
-              <div className="chart-placeholder">Replace with your chart library</div>
+
+          <Tabs
+            tabs={[
+              { id: 'overview', label: 'Overview', icon: '\\ud83d\\udcca' },
+              { id: 'projects', label: 'Projects', icon: '\\ud83d\\udcc1' },
+            ]}
+            active={tab}
+            onChange={setTab}
+            style={{ marginBottom: '1rem' }}
+          />
+
+          {tab === 'overview' && (
+            <div className="main-grid animate-fade-in">
+              <Card>
+                <Card.Header>
+                  <Card.Title>Revenue Overview</Card.Title>
+                  <Card.Description>Monthly revenue trend</Card.Description>
+                </Card.Header>
+                <Card.Content>
+                  <div className="chart-placeholder">Replace with your chart library</div>
+                </Card.Content>
+              </Card>
+              <Card>
+                <Card.Header>
+                  <Card.Title>Recent Activity</Card.Title>
+                </Card.Header>
+                <Card.Content>
+                  <List items={activities} />
+                </Card.Content>
+              </Card>
             </div>
-            <div className="section surface-card animate-fade-in-up delay-4">
-              <div className="section-title">Recent Activity</div>
-              <ul className="activity-list">
-                {activities.map((a, i) => (
-                  <li key={i} className="activity-item">
-                    <span className="activity-dot" />
-                    {a.text}
-                    <span className="activity-time">{a.time}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          )}
+
+          {tab === 'projects' && (
+            <Card className="animate-fade-in">
+              <Card.Header>
+                <Card.Title>Active Projects</Card.Title>
+                <Card.Description>Track progress across all projects</Card.Description>
+              </Card.Header>
+              <Card.Content style={{ padding: 0 }}>
+                <Table columns={tableColumns} data={tableData} />
+              </Card.Content>
+            </Card>
+          )}
         </div>
       )
     }
@@ -250,9 +278,9 @@ const TEMPLATES: MiniAppTemplate[] = [
   {
     id: 'form',
     name: 'Form Builder',
-    description: 'A clean form with validation, multiple input types, and submission handling. Useful as a starting point for data entry apps.',
+    description: 'A clean form with validation using @kinbot/components (Card, Input, Select, Textarea, Checkbox, Button, Alert, Divider, Stack).',
     icon: '📝',
-    tags: ['form', 'input', 'data-entry'],
+    tags: ['form', 'input', 'data-entry', 'components'],
     suggestedSlug: 'form',
     files: {
       'app.json': REACT_APP_JSON,
@@ -264,28 +292,7 @@ const TEMPLATES: MiniAppTemplate[] = [
   <title>Form</title>
   <style>
     body { padding: 1.5rem; max-width: 520px; margin: 0 auto; }
-    h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .subtitle { font-size: 0.85rem; color: var(--color-muted-foreground); margin-bottom: 1.5rem; }
-    .form-group { margin-bottom: 1.25rem; }
-    .form-group label { display: block; margin-bottom: 0.375rem; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    select {
-      display: block; width: 100%; border-radius: var(--radius-md);
-      border: 1px solid var(--color-input); background: transparent;
-      padding: 0.5rem 0.75rem; font-size: 0.875rem; font-family: var(--font-sans); color: var(--color-foreground);
-    }
-    select:focus { outline: none; border-color: var(--color-ring); box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-ring) 25%, transparent); }
-    .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
-    .checkbox-group input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--color-primary); }
-    .form-actions {
-      display: flex; gap: 0.75rem; justify-content: flex-end;
-      margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border);
-    }
-    .error-text { color: var(--color-destructive); font-size: 0.75rem; margin-top: 0.25rem; display: none; }
-    .form-group.has-error .error-text { display: block; }
-    .form-group.has-error .input,
-    .form-group.has-error .textarea,
-    .form-group.has-error select { border-color: var(--color-destructive); }
   </style>
 </head>
 <body>
@@ -294,15 +301,17 @@ const TEMPLATES: MiniAppTemplate[] = [
     import { useState, useRef } from 'react'
     import { createRoot } from 'react-dom/client'
     import { useKinBot, toast } from '@kinbot/react'
+    import { Card, Input, Select, Textarea, Checkbox, Button, ButtonGroup, Alert, Divider, Stack, Spinner } from '@kinbot/components'
 
     function App() {
       const { ready } = useKinBot()
-      if (!ready) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-muted-foreground)' }}>Loading...</div>
+      if (!ready) return <Stack align="center" style={{ padding: '2rem' }}><Spinner /></Stack>
       return <ContactForm />
     }
 
     function ContactForm() {
       const [errors, setErrors] = useState({})
+      const [submitted, setSubmitted] = useState(false)
       const formRef = useRef(null)
 
       const handleSubmit = (e) => {
@@ -321,55 +330,51 @@ const TEMPLATES: MiniAppTemplate[] = [
         console.log('Form data:', data)
         formRef.current.reset()
         setErrors({})
+        setSubmitted(true)
       }
-
-      const Field = ({ name, label, required, error, children }) => (
-        <div className={"form-group" + (error ? " has-error" : "")}>
-          <label className="label">{label}{required && ' *'}</label>
-          {children}
-          {error && <div className="error-text" style={{ display: 'block' }}>{error}</div>}
-        </div>
-      )
 
       return (
         <div className="animate-fade-in-up">
-          <h2 className="gradient-primary-text">Contact Form</h2>
-          <p className="subtitle">Fill in the details below and submit.</p>
-          <form ref={formRef} onSubmit={handleSubmit}>
-            <div className="form-row">
-              <Field name="firstName" label="First Name" required error={errors.firstName}>
-                <input className="input" name="firstName" placeholder="John" />
-              </Field>
-              <Field name="lastName" label="Last Name" required error={errors.lastName}>
-                <input className="input" name="lastName" placeholder="Doe" />
-              </Field>
-            </div>
-            <Field name="email" label="Email" required error={errors.email}>
-              <input className="input" name="email" type="email" placeholder="john@example.com" />
-            </Field>
-            <Field name="category" label="Category">
-              <select name="category">
-                <option value="">Select a category...</option>
-                <option value="general">General Inquiry</option>
-                <option value="support">Support</option>
-                <option value="feedback">Feedback</option>
-                <option value="other">Other</option>
-              </select>
-            </Field>
-            <Field name="message" label="Message">
-              <textarea className="textarea" name="message" placeholder="Write your message here..." />
-            </Field>
-            <div className="form-group">
-              <div className="checkbox-group">
-                <input type="checkbox" id="agree" name="agree" />
-                <label className="label" htmlFor="agree" style={{ marginBottom: 0 }}>I agree to the terms</label>
-              </div>
-            </div>
-            <div className="form-actions">
-              <button type="reset" className="btn btn-ghost" onClick={() => setErrors({})}>Reset</button>
-              <button type="submit" className="btn btn-primary btn-shine">Submit</button>
-            </div>
-          </form>
+          <Card>
+            <Card.Header>
+              <Card.Title className="gradient-primary-text">Contact Form</Card.Title>
+              <Card.Description>Fill in the details below and submit.</Card.Description>
+            </Card.Header>
+            <Card.Content>
+              {submitted && (
+                <Alert variant="success" title="Success!" dismissible onDismiss={() => setSubmitted(false)} style={{ marginBottom: '1rem' }}>
+                  Your form was submitted successfully.
+                </Alert>
+              )}
+              <form ref={formRef} onSubmit={handleSubmit}>
+                <Stack gap="1rem">
+                  <div className="form-row">
+                    <Input name="firstName" label="First Name *" placeholder="John" error={errors.firstName} />
+                    <Input name="lastName" label="Last Name *" placeholder="Doe" error={errors.lastName} />
+                  </div>
+                  <Input name="email" label="Email *" type="email" placeholder="john@example.com" error={errors.email} />
+                  <Select
+                    name="category"
+                    label="Category"
+                    placeholder="Select a category..."
+                    options={[
+                      { value: 'general', label: 'General Inquiry' },
+                      { value: 'support', label: 'Support' },
+                      { value: 'feedback', label: 'Feedback' },
+                      { value: 'other', label: 'Other' },
+                    ]}
+                  />
+                  <Textarea name="message" label="Message" placeholder="Write your message here..." />
+                  <Checkbox name="agree" label="I agree to the terms" />
+                  <Divider />
+                  <Stack direction="row" justify="flex-end" gap="0.75rem">
+                    <Button type="reset" variant="ghost" onClick={() => { setErrors({}); setSubmitted(false) }}>Reset</Button>
+                    <Button type="submit" variant="shine">Submit</Button>
+                  </Stack>
+                </Stack>
+              </form>
+            </Card.Content>
+          </Card>
         </div>
       )
     }
@@ -383,9 +388,9 @@ const TEMPLATES: MiniAppTemplate[] = [
   {
     id: 'data-viewer',
     name: 'Data Viewer',
-    description: 'A searchable, sortable data table with pagination. Ideal for displaying collections, logs, or records.',
+    description: 'A searchable data table with pagination using @kinbot/components (Card, Table, Badge, Pagination, Input, Button, EmptyState).',
     icon: '🗂️',
-    tags: ['table', 'data', 'search'],
+    tags: ['table', 'data', 'search', 'components'],
     suggestedSlug: 'data-viewer',
     files: {
       'app.json': REACT_APP_JSON,
@@ -397,21 +402,6 @@ const TEMPLATES: MiniAppTemplate[] = [
   <title>Data Viewer</title>
   <style>
     body { padding: 1.5rem; }
-    h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
-    .toolbar { display: flex; gap: 0.75rem; margin-bottom: 1rem; align-items: center; }
-    .toolbar input { flex: 1; }
-    .table-wrapper { border-radius: var(--radius-lg); overflow: hidden; }
-    .pagination {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 1rem; font-size: 0.8rem; color: var(--color-muted-foreground);
-    }
-    .pagination-btns { display: flex; gap: 0.375rem; }
-    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.375rem; }
-    .status-dot.active { background: var(--color-success); }
-    .status-dot.inactive { background: var(--color-muted-foreground); }
-    .status-dot.pending { background: var(--color-warning); }
-    th[data-sortable] { cursor: pointer; user-select: none; }
-    th[data-sortable]:hover { background: var(--color-muted); }
   </style>
 </head>
 <body>
@@ -420,6 +410,7 @@ const TEMPLATES: MiniAppTemplate[] = [
     import { useState, useMemo } from 'react'
     import { createRoot } from 'react-dom/client'
     import { useKinBot, toast, prompt } from '@kinbot/react'
+    import { Card, Table, Badge, Pagination, Input, Button, ButtonGroup, EmptyState, Stack, Spinner } from '@kinbot/components'
 
     const INITIAL_DATA = [
       { id: 1, name: 'Alice Martin', email: 'alice@example.com', status: 'active' },
@@ -434,39 +425,35 @@ const TEMPLATES: MiniAppTemplate[] = [
 
     const PER_PAGE = 5
 
+    const STATUS_VARIANTS = { active: 'success', pending: 'warning', inactive: 'outline' }
+
+    const columns = [
+      { key: 'name', label: 'Name' },
+      { key: 'email', label: 'Email' },
+      { key: 'status', label: 'Status', render: (v) => <Badge variant={STATUS_VARIANTS[v] || 'outline'}>{v}</Badge> },
+      { key: 'actions', label: 'Actions', render: (_, row) => <Button variant="ghost" size="sm" onClick={() => toast('Edit ' + row.name, 'info')}>Edit</Button> },
+    ]
+
     function App() {
       const { ready } = useKinBot()
-      if (!ready) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-muted-foreground)' }}>Loading...</div>
+      if (!ready) return <Stack align="center" style={{ padding: '2rem' }}><Spinner /></Stack>
       return <DataViewer />
     }
 
     function DataViewer() {
       const [data, setData] = useState(INITIAL_DATA)
       const [search, setSearch] = useState('')
-      const [page, setPage] = useState(0)
-      const [sortKey, setSortKey] = useState('name')
-      const [sortDir, setSortDir] = useState(1)
+      const [page, setPage] = useState(1)
 
       const filtered = useMemo(() => {
-        let result = data
-        if (search) {
-          const q = search.toLowerCase()
-          result = data.filter(r => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.status.includes(q))
-        }
-        return [...result].sort((a, b) => {
-          const va = a[sortKey] || '', vb = b[sortKey] || ''
-          return va < vb ? -sortDir : va > vb ? sortDir : 0
-        })
-      }, [data, search, sortKey, sortDir])
+        if (!search) return data
+        const q = search.toLowerCase()
+        return data.filter(r => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.status.includes(q))
+      }, [data, search])
 
-      const maxPage = Math.max(0, Math.ceil(filtered.length / PER_PAGE) - 1)
-      const currentPage = Math.min(page, maxPage)
-      const slice = filtered.slice(currentPage * PER_PAGE, (currentPage + 1) * PER_PAGE)
-
-      const toggleSort = (key) => {
-        if (sortKey === key) setSortDir(d => d * -1)
-        else { setSortKey(key); setSortDir(1) }
-      }
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+      const safePage = Math.min(page, totalPages)
+      const slice = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE)
 
       const addEntry = async () => {
         const name = await prompt('Enter name:', { title: 'Add Entry' })
@@ -477,48 +464,39 @@ const TEMPLATES: MiniAppTemplate[] = [
         toast('Entry added', 'success')
       }
 
-      const sortIndicator = (key) => sortKey === key ? (sortDir === 1 ? ' \\u2191' : ' \\u2193') : ' \\u2195'
-
       return (
-        <div className="animate-fade-in-up">
-          <h2 className="gradient-primary-text">Data Viewer</h2>
-          <div className="toolbar">
-            <input className="input" type="text" placeholder="Search..."
-              value={search} onInput={e => { setSearch(e.target.value); setPage(0) }} />
-            <button className="btn btn-primary btn-sm btn-shine" onClick={addEntry}>+ Add</button>
+        <Stack gap="1rem" className="animate-fade-in-up">
+          <h2 className="gradient-primary-text" style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Data Viewer</h2>
+
+          <Stack direction="row" gap="0.75rem" align="center">
+            <Input
+              placeholder="Search..."
+              value={search}
+              onInput={e => { setSearch(e.target.value); setPage(1) }}
+              style={{ flex: 1 }}
+            />
+            <Button variant="shine" size="sm" onClick={addEntry}>+ Add</Button>
+          </Stack>
+
+          <Card>
+            <Card.Content style={{ padding: 0 }}>
+              {slice.length === 0 ? (
+                <EmptyState icon="\\ud83d\\udd0d" title="No results found" description="Try a different search term." />
+              ) : (
+                <Table columns={columns} data={slice} />
+              )}
+            </Card.Content>
+            {filtered.length > PER_PAGE && (
+              <Card.Footer style={{ justifyContent: 'center' }}>
+                <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
+              </Card.Footer>
+            )}
+          </Card>
+
+          <div style={{ fontSize: '0.8rem', color: 'var(--color-muted-foreground)' }}>
+            {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'} total
           </div>
-          <div className="table-wrapper surface-card">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th data-sortable onClick={() => toggleSort('name')}>Name{sortIndicator('name')}</th>
-                  <th data-sortable onClick={() => toggleSort('email')}>Email{sortIndicator('email')}</th>
-                  <th data-sortable onClick={() => toggleSort('status')}>Status{sortIndicator('status')}</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {slice.length === 0 ? (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--color-muted-foreground)', padding: '2rem' }}>No results found</td></tr>
-                ) : slice.map(r => (
-                  <tr key={r.id}>
-                    <td>{r.name}</td>
-                    <td>{r.email}</td>
-                    <td><span className={"status-dot " + r.status} />{r.status}</td>
-                    <td><button className="btn btn-ghost btn-sm" onClick={() => toast('Edit entry #' + r.id, 'info')}>Edit</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="pagination">
-            <span>{filtered.length === 0 ? 'No entries' : (currentPage * PER_PAGE + 1) + '-' + Math.min((currentPage + 1) * PER_PAGE, filtered.length) + ' of ' + filtered.length}</span>
-            <div className="pagination-btns">
-              <button className="btn btn-ghost btn-sm" disabled={currentPage === 0} onClick={() => setPage(p => p - 1)}>\\u2190 Prev</button>
-              <button className="btn btn-ghost btn-sm" disabled={currentPage >= maxPage} onClick={() => setPage(p => p + 1)}>Next \\u2192</button>
-            </div>
-          </div>
-        </div>
+        </Stack>
       )
     }
 
