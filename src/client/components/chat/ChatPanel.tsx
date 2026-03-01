@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useState, useCallback, startTransition } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useMemo, useState, useCallback, startTransition } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { MessageBubble } from '@/client/components/chat/MessageBubble'
@@ -195,6 +195,27 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   // Track whether user has scrolled away from bottom
   const isNearBottomRef = useRef(true)
 
+  // Instant scroll when conversation changes — runs before paint so the user
+  // never sees the old scroll position on a long conversation.
+  const lastScrolledFirstMsgRef = useRef<string | null>(null)
+  const justDidInstantScrollRef = useRef(false)
+  const firstMsgId = messages.length > 0 ? messages[0].id : null
+
+  useLayoutEffect(() => {
+    if (firstMsgId && firstMsgId !== lastScrolledFirstMsgRef.current) {
+      const scrollArea = scrollAreaRef.current
+      if (scrollArea) {
+        const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
+        if (viewport) {
+          viewport.scrollTop = viewport.scrollHeight
+        }
+      }
+      isNearBottomRef.current = true
+      lastScrolledFirstMsgRef.current = firstMsgId
+      justDidInstantScrollRef.current = true
+    }
+  }, [firstMsgId])
+
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
     if (!scrollArea) return
@@ -229,6 +250,11 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   // Auto-scroll to bottom on new messages / streaming tokens / processing start / live tasks
   const isProcessing = queueState?.isProcessing ?? false
   useEffect(() => {
+    // Skip if the layout effect already handled the scroll for this render
+    if (justDidInstantScrollRef.current) {
+      justDidInstantScrollRef.current = false
+      return
+    }
     if (autoScroll && isNearBottomRef.current) {
       bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
     }
