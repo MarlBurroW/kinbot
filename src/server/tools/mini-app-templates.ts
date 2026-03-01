@@ -863,6 +863,10 @@ const TEMPLATES: MiniAppTemplate[] = [
   },
 ]
 
+export function getTemplateById(id: string): MiniAppTemplate | undefined {
+  return TEMPLATES.find((t) => t.id === id)
+}
+
 // ─── get_mini_app_templates tool ────────────────────────────────────────────
 
 export const getMiniAppTemplatesTool: ToolRegistration = {
