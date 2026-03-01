@@ -1454,6 +1454,20 @@
       "ok": "OK",
       "cancel": "Annuler"
     },
-    "appNotFound": "Application \"{{slug}}\" introuvable"
+    "appNotFound": "Application \"{{slug}}\" introuvable",
+    "gallery": {
+      "title": "Galerie d'apps",
+      "description": "Parcourez et clonez des mini-apps d'autres Kins.",
+      "searchPlaceholder": "Rechercher...",
+      "cloneTo": "Cloner vers...",
+      "clone": "Cloner",
+      "owned": "Déjà à vous",
+      "selectKin": "Sélectionnez un Kin cible",
+      "cloneSuccess": "App clonée avec succès !",
+      "cloneError": "Échec du clonage",
+      "fetchError": "Impossible de charger la galerie",
+      "noResults": "Aucune app ne correspond",
+      "empty": "Aucune app disponible"
+    }
   }
 }

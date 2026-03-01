@@ -1454,6 +1454,20 @@
       "ok": "OK",
       "cancel": "Cancel"
     },
-    "appNotFound": "App \"{{slug}}\" not found"
+    "appNotFound": "App \"{{slug}}\" not found",
+    "gallery": {
+      "title": "App Gallery",
+      "description": "Browse and clone mini-apps from other Kins.",
+      "searchPlaceholder": "Search apps...",
+      "cloneTo": "Clone to...",
+      "clone": "Clone",
+      "owned": "Owned",
+      "selectKin": "Select a Kin to clone to",
+      "cloneSuccess": "App cloned successfully!",
+      "cloneError": "Failed to clone app",
+      "fetchError": "Failed to load gallery",
+      "noResults": "No apps match your search",
+      "empty": "No apps available yet"
+    }
   }
 }

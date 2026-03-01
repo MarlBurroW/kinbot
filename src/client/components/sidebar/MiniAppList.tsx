@@ -8,16 +8,24 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/co
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { useMiniApps } from '@/client/hooks/useMiniApps'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
+import { MiniAppGallery } from '@/client/components/mini-app/MiniAppGallery'
 import { cn } from '@/client/lib/utils'
-import { ChevronRight, AppWindow, Loader2, Trash2 } from 'lucide-react'
+import { ChevronRight, AppWindow, Loader2, Trash2, Store } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import type { MiniAppSummary } from '@/shared/types'
 
 const STORAGE_KEY = 'sidebar.miniApps.open'
 
+interface KinInfo {
+  id: string
+  name: string
+  avatarPath: string | null
+}
+
 interface MiniAppListProps {
   selectedKinId: string | null
+  kins?: KinInfo[]
 }
 
 function MiniAppCard({
@@ -90,10 +98,11 @@ function MiniAppCard({
   )
 }
 
-export function MiniAppList({ selectedKinId }: MiniAppListProps) {
+export function MiniAppList({ selectedKinId, kins = [] }: MiniAppListProps) {
   const { t } = useTranslation()
   const { apps, isLoading, deleteApp } = useMiniApps(selectedKinId)
   const { activeAppId, badges, openApp, closePanel } = useMiniAppPanel()
+  const [galleryOpen, setGalleryOpen] = useState(false)
 
   const [isOpen, setIsOpen] = useState(() => {
     try {
@@ -136,6 +145,14 @@ export function MiniAppList({ selectedKinId }: MiniAppListProps) {
               </span>
             )}
           </CollapsibleTrigger>
+          <button
+            type="button"
+            onClick={() => setGalleryOpen(true)}
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent/30 hover:text-foreground transition-colors"
+            title={t('miniApps.gallery.title')}
+          >
+            <Store className="size-3.5" />
+          </button>
         </div>
 
         <CollapsibleContent>
@@ -170,6 +187,12 @@ export function MiniAppList({ selectedKinId }: MiniAppListProps) {
           </SidebarGroupContent>
         </CollapsibleContent>
       </Collapsible>
+      <MiniAppGallery
+        open={galleryOpen}
+        onOpenChange={setGalleryOpen}
+        currentKinId={selectedKinId}
+        kins={kins}
+      />
     </SidebarGroup>
   )
 }

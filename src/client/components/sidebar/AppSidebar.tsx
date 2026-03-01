@@ -89,7 +89,7 @@ export function AppSidebar({
           onReorderKins={onReorderKins}
         />
 
-        <MiniAppList selectedKinId={selectedKinId} />
+        <MiniAppList selectedKinId={selectedKinId} kins={kins.map((k) => ({ id: k.id, name: k.name, avatarPath: k.avatarUrl }))} />
 
         <SidebarSeparator />
 

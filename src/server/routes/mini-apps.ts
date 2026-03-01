@@ -7,6 +7,8 @@ import {
   getMiniApp,
   getMiniAppBySlug,
   listMiniApps,
+  listAllMiniApps,
+  cloneMiniApp,
   updateMiniApp,
   deleteMiniApp,
   writeAppFile,
@@ -36,6 +38,31 @@ miniAppRoutes.get('/by-slug/:kinId/:slug', async (c) => {
     return c.json({ error: { code: 'NOT_FOUND', message: 'App not found' } }, 404)
   }
   return c.json({ app: found })
+})
+
+// ─── Gallery ────────────────────────────────────────────────────────────────
+
+// List all active apps across all Kins (for gallery/marketplace browsing)
+miniAppRoutes.get('/gallery/browse', async (c) => {
+  const apps = await listAllMiniApps()
+  return c.json({ apps })
+})
+
+// Clone an app to a target Kin
+miniAppRoutes.post('/:id/clone', async (c) => {
+  const body = await c.req.json<{ targetKinId: string; newSlug?: string }>()
+  if (!body.targetKinId) {
+    return c.json({ error: { code: 'MISSING_KIN_ID', message: 'targetKinId is required' } }, 400)
+  }
+
+  try {
+    const cloned = await cloneMiniApp(c.req.param('id'), body.targetKinId, body.newSlug)
+    sseManager.broadcast({ type: 'miniapp:created', kinId: body.targetKinId, data: { app: cloned } })
+    return c.json({ app: cloned }, 201)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to clone app'
+    return c.json({ error: { code: 'CLONE_FAILED', message } }, 400)
+  }
 })
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
