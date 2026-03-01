@@ -56,6 +56,9 @@ export const createMiniAppTool: ToolRegistration = {
         '.alert, .alert-info, .alert-success, .alert-warning, .alert-destructive, .alert-title, .alert-description (callout boxes), ' +
         '.avatar, .avatar-sm, .avatar-lg, .avatar-xl (circular avatar containers), ' +
         '.kbd (keyboard shortcut display), .spinner, .spinner-sm, .spinner-lg (loading spinner). ' +
+        'Responsive breakpoints: prefix any layout/display/grid/spacing/text utility with sm: (≥640px), md: (≥768px), or lg: (≥1024px). ' +
+        'Examples: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3", "hidden lg:block", "p-2 sm:p-4 lg:p-8", "flex-col sm:flex-row". ' +
+        'Useful for apps that adapt between side-panel (480-600px) and full-page mode. ' +
         'The theme (light/dark) and palette are automatically synced from the parent app. ' +
         'A JavaScript SDK is also auto-injected, providing the global `KinBot` object: ' +
         '`KinBot.theme` (returns {mode, palette}), ' +
