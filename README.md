@@ -50,7 +50,7 @@ Cron jobs · Webhooks · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal,
 AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted · Your data never leaves your server
 
 ### 🎨 Experience
-8 color palettes · Dark/Light/System themes · English & French · File uploads · Image generation · Real-time SSE streaming
+8 color palettes · Dark/Light/System themes · English & French · @mentions with autocomplete · File uploads · Image generation · Real-time SSE streaming
 
 <details>
 <summary><strong>Full feature list</strong></summary>
@@ -81,7 +81,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 #### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools; Kins can manage their own MCP connections
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
-- **Mini Apps** — Kins can build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar; auto-injected design system + JavaScript SDK with theme sync, toasts, inter-app navigation (`openApp`), dialogs (`confirm`/`prompt`), window title & badge control, starter templates, parent-child event communication, and an App Gallery to browse and clone community apps
+- **Mini Apps** — Kins can build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar; auto-injected design system + JavaScript SDK with theme sync, toasts, inter-app navigation (`openApp`), dialogs (`confirm`/`prompt`), window title & badge control, persistent key-value storage (`get`/`set`/`delete`/`list`/`clear`), starter templates, parent-child event communication, and an App Gallery to browse and clone community apps
 - **Contacts** — manage contacts that Kins can reference and interact with
 - **Multi-provider** — 23 providers: Anthropic, Anthropic OAuth, OpenAI, Gemini, Mistral, DeepSeek, Groq, Together AI, Fireworks AI, Ollama, OpenRouter, Cohere, xAI, Voyage AI, Jina AI, Nomic, Tavily, Serper, Perplexity, Replicate, Stability AI, FAL AI, Brave Search
 
@@ -91,6 +91,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 - **Internationalization** — English and French
 - **File uploads** — share files with Kins; image generation supported
 - **Real-time streaming** — SSE-based, multiplexed across all Kins on a single connection
+- **@mentions** — mention Kins and users in messages with autocomplete and styled pills; mentioned Kins receive notifications
 - **Responsive UI** — mobile-friendly settings, contextual info tips, suggestion chips in empty chat states
 - **System info** — version, uptime, and stats visible in settings
 
