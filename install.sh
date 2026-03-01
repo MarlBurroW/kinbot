@@ -679,6 +679,35 @@ version_gte() {
 ensure_bun() {
   step "Checking Bun runtime"
 
+  # Validate architecture — Bun only supports x86_64 and aarch64 (ARM64)
+  case "$ARCH" in
+    x86_64|amd64)
+      : # supported
+      ;;
+    aarch64|arm64)
+      : # supported
+      ;;
+    armv7l|armv6l|armhf)
+      echo ""
+      error "Bun does not support 32-bit ARM ($ARCH).\n\n" \
+            " KinBot requires Bun, which only runs on x86_64 or ARM64 (aarch64).\n" \
+            " If you're on a Raspberry Pi, you need a 64-bit OS:\n" \
+            "   ${DIM}• Raspberry Pi OS (64-bit): https://www.raspberrypi.com/software/${NC}\n" \
+            "   ${DIM}• Ubuntu Server 64-bit for Pi: https://ubuntu.com/download/raspberry-pi${NC}\n\n" \
+            " Alternatively, use Docker (which handles architecture natively):\n" \
+            "   ${DIM}bash install.sh --docker${NC}"
+      ;;
+    i386|i686)
+      error "Bun does not support 32-bit x86 ($ARCH).\n\n" \
+            " KinBot requires a 64-bit system (x86_64 or ARM64).\n" \
+            " Alternatively, use Docker: ${DIM}bash install.sh --docker${NC}"
+      ;;
+    *)
+      warn "Unknown architecture: $ARCH. Bun may not be available for this platform."
+      warn "If Bun installation fails, try Docker instead: bash install.sh --docker"
+      ;;
+  esac
+
   BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
   export BUN_INSTALL
   export PATH="$BUN_INSTALL/bin:$PATH"
