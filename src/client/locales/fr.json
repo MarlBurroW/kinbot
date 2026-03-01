@@ -483,6 +483,11 @@
       "showLess": "Voir moins"
     },
     "charCount": "{{count}} caractères",
+    "mention": {
+      "users": "Utilisateur",
+      "kins": "Kin",
+      "noResults": "Aucun résultat"
+    },
     "emptyState": {
       "greeting": "Discuter avec {{name}}",
       "defaultRole": "Votre assistant IA, prêt à vous aider.",

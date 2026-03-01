@@ -123,6 +123,98 @@ export async function createNotification(params: CreateNotificationParams): Prom
   }
 }
 
+// ─── Create for a specific user ───────────────────────────────────────────────
+
+/**
+ * Create a notification for a single specific user.
+ * Used for targeted notifications like @mentions.
+ * Checks user preferences (missing row = enabled).
+ */
+export async function createNotificationForUser(
+  userId: string,
+  params: CreateNotificationParams,
+): Promise<void> {
+  try {
+    // Check preferences
+    const disabledPref = await db
+      .select({ userId: notificationPreferences.userId })
+      .from(notificationPreferences)
+      .where(
+        and(
+          eq(notificationPreferences.userId, userId),
+          eq(notificationPreferences.type, params.type),
+          eq(notificationPreferences.enabled, false),
+        ),
+      )
+      .get()
+
+    if (disabledPref) return
+
+    // Resolve Kin info for the SSE payload
+    let kinName: string | null = null
+    let kinSlug: string | null = null
+    let kinAvatar: string | null = null
+    if (params.kinId) {
+      const kin = await db.select().from(kins).where(eq(kins.id, params.kinId)).get()
+      if (kin) {
+        kinName = kin.name
+        kinSlug = kin.slug ?? null
+        kinAvatar = kinAvatarUrl(kin.id, kin.avatarPath, kin.updatedAt)
+      }
+    }
+
+    const now = new Date()
+    const id = uuid()
+
+    await db.insert(notifications).values({
+      id,
+      userId,
+      type: params.type,
+      title: params.title,
+      body: params.body ?? null,
+      kinId: params.kinId ?? null,
+      relatedId: params.relatedId ?? null,
+      relatedType: params.relatedType ?? null,
+      isRead: false,
+      createdAt: now,
+    })
+
+    const summary: NotificationSummary = {
+      id,
+      type: params.type,
+      title: params.title,
+      body: params.body ?? null,
+      kinId: params.kinId ?? null,
+      kinName,
+      kinSlug,
+      kinAvatarUrl: kinAvatar,
+      relatedId: params.relatedId ?? null,
+      relatedType: params.relatedType ?? null,
+      isRead: false,
+      createdAt: now.getTime(),
+    }
+
+    sseManager.sendToUser(userId, {
+      type: 'notification:new',
+      data: { notification: summary },
+    })
+
+    // External delivery (fire-and-forget)
+    import('@/server/services/notification-delivery').then(({ deliverExternalNotification }) =>
+      deliverExternalNotification(userId, {
+        type: params.type,
+        title: params.title,
+        body: params.body,
+        kinName,
+      }).catch(() => {}),
+    )
+
+    log.debug({ type: params.type, userId }, 'Notification created for user')
+  } catch (err) {
+    log.error({ err, type: params.type, userId }, 'Failed to create notification for user')
+  }
+}
+
 // ─── List ────────────────────────────────────────────────────────────────────
 
 interface ListNotificationsOpts {

@@ -33,6 +33,7 @@ import { listAvailableKins } from '@/server/services/inter-kin'
 import { listContactsForPrompt } from '@/server/services/contacts'
 import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
 import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel } from '@/server/services/channels'
+import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import { getGlobalPrompt } from '@/server/services/app-settings'
 import { channelAdapters } from '@/server/channels/index'
 import type { ChannelPlatform } from '@/shared/types'
@@ -513,6 +514,15 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
             log.error({ kinId, channelId: channelMeta.channelId, err }, 'Channel response delivery failed')
           })
         }
+      }
+
+      // Mention notifications (fire-and-forget)
+      if (fullContent) {
+        parseMentions(fullContent).then((mentions) => {
+          if (mentions.length > 0) {
+            notifyMentionedUsers(mentions, kinId, assistantMessageId, kin.name).catch(() => {})
+          }
+        }).catch(() => {})
       }
     }
 

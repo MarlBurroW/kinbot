@@ -483,6 +483,11 @@
       "showLess": "Show less"
     },
     "charCount": "{{count}} characters",
+    "mention": {
+      "users": "User",
+      "kins": "Kin",
+      "noResults": "No results"
+    },
     "emptyState": {
       "greeting": "Chat with {{name}}",
       "defaultRole": "Your AI assistant, ready to help.",

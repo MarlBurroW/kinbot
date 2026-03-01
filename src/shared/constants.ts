@@ -60,7 +60,11 @@ export const NOTIFICATION_TYPES = [
   'mcp:pending-approval',
   'kin:error',
   'kin:alert',
+  'mention',
 ] as const
+
+/** Regex to detect @mentions in message content. Shared between client (rendering) and server (parsing). */
+export const MENTION_REGEX = /@([a-zA-Z0-9_-]+)/g
 
 export const PALETTE_IDS = ['aurora', 'ocean', 'forest', 'sunset', 'monochrome'] as const
 

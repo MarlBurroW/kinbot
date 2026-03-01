@@ -13,8 +13,9 @@ export type NotificationType =
   | 'mcp:pending-approval'
   | 'kin:error'
   | 'kin:alert'
+  | 'mention'
 
-export type NotificationRelatedType = 'prompt' | 'channel' | 'cron' | 'mcp' | 'kin'
+export type NotificationRelatedType = 'prompt' | 'channel' | 'cron' | 'mcp' | 'kin' | 'message'
 
 export interface NotificationSummary {
   id: string

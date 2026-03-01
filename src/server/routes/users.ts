@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { db } from '@/server/db/index'
-import { user, userProfiles, session, account, contacts } from '@/server/db/schema'
+import { user, userProfiles, session, account, contacts, kins } from '@/server/db/schema'
 import { eq } from 'drizzle-orm'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
@@ -8,6 +8,46 @@ import { createLogger } from '@/server/logger'
 const log = createLogger('routes:users')
 
 const userRoutes = new Hono<{ Variables: AppVariables }>()
+
+// GET /api/users/mentionables — combined list of users + kins for @mention autocomplete
+userRoutes.get('/mentionables', async (c) => {
+  const [users, kinList] = await Promise.all([
+    db.select({
+      id: user.id,
+      pseudonym: userProfiles.pseudonym,
+      firstName: userProfiles.firstName,
+      avatarUrl: user.image,
+    })
+    .from(user)
+    .innerJoin(userProfiles, eq(user.id, userProfiles.userId))
+    .all(),
+    db.select({
+      id: kins.id,
+      slug: kins.slug,
+      name: kins.name,
+      avatarPath: kins.avatarPath,
+    })
+    .from(kins)
+    .all(),
+  ])
+
+  return c.json({
+    users: users.map((u) => ({
+      id: u.id,
+      pseudonym: u.pseudonym,
+      firstName: u.firstName,
+      avatarUrl: u.avatarUrl,
+    })),
+    kins: kinList.map((k) => ({
+      id: k.id,
+      slug: k.slug,
+      name: k.name,
+      avatarUrl: k.avatarPath
+        ? `/api/uploads/kins/${k.id}/avatar.${k.avatarPath.split('.').pop() ?? 'png'}`
+        : null,
+    })),
+  })
+})
 
 // GET /api/users — list all users with full profile data
 userRoutes.get('/', async (c) => {

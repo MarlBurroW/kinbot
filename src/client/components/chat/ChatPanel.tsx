@@ -26,6 +26,8 @@ import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
 import { DateSeparator } from '@/client/components/chat/DateSeparator'
 import { TimeGapIndicator } from '@/client/components/chat/TimeGapIndicator'
 import { SearchHighlightProvider } from '@/client/components/chat/SearchHighlightContext'
+import { MentionLookupProvider } from '@/client/components/chat/MentionContext'
+import { useMentionables } from '@/client/hooks/useMentionables'
 import { cn } from '@/client/lib/utils'
 import { ArrowDown, ArrowUp, Upload, Pin, PinOff } from 'lucide-react'
 import { toast } from 'sonner'
@@ -66,6 +68,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const { pendingFiles, addFiles, removeFile, clearFiles, isUploading } = useFileUpload(kin.id)
   const { activeSession, isOpen: isQuickOpen, setIsOpen: setQuickOpen, createSession, closeSession } = useQuickSession(kin.id)
   const { exportAsMarkdown, exportAsJSON } = useExportConversation(messages, kin.name)
+  const { users: mentionableUsers, kins: mentionableKins } = useMentionables()
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
@@ -396,6 +399,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         <div ref={scrollAreaRef} className="relative min-h-0 flex-1 flex flex-col">
         <ScrollArea className="min-h-0 flex-1">
           <SearchHighlightProvider value={searchQuery}>
+          <MentionLookupProvider users={mentionableUsers} kins={mentionableKins}>
           <div className="mx-auto max-w-3xl py-4">
             {messages.length === 0 && liveTasks.length === 0 ? (
               <ChatEmptyState
@@ -561,6 +565,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
             )}
             <div ref={bottomRef} />
           </div>
+          </MentionLookupProvider>
           </SearchHighlightProvider>
         </ScrollArea>
           {showScrollTop && !showScrollBottom && (
@@ -632,6 +637,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onAddFiles={addFiles}
         onRemoveFile={removeFile}
         kinId={kin.id}
+        mentionableUsers={mentionableUsers}
+        mentionableKins={mentionableKins}
       />
 
       {/* Task detail modal — opened from live task cards */}

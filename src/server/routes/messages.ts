@@ -6,6 +6,7 @@ import { enqueueMessage } from '@/server/services/queue'
 import { abortKinStream } from '@/server/services/kin-engine'
 import { getFilesForMessages, serializeFile } from '@/server/services/files'
 import { resolveKinId } from '@/server/services/kin-resolver'
+import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
 
@@ -40,6 +41,15 @@ messageRoutes.post('/', async (c) => {
   })
 
   log.debug({ kinId, messageId: id, contentLength: content.length, fileCount: fileIds?.length ?? 0 }, 'Message enqueued')
+
+  // Fire-and-forget: parse @mentions and notify mentioned users
+  if (content) {
+    parseMentions(content).then((mentions) => {
+      if (mentions.length > 0) {
+        notifyMentionedUsers(mentions, kinId, id, user.name).catch(() => {})
+      }
+    }).catch(() => {})
+  }
 
   return c.json({ messageId: id, queuePosition }, 202)
 })

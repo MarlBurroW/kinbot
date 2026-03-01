@@ -6,6 +6,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/
 import { cn } from '@/client/lib/utils'
 import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2, Bold, Italic, Strikethrough, Code, Braces } from 'lucide-react'
 import { useInputHistory } from '@/client/hooks/useInputHistory'
+import { MentionPopover, getMentionItemCount, getMentionItemAt, type MentionItem } from '@/client/components/chat/MentionPopover'
+import type { MentionableUser, MentionableKin } from '@/client/hooks/useMentionables'
 import type { PendingFile } from '@/client/hooks/useFileUpload'
 
 export interface MessageInputHandle {
@@ -32,6 +34,10 @@ interface MessageInputProps {
   onRemoveFile?: (localId: string) => void
   /** Kin ID for input history (Up/Down arrow to cycle through sent messages) */
   kinId?: string
+  /** Users available for @mention autocomplete */
+  mentionableUsers?: MentionableUser[]
+  /** Kins available for @mention autocomplete */
+  mentionableKins?: MentionableKin[]
 }
 
 export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(function MessageInput({
@@ -47,6 +53,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
   onAddFiles,
   onRemoveFile,
   kinId,
+  mentionableUsers,
+  mentionableKins,
 }, ref) {
   const { t } = useTranslation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -55,11 +63,63 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
   const [showToolbar, setShowToolbar] = useState(false)
   const dragCounterRef = useRef(0)
 
+  // Mention autocomplete state
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionStartIndex, setMentionStartIndex] = useState(0)
+  const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0)
+  const isMentionOpen = mentionQuery !== null && (mentionableUsers?.length || mentionableKins?.length)
+
   useImperativeHandle(ref, () => ({
     focus: () => textareaRef.current?.focus(),
   }))
 
   const history = useInputHistory(kinId ?? '__default__')
+
+  /** Detect @mention trigger from the current cursor position */
+  const detectMention = useCallback((text: string, cursorPos: number) => {
+    // Walk backwards from cursor to find @ that starts this mention
+    let i = cursorPos - 1
+    while (i >= 0 && /[a-zA-Z0-9_-]/.test(text[i]!)) i--
+
+    if (i >= 0 && text[i] === '@') {
+      // Check that @ is at start of text or preceded by whitespace
+      if (i === 0 || /\s/.test(text[i - 1]!)) {
+        const query = text.slice(i + 1, cursorPos)
+        setMentionQuery(query)
+        setMentionStartIndex(i)
+        setMentionSelectedIndex(0)
+        return
+      }
+    }
+
+    setMentionQuery(null)
+  }, [])
+
+  /** Handle change: update value and detect mention */
+  const handleChange = useCallback((newValue: string) => {
+    onChange(newValue)
+    // Use requestAnimationFrame to read cursor position after React updates the textarea
+    requestAnimationFrame(() => {
+      const cursor = textareaRef.current?.selectionStart ?? newValue.length
+      detectMention(newValue, cursor)
+    })
+  }, [onChange, detectMention])
+
+  /** Insert selected mention into the text */
+  const handleMentionSelect = useCallback((item: MentionItem) => {
+    const before = value.slice(0, mentionStartIndex)
+    const after = value.slice(mentionStartIndex + 1 + (mentionQuery?.length ?? 0)) // +1 for the @
+    const newValue = `${before}@${item.handle} ${after}`
+    onChange(newValue)
+    setMentionQuery(null)
+
+    // Place cursor right after the inserted mention
+    const cursorPos = mentionStartIndex + 1 + item.handle.length + 1
+    requestAnimationFrame(() => {
+      textareaRef.current?.setSelectionRange(cursorPos, cursorPos)
+      textareaRef.current?.focus()
+    })
+  }, [value, onChange, mentionStartIndex, mentionQuery])
 
   const hasPendingFiles = pendingFiles && pendingFiles.length > 0
   const readyFileIds = pendingFiles?.filter((f) => f.status === 'done').map((f) => f.serverId!)
@@ -72,6 +132,34 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Mention popover keyboard navigation
+    if (isMentionOpen && mentionableUsers && mentionableKins) {
+      const count = getMentionItemCount(mentionQuery!, mentionableUsers, mentionableKins)
+      if (count > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setMentionSelectedIndex((prev) => (prev + 1) % count)
+          return
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setMentionSelectedIndex((prev) => (prev - 1 + count) % count)
+          return
+        }
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          e.preventDefault()
+          const item = getMentionItemAt(mentionSelectedIndex, mentionQuery!, mentionableUsers, mentionableKins)
+          if (item) handleMentionSelect(item)
+          return
+        }
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setMentionQuery(null)
+        return
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
@@ -334,22 +422,36 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(fu
             </>
           )}
 
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onFocus={() => setShowToolbar(true)}
-            onBlur={() => { if (!value) setShowToolbar(false) }}
-            placeholder={disabledReason ?? t('chat.placeholder')}
-            disabled={disabled || isStreaming}
-            rows={1}
-            className={cn(
-              'min-h-10 max-h-40 resize-none',
-              disabledReason && 'placeholder:text-warning/70',
+          <div className="relative flex-1">
+            <Textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onFocus={() => setShowToolbar(true)}
+              onBlur={() => { if (!value) setShowToolbar(false) }}
+              placeholder={disabledReason ?? t('chat.placeholder')}
+              disabled={disabled || isStreaming}
+              rows={1}
+              className={cn(
+                'min-h-10 max-h-40 resize-none',
+                disabledReason && 'placeholder:text-warning/70',
+              )}
+            />
+
+            {/* @mention autocomplete popover */}
+            {isMentionOpen && mentionableUsers && mentionableKins && (
+              <MentionPopover
+                query={mentionQuery!}
+                users={mentionableUsers}
+                kins={mentionableKins}
+                selectedIndex={mentionSelectedIndex}
+                position={{ top: 8, left: 0 }}
+                onSelect={handleMentionSelect}
+              />
             )}
-          />
+          </div>
 
           {isStreaming ? (
             <Tooltip>
