@@ -11,7 +11,6 @@ on:
     branches: [main]
     paths-ignore:
       - 'site/**'
-      - '*.md'
       - 'LICENSE'
 
 concurrency:
@@ -23,6 +22,9 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -78,3 +80,12 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      - name: Deploy E2E report to GitHub Pages
+        if: github.ref == 'refs/heads/main' && !cancelled()
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: playwright-report
+          target-folder: e2e-report
+          commit-message: 'chore: update E2E test report'

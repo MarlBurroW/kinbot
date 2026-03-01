@@ -9,17 +9,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build landing site
+  build-and-deploy:
+    name: Build and deploy landing site
     runs-on: ubuntu-latest
 
     steps:
@@ -45,20 +43,10 @@ jobs:
       - name: Build
         run: cd site && bun run build
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: site/dist
-
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        id: deployment
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: site/dist
+          clean-exclude: e2e-report
+          commit-message: 'chore: update landing site'

@@ -14,6 +14,7 @@ export default defineConfig({
     baseURL: 'http://localhost:3334',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    video: 'on',
   },
 
   webServer: {
