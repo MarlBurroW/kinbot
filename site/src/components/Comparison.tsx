@@ -11,9 +11,10 @@ interface Row {
   lobechat: Support
   anythingllm: Support
   openclaw: Support
+  crewai: Support
 }
 
-type Competitor = 'chatgpt' | 'openwebui' | 'lobechat' | 'anythingllm' | 'openclaw'
+type Competitor = 'chatgpt' | 'openwebui' | 'lobechat' | 'anythingllm' | 'openclaw' | 'crewai'
 
 const competitors: { id: Competitor; label: string }[] = [
   { id: 'chatgpt', label: 'ChatGPT' },
@@ -21,28 +22,29 @@ const competitors: { id: Competitor; label: string }[] = [
   { id: 'lobechat', label: 'LobeChat' },
   { id: 'anythingllm', label: 'AnythingLLM' },
   { id: 'openclaw', label: 'OpenClaw' },
+  { id: 'crewai', label: 'CrewAI' },
 ]
 
 const rows: Row[] = [
-  { feature: 'Self-hosted / your data', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes' },
-  { feature: 'Persistent agent identity', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'partial', anythingllm: 'partial', openclaw: 'partial' },
-  { feature: 'Long-term memory', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'no', anythingllm: 'partial', openclaw: 'partial' },
-  { feature: 'Session compacting', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial' },
-  { feature: 'Multi-agent collaboration', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
-  { feature: 'Sub-tasks / delegation', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial' },
-  { feature: 'Cron jobs / autonomy', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'yes' },
-  { feature: 'Encrypted vault', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
-  { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
-  { feature: 'Multi-provider (23+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes' },
-  { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
-  { feature: 'Chat integrations (6 platforms)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'partial', openclaw: 'yes' },
-  { feature: 'Custom tools (agent-created)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial' },
-  { feature: 'Mini Apps (agent-built UIs)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no' },
-  { feature: 'RAG / document embedding', kinbot: 'no', chatgpt: 'partial', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes', openclaw: 'no' },
-  { feature: 'Multi-user with roles', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes', openclaw: 'no' },
-  { feature: 'Web UI', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'no' },
-  { feature: 'Zero-infra (no Postgres/Redis)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'partial', anythingllm: 'no', openclaw: 'yes' },
-  { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes' },
+  { feature: 'Self-hosted / your data', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes', crewai: 'yes' },
+  { feature: 'Persistent agent identity', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'partial', anythingllm: 'partial', openclaw: 'partial', crewai: 'no' },
+  { feature: 'Long-term memory', kinbot: 'yes', chatgpt: 'partial', openwebui: 'no', lobechat: 'no', anythingllm: 'partial', openclaw: 'partial', crewai: 'no' },
+  { feature: 'Session compacting', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial', crewai: 'no' },
+  { feature: 'Multi-agent collaboration', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no', crewai: 'yes' },
+  { feature: 'Sub-tasks / delegation', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial', crewai: 'yes' },
+  { feature: 'Cron jobs / autonomy', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'yes', crewai: 'no' },
+  { feature: 'Encrypted vault', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no', crewai: 'no' },
+  { feature: 'MCP tool servers', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'no', anythingllm: 'no', openclaw: 'no', crewai: 'no' },
+  { feature: 'Multi-provider (23+)', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes', crewai: 'partial' },
+  { feature: 'Webhooks', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no', crewai: 'no' },
+  { feature: 'Chat integrations (6 platforms)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'partial', openclaw: 'yes', crewai: 'no' },
+  { feature: 'Custom tools (agent-created)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'partial', crewai: 'partial' },
+  { feature: 'Mini Apps (agent-built UIs)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'no', anythingllm: 'no', openclaw: 'no', crewai: 'no' },
+  { feature: 'RAG / document embedding', kinbot: 'no', chatgpt: 'partial', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes', openclaw: 'no', crewai: 'partial' },
+  { feature: 'Multi-user with roles', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', lobechat: 'partial', anythingllm: 'yes', openclaw: 'no', crewai: 'no' },
+  { feature: 'Web UI', kinbot: 'yes', chatgpt: 'yes', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'no', crewai: 'no' },
+  { feature: 'Zero-infra (no Postgres/Redis)', kinbot: 'yes', chatgpt: 'no', openwebui: 'no', lobechat: 'partial', anythingllm: 'no', openclaw: 'yes', crewai: 'yes' },
+  { feature: 'Free & open source', kinbot: 'yes', chatgpt: 'no', openwebui: 'yes', lobechat: 'yes', anythingllm: 'yes', openclaw: 'yes', crewai: 'yes' },
 ]
 
 type BlurbId = Competitor | 'crewai'
