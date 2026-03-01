@@ -1921,7 +1921,8 @@ show_help() {
   echo "  --status        Check current KinBot installation health"
   echo "  --test          Run self-tests to validate the installation works"
   echo "  --doctor        Generate a diagnostic report (for bug reports / support)"
-  echo "  --logs          Tail KinBot logs (works across all platforms)"
+  echo "  --logs [N]      Show logs (default: follow live; N = last N lines)"
+  echo "                  --grep PATTERN: filter lines; --since TIME: journalctl time"
   echo "  --backup [path] Back up database (and config) to a file"
   echo "  --restore [path] Restore database from a backup (interactive picker if no path)"
   echo "  --yes, -y       Auto-confirm all prompts (accept defaults, skip confirmations)"
@@ -2010,8 +2011,17 @@ show_help() {
   echo "  bash install.sh --doctor"
   echo "  bash install.sh --doctor > report.md  # Save to file"
   echo ""
-  echo "  # Tail logs"
+  echo "  # Tail logs (follow live)"
   echo "  bash install.sh --logs"
+  echo ""
+  echo "  # Show last 50 log lines"
+  echo "  bash install.sh --logs 50"
+  echo ""
+  echo "  # Search logs for errors"
+  echo "  bash install.sh --logs 200 --grep error"
+  echo ""
+  echo "  # Logs from last hour (systemd only)"
+  echo "  bash install.sh --logs 500 --since '1 hour ago'"
   echo ""
   echo "  # Fix a broken installation (keeps your data)"
   echo "  bash install.sh --reset"
@@ -2961,6 +2971,10 @@ COMPOSE
 
 # ─── Logs ────────────────────────────────────────────────────────────────────
 show_logs() {
+  local log_lines="${LOGS_LINES:-0}"
+  local log_grep="${LOGS_GREP:-}"
+  local log_since="${LOGS_SINCE:-}"
+
   # Detect environment (minimal, no banner)
   OS="$(uname -s)"
   IS_ROOT=false
@@ -2982,26 +2996,83 @@ show_logs() {
     INIT_SYSTEM="script"
   fi
 
+  # Determine if we follow (default) or show last N lines
+  local follow=true
+  if [ "$log_lines" -gt 0 ] 2>/dev/null || [ -n "$log_grep" ] || [ -n "$log_since" ]; then
+    follow=false
+  fi
+
+  # Helper: apply grep filter if requested
+  _log_filter() {
+    if [ -n "$log_grep" ]; then
+      grep -i --color=auto -- "$log_grep" || true
+    else
+      cat
+    fi
+  }
+
+  # For file-based logs (launchd, script)
+  _show_file_logs() {
+    local log_file="$1"
+    if [ ! -f "$log_file" ]; then
+      echo "No log file found at $log_file" >&2
+      exit 1
+    fi
+
+    if [ "$follow" = true ]; then
+      if [ -n "$log_grep" ]; then
+        tail -f "$log_file" | grep -i --color=auto --line-buffered -- "$log_grep"
+      else
+        exec tail -f "$log_file"
+      fi
+    else
+      local n="${log_lines:-100}"
+      [ "$n" -eq 0 ] 2>/dev/null && n=100
+
+      if [ -n "$log_since" ]; then
+        # For file-based logs, --since is best-effort: show last N lines
+        # and note that --since works best with journalctl
+        echo -e "${DIM}Note: --since filtering works best with systemd/journalctl.${NC}" >&2
+        echo -e "${DIM}Showing last $n lines instead.${NC}" >&2
+        echo "" >&2
+      fi
+
+      tail -n "$n" "$log_file" | _log_filter
+    fi
+  }
+
+  # For journalctl-based logs (systemd)
+  _show_journal_logs() {
+    local base_cmd=("journalctl")
+    if [ "$IS_ROOT" = true ]; then
+      base_cmd+=("-u" "kinbot")
+    else
+      base_cmd+=("--user" "-u" "kinbot")
+    fi
+
+    if [ -n "$log_since" ]; then
+      base_cmd+=("--since" "$log_since")
+    fi
+
+    if [ "$follow" = true ]; then
+      if [ -n "$log_grep" ]; then
+        "${base_cmd[@]}" -f --no-pager | grep -i --color=auto --line-buffered -- "$log_grep"
+      else
+        exec "${base_cmd[@]}" -f
+      fi
+    else
+      local n="${log_lines:-100}"
+      [ "$n" -eq 0 ] 2>/dev/null && n=100
+      "${base_cmd[@]}" --no-pager -n "$n" | _log_filter
+    fi
+  }
+
   if [ "$INIT_SYSTEM" = "launchd" ]; then
-    local log_file="$HOME/Library/Logs/kinbot/kinbot.log"
-    if [ -f "$log_file" ]; then
-      exec tail -f "$log_file"
-    else
-      echo "No log file found at $log_file" >&2
-      exit 1
-    fi
+    _show_file_logs "$HOME/Library/Logs/kinbot/kinbot.log"
   elif [ "$INIT_SYSTEM" = "script" ]; then
-    local log_file="$KINBOT_DATA_DIR/kinbot.log"
-    if [ -f "$log_file" ]; then
-      exec tail -f "$log_file"
-    else
-      echo "No log file found at $log_file" >&2
-      exit 1
-    fi
-  elif [ "$IS_ROOT" = true ]; then
-    exec journalctl -u kinbot -f
+    _show_file_logs "$KINBOT_DATA_DIR/kinbot.log"
   else
-    exec journalctl --user -u kinbot -f
+    _show_journal_logs
   fi
 }
 
@@ -4279,6 +4350,33 @@ main() {
         ;;
       --logs|logs)
         trap - INT TERM
+        # Parse --logs sub-options: [N] [--grep PATTERN] [--since TIME]
+        local found_logs=false
+        for a in "$@"; do
+          if [ "$found_logs" = true ]; then
+            case "$a" in
+              --grep)  : ;;  # next arg is the pattern
+              --since) : ;;  # next arg is the time
+              --*)     break ;;
+              *)
+                # Could be N (number), grep pattern, or since value
+                if [[ "$a" =~ ^[0-9]+$ ]]; then
+                  LOGS_LINES="$a"
+                fi
+                ;;
+            esac
+          fi
+          [[ "$a" = "--logs" || "$a" = "logs" ]] && found_logs=true
+        done
+        # Extract --grep and --since values
+        local prev=""
+        for a in "$@"; do
+          case "$prev" in
+            --grep)  LOGS_GREP="$a" ;;
+            --since) LOGS_SINCE="$a" ;;
+          esac
+          prev="$a"
+        done
         show_logs
         exit 0
         ;;
