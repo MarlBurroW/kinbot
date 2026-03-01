@@ -197,10 +197,10 @@ test.describe.serial('Vault settings', () => {
     await card1.locator('button:has(.lucide-trash-2)').click()
     await page.waitForTimeout(300)
     await page.getByRole('button', { name: /^delete$/i }).last().click()
-    await expect(page.getByText('Entry deleted')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('Entry deleted').first()).toBeVisible({ timeout: 5_000 })
 
     // Wait for toast to disappear
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(2000)
 
     // Delete MY_API_KEY
     const card2 = page.locator('.surface-card').filter({ hasText: 'MY_API_KEY' })
@@ -208,7 +208,7 @@ test.describe.serial('Vault settings', () => {
     await card2.locator('button:has(.lucide-trash-2)').click()
     await page.waitForTimeout(300)
     await page.getByRole('button', { name: /^delete$/i }).last().click()
-    await expect(page.getByText('Entry deleted')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('Entry deleted').first()).toBeVisible({ timeout: 5_000 })
 
     // Should be back to empty state
     await expect(page.getByText('No entries configured')).toBeVisible()

@@ -356,7 +356,15 @@ export function buildSystemPrompt(params: PromptParams): string {
       `## External channels\n\n` +
       `You are connected to the following external messaging platforms:\n\n${channelLines}\n\n` +
       `Messages prefixed with [platform:Name] come from these platforms. Your responses are automatically sent back to the originating conversation.\n` +
-      `Keep responses concise for external platforms. Avoid referencing internal tools, UI elements, or administrative details.`,
+      `Keep responses concise for external platforms. Avoid referencing internal tools, UI elements, or administrative details.\n\n` +
+      `### Platform formatting guide\n` +
+      `Adapt your formatting based on the originating platform:\n` +
+      `- **Discord**: Supports full Markdown (bold, italic, code blocks, lists, headings). Do NOT use Markdown tables — use bullet lists instead. Wrap multiple URLs in \`<>\` to suppress embeds.\n` +
+      `- **Telegram**: Supports Markdown (bold, italic, code, links). Keep messages moderate length. Avoid complex nested formatting.\n` +
+      `- **WhatsApp**: Very limited formatting (*bold*, _italic_, \`code\`, ~~strike~~). No headings, no tables, no links with custom text. Use *bold* or CAPS for emphasis. Keep messages short.\n` +
+      `- **Slack**: Supports Markdown-like syntax (mrkdwn). Use *bold*, _italic_, \`code\`. No headings.\n` +
+      `- **Web UI (KinBot)**: Full Markdown support including tables, headings, code blocks, and LaTeX.\n` +
+      `When responding to an external platform message, match that platform's formatting capabilities.`,
     )
   }
 

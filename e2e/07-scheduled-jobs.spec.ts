@@ -207,7 +207,7 @@ test.describe.serial('Scheduled jobs management', () => {
     // Click edit to access delete
     const editBtn = dialog.getByRole('button', { name: /edit/i }).first()
     await editBtn.click()
-    await expect(page.getByText('Edit scheduled job')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('heading', { name: 'Edit scheduled job' })).toBeVisible({ timeout: 5_000 })
 
     // Click delete
     const deleteBtn = page.getByRole('button', { name: /delete job/i })
@@ -231,7 +231,7 @@ test.describe.serial('Scheduled jobs management', () => {
 
     const editBtn = dialog.getByRole('button', { name: /edit/i }).first()
     await editBtn.click()
-    await expect(page.getByText('Edit scheduled job')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('heading', { name: 'Edit scheduled job' })).toBeVisible({ timeout: 5_000 })
 
     const deleteBtn = page.getByRole('button', { name: /delete job/i })
     await deleteBtn.click()

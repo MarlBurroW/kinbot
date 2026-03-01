@@ -157,8 +157,9 @@ test.describe.serial('Mini App Gallery', () => {
     await expect(page.getByText('Simple task management app')).toBeVisible()
 
     // Verify kin names
-    const weatherBotLabels = page.getByText('Weather Bot')
-    expect(await weatherBotLabels.count()).toBeGreaterThanOrEqual(2) // appears for 2 apps
+    await expect(page.getByText('Weather Bot')).toBeVisible()
+    await expect(page.getByText('Productivity Kin')).toBeVisible()
+    await expect(page.getByText('Focus Kin')).toBeVisible()
 
     // Verify version numbers
     await expect(page.getByText('v3')).toBeVisible()
