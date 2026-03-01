@@ -4,6 +4,7 @@ import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { channels, channelUserMappings, channelMessageLinks, contactPlatformIds, kins, contacts } from '@/server/db/schema'
 import { enqueueMessage } from '@/server/services/queue'
+import { downloadChannelAttachments } from '@/server/services/files'
 import { createSecret, deleteSecret, getSecretValue, getSecretByKey } from '@/server/services/vault'
 import { createContact } from '@/server/services/contacts'
 import { channelAdapters } from '@/server/channels/index'
@@ -338,6 +339,13 @@ export async function handleIncomingChannelMessage(channelId: string, incoming: 
     content = `[${channel.platform}:${senderName} (unknown — ${parts.join(', ')})] ${incoming.content}`
   }
 
+  // Download and store any file attachments
+  let fileIds: string[] | undefined
+  if (incoming.attachments && incoming.attachments.length > 0) {
+    fileIds = await downloadChannelAttachments(channel.kinId, incoming.attachments)
+    if (fileIds.length === 0) fileIds = undefined
+  }
+
   // Enqueue message to Kin's queue
   const { id: queueItemId } = await enqueueMessage({
     kinId: channel.kinId,
@@ -346,6 +354,7 @@ export async function handleIncomingChannelMessage(channelId: string, incoming: 
     sourceType: 'channel',
     sourceId: channelId,
     priority: config.queue.userPriority,
+    fileIds,
   })
 
   // Store channel metadata in sideband for response routing

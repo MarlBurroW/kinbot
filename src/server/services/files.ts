@@ -6,6 +6,7 @@ import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { files } from '@/server/db/schema'
 import { config } from '@/server/config'
+import type { IncomingAttachment } from '@/server/channels/adapter'
 
 const log = createLogger('files')
 
@@ -125,9 +126,140 @@ export function serializeFile(f: typeof files.$inferSelect) {
   }
 }
 
+// ─── Download & store channel attachments ────────────────────────────────────
+
+/** Map of MIME types to file extensions for when no filename is provided */
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg',
+  'audio/ogg': 'ogg',
+  'audio/mpeg': 'mp3',
+  'audio/mp4': 'mp4a',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'application/pdf': 'pdf',
+  'text/plain': 'txt',
+}
+
+interface DownloadAttachmentParams {
+  kinId: string
+  attachment: IncomingAttachment
+  /** Direct download URL (may differ from attachment.url, e.g. Telegram getFile URL) */
+  downloadUrl: string
+}
+
+/**
+ * Download a single channel attachment from a URL and store it locally.
+ * Returns the file ID for queue sideband, or null if download failed.
+ */
+export async function downloadAndStoreAttachment(params: DownloadAttachmentParams): Promise<string | null> {
+  const { kinId, attachment, downloadUrl } = params
+
+  try {
+    const response = await fetch(downloadUrl)
+    if (!response.ok) {
+      log.warn({ url: downloadUrl, status: response.status }, 'Failed to download channel attachment')
+      return null
+    }
+
+    const buffer = await response.arrayBuffer()
+    if (buffer.byteLength === 0) {
+      log.warn({ url: downloadUrl }, 'Channel attachment is empty')
+      return null
+    }
+
+    // Enforce size limit
+    if (buffer.byteLength > MAX_FILE_SIZE) {
+      log.warn({ url: downloadUrl, size: buffer.byteLength }, 'Channel attachment too large, skipping')
+      return null
+    }
+
+    // Determine MIME type: attachment metadata > response header > fallback
+    const mimeType = attachment.mimeType
+      ?? response.headers.get('content-type')?.split(';')[0]?.trim()
+      ?? 'application/octet-stream'
+
+    // Determine filename
+    const fileName = attachment.fileName ?? guessFilename(downloadUrl, mimeType)
+
+    const id = uuid()
+    const ext = getExtension(fileName)
+    const storedName = `${id}${ext ? `.${ext}` : ''}`
+    const dir = join(config.upload.dir, 'messages', kinId)
+    const storedPath = join(dir, storedName)
+
+    await mkdir(dir, { recursive: true })
+    await Bun.write(storedPath, buffer)
+
+    await db.insert(files).values({
+      id,
+      kinId,
+      uploadedBy: 'channel',
+      originalName: fileName,
+      storedPath,
+      mimeType,
+      size: buffer.byteLength,
+      createdAt: new Date(),
+    })
+
+    log.info(
+      { kinId, fileId: id, fileName, size: buffer.byteLength, mimeType },
+      'Channel attachment downloaded and stored',
+    )
+
+    return id
+  } catch (err) {
+    log.error({ url: downloadUrl, err }, 'Error downloading channel attachment')
+    return null
+  }
+}
+
+/**
+ * Download and store multiple channel attachments.
+ * Returns array of file IDs (skips failed downloads).
+ */
+export async function downloadChannelAttachments(
+  kinId: string,
+  attachments: IncomingAttachment[],
+): Promise<string[]> {
+  const fileIds: string[] = []
+
+  for (const attachment of attachments) {
+    const downloadUrl = attachment.url
+    if (!downloadUrl) {
+      log.debug({ platformFileId: attachment.platformFileId }, 'Attachment has no download URL, skipping')
+      continue
+    }
+
+    const fileId = await downloadAndStoreAttachment({ kinId, attachment, downloadUrl })
+    if (fileId) fileIds.push(fileId)
+  }
+
+  return fileIds
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getExtension(filename: string): string {
   const parts = filename.split('.')
   return parts.length > 1 ? parts.pop()! : ''
+}
+
+/** Guess a filename from a URL and MIME type when no original name is available */
+function guessFilename(url: string, mimeType: string): string {
+  // Try to extract filename from URL path
+  try {
+    const pathname = new URL(url).pathname
+    const basename = pathname.split('/').pop()
+    if (basename && basename.includes('.')) return basename
+  } catch {
+    // Not a valid URL, ignore
+  }
+
+  // Fall back to MIME-based name
+  const ext = MIME_TO_EXT[mimeType] ?? 'bin'
+  return `attachment.${ext}`
 }
