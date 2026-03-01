@@ -54,7 +54,8 @@ test.describe.serial('Vault settings', () => {
     await expect(page.getByText('Store an encrypted entry')).toBeVisible({ timeout: 5_000 })
 
     // Change type to Credential
-    await page.locator('[data-slot="select-trigger"]').first().click()
+    const entryDialog = page.locator('[role="dialog"]').last()
+    await entryDialog.locator('[data-slot="select-trigger"]').click()
     await page.locator('[data-slot="select-item"]').filter({ hasText: /credential/i }).click()
     await page.waitForTimeout(300)
 
@@ -76,7 +77,8 @@ test.describe.serial('Vault settings', () => {
     await page.getByRole('button', { name: 'Add entry' }).last().click()
     await expect(page.getByText('Store an encrypted entry')).toBeVisible({ timeout: 5_000 })
 
-    await page.locator('[data-slot="select-trigger"]').first().click()
+    const entryDialog = page.locator('[role="dialog"]').last()
+    await entryDialog.locator('[data-slot="select-trigger"]').click()
     await page.locator('[data-slot="select-item"]').filter({ hasText: /note/i }).click()
     await page.waitForTimeout(300)
 
