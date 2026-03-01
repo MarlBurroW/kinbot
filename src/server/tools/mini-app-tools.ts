@@ -21,6 +21,7 @@ import {
   listSnapshots,
   rollbackToSnapshot,
 } from '@/server/services/mini-apps'
+import { getTemplateById } from '@/server/tools/mini-app-templates'
 import { sseManager } from '@/server/sse/index'
 import type { ToolRegistration } from '@/server/tools/types'
 
@@ -120,22 +121,42 @@ export const createMiniAppTool: ToolRegistration = {
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),
         description: z.string().optional().describe('Short description shown in the app list'),
         icon: z.string().optional().describe('Single emoji for the app icon (e.g. "📊", "🎮", "📝")'),
-        html: z.string().describe('Full HTML content for index.html. Do NOT include a <link> to kinbot-sdk.css — it is injected automatically.'),
+        html: z.string().optional().describe('Full HTML content for index.html. Do NOT include a <link> to kinbot-sdk.css — it is injected automatically. Either html or template is required.'),
+        template: z.string().optional().describe('Use a built-in template instead of providing html. Available templates: "dashboard", "todo-list", "form", "data-viewer", "kanban". Use get_mini_app_templates to see all templates with descriptions.'),
       }),
-      execute: async ({ name, slug, description, icon, html }) => {
+      execute: async ({ name, slug, description, icon, html, template }) => {
         log.debug({ kinId: ctx.kinId, name, slug }, 'create_mini_app invoked')
 
         try {
+          // Resolve template if specified
+          let templateData: ReturnType<typeof getTemplateById> | undefined
+          if (template) {
+            templateData = getTemplateById(template)
+            if (!templateData) {
+              return { error: `Template "${template}" not found. Use get_mini_app_templates to see available templates.` }
+            }
+          }
+
+          if (!html && !templateData) {
+            return { error: 'Either html or template is required' }
+          }
+
           const app = await createMiniApp({
             kinId: ctx.kinId,
             name,
             slug,
             description,
-            icon,
+            icon: icon || templateData?.icon,
           })
 
-          // Write the initial HTML
-          await writeAppFile(app.id, 'index.html', html)
+          // Write template files or provided HTML
+          if (templateData) {
+            for (const [filePath, content] of Object.entries(templateData.files)) {
+              await writeAppFile(app.id, filePath, content)
+            }
+          } else if (html) {
+            await writeAppFile(app.id, 'index.html', html)
+          }
 
           // Re-fetch to get updated version
           const updated = await getMiniApp(app.id)
@@ -145,7 +166,8 @@ export const createMiniAppTool: ToolRegistration = {
             appId: app.id,
             name: app.name,
             slug: app.slug,
-            message: `App "${name}" created successfully. It is now visible in the sidebar.`,
+            template: template || undefined,
+            message: `App "${name}" created successfully${template ? ` from template "${template}"` : ''}. It is now visible in the sidebar.`,
           }
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Failed to create app'
@@ -650,3 +672,4 @@ export const rollbackMiniAppTool: ToolRegistration = {
       },
     }),
 }
+
