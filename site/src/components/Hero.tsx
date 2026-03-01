@@ -278,7 +278,7 @@ export function Hero() {
       </div>
 
       {/* Video preview */}
-      <div className="animate-levitate animate-fade-in-up mt-10 w-full max-w-3xl" style={{ animationDelay: '0.2s' }}>
+      <div className="animate-levitate animate-fade-in-up mt-10 w-full max-w-6xl" style={{ animationDelay: '0.2s' }}>
         <div className="glass-strong gradient-border rounded-2xl overflow-hidden shadow-xl">
           <video
             key={preview.src}
