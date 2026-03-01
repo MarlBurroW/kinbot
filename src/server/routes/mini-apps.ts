@@ -903,6 +903,19 @@ miniAppSdkRoutes.get('/kinbot-react.js', async (c) => {
   })
 })
 
+miniAppSdkRoutes.get('/kinbot-components.js', async (c) => {
+  const jsPath = join(import.meta.dir, '../mini-app-sdk/kinbot-components.js')
+  if (!existsSync(jsPath)) {
+    return new Response('/* KinBot Components not found */', {
+      headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=3600' },
+    })
+  }
+  const js = await Bun.file(jsPath).text()
+  return new Response(js, {
+    headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=3600' },
+  })
+})
+
 miniAppSdkRoutes.get('/kinbot-sdk.css', async (c) => {
   // Serve the SDK CSS file
   const cssPath = join(import.meta.dir, '../mini-app-sdk/kinbot-sdk.css')

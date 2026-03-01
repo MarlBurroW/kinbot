@@ -19,6 +19,7 @@ const REACT_APP_JSON = JSON.stringify({
     'react': 'https://esm.sh/react@19',
     'react-dom/client': 'https://esm.sh/react-dom@19/client',
     '@kinbot/react': '/api/mini-apps/sdk/kinbot-react.js',
+    '@kinbot/components': '/api/mini-apps/sdk/kinbot-components.js',
   },
 }, null, 2)
 

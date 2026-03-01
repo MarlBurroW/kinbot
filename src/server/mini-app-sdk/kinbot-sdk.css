@@ -2330,6 +2330,19 @@ code, pre {
 }
 
 /* ═══════════════════════════════════════════════════════
+   SLIDE ANIMATIONS (for Drawer component)
+   ═══════════════════════════════════════════════════════ */
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* ═══════════════════════════════════════════════════════
    REDUCED MOTION
    ═══════════════════════════════════════════════════════ */
 

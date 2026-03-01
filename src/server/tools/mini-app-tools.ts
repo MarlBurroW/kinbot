@@ -63,6 +63,22 @@ export const createMiniAppTool: ToolRegistration = {
         '`api.json("/path", options?)` → any method with JSON parsing, `api("/path", options?)` → raw Response), ' +
         '`http` (external HTTP proxy: `http(url, opts?)`, `http.json(url)`, `http.post(url, data)` — 60 req/min, 5MB max, 15s timeout), ' +
         '`events` (SSE from backend: `.on(event, cb)`, `.subscribe(cb)`, `.close()`, `.connected`). ' +
+        '**@kinbot/components — React Component Library:** Add `"@kinbot/components": "/api/mini-apps/sdk/kinbot-components.js"` to app.json dependencies. ' +
+        'Import: `import { Card, Button, Input, Select, Textarea, Checkbox, Switch, Badge, Tag, Stat, Avatar, Tooltip, ProgressBar, ' +
+        'Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Stack, Divider, ButtonGroup } from "@kinbot/components"`. ' +
+        'All components auto-adapt to light/dark theme. Key components: ' +
+        '`Card` (+ Card.Header, Card.Title, Card.Description, Card.Content, Card.Footer), ' +
+        '`Button` (variant: primary|secondary|destructive|ghost|shine, size: sm|md|lg|icon), ' +
+        '`Input/Textarea/Select` (label, error props for form validation), ' +
+        '`Switch` (checked, onChange, label), `Checkbox` (label), ' +
+        '`Badge` (variant: primary|destructive|success|warning|outline), `Tag` (onRemove for removable tags), ' +
+        '`Stat` (value, label, trend, trendUp), `Avatar` (src or initials fallback), ' +
+        '`Tooltip` (text, position: top|bottom|left|right), `ProgressBar` (value, max, showLabel), ' +
+        '`Alert` (variant: info|success|warning|error, title, dismissible), ' +
+        '`Tabs` (tabs: [{id, label}], active, onChange), `Table` (columns: [{key, label, render?}], data), ' +
+        '`Modal` (open, onClose, title, size: sm|md|lg), `Drawer` (open, onClose, title, side: left|right), ' +
+        '`Stack` (direction, gap, align, justify), `Divider`, `Pagination` (page, totalPages, onChange), ' +
+        '`Spinner`, `Skeleton`, `EmptyState` (icon, title, description, action), `List` (items: [{content}], divided). ' +
         '**Design System CSS** (auto-injected): CSS variables like ' +
         'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border). ' +
         'Utility classes: .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +
