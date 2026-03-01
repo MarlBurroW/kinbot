@@ -29,6 +29,7 @@ import {
   getKinDetails,
   kinAvatarUrl,
 } from '@/server/services/kins'
+import { getHubKinId } from '@/server/services/app-settings'
 import { listModelsForProvider } from '@/server/providers/index'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
@@ -39,7 +40,10 @@ const kinRoutes = new Hono<{ Variables: AppVariables }>()
 
 // GET /api/kins — list all kins
 kinRoutes.get('/', async (c) => {
-  const allKins = await db.select().from(kins).all()
+  const [allKins, hubKinId] = await Promise.all([
+    db.select().from(kins).all(),
+    getHubKinId(),
+  ])
 
   return c.json({
     kins: allKins.map((k) => ({
@@ -51,6 +55,7 @@ kinRoutes.get('/', async (c) => {
       model: k.model,
       providerId: k.providerId ?? null,
       createdAt: k.createdAt,
+      isHub: k.id === hubKinId,
     })),
   })
 })
@@ -94,9 +99,31 @@ kinRoutes.post('/generate-config', async (c) => {
     const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
     model = anthropic('claude-haiku-4-5-20251001')
   } else if (llmProvider.type === 'anthropic-oauth') {
-    const { getOAuthAccessToken, OAUTH_HEADERS } = await import('@/server/providers/anthropic-oauth')
-    const accessToken = await getOAuthAccessToken(llmProvider.id)
-    const anthropic = createAnthropic({ apiKey: accessToken, headers: OAUTH_HEADERS })
+    const { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK } = await import('@/server/providers/anthropic-oauth')
+    const accessToken = await getOAuthAccessToken(providerConfig.apiKey || undefined)
+    const anthropic = createAnthropic({
+      apiKey: 'oauth',
+      headers: OAUTH_HEADERS,
+      fetch: (async (url: URL | RequestInfo, init: RequestInit | undefined) => {
+        const headers = new Headers(init?.headers)
+        headers.delete('x-api-key')
+        headers.set('authorization', `Bearer ${accessToken}`)
+        if (init?.body && typeof init.body === 'string') {
+          try {
+            const body = JSON.parse(init.body)
+            if (body.system !== undefined) {
+              if (typeof body.system === 'string') {
+                body.system = [REQUIRED_SYSTEM_BLOCK, { type: 'text', text: body.system }]
+              } else if (Array.isArray(body.system)) {
+                body.system = [REQUIRED_SYSTEM_BLOCK, ...body.system]
+              }
+              init = { ...init, body: JSON.stringify(body) }
+            }
+          } catch { /* pass through */ }
+        }
+        return globalThis.fetch(url, { ...init, headers })
+      }) as unknown as typeof fetch,
+    })
     model = anthropic('claude-haiku-4-5-20251001')
   } else if (llmProvider.type === 'openai') {
     const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })

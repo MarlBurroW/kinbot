@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, ChevronRight, Cpu, Bot, Radio, Sparkles } from 'lucide-react'
+import { Check, ChevronRight, Cpu, Bot, Network, Radio, Sparkles } from 'lucide-react'
 import { Button } from '@/client/components/ui/button'
 import { api } from '@/client/lib/api'
 import { cn } from '@/client/lib/utils'
@@ -67,12 +67,15 @@ function Step({ number, title, description, done, active, icon: Icon, actionLabe
 }
 
 interface GettingStartedChecklistProps {
-  hasKins: boolean
+  /** Number of non-hub Kins */
+  specialistKinCount: number
+  hubKinId: string | null
+  onCreateHub: () => void
   onCreateKin: () => void
   onOpenSettings: (section?: string) => void
 }
 
-export function GettingStartedChecklist({ hasKins, onCreateKin, onOpenSettings }: GettingStartedChecklistProps) {
+export function GettingStartedChecklist({ specialistKinCount, hubKinId, onCreateHub, onCreateKin, onOpenSettings }: GettingStartedChecklistProps) {
   const { t } = useTranslation()
   const [providerCount, setProviderCount] = useState<number | null>(null)
   const [channelCount, setChannelCount] = useState<number | null>(null)
@@ -97,10 +100,12 @@ export function GettingStartedChecklist({ hasKins, onCreateKin, onOpenSettings }
   if (providerCount === null) return null
 
   const hasProviders = providerCount > 0
+  const hasHub = !!hubKinId
   const hasChannels = (channelCount ?? 0) > 0
+  const hasSpecialists = specialistKinCount > 0
 
-  // Determine active step
-  const activeStep = !hasProviders ? 1 : !hasKins ? 2 : !hasChannels ? 3 : 0
+  // Determine active step (4 steps: providers → hub → specialist → channels)
+  const activeStep = !hasProviders ? 1 : !hasHub ? 2 : !hasSpecialists ? 3 : !hasChannels ? 4 : 0
 
   return (
     <div className="w-full max-w-md space-y-6 animate-fade-in-up">
@@ -129,27 +134,37 @@ export function GettingStartedChecklist({ hasKins, onCreateKin, onOpenSettings }
           number={2}
           title={t('chat.welcome.step2Title')}
           description={t('chat.welcome.step2Desc')}
-          done={hasKins}
+          done={hasHub}
           active={activeStep === 2}
-          icon={Bot}
+          icon={Network}
           actionLabel={t('chat.welcome.step2Action')}
-          onAction={onCreateKin}
+          onAction={onCreateHub}
         />
         <Step
           number={3}
           title={t('chat.welcome.step3Title')}
           description={t('chat.welcome.step3Desc')}
-          done={hasChannels}
+          done={hasSpecialists && hasHub}
           active={activeStep === 3}
-          icon={Radio}
+          icon={Bot}
           actionLabel={t('chat.welcome.step3Action')}
+          onAction={onCreateKin}
+        />
+        <Step
+          number={4}
+          title={t('chat.welcome.step4Title')}
+          description={t('chat.welcome.step4Desc')}
+          done={hasChannels}
+          active={activeStep === 4}
+          icon={Radio}
+          actionLabel={t('chat.welcome.step4Action')}
           onAction={() => onOpenSettings('channels')}
         />
       </div>
 
       {activeStep === 0 && (
         <p className="text-center text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-          {t('chat.welcome.allDone')} 🎉
+          {t('chat.welcome.allDone')}
         </p>
       )}
     </div>

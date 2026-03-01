@@ -52,6 +52,7 @@ export type SSEEventType =
   | 'contact:created'
   | 'contact:updated'
   | 'contact:deleted'
+  | 'settings:hub-changed'
   | 'connected'
 
 export interface SSEEvent {

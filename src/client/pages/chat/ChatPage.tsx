@@ -7,7 +7,7 @@ import { MiniAppProvider } from '@/client/contexts/MiniAppContext'
 import { KinFormModal } from '@/client/components/kin/KinFormModal'
 import { ChatPanel } from '@/client/components/chat/ChatPanel'
 import { SettingsModal } from '@/client/pages/settings/SettingsPage'
-import { AccountPage } from '@/client/pages/account/AccountPage'
+import { AccountDialog } from '@/client/pages/account/AccountPage'
 import { useKins } from '@/client/hooks/useKins'
 import { useAuth } from '@/client/hooks/useAuth'
 import { Separator } from '@/client/components/ui/separator'
@@ -25,9 +25,10 @@ import { GettingStartedChecklist } from '@/client/components/common/GettingStart
 import { useDocumentTitle } from '@/client/hooks/useDocumentTitle'
 import { useUnreadWhileHidden } from '@/client/hooks/useUnreadWhileHidden'
 import { useFaviconBadge } from '@/client/hooks/useFaviconBadge'
-import { Bot, Command, MessageSquare, Plus, Sparkles } from 'lucide-react'
+import { Bot, ChevronRight, Command, MessageSquare, Network, Plus, Sparkles } from 'lucide-react'
 import { useUnreadPerKin } from '@/client/hooks/useUnreadPerKin'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
+import { api } from '@/client/lib/api'
 
 export function ChatPage() {
   const { t } = useTranslation()
@@ -64,10 +65,12 @@ export function ChatPage() {
   }, [kins, llmModels])
 
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showCreateHubModal, setShowCreateHubModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingKin, setEditingKin] = useState<Awaited<ReturnType<typeof getKin>> | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>()
+  const [accountOpen, setAccountOpen] = useState(false)
 
   const handleOpenSettings = useCallback((section?: string) => {
     setSettingsInitialSection(section)
@@ -84,6 +87,26 @@ export function ChatPage() {
     refetchModels()
     setShowCreateModal(true)
   }
+
+  const handleOpenCreateHubModal = () => {
+    refetchModels()
+    setShowCreateHubModal(true)
+  }
+
+  // Derive hub kin ID from the kins list
+  const hubKinId = useMemo(() => kins.find((k) => k.isHub)?.id ?? null, [kins])
+
+  // Onboarding is complete when we have providers + hub + at least one specialist kin
+  const specialistKinCount = useMemo(() => kins.filter((k) => !k.isHub).length, [kins])
+  const onboardingComplete = llmModels.length > 0 && !!hubKinId && specialistKinCount > 0
+
+  // Create a Hub kin and auto-designate it
+  const handleCreateHubKin = useCallback(async (data: Parameters<typeof createKin>[0]) => {
+    const result = await createKin(data)
+    // Auto-designate as Hub
+    await api.put('/settings/hub', { kinId: result.id })
+    return result
+  }, [createKin])
 
   const handleOpenEditModal = async (kinId?: string) => {
     const id = kinId ?? selectedKin?.id
@@ -199,6 +222,7 @@ export function ChatPage() {
                     }}
                     onLogout={logout}
                     onOpenSettings={() => handleOpenSettings()}
+                    onOpenAccount={() => setAccountOpen(true)}
                   />
                 )}
               </div>
@@ -208,9 +232,33 @@ export function ChatPage() {
           {/* Connection lost banner */}
           <ConnectionBanner />
 
+          {/* Onboarding progress banner — shown in chat when setup isn't complete */}
+          {!onboardingComplete && selectedKin && (() => {
+            const step = !hubKinId ? { num: 2, label: t('chat.welcome.step2Title'), action: t('chat.welcome.step2Action'), onClick: handleOpenCreateHubModal }
+              : specialistKinCount === 0 ? { num: 3, label: t('chat.welcome.step3Title'), action: t('chat.welcome.step3Action'), onClick: handleOpenCreateModal }
+              : null
+            if (!step) return null
+            return (
+              <div className="flex items-center justify-between gap-3 border-b bg-primary/5 px-4 py-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                    <Network className="size-3 text-primary" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {t('chat.welcome.onboardingStep', { current: step.num, total: 4 })}
+                  </span>
+                  <span className="text-xs font-medium truncate">{step.label}</span>
+                </div>
+                <Button size="sm" variant="ghost" className="shrink-0 gap-1 text-xs text-primary h-7" onClick={step.onClick}>
+                  {step.action}
+                  <ChevronRight className="size-3" />
+                </Button>
+              </div>
+            )
+          })()}
+
           {/* Page content */}
           <Routes>
-            <Route path="/account" element={<AccountPage />} />
             <Route
               path="*"
               element={
@@ -231,15 +279,17 @@ export function ChatPage() {
                   />
                 ) : (
                   <div className="surface-chat flex flex-1 flex-col items-center justify-center p-6">
-                    {kins.length === 0 ? (
-                      /* ── First-time: getting started checklist ── */
+                    {!onboardingComplete ? (
+                      /* ── Onboarding not finished: show checklist ── */
                       <GettingStartedChecklist
-                        hasKins={false}
+                        specialistKinCount={specialistKinCount}
+                        hubKinId={hubKinId}
+                        onCreateHub={handleOpenCreateHubModal}
                         onCreateKin={handleOpenCreateModal}
                         onOpenSettings={handleOpenSettings}
                       />
                     ) : (
-                      /* ── Has Kins, none selected ── */
+                      /* ── Onboarding done, no Kin selected ── */
                       <div className="text-center animate-fade-in-up space-y-4">
                         <div className="mx-auto mb-2 flex size-16 items-center justify-center rounded-2xl bg-primary/10">
                           <Bot className="size-8 text-primary" />
@@ -286,6 +336,22 @@ export function ChatPage() {
         hasImageCapability={hasImageCapability}
       />
 
+      {/* Create Hub Kin modal */}
+      <KinFormModal
+        open={showCreateHubModal}
+        onOpenChange={setShowCreateHubModal}
+        llmModels={llmModels}
+        imageModels={imageModels}
+        onCreateKin={handleCreateHubKin}
+        onUpdateKin={updateKin}
+        onUploadAvatar={uploadAvatar}
+        onGenerateAvatarPreview={generateAvatarPreview}
+        onGenerateKinConfig={generateKinConfig}
+        onGenerateAvatarPreviewFromConfig={generateAvatarPreviewFromConfig}
+        hasImageCapability={hasImageCapability}
+        hubMode
+      />
+
       {/* Edit Kin modal */}
       <KinFormModal
         open={showEditModal}
@@ -299,6 +365,9 @@ export function ChatPage() {
         onGenerateAvatarPreview={generateAvatarPreview}
         hasImageCapability={hasImageCapability}
       />
+
+      {/* Account modal */}
+      <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
 
       {/* Settings modal */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} initialSection={settingsInitialSection} />

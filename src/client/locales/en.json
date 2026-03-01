@@ -136,6 +136,21 @@
       "finish": "Finish setup"
     }
   },
+  "hub": {
+    "badge": "Hub",
+    "defaultDescription": "A central coordinator that receives all messages and routes them to specialized Kins based on their expertise. Friendly, efficient, and good at understanding intent.",
+    "channelHint": "Messages from this channel will go to the Hub, which can route them to specialist Kins.",
+    "deleteWarning": "This Kin is your Hub. Deleting it will remove your central coordinator.",
+    "wizard": {
+      "title": "Create your Hub",
+      "subtitle": "The Hub is the central coordinator of your Kin team. It receives your messages, understands what you need, and delegates to the right specialist.",
+      "diagramYou": "You",
+      "diagramCaption": "You talk to the Hub. It routes to the right Kin automatically.",
+      "specDev": "Dev",
+      "specResearch": "Research",
+      "specWriter": "Writer"
+    }
+  },
   "sidebar": {
     "kins": {
       "title": "Kins",
@@ -422,17 +437,21 @@
       "title": "Welcome to KinBot",
       "description": "Kins are AI personalities you create and customize. Each Kin has its own character, expertise, tools, and memory. Create your first one to get started!",
       "createFirst": "Create your first Kin",
-      "checklistIntro": "Get started in 3 simple steps. KinBot will guide you through setting up your first AI companion.",
+      "checklistIntro": "Get started in a few simple steps. KinBot will guide you through setting up your AI team.",
       "step1Title": "Connect a provider",
       "step1Desc": "Add an AI provider (OpenAI, Anthropic, Google, etc.) with your API key. This powers your Kins’ intelligence.",
       "step1Action": "Add provider",
-      "step2Title": "Create your first Kin",
-      "step2Desc": "A Kin is an AI personality with its own character, expertise, tools, and memory. Design one that fits your needs.",
-      "step2Action": "Create a Kin",
-      "step3Title": "Connect a channel",
-      "step3Desc": "Optionally connect Telegram, Discord, Slack, or other platforms so your Kin can chat outside the web UI.",
-      "step3Action": "Add channel",
-      "allDone": "You’re all set! Select a Kin from the sidebar to start chatting."
+      "step2Title": "Create your Hub",
+      "step2Desc": "The Hub is your central coordinator — it receives messages and routes them to the right specialist Kin.",
+      "step2Action": "Create Hub",
+      "step3Title": "Add a specialist Kin",
+      "step3Desc": "Create a Kin with specific expertise (finance, coding, writing...) that the Hub can delegate to.",
+      "step3Action": "Create a Kin",
+      "step4Title": "Connect a channel",
+      "step4Desc": "Optionally connect Telegram, Discord, Slack, or other platforms so your Kins can chat outside the web UI.",
+      "step4Action": "Add channel",
+      "allDone": "You’re all set! Select a Kin from the sidebar to start chatting.",
+      "onboardingStep": "Step {{current}}/{{total}}"
     },
     "shortcutHint": "to quickly find a Kin",
     "copyMessage": "Copy message",
@@ -1183,7 +1202,12 @@
     "pseudonym": "Pseudonym",
     "language": "Language",
     "save": "Save changes",
-    "saved": "Profile updated"
+    "saved": "Profile updated",
+    "cancel": "Cancel",
+    "role": {
+      "admin": "Admin",
+      "member": "Member"
+    }
   },
   "tools": {
     "viewer": {

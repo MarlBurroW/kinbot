@@ -21,6 +21,14 @@ interface KinDirectoryEntry {
   role: string
 }
 
+interface HubKinDirectoryEntry {
+  slug: string | null
+  name: string
+  role: string
+  expertiseSummary: string
+  activeChannels?: string[]
+}
+
 interface MCPToolSummaryForPrompt {
   serverName: string
   tools: Array<{ name: string; description: string }>
@@ -52,6 +60,8 @@ interface PromptParams {
   activeChannels?: Array<{ platform: string; name: string }>
   globalPrompt?: string | null
   userLanguage: 'fr' | 'en'
+  isHub?: boolean
+  hubKinDirectory?: HubKinDirectoryEntry[]
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -216,7 +226,33 @@ export function buildSystemPrompt(params: PromptParams): string {
   }
 
   // [4.5] Kin directory + collaboration instructions (main agent only)
-  if (!params.isSubKin && params.kinDirectory.length > 0) {
+  if (!params.isSubKin && params.isHub && params.hubKinDirectory && params.hubKinDirectory.length > 0) {
+    // Hub view: enriched directory with expertise summaries and routing instructions
+    const directoryLines = params.hubKinDirectory
+      .map((k) => {
+        let entry = `- **${k.name}** (slug: ${k.slug}) — ${k.role}\n  Expertise: ${k.expertiseSummary}`
+        if (k.activeChannels && k.activeChannels.length > 0) {
+          entry += `\n  Connected channels: ${k.activeChannels.join(', ')}`
+        }
+        return entry
+      })
+      .join('\n\n')
+    blocks.push(
+      `## Kin directory (Hub view)\n\n` +
+      `You are the platform's Hub — the central coordinator. Your primary purpose is to understand incoming requests and either handle them yourself or route them to the most appropriate specialized Kin.\n\n` +
+      `### Available Kins\n\n` +
+      directoryLines + `\n\n` +
+      `### Routing behavior\n` +
+      `- When a request clearly falls within one Kin's expertise, delegate via send_message(slug, message, "request") and inform the user you are routing.\n` +
+      `- When a request spans multiple domains, break it into parts and coordinate between Kins using sub-tasks (spawn_kin) or sequential requests.\n` +
+      `- When no Kin matches, handle the request yourself.\n` +
+      `- For general conversation, greetings, or meta-questions about the platform, respond directly.\n` +
+      `- Always acknowledge the user before delegating — never silently forward.\n` +
+      `- When you receive a reply from a Kin you delegated to, synthesize the result and present it to the user in context.\n` +
+      `- Use list_kins() to refresh the directory if a new Kin may have been added.`,
+    )
+  } else if (!params.isSubKin && params.kinDirectory.length > 0) {
+    // Standard view: compact directory
     const directoryLines = params.kinDirectory
       .map((k) => `- ${k.name} (slug: ${k.slug}) — ${k.role}`)
       .join('\n')

@@ -79,3 +79,12 @@ export async function setDefaultSearchProvider(providerId: string | null): Promi
   if (providerId === null) return deleteSetting('default_search_provider')
   return setSetting('default_search_provider', providerId)
 }
+
+export async function getHubKinId(): Promise<string | null> {
+  return getSetting('hub_kin_id')
+}
+
+export async function setHubKinId(kinId: string | null): Promise<void> {
+  if (kinId === null) return deleteSetting('hub_kin_id')
+  return setSetting('hub_kin_id', kinId)
+}

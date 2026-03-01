@@ -97,6 +97,8 @@ interface ChannelFormDialogProps {
   }) => Promise<void>
   channel?: ChannelSummary | null
   kins: KinOption[]
+  /** Hub Kin ID — pre-selected for new channels */
+  hubKinId?: string | null
 }
 
 export function ChannelFormDialog({
@@ -106,6 +108,7 @@ export function ChannelFormDialog({
   onUpdate,
   channel,
   kins,
+  hubKinId,
 }: ChannelFormDialogProps) {
   const { t } = useTranslation()
   const isEdit = !!channel
@@ -125,10 +128,10 @@ export function ChannelFormDialog({
     } else {
       setName('')
       setPlatform('telegram')
-      setSelectedKinId('')
+      setSelectedKinId(hubKinId ?? '')
       setBotToken('')
     }
-  }, [channel, open])
+  }, [channel, open, hubKinId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -186,6 +189,11 @@ export function ChannelFormDialog({
               kins={kins}
               placeholder={t('settings.channels.kinPlaceholder')}
             />
+            {hubKinId && selectedKinId === hubKinId && (
+              <p className="text-xs text-muted-foreground">
+                {t('hub.channelHint')}
+              </p>
+            )}
           </div>
 
           {/* Platform selector (only for create) */}

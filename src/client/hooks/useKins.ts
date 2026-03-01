@@ -13,6 +13,7 @@ interface KinSummary {
   model: string
   providerId: string | null
   createdAt: string
+  isHub: boolean
 }
 
 interface KinDetail extends KinSummary {
@@ -124,6 +125,7 @@ export function useKins() {
         providerId: (data.providerId as string | null) ?? null,
         avatarUrl: (data.avatarUrl as string | null) ?? null,
         createdAt: data.createdAt as string,
+        isHub: false,
       }
       setKins((prev) => {
         // Avoid duplicates (e.g. if this client also called createKin via the UI)
@@ -174,6 +176,12 @@ export function useKins() {
         })
         return next
       })
+    },
+    'settings:hub-changed': (data) => {
+      const newHubKinId = (data.hubKinId as string | null) ?? null
+      setKins((prev) =>
+        prev.map((k) => ({ ...k, isHub: k.id === newHubKinId })),
+      )
     },
   })
 

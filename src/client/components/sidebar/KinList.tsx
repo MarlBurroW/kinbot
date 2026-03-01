@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { SortableKinCard } from '@/client/components/kin/SortableKinCard'
+import { KinCard } from '@/client/components/kin/KinCard'
 import {
   SidebarGroup,
   SidebarGroupAction,
@@ -33,6 +34,7 @@ interface KinSummary {
   role: string
   avatarUrl: string | null
   model: string
+  isHub: boolean
 }
 
 interface KinListProps {
@@ -54,13 +56,17 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Separate hub from regular kins
+  const hubKin = useMemo(() => kins.find((k) => k.isHub), [kins])
+  const regularKins = useMemo(() => kins.filter((k) => !k.isHub), [kins])
+
   const filteredKins = useMemo(() => {
-    if (!searchQuery.trim()) return kins
+    if (!searchQuery.trim()) return regularKins
     const q = searchQuery.toLowerCase()
-    return kins.filter(
+    return regularKins.filter(
       (k) => k.name.toLowerCase().includes(q) || k.role.toLowerCase().includes(q),
     )
-  }, [kins, searchQuery])
+  }, [regularKins, searchQuery])
 
   const showSearch = kins.length >= KIN_SEARCH_THRESHOLD
 
@@ -73,17 +79,19 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = kins.findIndex((k) => k.id === active.id)
-    const newIndex = kins.findIndex((k) => k.id === over.id)
+    const oldIndex = regularKins.findIndex((k) => k.id === active.id)
+    const newIndex = regularKins.findIndex((k) => k.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
 
-    const newKins = [...kins]
+    const newKins = [...regularKins]
     const [moved] = newKins.splice(oldIndex, 1)
     newKins.splice(newIndex, 0, moved!)
-    onReorderKins(newKins.map((k) => k.id))
-  }, [kins, onReorderKins])
+    // Preserve hub at the beginning of the order if it exists
+    const allIds = hubKin ? [hubKin.id, ...newKins.map((k) => k.id)] : newKins.map((k) => k.id)
+    onReorderKins(allIds)
+  }, [regularKins, hubKin, onReorderKins])
 
-  const kinIds = kins.map((k) => k.id)
+  const regularKinIds = regularKins.map((k) => k.id)
 
   return (
     <SidebarGroup>
@@ -122,8 +130,32 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
               </p>
             ) : (
           <div className="max-h-[40vh] overflow-y-auto">
+            {/* Hub kin pinned at top (outside drag-and-drop) */}
+            {hubKin && (!searchQuery.trim() || hubKin.name.toLowerCase().includes(searchQuery.toLowerCase()) || hubKin.role.toLowerCase().includes(searchQuery.toLowerCase())) && (
+              <div className="px-1 pb-1">
+                <KinCard
+                  id={hubKin.id}
+                  name={hubKin.name}
+                  role={hubKin.role}
+                  avatarUrl={hubKin.avatarUrl}
+                  isHub
+                  modelDisplayName={llmModels.find((m) => m.id === hubKin.model)?.name}
+                  isSelected={selectedKinSlug === hubKin.slug}
+                  isProcessing={kinQueueState.get(hubKin.id)?.isProcessing}
+                  queueSize={kinQueueState.get(hubKin.id)?.queueSize}
+                  modelUnavailable={unavailableKinIds.has(hubKin.id)}
+                  shortcutIndex={1}
+                  onClick={() => onSelectKin(hubKin.slug)}
+                  onEdit={() => onEditKin(hubKin.id)}
+                  onDelete={onDeleteKin ? () => onDeleteKin(hubKin.id) : undefined}
+                />
+                {filteredKins.length > 0 && (
+                  <div className="mx-2 mt-1 border-t border-border/40" />
+                )}
+              </div>
+            )}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={kinIds} strategy={verticalListSortingStrategy}>
+            <SortableContext items={regularKinIds} strategy={verticalListSortingStrategy}>
               <div className="space-y-1 px-1">
                 {filteredKins.map((kin, index) => {
                   const queueState = kinQueueState.get(kin.id)
@@ -140,7 +172,7 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
                       isProcessing={queueState?.isProcessing}
                       queueSize={queueState?.queueSize}
                       modelUnavailable={unavailableKinIds.has(kin.id)}
-                      shortcutIndex={index + 1}
+                      shortcutIndex={hubKin ? index + 2 : index + 1}
                       onClick={() => onSelectKin(kin.slug)}
                       onEdit={() => onEditKin(kin.id)}
                       onDelete={onDeleteKin ? () => onDeleteKin(kin.id) : undefined}

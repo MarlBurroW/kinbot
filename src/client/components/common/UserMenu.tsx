@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Button } from '@/client/components/ui/button'
 import {
@@ -21,11 +20,11 @@ interface UserMenuProps {
   }
   onLogout: () => void
   onOpenSettings: () => void
+  onOpenAccount: () => void
 }
 
-export function UserMenu({ user, onLogout, onOpenSettings }: UserMenuProps) {
+export function UserMenu({ user, onLogout, onOpenSettings, onOpenAccount }: UserMenuProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
 
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
 
@@ -48,7 +47,7 @@ export function UserMenu({ user, onLogout, onOpenSettings }: UserMenuProps) {
           <div className="text-xs text-muted-foreground">{user.email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/account')}>
+        <DropdownMenuItem onClick={onOpenAccount}>
           <User className="size-4" />
           {t('sidebar.account')}
         </DropdownMenuItem>

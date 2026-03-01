@@ -34,7 +34,7 @@ import { listContactsForPrompt } from '@/server/services/contacts'
 import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
 import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel } from '@/server/services/channels'
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
-import { getGlobalPrompt } from '@/server/services/app-settings'
+import { getGlobalPrompt, getHubKinId } from '@/server/services/app-settings'
 import { channelAdapters } from '@/server/channels/index'
 import type { ChannelPlatform } from '@/shared/types'
 import { getModelContextWindow } from '@/shared/model-context-windows'
@@ -252,6 +252,36 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     const globalPrompt = await getGlobalPrompt()
 
+    // Detect Hub status and build enriched directory if needed
+    const hubKinId = await getHubKinId()
+    const isHub = hubKinId === kinId
+
+    let hubKinDirectory: Array<{ slug: string | null; name: string; role: string; expertiseSummary: string; activeChannels?: string[] }> | undefined
+    if (isHub) {
+      const otherKins = db
+        .select({ id: kins.id, slug: kins.slug, name: kins.name, role: kins.role, expertise: kins.expertise })
+        .from(kins)
+        .where(ne(kins.id, kinId))
+        .all()
+
+      hubKinDirectory = await Promise.all(
+        otherKins.map(async (k) => {
+          const kinChannels = await getActiveChannelsForKin(k.id)
+          return {
+            slug: k.slug,
+            name: k.name,
+            role: k.role,
+            expertiseSummary: k.expertise.length > 300
+              ? k.expertise.slice(0, 300) + '...'
+              : k.expertise,
+            activeChannels: kinChannels.length > 0
+              ? kinChannels.map((ch) => `${ch.platform}: "${ch.name}"`)
+              : undefined,
+          }
+        }),
+      )
+    }
+
     const systemPrompt = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: contactsWithSlug,
@@ -262,6 +292,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       activeChannels: activeChannels.length > 0 ? activeChannels : undefined,
       globalPrompt,
       userLanguage,
+      isHub,
+      hubKinDirectory,
     })
 
     // Build message history

@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { AlertTriangle, Bot, GripVertical, Loader2, Settings2, Trash2 } from 'lucide-react'
+import { AlertTriangle, Bot, GripVertical, Loader2, Network, Settings2, Trash2 } from 'lucide-react'
 
 export interface KinCardProps extends HTMLAttributes<HTMLDivElement> {
   id: string
@@ -33,6 +33,7 @@ export interface KinCardProps extends HTMLAttributes<HTMLDivElement> {
   isSelected?: boolean
   isDragging?: boolean
   modelUnavailable?: boolean
+  isHub?: boolean
   unreadCount?: number
   shortcutIndex?: number
   onClick: () => void
@@ -51,6 +52,7 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
   isSelected = false,
   isDragging = false,
   modelUnavailable = false,
+  isHub = false,
   unreadCount = 0,
   shortcutIndex,
   onClick,
@@ -108,6 +110,13 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
         >
           {avatarUrl ? (
             <img src={avatarUrl} alt={name} className="size-full object-cover" />
+          ) : isHub ? (
+            <Network
+              className={cn(
+                'size-4',
+                isSelected ? 'text-white' : 'text-secondary-foreground/70',
+              )}
+            />
           ) : (
             <Bot
               className={cn(
@@ -128,8 +137,13 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={cn('truncate text-sm', isSelected ? 'font-semibold' : 'font-medium')}>
-          {name}
+        <p className={cn('truncate text-sm flex items-center gap-1.5', isSelected ? 'font-semibold' : 'font-medium')}>
+          <span className="truncate">{name}</span>
+          {isHub && (
+            <Badge variant="secondary" className="shrink-0 px-1 py-0 text-[9px] leading-tight font-medium">
+              Hub
+            </Badge>
+          )}
         </p>
         <div className="flex items-center gap-1.5">
           {isProcessing ? (
