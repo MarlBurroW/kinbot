@@ -637,7 +637,7 @@ export async function rollbackToSnapshot(appId: string, targetVersion: number): 
 
   // Clear current app files (except .snapshots)
   const dir = appDir(app.kinId, appId)
-  const currentFiles: { path: string }[] = []
+  const currentFiles: { path: string; size: number }[] = []
   await walkDirForSnapshot(dir, dir, currentFiles)
   for (const file of currentFiles) {
     const filePath = join(dir, file.path)
