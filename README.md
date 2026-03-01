@@ -95,6 +95,34 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 - **Responsive UI** — mobile-friendly settings, contextual info tips, suggestion chips in empty chat states
 - **System info** — version, uptime, and stats visible in settings
 
+#### Built-in Tools (90+)
+
+Kins have access to a rich set of native tools out of the box, no configuration needed:
+
+**Memory & Knowledge** — `recall`, `memorize`, `update_memory`, `forget`, `list_memories`, `search_history`
+
+**Web & Browsing** — `web_search`, `browse_url`, `extract_links`, `screenshot_url`
+
+**Contacts** — `get_contact`, `search_contacts`, `create_contact`, `update_contact`, `delete_contact`, `find_contact_by_identifier`
+
+**Vault & Secrets** — `get_secret`, `create_secret`, `update_secret`, `delete_secret`, `search_secrets`, `redact_message`, vault entries & attachments
+
+**Multi-Agent** — `spawn_self`, `spawn_kin`, `send_message`, `reply`, `list_kins`, `report_to_parent`, `request_input`, task management
+
+**Automation** — `create_cron`, `update_cron`, `delete_cron`, `list_crons`, `wake_me_in`, `cancel_wakeup`, webhooks (CRUD)
+
+**Mini Apps** — create, update, delete, read/write files, snapshots, rollback, persistent key-value storage, browse & clone from the App Gallery
+
+**Channels** — `list_channels`, `list_channel_conversations`, `send_channel_message`
+
+**Custom Tools** — `register_tool`, `run_custom_tool`, `list_custom_tools` (Kins write and run their own scripts)
+
+**Files & Images** — `store_file`, `get_stored_file`, `search_stored_files`, `generate_image`, `list_image_models`
+
+**System** — `run_shell`, `execute_sql`, `get_platform_logs`, `prompt_human`, `notify`, user management, MCP server management
+
+**Human-in-the-Loop** — `prompt_human` (ask user for approval before sensitive actions), `notify` (push notifications)
+
 </details>
 
 ## 🔍 How does KinBot compare?
