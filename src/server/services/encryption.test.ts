@@ -8,9 +8,14 @@ mock.module('@/server/config', () => ({
   },
 }))
 
-import { encrypt, decrypt } from './encryption'
+import { encrypt, decrypt, _resetKeyCache } from './encryption'
 
 describe('encryption service', () => {
+  beforeAll(() => {
+    // Reset cached key to ensure our mocked config is used,
+    // even if another test file imported encryption.ts first
+    _resetKeyCache()
+  })
 
   it('encrypts and decrypts a simple string', async () => {
     const plaintext = 'hello world'

@@ -83,6 +83,11 @@ export async function decryptBuffer(encrypted: Uint8Array): Promise<Uint8Array> 
 
 let cachedKey: CryptoKey | null = null
 
+/** @internal Reset cached key — for testing only */
+export function _resetKeyCache(): void {
+  cachedKey = null
+}
+
 async function getKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey
 
