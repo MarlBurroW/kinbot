@@ -198,14 +198,27 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   // Track whether user has scrolled away from bottom
   const isNearBottomRef = useRef(true)
 
-  // Instant scroll when conversation changes — runs before paint so the user
-  // never sees the old scroll position on a long conversation.
-  // Tracked by kin.id so prepending older messages doesn't re-trigger.
-  const lastScrolledKinRef = useRef<string | null>(null)
+  // Instant scroll when conversation changes — two-phase approach:
+  // Phase 1: detect kin.id change via ref, set a pending flag (don't scroll yet,
+  //          messages are still stale from the previous kin).
+  // Phase 2: when `messages` array identity changes (fetch resolved), do the
+  //          instant scroll before paint so the user never sees the old position.
+  const prevKinIdRef = useRef(kin.id)
+  const needsInstantScrollRef = useRef(true) // true on mount for initial load
   const justDidInstantScrollRef = useRef(false)
 
   useLayoutEffect(() => {
-    if (messages.length > 0 && kin.id !== lastScrolledKinRef.current) {
+    const kinChanged = kin.id !== prevKinIdRef.current
+    if (kinChanged) {
+      // Phase 1: kin just switched — messages are stale, don't scroll yet
+      prevKinIdRef.current = kin.id
+      needsInstantScrollRef.current = true
+      justDidInstantScrollRef.current = true // suppress smooth scroll this render
+      return
+    }
+
+    // Phase 2: messages changed while we have a pending instant scroll
+    if (needsInstantScrollRef.current && messages.length > 0) {
       const scrollArea = scrollAreaRef.current
       if (scrollArea) {
         const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
@@ -214,10 +227,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         }
       }
       isNearBottomRef.current = true
-      lastScrolledKinRef.current = kin.id
+      needsInstantScrollRef.current = false
       justDidInstantScrollRef.current = true
     }
-  }, [kin.id, messages.length])
+  }, [kin.id, messages])
 
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
@@ -301,6 +314,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       justDidInstantScrollRef.current = false
       return
     }
+    // Suppress smooth scroll while waiting for instant scroll (kin switch in progress)
+    if (needsInstantScrollRef.current) return
     if (autoScroll && isNearBottomRef.current) {
       bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
     }
