@@ -110,7 +110,7 @@ test.describe.serial('Sidebar navigation & layout', () => {
     const sidebar = page.locator('[data-slot="sidebar"]')
 
     // Scheduled Jobs section
-    const cronToggle = sidebar.getByText('Scheduled Jobs')
+    const cronToggle = sidebar.getByRole('button', { name: 'Scheduled Jobs' })
     await expect(cronToggle).toBeVisible()
 
     // Toggle collapse
