@@ -20,7 +20,7 @@ import { toast } from 'sonner'
 import type { MiniAppSummary } from '@/shared/types'
 
 export function MiniAppViewer() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { panelOpen, activeAppId, activeAppVersion, isFullPage, customTitle, openApp, closePanel, toggleFullPage, setFullPage, setCustomTitle, setBadge } = useMiniAppPanel()
   const [app, setApp] = useState<MiniAppSummary | null>(null)
@@ -89,9 +89,10 @@ export function MiniAppViewer() {
         kinName: app.kinName,
         version: app.version,
         isFullPage,
+        locale: i18n.language,
       },
     }, '*')
-  }, [app, isFullPage])
+  }, [app, isFullPage, i18n.language])
 
   // Notify iframe when full-page mode changes
   useEffect(() => {
@@ -102,6 +103,16 @@ export function MiniAppViewer() {
       data: { isFullPage },
     }, '*')
   }, [isFullPage])
+
+  // Notify iframe when locale changes
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return
+    iframeRef.current.contentWindow.postMessage({
+      source: 'kinbot-parent',
+      type: 'locale-changed',
+      data: { locale: i18n.language },
+    }, '*')
+  }, [i18n.language])
 
   // Handle postMessage from mini-app SDK
   useEffect(() => {

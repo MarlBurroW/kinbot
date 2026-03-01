@@ -83,6 +83,8 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.setTitle(title)` (dynamically update the panel header title; empty string resets to app name), ' +
         '`KinBot.setBadge(value)` (show a badge on the app in the sidebar; pass a number, string, or null/0 to clear), ' +
         '`KinBot.openApp(slug)` (open another mini-app from the same Kin by its slug — enables inter-app navigation), ' +
+        '`KinBot.locale` (current UI language code, e.g. "en" or "fr" — use for i18n in your app), ' +
+        '`KinBot.on("locale-changed", cb)` (listen for language changes, cb receives {locale}), ' +
         '`KinBot.clipboard.write(text)` → Promise<boolean> (copy text to system clipboard — works even in sandboxed iframes), ' +
         '`KinBot.clipboard.read()` → Promise<string|null> (read text from system clipboard — may require user permission), ' +
         '`KinBot.http(url, options?)` → Promise<{status, statusText, headers, body, ok, json(), text()}> (fetch external URLs through server proxy — bypasses CORS restrictions; ' +

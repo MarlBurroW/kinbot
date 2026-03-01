@@ -23,6 +23,8 @@
  *   KinBot.http(url, options) — fetch external URLs through server proxy (bypasses CORS)
  *     .json(url, headers?) — shorthand: GET and parse JSON
  *     .post(url, data, headers?) — shorthand: POST JSON and parse response
+ *   KinBot.locale — current UI language code (e.g. 'en', 'fr')
+ *   KinBot.on('locale-changed', cb) — listen for language changes (cb receives {locale})
  *   KinBot.events — real-time event stream from backend (_server.js)
  *     .subscribe(callback) — receive all events from ctx.events.emit() in the backend
  *     .on(eventName, callback) — listen for a specific event name
@@ -37,6 +39,7 @@
   var listeners = {} // event name → Set<callback>
   var _appMeta = null
   var _isFullPage = false
+  var _locale = 'en'
   var _pendingDialogs = {} // callbackId → {resolve}
   var _dialogCounter = 0
 
@@ -151,7 +154,14 @@
     } else if (msg.type === 'app-meta') {
       _appMeta = msg.data || null
       if (_appMeta && _appMeta.isFullPage !== undefined) _isFullPage = _appMeta.isFullPage
+      if (_appMeta && _appMeta.locale) _locale = _appMeta.locale
       _dispatch('app-meta', _appMeta)
+    } else if (msg.type === 'locale-changed') {
+      var newLocale = msg.data && msg.data.locale
+      if (newLocale && newLocale !== _locale) {
+        _locale = newLocale
+        _dispatch('locale-changed', { locale: _locale })
+      }
     } else if (msg.type === 'fullpage-changed') {
       _isFullPage = !!(msg.data && msg.data.isFullPage)
       _dispatch('fullpage-changed', { isFullPage: _isFullPage })
@@ -640,6 +650,7 @@
     get theme() { return getTheme() },
     get app() { return _appMeta },
     get isFullPage() { return _isFullPage },
+    get locale() { return _locale },
     on: on,
     emit: emit,
     toast: toast,
@@ -656,6 +667,6 @@
     clipboard: clipboard,
     events: events,
     http: http,
-    version: '1.9.0',
+    version: '1.10.0',
   }
 })()
