@@ -34,9 +34,27 @@
 - `matrix.test.ts` — SyntaxError: Export 'like' not found in drizzle-orm
 
 **Next priorities:**
-1. Update templates to demonstrate components (dashboard template using Card, Stat, Table, etc.)
+1. ~~Update templates to demonstrate components~~ ✅ Done (2026-03-01, run 2)
 2. Add Grid component for responsive layouts
 3. Consider a `Form` compound component with validation
 4. Add Breadcrumbs component
 5. Add Popover component
 6. SDK API expansion (KinBot.kin, KinBot.user, KinBot.memory, etc.)
+
+## 2026-03-01 (run 2) — Templates rewritten to use @kinbot/components
+
+**What:** Rewrote 3 templates (dashboard, data-viewer, form) to use the component library instead of raw HTML/CSS.
+
+**Changes:**
+- **Dashboard:** Now uses `Card`, `Stat`, `Badge`, `Table`, `ProgressBar`, `Tabs`, `List`, `Stack`, `Spinner`. Added tabbed view (Overview + Projects) to showcase `Tabs`. Much less custom CSS.
+- **Data Viewer:** Now uses `Card`, `Table`, `Badge`, `Pagination`, `Input`, `Button`, `EmptyState`, `Stack`, `Spinner`. Removed all custom CSS except `body { padding }`.
+- **Form:** Now uses `Card` (with Header/Title/Description/Content), `Input`, `Select`, `Textarea`, `Checkbox`, `Button`, `Alert`, `Divider`, `Stack`, `Spinner`. Added success alert on submit.
+- **Kanban & Todo:** Left unchanged (already good examples of storage + drag-drop patterns, less component-heavy by nature)
+
+**Impact:** Templates now serve as living documentation for the component library. Kins seeing these templates learn how to import and use components properly.
+
+**Next priorities:**
+1. Add Grid component for responsive layouts
+2. SDK API expansion (KinBot.kin, KinBot.user, KinBot.memory, etc.)
+3. Add Breadcrumbs, Popover components
+4. Update tool descriptions with component usage examples
