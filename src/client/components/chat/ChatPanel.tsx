@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useMemo, useState, useCallback, startTransition } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { MessageBubble } from '@/client/components/chat/MessageBubble'
@@ -204,8 +204,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       const { scrollTop, scrollHeight, clientHeight } = viewport
       const nearBottom = scrollHeight - scrollTop - clientHeight < 100
       isNearBottomRef.current = nearBottom
-      setShowScrollBottom(!nearBottom)
-      setShowScrollTop(scrollTop > 300)
+      startTransition(() => {
+        setShowScrollBottom(!nearBottom)
+        setShowScrollTop(scrollTop > 300)
+      })
       if (nearBottom) setNewMessageCount(0)
     }
     viewport.addEventListener('scroll', handleScroll)
@@ -230,7 +232,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     if (autoScroll && isNearBottomRef.current) {
       bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
     }
-  }, [messages, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts, autoScroll])
+  }, [messages.length, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts, autoScroll])
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
@@ -336,6 +338,47 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     return null
   }, [messages])
 
+  // Pre-compute date separators, grouping, search matches — only recalculates
+  // when messages/search change, NOT when scroll button visibility changes.
+  const processedMessages = useMemo(() => {
+    const GROUPING_WINDOW_MS = 2 * 60 * 1000
+    const lowerSearch = searchQuery.trim().length >= 2 ? searchQuery.toLowerCase() : ''
+
+    return messages.map((msg, idx) => {
+      let showDateSeparator = false
+      if (msg.createdAt) {
+        const msgDay = new Date(msg.createdAt).toDateString()
+        const prevDay = idx > 0 && messages[idx - 1]?.createdAt
+          ? new Date(messages[idx - 1]!.createdAt).toDateString()
+          : null
+        if (idx === 0 || msgDay !== prevDay) {
+          showDateSeparator = true
+        }
+      }
+
+      const prev = idx > 0 ? messages[idx - 1] : null
+      const isGrouped = !showDateSeparator
+        && prev !== null
+        && prev !== undefined
+        && prev.role === msg.role
+        && prev.sourceType === msg.sourceType
+        && msg.sourceType !== 'system'
+        && msg.sourceType !== 'cron'
+        && msg.sourceType !== 'compacting'
+        && msg.sourceType !== 'task'
+        && msg.createdAt && prev!.createdAt
+        && (msg.createdAt - prev!.createdAt) < GROUPING_WINDOW_MS
+
+      const showTimeGap = !showDateSeparator && idx > 0 && !!msg.createdAt && !!messages[idx - 1]?.createdAt
+      const prevTimestamp = idx > 0 ? messages[idx - 1]?.createdAt : undefined
+
+      const isSearchMatch = lowerSearch !== '' && msg.content.toLowerCase().includes(lowerSearch)
+      const isCurrentMatch = searchHighlightId === msg.id
+
+      return { msg, showDateSeparator, isGrouped: !!isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch }
+    })
+  }, [messages, searchQuery, searchHighlightId])
+
   return (
     <div
       className="relative flex min-h-0 flex-1 flex-col"
@@ -410,48 +453,15 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
               />
             ) : (
               <div className="space-y-1">
-                {messages.map((msg, idx) => {
-                  // Date separator between messages from different days
-                  let dateSeparator: React.ReactNode = null
-                  if (msg.createdAt) {
-                    const msgDay = new Date(msg.createdAt).toDateString()
-                    const prevDay = idx > 0 && messages[idx - 1]?.createdAt
-                      ? new Date(messages[idx - 1]!.createdAt).toDateString()
-                      : null
-                    if (idx === 0 || msgDay !== prevDay) {
-                      dateSeparator = <DateSeparator key={`date-${msg.id}`} date={msg.createdAt} />
-                    }
-                  }
+                {processedMessages.map(({ msg, showDateSeparator, isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch }) => {
+                  const dateSeparator = showDateSeparator
+                    ? <DateSeparator key={`date-${msg.id}`} date={msg.createdAt} />
+                    : null
 
-                  // Message grouping: consecutive messages from the same sender
-                  // within 2 minutes are visually grouped (no avatar/name repeat)
-                  const GROUPING_WINDOW_MS = 2 * 60 * 1000
-                  const prev = idx > 0 ? messages[idx - 1] : null
-                  const isGrouped = !dateSeparator
-                    && prev !== null
-                    && prev !== undefined
-                    && prev.role === msg.role
-                    && prev.sourceType === msg.sourceType
-                    && msg.sourceType !== 'system'
-                    && msg.sourceType !== 'cron'
-                    && msg.sourceType !== 'compacting'
-                    && msg.sourceType !== 'task'
-                    && msg.createdAt && prev!.createdAt
-                    && (new Date(msg.createdAt).getTime() - new Date(prev!.createdAt).getTime()) < GROUPING_WINDOW_MS
+                  const timeGap = showTimeGap && prevTimestamp
+                    ? <TimeGapIndicator key={`gap-${msg.id}`} prevTimestamp={prevTimestamp} currentTimestamp={msg.createdAt} />
+                    : null
 
-                  // Time gap indicator: show between same-day messages >30min apart
-                  let timeGap: React.ReactNode = null
-                  if (!dateSeparator && idx > 0 && msg.createdAt && messages[idx - 1]?.createdAt) {
-                    timeGap = (
-                      <TimeGapIndicator
-                        key={`gap-${msg.id}`}
-                        prevTimestamp={messages[idx - 1]!.createdAt}
-                        currentTimestamp={msg.createdAt}
-                      />
-                    )
-                  }
-
-                  // Render compacting trace as a dedicated card
                   if (msg.sourceType === 'compacting') {
                     return (
                       <React.Fragment key={msg.id}>
@@ -469,8 +479,6 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   const isFromUser = msg.role === 'user' && msg.sourceType === 'user'
                   const isFromKin = msg.sourceType === 'kin' && msg.role === 'user'
                   const isTask = msg.sourceType === 'task'
-                  const isSearchMatch = searchQuery.trim().length >= 2 && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
-                  const isCurrentMatch = searchHighlightId === msg.id
                   return (
                     <React.Fragment key={`wrap-${msg.id}`}>
                     {dateSeparator}
@@ -506,7 +514,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       timestamp={msg.createdAt}
                       toolCalls={toolCallsByMessage.get(msg.id)}
                       injectedMemories={msg.injectedMemories}
-                      isGrouped={!!isGrouped}
+                      isGrouped={isGrouped}
                       onOpenTaskDetail={isTask && msg.resolvedTaskId ? () => setDetailTaskId(msg.resolvedTaskId) : undefined}
                       onQuoteReply={handleQuoteReply}
                       onEditResend={handleEditResend}
