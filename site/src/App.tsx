@@ -12,63 +12,80 @@ import { CommandPalette, CommandPaletteHint } from './components/CommandPalette'
 function useStructuredData() {
   useEffect(() => {
     const id = 'app-jsonld'
-    if (document.getElementById(id)) return
-    const script = document.createElement('script')
-    script.id = id
-    script.type = 'application/ld+json'
-    script.textContent = JSON.stringify([
-      {
+
+    const buildJsonLd = (version?: string) => {
+      // Remove stale script if it exists (e.g. version update)
+      document.getElementById(id)?.remove()
+
+      const script = document.createElement('script')
+      script.id = id
+      script.type = 'application/ld+json'
+      const appData: Record<string, unknown> = {
         '@context': 'https://schema.org',
-        '@type': 'WebSite',
+        '@type': 'SoftwareApplication',
         name: 'KinBot',
-        url: 'https://marlburrow.github.io/kinbot/',
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Linux, macOS, Docker',
         description:
-          'Self-hosted AI agent platform with persistent memory and multi-agent collaboration.',
-      },
-      {
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'KinBot',
-      applicationCategory: 'DeveloperApplication',
-      operatingSystem: 'Linux, macOS, Docker',
-      description:
-        'Self-hosted AI agent platform with persistent identity, continuous memory, and multi-agent collaboration. 23+ providers, 6 chat channels, zero cloud dependency.',
-      url: 'https://marlburrow.github.io/kinbot/',
-      downloadUrl: 'https://github.com/MarlBurroW/kinbot',
-      softwareVersion: '0.4.2',
-      license: 'https://spdx.org/licenses/AGPL-3.0-only.html',
-      isAccessibleForFree: true,
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-      },
-      author: {
-        '@type': 'Person',
-        name: 'MarlBurroW',
-        url: 'https://github.com/MarlBurroW',
-      },
-      codeRepository: 'https://github.com/MarlBurroW/kinbot',
-      programmingLanguage: ['TypeScript', 'React'],
-      runtimePlatform: 'Bun',
-      screenshot: 'https://marlburrow.github.io/kinbot/og-image.png',
-      featureList: [
-        'Persistent agent identity and personality',
-        'Long-term vector and full-text memory',
-        'Multi-agent collaboration and delegation',
-        'Cron jobs and webhooks for autonomy',
-        '23+ AI providers including Ollama',
-        '6 messaging channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix)',
-        'MCP tool server support',
-        'Custom tools created by agents at runtime',
-        'Mini Apps (agent-built UIs)',
-        'Encrypted secrets vault (AES-256-GCM)',
-        'Session compacting with smart summarization',
-        'Zero infrastructure (SQLite only)',
-      ],
-    },
-    ])
-    document.head.appendChild(script)
+          'Self-hosted AI agent platform with persistent identity, continuous memory, and multi-agent collaboration. 23+ providers, 6 chat channels, zero cloud dependency.',
+        url: 'https://marlburrow.github.io/kinbot/',
+        downloadUrl: 'https://github.com/MarlBurroW/kinbot',
+        license: 'https://spdx.org/licenses/AGPL-3.0-only.html',
+        isAccessibleForFree: true,
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD',
+        },
+        author: {
+          '@type': 'Person',
+          name: 'MarlBurroW',
+          url: 'https://github.com/MarlBurroW',
+        },
+        codeRepository: 'https://github.com/MarlBurroW/kinbot',
+        programmingLanguage: ['TypeScript', 'React'],
+        runtimePlatform: 'Bun',
+        screenshot: 'https://marlburrow.github.io/kinbot/og-image.png',
+        featureList: [
+          'Persistent agent identity and personality',
+          'Long-term vector and full-text memory',
+          'Multi-agent collaboration and delegation',
+          'Cron jobs and webhooks for autonomy',
+          '23+ AI providers including Ollama',
+          '6 messaging channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix)',
+          'MCP tool server support',
+          'Custom tools created by agents at runtime',
+          'Mini Apps (agent-built UIs)',
+          'Encrypted secrets vault (AES-256-GCM)',
+          'Session compacting with smart summarization',
+          'Zero infrastructure (SQLite only)',
+        ],
+      }
+      if (version) appData.softwareVersion = version
+      script.textContent = JSON.stringify([
+        {
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'KinBot',
+          url: 'https://marlburrow.github.io/kinbot/',
+          description:
+            'Self-hosted AI agent platform with persistent memory and multi-agent collaboration.',
+        },
+        appData,
+      ])
+      document.head.appendChild(script)
+    }
+
+    // Inject immediately without version, then update when we get the latest release
+    buildJsonLd()
+
+    fetch('https://api.github.com/repos/MarlBurroW/kinbot/releases/latest')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.tag_name) buildJsonLd(data.tag_name)
+      })
+      .catch(() => {})
+
     return () => {
       document.getElementById(id)?.remove()
     }

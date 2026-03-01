@@ -40,30 +40,7 @@
 
     <title>KinBot — Self-hosted AI Agents with Persistent Memory</title>
 
-    <!-- Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "KinBot",
-      "description": "AI agents that actually remember you. Create persistent agents with long-term memory that live on your server, collaborate, and work autonomously. One process, one SQLite file, zero cloud.",
-      "url": "https://marlburrow.github.io/kinbot/",
-      "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Linux, macOS, Windows (Docker)",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "author": {
-        "@type": "Person",
-        "name": "MarlBurroW",
-        "url": "https://github.com/MarlBurroW"
-      },
-      "codeRepository": "https://github.com/MarlBurroW/kinbot",
-      "license": "https://www.gnu.org/licenses/agpl-3.0.html"
-    }
-    </script>
+    <!-- Structured data injected dynamically by App.tsx (richer, with featureList) -->
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -71,6 +48,25 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="max-width:800px;margin:4rem auto;padding:0 1.5rem;font-family:system-ui,sans-serif;color:#e2e8f0">
+        <h1 style="font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">KinBot</h1>
+        <p style="font-size:1.25rem;margin:1rem 0">AI agents that actually remember you.</p>
+        <p style="color:#94a3b8">Create AI agents that live on your server, remember everything, and work together. One process, one file, zero cloud.</p>
+        <h2 style="margin-top:2rem;font-size:1.5rem">Why KinBot?</h2>
+        <ul style="color:#94a3b8;line-height:2">
+          <li><strong style="color:#e2e8f0">Persistent memory</strong> &mdash; Vector search + full-text across months of conversations</li>
+          <li><strong style="color:#e2e8f0">Real identity</strong> &mdash; Each agent has a name, role, personality, and avatar</li>
+          <li><strong style="color:#e2e8f0">Multi-agent collaboration</strong> &mdash; Agents delegate tasks and share context</li>
+          <li><strong style="color:#e2e8f0">Autonomy</strong> &mdash; Cron jobs, webhooks, 6 messaging channels</li>
+          <li><strong style="color:#e2e8f0">23+ AI providers</strong> &mdash; Including Ollama for fully local setups</li>
+          <li><strong style="color:#e2e8f0">Self-hosted</strong> &mdash; One SQLite file, zero cloud dependency</li>
+        </ul>
+        <h2 style="margin-top:2rem;font-size:1.5rem">Quick Start</h2>
+        <pre style="background:#1e293b;padding:1rem;border-radius:0.5rem;overflow-x:auto;color:#e2e8f0"><code>docker run -d --name kinbot -p 3000:3000 -v kinbot-data:/app/data ghcr.io/marlburrow/kinbot:latest</code></pre>
+        <p style="margin-top:1.5rem"><a href="https://github.com/MarlBurroW/kinbot" style="color:#a855f7">View on GitHub</a></p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
