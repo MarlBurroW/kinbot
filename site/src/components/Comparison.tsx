@@ -208,6 +208,9 @@ function MobileComparison() {
           onClick={() => setDropdownOpen(o => !o)}
           className="w-full flex items-center justify-between px-4 py-3 rounded-xl glass-strong text-sm font-medium"
           style={{ color: 'var(--color-foreground)' }}
+          aria-expanded={dropdownOpen}
+          aria-haspopup="listbox"
+          aria-label={`Compare KinBot with ${competitor.label}`}
         >
           <span>
             <span className="gradient-text font-semibold">KinBot</span>

@@ -121,11 +121,14 @@ export function Install() {
 
       <div className="glass-strong gradient-border rounded-2xl overflow-hidden">
         {/* Tabs */}
-        <div className="flex border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex border-b" style={{ borderColor: 'var(--color-border)' }} role="tablist" aria-label="Installation methods">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActive(tab.id)}
+              role="tab"
+              aria-selected={active === tab.id}
+              aria-controls={`install-panel-${tab.id}`}
               className="flex-1 py-3.5 text-sm font-medium transition-colors"
               style={{
                 color: active === tab.id ? 'var(--color-primary)' : 'var(--color-muted-foreground)',
@@ -139,7 +142,7 @@ export function Install() {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4" role="tabpanel" id={`install-panel-${active}`} aria-label={`${active} installation instructions`}>
           <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
             {descriptions[active]}
           </p>

@@ -258,6 +258,30 @@ body {
   background: color-mix(in oklch, var(--color-glow-1) 8%, var(--color-background));
 }
 
+/* ─── FOCUS VISIBLE (A11Y) ────────────────────────────── */
+/* Keyboard-only focus ring: visible on Tab, hidden on click */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Remove default focus for mouse/touch interactions */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Enhanced focus ring for interactive cards and glass elements */
+.glass-strong:focus-visible,
+.glass:focus-visible,
+[role="option"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="listbox"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-glow-1) 20%, transparent);
+}
+
 /* ─── SKIP TO CONTENT (A11Y) ─────────────────────────── */
 .skip-to-content {
   position: absolute;
