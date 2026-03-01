@@ -198,26 +198,13 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   // Track whether user has scrolled away from bottom
   const isNearBottomRef = useRef(true)
 
-  // Instant scroll when conversation changes — two-phase approach:
-  // Phase 1: detect kin.id change via ref, set a pending flag (don't scroll yet,
-  //          messages are still stale from the previous kin).
-  // Phase 2: when `messages` array identity changes (fetch resolved), do the
-  //          instant scroll before paint so the user never sees the old position.
-  const prevKinIdRef = useRef(kin.id)
-  const needsInstantScrollRef = useRef(true) // true on mount for initial load
+  // On mount (fresh for each kin thanks to key=kin.id), scroll to bottom
+  // instantly once messages are loaded — runs before paint so the user
+  // never sees the conversation at the wrong scroll position.
+  const needsInstantScrollRef = useRef(true)
   const justDidInstantScrollRef = useRef(false)
 
   useLayoutEffect(() => {
-    const kinChanged = kin.id !== prevKinIdRef.current
-    if (kinChanged) {
-      // Phase 1: kin just switched — messages are stale, don't scroll yet
-      prevKinIdRef.current = kin.id
-      needsInstantScrollRef.current = true
-      justDidInstantScrollRef.current = true // suppress smooth scroll this render
-      return
-    }
-
-    // Phase 2: messages changed while we have a pending instant scroll
     if (needsInstantScrollRef.current && messages.length > 0) {
       const scrollArea = scrollAreaRef.current
       if (scrollArea) {
@@ -230,7 +217,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       needsInstantScrollRef.current = false
       justDidInstantScrollRef.current = true
     }
-  }, [kin.id, messages])
+  }, [messages])
 
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
