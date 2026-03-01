@@ -7,6 +7,7 @@ import { Label } from '@/client/components/ui/label'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -167,6 +168,9 @@ export function ChannelFormDialog({
           <DialogTitle>
             {isEdit ? t('common.edit') : t('settings.channels.add')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit ? t('common.edit') : t('settings.channels.add')}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

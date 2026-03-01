@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Dialog, DialogContent } from '@/client/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/client/components/ui/dialog'
 import { Button } from '@/client/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 import { Download, X } from 'lucide-react'
@@ -19,6 +19,8 @@ export function ImageLightbox({ file, onClose }: ImageLightboxProps) {
         className="max-w-[90vw] max-h-[90vh] p-2 sm:max-w-4xl"
         showCloseButton={false}
       >
+        <DialogTitle className="sr-only">{file.name}</DialogTitle>
+        <DialogDescription className="sr-only">{file.name}</DialogDescription>
         <div className="flex flex-col items-center gap-2">
           <img
             src={file.url}

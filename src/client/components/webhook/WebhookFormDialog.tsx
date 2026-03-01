@@ -7,6 +7,7 @@ import { Switch } from '@/client/components/ui/switch'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -91,6 +92,9 @@ export function WebhookFormDialog({
           <DialogTitle>
             {isEdit ? t('settings.webhooks.edit') : t('settings.webhooks.add')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit ? t('settings.webhooks.edit') : t('settings.webhooks.add')}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
