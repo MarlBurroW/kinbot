@@ -181,11 +181,37 @@ export async function deleteMemory(memoryId: string, kinId: string) {
   return true
 }
 
+// ─── Temporal Decay ──────────────────────────────────────────────────────────
+
+/**
+ * Compute a temporal decay weight for a memory based on its age and category.
+ * Facts and knowledge decay very slowly; preferences and decisions decay faster.
+ * Returns a multiplier in (0, 1].
+ */
+function temporalDecayWeight(updatedAt: Date | null, category: string): number {
+  const lambda = config.memory.temporalDecayLambda
+  if (lambda <= 0 || !updatedAt) return 1 // No decay
+
+  const daysSinceUpdate = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)
+  if (daysSinceUpdate <= 0) return 1
+
+  // Category-based decay rates: facts/knowledge are durable, decisions are ephemeral
+  const categoryMultiplier: Record<string, number> = {
+    fact: 0.1,       // Very slow decay (half-life ~693 days at λ=0.01)
+    knowledge: 0.1,  // Very slow decay
+    preference: 0.5, // Moderate decay (half-life ~139 days at λ=0.01)
+    decision: 2.0,   // Faster decay (half-life ~35 days at λ=0.01)
+  }
+
+  const effectiveLambda = lambda * (categoryMultiplier[category] ?? 1)
+  return Math.exp(-effectiveLambda * daysSinceUpdate)
+}
+
 // ─── Hybrid Search (FTS5 + sqlite-vec rank fusion) ───────────────────────────
 
 /**
  * Search memories using hybrid search: semantic (sqlite-vec KNN) + textual (FTS5).
- * Results are merged via reciprocal rank fusion scoring.
+ * Results are merged via reciprocal rank fusion scoring, then weighted by temporal decay.
  */
 export async function searchMemories(
   kinId: string,
@@ -201,7 +227,7 @@ export async function searchMemories(
   ])
 
   // Reciprocal rank fusion
-  const scoreMap = new Map<string, { score: number; content: string; category: string; subject: string | null }>()
+  const scoreMap = new Map<string, { score: number; content: string; category: string; subject: string | null; updatedAt: Date | null }>()
 
   const K = 60 // RRF constant
   for (let i = 0; i < vecResults.length; i++) {
@@ -211,7 +237,7 @@ export async function searchMemories(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, updatedAt: r.updatedAt })
     }
   }
   for (let i = 0; i < ftsResults.length; i++) {
@@ -221,13 +247,18 @@ export async function searchMemories(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, updatedAt: r.updatedAt })
     }
   }
 
-  // Sort by fused score descending
+  // Apply temporal decay to fused scores
+  for (const [, data] of scoreMap) {
+    data.score *= temporalDecayWeight(data.updatedAt, data.category)
+  }
+
+  // Sort by decay-weighted score descending
   return Array.from(scoreMap.entries())
-    .map(([id, data]) => ({ id, ...data }))
+    .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, score: data.score }))
     .sort((a, b) => b.score - a.score)
     .slice(0, maxResults)
 }
@@ -239,7 +270,7 @@ async function searchByVector(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; distance: number }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; distance: number; updatedAt: Date | null }>> {
   try {
     const queryEmbedding = await generateEmbedding(query)
     const queryBuf = Buffer.from(new Float32Array(queryEmbedding).buffer)
@@ -265,10 +296,10 @@ async function searchByVector(
     const placeholders = matchingIds.map(() => '?').join(', ')
     const memRows = sqlite
       .query<
-        { id: string; content: string; category: string; subject: string | null },
+        { id: string; content: string; category: string; subject: string | null; updated_at: string | null },
         string[]
       >(
-        `SELECT id, content, category, subject FROM memories
+        `SELECT id, content, category, subject, updated_at FROM memories
          WHERE id IN (${placeholders}) AND kin_id = ?`,
       )
       .all(...matchingIds, kinId)
@@ -279,7 +310,7 @@ async function searchByVector(
       .filter((r) => memMap.has(r.memory_id))
       .map((r) => {
         const m = memMap.get(r.memory_id)!
-        return { id: m.id, content: m.content, category: m.category, subject: m.subject, distance: r.distance }
+        return { id: m.id, content: m.content, category: m.category, subject: m.subject, distance: r.distance, updatedAt: m.updated_at ? new Date(m.updated_at) : null }
       })
   } catch {
     // sqlite-vec or embedding provider not available
@@ -294,7 +325,7 @@ function searchByFTS(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; rank: number }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; rank: number; updatedAt: Date | null }>> {
   try {
     // Escape FTS5 special characters and build query
     const ftsQuery = query
@@ -308,10 +339,10 @@ function searchByFTS(
 
     const rows = sqlite
       .query<
-        { id: string; content: string; category: string; subject: string | null; rank: number },
+        { id: string; content: string; category: string; subject: string | null; rank: number; updated_at: string | null },
         [string, string, number]
       >(
-        `SELECT m.id, m.content, m.category, m.subject, fts.rank
+        `SELECT m.id, m.content, m.category, m.subject, fts.rank, m.updated_at
          FROM memories_fts fts
          JOIN memories m ON m.rowid = fts.rowid
          WHERE memories_fts MATCH ? AND m.kin_id = ?
@@ -320,7 +351,7 @@ function searchByFTS(
       )
       .all(ftsQuery, kinId, limit)
 
-    return Promise.resolve(rows)
+    return Promise.resolve(rows.map((r) => ({ ...r, updatedAt: r.updated_at ? new Date(r.updated_at) : null })))
   } catch {
     return Promise.resolve([])
   }

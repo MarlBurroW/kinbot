@@ -52,6 +52,7 @@ export const config = {
     similarityThreshold: Number(process.env.MEMORY_SIMILARITY_THRESHOLD ?? 0.7),
     embeddingModel: process.env.MEMORY_EMBEDDING_MODEL ?? 'text-embedding-3-small',
     embeddingDimension: Number(process.env.MEMORY_EMBEDDING_DIMENSION ?? 1536),
+    temporalDecayLambda: Number(process.env.MEMORY_TEMPORAL_DECAY_LAMBDA ?? 0.01),
   },
 
   queue: {
