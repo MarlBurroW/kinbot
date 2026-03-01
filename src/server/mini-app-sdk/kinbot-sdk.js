@@ -30,6 +30,10 @@
  *     .json(url, headers?) — shorthand: GET and parse JSON
  *     .post(url, data, headers?) — shorthand: POST JSON and parse response
  *   KinBot.sendMessage(text, options?) — send a message to the Kin's conversation (returns Promise<boolean>)
+ *   KinBot.kin — info about the parent Kin (id, name, avatarUrl)
+ *   KinBot.user — info about the current user (id, name, pseudonym, locale, timezone, avatarUrl)
+ *   KinBot.resize(width?, height?) — request the parent panel to resize
+ *   KinBot.notification(title, body?) — show a browser notification via the parent (returns Promise<boolean>)
  *   KinBot.locale — current UI language code (e.g. 'en', 'fr')
  *   KinBot.on('locale-changed', cb) — listen for language changes (cb receives {locale})
  *   KinBot.events — real-time event stream from backend (_server.js)
@@ -49,6 +53,8 @@
   var _locale = 'en'
   var _pendingDialogs = {} // callbackId → {resolve}
   var _dialogCounter = 0
+  var _kinInfo = null // { id, name, avatarUrl }
+  var _userInfo = null // { id, name, pseudonym, locale, timezone, avatarUrl }
 
   // ─── Theme ──────────────────────────────────────────────────────────────
 
@@ -187,6 +193,25 @@
       _appMeta = msg.data || null
       if (_appMeta && _appMeta.isFullPage !== undefined) _isFullPage = _appMeta.isFullPage
       if (_appMeta && _appMeta.locale) _locale = _appMeta.locale
+      // Extract kin info
+      if (_appMeta) {
+        _kinInfo = {
+          id: _appMeta.kinId || null,
+          name: _appMeta.kinName || null,
+          avatarUrl: _appMeta.kinAvatarUrl || null,
+        }
+      }
+      // Extract user info
+      if (_appMeta && _appMeta.user) {
+        _userInfo = {
+          id: _appMeta.user.id || null,
+          name: _appMeta.user.name || null,
+          pseudonym: _appMeta.user.pseudonym || null,
+          locale: _appMeta.user.locale || _locale,
+          timezone: _appMeta.user.timezone || null,
+          avatarUrl: _appMeta.user.avatarUrl || null,
+        }
+      }
       _dispatch('app-meta', _appMeta)
     } else if (msg.type === 'locale-changed') {
       var newLocale = msg.data && msg.data.locale
@@ -758,11 +783,59 @@
     })
   }
 
+  // ─── Resize ─────────────────────────────────────────────────────────────
+
+  /**
+   * Request the parent panel to resize.
+   * @param {number} [width] — desired width in pixels (side panel mode only)
+   * @param {number} [height] — desired height in pixels (ignored in full-page mode)
+   */
+  function resize(width, height) {
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'resize',
+        width: width != null ? Number(width) : undefined,
+        height: height != null ? Number(height) : undefined,
+      }, '*')
+    } catch (e) {
+      console.warn('[KinBot SDK] resize failed:', e)
+    }
+  }
+
+  // ─── Notification ──────────────────────────────────────────────────────
+
+  /**
+   * Request a browser notification via the parent window (which has Notification permission).
+   * @param {string} title — notification title
+   * @param {string} [body] — notification body text
+   * @returns {Promise<boolean>} — true if the notification was shown
+   */
+  function notification(title, body) {
+    var id = String(++_dialogCounter)
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'notification',
+        callbackId: id,
+        title: String(title).slice(0, 200),
+        body: body ? String(body).slice(0, 500) : undefined,
+      }, '*')
+    } catch (e) {
+      return Promise.resolve(false)
+    }
+    return new Promise(function (resolve) {
+      _pendingDialogs[id] = { resolve: resolve }
+    })
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
     get theme() { return getTheme() },
     get app() { return _appMeta },
+    get kin() { return _kinInfo },
+    get user() { return _userInfo },
     get isFullPage() { return _isFullPage },
     get locale() { return _locale },
     on: on,
@@ -782,6 +855,8 @@
     events: events,
     http: http,
     sendMessage: sendMessage,
-    version: '1.11.0',
+    resize: resize,
+    notification: notification,
+    version: '1.12.0',
   }
 })()

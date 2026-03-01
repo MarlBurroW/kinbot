@@ -97,7 +97,11 @@ export const createMiniAppTool: ToolRegistration = {
         'Routes at `/api/mini-apps/<appId>/api/*`. Frontend: `const { api } = useKinBot()` then `api.get("/path")`, `api.post("/path", data)`, `api.delete("/path")`. ' +
         '**Real-time Events (SSE):** Backend: `ctx.events.emit("update", {count: 42})`. Frontend: `events.on("update", (data) => ...)`. ' +
         '`KinBot.sendMessage(text, options?)` → Promise<boolean> (send a message to the Kin\'s conversation; ' +
-        'options: {silent?: boolean}; rate limited to 5 per 30s).',
+        'options: {silent?: boolean}; rate limited to 5 per 30s). ' +
+        '`KinBot.kin` → {id, name, avatarUrl} (info about the parent Kin). ' +
+        '`KinBot.user` → {id, name, pseudonym, locale, timezone, avatarUrl} (info about the current user). ' +
+        '`KinBot.resize(width?, height?)` → request panel resize (width: 320-1200px, height: 200-2000px). ' +
+        '`KinBot.notification(title, body?)` → Promise<boolean> (show a browser notification via the parent window).',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),

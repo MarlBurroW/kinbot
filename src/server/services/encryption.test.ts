@@ -1,16 +1,11 @@
-import { describe, it, expect, beforeAll } from 'bun:test'
-import { encrypt, decrypt, _setTestKey } from './encryption'
+import { describe, it, expect } from 'bun:test'
+import { encrypt, decrypt, encryptBuffer, decryptBuffer } from './encryption'
 
-const TEST_KEY = 'a'.repeat(64) // 32-byte hex key
+// These tests verify encrypt/decrypt round-trip behavior using whatever
+// encryption key is configured. No custom test key needed — we only care
+// that encrypt → decrypt returns the original value.
 
 describe('encryption service', () => {
-  beforeAll(async () => {
-    // Directly set a known CryptoKey, bypassing config entirely.
-    // This avoids issues with module caching where encryption.ts
-    // may hold a reference to a different config-generated key.
-    await _setTestKey(TEST_KEY)
-  })
-
   it('encrypts and decrypts a simple string', async () => {
     const plaintext = 'hello world'
     const encrypted = await encrypt(plaintext)
@@ -20,7 +15,6 @@ describe('encryption service', () => {
 
   it('returns a base64 string', async () => {
     const encrypted = await encrypt('test')
-    // base64 only contains [A-Za-z0-9+/=]
     expect(encrypted).toMatch(/^[A-Za-z0-9+/=]+$/)
   })
 
@@ -60,7 +54,6 @@ describe('encryption service', () => {
 
   it('fails to decrypt tampered ciphertext', async () => {
     const encrypted = await encrypt('sensitive data')
-    // Tamper with the base64 string (flip a character in the middle)
     const chars = encrypted.split('')
     const mid = Math.floor(chars.length / 2)
     chars[mid] = chars[mid] === 'A' ? 'B' : 'A'
@@ -75,8 +68,14 @@ describe('encryption service', () => {
 
   it('fails to decrypt truncated ciphertext', async () => {
     const encrypted = await encrypt('hello')
-    // Take only the first few characters (just the IV, no ciphertext)
     const truncated = encrypted.slice(0, 16)
     await expect(decrypt(truncated)).rejects.toThrow()
+  })
+
+  it('encrypts and decrypts a buffer', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5])
+    const encrypted = await encryptBuffer(data)
+    const decrypted = await decryptBuffer(encrypted)
+    expect(Array.from(decrypted)).toEqual(Array.from(data))
   })
 })

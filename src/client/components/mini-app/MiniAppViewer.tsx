@@ -17,6 +17,7 @@ import { X, RotateCw, Maximize2, Minimize2 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { toast } from 'sonner'
+import { useAuth } from '@/client/hooks/useAuth'
 import type { MiniAppSummary } from '@/shared/types'
 
 /** Rate limiter for sendMessage: max 5 messages per 30 seconds per app */
@@ -25,6 +26,7 @@ const messageCooldowns = new Map<string, number[]>()
 export function MiniAppViewer() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { panelOpen, activeAppId, activeAppVersion, isFullPage, customTitle, openApp, closePanel, toggleFullPage, setFullPage, setCustomTitle, setBadge } = useMiniAppPanel()
   const [app, setApp] = useState<MiniAppSummary | null>(null)
   const [iframeKey, setIframeKey] = useState(0)
@@ -90,12 +92,21 @@ export function MiniAppViewer() {
         icon: app.icon,
         kinId: app.kinId,
         kinName: app.kinName,
+        kinAvatarUrl: app.kinAvatarUrl,
         version: app.version,
         isFullPage,
         locale: i18n.language,
+        user: user ? {
+          id: user.id,
+          name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.pseudonym,
+          pseudonym: user.pseudonym,
+          locale: user.language,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          avatarUrl: user.avatarUrl,
+        } : null,
       },
     }, '*')
-  }, [app, isFullPage, i18n.language])
+  }, [app, isFullPage, i18n.language, user])
 
   // Notify iframe when full-page mode changes
   useEffect(() => {
@@ -252,6 +263,55 @@ export function MiniAppViewer() {
             .catch(() => {
               toast.error(t('miniApps.appNotFound', { slug }))
             })
+          break
+        }
+        case 'resize': {
+          const width = msg.width as number | undefined
+          const height = msg.height as number | undefined
+          // Clamp to reasonable bounds
+          if (width !== undefined) {
+            const clamped = Math.max(320, Math.min(1200, width))
+            const panel = iframeRef.current?.closest('[class*="w-["]') as HTMLElement | null
+            if (panel) panel.style.width = `${clamped}px`
+          }
+          // Height is only meaningful if we want to constrain the iframe itself
+          if (height !== undefined) {
+            const clamped = Math.max(200, Math.min(2000, height))
+            if (iframeRef.current) iframeRef.current.style.maxHeight = `${clamped}px`
+          }
+          break
+        }
+        case 'notification': {
+          const callbackId = String(msg.callbackId)
+          const title = String(msg.title || '')
+          const body = msg.body ? String(msg.body) : undefined
+          if (!title) {
+            sendDialogResult(callbackId, false)
+            break
+          }
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification(title, { body, icon: app?.icon ? undefined : undefined })
+              sendDialogResult(callbackId, true)
+            } catch {
+              sendDialogResult(callbackId, false)
+            }
+          } else if ('Notification' in window && Notification.permission !== 'denied') {
+            Notification.requestPermission().then((perm) => {
+              if (perm === 'granted') {
+                try {
+                  new Notification(title, { body })
+                  sendDialogResult(callbackId, true)
+                } catch {
+                  sendDialogResult(callbackId, false)
+                }
+              } else {
+                sendDialogResult(callbackId, false)
+              }
+            })
+          } else {
+            sendDialogResult(callbackId, false)
+          }
           break
         }
         case 'send-message': {
