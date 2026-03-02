@@ -859,6 +859,7 @@
       },
       "sourceAutomatic": "Auto",
       "sourceExplicit": "Manual",
+      "consolidated": "Gen {{gen}}",
       "filterAll": "All categories",
       "filterAllKins": "All Kins",
       "delete": "Delete memory",
