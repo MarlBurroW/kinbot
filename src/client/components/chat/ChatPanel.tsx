@@ -414,25 +414,34 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     return null
   }, [messages])
 
+  // Merge streaming message into the display list so it renders in the same
+  // React tree branch as persisted messages — prevents unmount/remount (and
+  // entrance animation replay) when the stream completes.
+  const displayMessages = useMemo(() => {
+    if (!streamingMessage) return messages
+    if (messages.some(m => m.id === streamingMessage.id)) return messages
+    return [...messages, streamingMessage]
+  }, [messages, streamingMessage])
+
   // Pre-compute date separators, grouping, search matches — only recalculates
-  // when messages/search change, NOT when scroll button visibility changes.
+  // when displayMessages/search change, NOT when scroll button visibility changes.
   const processedMessages = useMemo(() => {
     const GROUPING_WINDOW_MS = 2 * 60 * 1000
     const lowerSearch = searchQuery.trim().length >= 2 ? searchQuery.toLowerCase() : ''
 
-    return messages.map((msg, idx) => {
+    return displayMessages.map((msg, idx) => {
       let showDateSeparator = false
       if (msg.createdAt) {
         const msgDay = new Date(msg.createdAt).toDateString()
-        const prevDay = idx > 0 && messages[idx - 1]?.createdAt
-          ? new Date(messages[idx - 1]!.createdAt).toDateString()
+        const prevDay = idx > 0 && displayMessages[idx - 1]?.createdAt
+          ? new Date(displayMessages[idx - 1]!.createdAt).toDateString()
           : null
         if (idx === 0 || msgDay !== prevDay) {
           showDateSeparator = true
         }
       }
 
-      const prev = idx > 0 ? messages[idx - 1] : null
+      const prev = idx > 0 ? displayMessages[idx - 1] : null
       const isGrouped = !showDateSeparator
         && prev !== null
         && prev !== undefined
@@ -445,15 +454,15 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         && msg.createdAt && prev!.createdAt
         && (new Date(msg.createdAt).getTime() - new Date(prev!.createdAt).getTime()) < GROUPING_WINDOW_MS
 
-      const showTimeGap = !showDateSeparator && idx > 0 && !!msg.createdAt && !!messages[idx - 1]?.createdAt
-      const prevTimestamp = idx > 0 ? messages[idx - 1]?.createdAt : undefined
+      const showTimeGap = !showDateSeparator && idx > 0 && !!msg.createdAt && !!displayMessages[idx - 1]?.createdAt
+      const prevTimestamp = idx > 0 ? displayMessages[idx - 1]?.createdAt : undefined
 
       const isSearchMatch = lowerSearch !== '' && msg.content.toLowerCase().includes(lowerSearch)
       const isCurrentMatch = searchHighlightId === msg.id
 
       return { msg, showDateSeparator, isGrouped: !!isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch }
     })
-  }, [messages, searchQuery, searchHighlightId])
+  }, [displayMessages, searchQuery, searchHighlightId])
 
   return (
     <div
@@ -611,18 +620,6 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     </React.Fragment>
                   )
                 })}
-                {streamingMessage && (
-                  <MessageBubble
-                    key={streamingMessage.id}
-                    role={streamingMessage.role}
-                    content={streamingMessage.content}
-                    sourceType={streamingMessage.sourceType}
-                    avatarUrl={kin.avatarUrl}
-                    senderName={kin.name}
-                    timestamp={streamingMessage.createdAt}
-                    toolCalls={toolCallsByMessage.get(streamingMessage.id)}
-                  />
-                )}
                 {liveTasks.map((task) => (
                   <TaskResultCard
                     key={`live-${task.taskId}`}
