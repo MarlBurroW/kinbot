@@ -65,6 +65,7 @@ interface PromptParams {
   isHub?: boolean
   hubKinDirectory?: HubKinDirectoryEntry[]
   compactingSummary?: string | null
+  compactedUpTo?: Date | null
   participants?: Array<{ name: string; platform: string | null; messageCount: number; lastSeenAt: Date }>
 }
 
@@ -484,10 +485,13 @@ export function buildSystemPrompt(params: PromptParams): string {
 
   // [6.9] Compacting summary (older conversation context)
   if (params.compactingSummary) {
+    const timeInfo = params.compactedUpTo
+      ? ` This summary covers exchanges up to ${formatRelativeTime(params.compactedUpTo)} (${params.compactedUpTo.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}).`
+      : ''
     blocks.push(
       `## Previous conversation summary\n\n` +
       `The following is a summary of older exchanges that are no longer in the message history. ` +
-      `Use this as background context — it is a faithful summary of what was discussed previously.\n\n` +
+      `Use this as background context — it is a faithful summary of what was discussed previously.${timeInfo}\n\n` +
       params.compactingSummary,
     )
   }

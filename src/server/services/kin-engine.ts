@@ -284,7 +284,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
 
     // Build message history (also returns compacting summary for system prompt injection)
-    const { messages: messageHistory, compactingSummary, participants } = await buildMessageHistory(kinId)
+    const { messages: messageHistory, compactingSummary, compactedUpTo, participants } = await buildMessageHistory(kinId)
 
     const systemPrompt = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
@@ -299,6 +299,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       isHub,
       hubKinDirectory,
       compactingSummary,
+      compactedUpTo,
       participants: participants.length > 0 ? participants : undefined,
     })
 
@@ -1031,7 +1032,7 @@ export interface ConversationParticipant {
   lastSeenAt: Date
 }
 
-async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null; participants: ConversationParticipant[] }> {
+async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null; compactedUpTo: Date | null; participants: ConversationParticipant[] }> {
   const history: ModelMessage[] = []
 
   // Fetch active compacting snapshot (used to filter messages, summary is injected via system prompt)
@@ -1253,7 +1254,12 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   const participants: ConversationParticipant[] = [...participantMap.values()]
     .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
 
-  return { messages: history, compactingSummary: activeSnapshot?.summary ?? null, participants }
+  return {
+    messages: history,
+    compactingSummary: activeSnapshot?.summary ?? null,
+    compactedUpTo: activeSnapshot?.createdAt ?? null,
+    participants,
+  }
 }
 
 /**
