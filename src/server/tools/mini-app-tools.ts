@@ -125,7 +125,7 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.memory.store(content, {category?, subject?})` → Promise<object> (store a new memory; category: fact|preference|decision|knowledge, default knowledge; max 2000 chars). ' +
         '`KinBot.conversation.history(limit?)` → Promise<Array> (get recent messages: {id, role, content, createdAt, sourceType}; default 20, max 100). ' +
         '`KinBot.conversation.send(text, options?)` → Promise<boolean> (send a message to the Kin; alias of sendMessage). ' +
-        '`KinBot.share(targetSlug, data)` → Promise<boolean> (share JSON data with another mini-app and open it).',
+        '`KinBot.share(targetSlug, data)` → Promise<boolean> (share JSON data with another mini-app and open it; the target app receives it via `KinBot.on("shared-data", ({from, fromName, data, ts}) => ...)`)',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),

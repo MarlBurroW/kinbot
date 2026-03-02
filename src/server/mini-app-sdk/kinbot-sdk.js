@@ -231,6 +231,8 @@
       _dispatch('fullpage-changed', { isFullPage: _isFullPage })
     } else if (msg.type === 'theme-changed') {
       _dispatch('theme-changed', getTheme())
+    } else if (msg.type === 'shared-data') {
+      _dispatch('shared-data', msg.data || null)
     } else if (msg.type === 'event') {
       _dispatch(msg.event, msg.data)
     }
@@ -1003,13 +1005,22 @@
    */
   function share(targetSlug, data) {
     if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
-    // Store the shared data in sender's storage with a key the target can read
-    var shareKey = '__share__' + targetSlug
-    return storage.set(shareKey, { from: _appMeta.slug || _appMeta.id, data: data, ts: Date.now() })
-      .then(function () {
-        openApp(targetSlug)
-        return true
-      })
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'share',
+        targetSlug: String(targetSlug),
+        shareData: {
+          from: _appMeta.slug || _appMeta.id,
+          fromName: _appMeta.name || _appMeta.slug || _appMeta.id,
+          data: data,
+          ts: Date.now(),
+        },
+      }, '*')
+      return Promise.resolve(true)
+    } catch (e) {
+      return Promise.reject(e)
+    }
   }
 
   // ─── Public API ─────────────────────────────────────────────────────────

@@ -31,6 +31,7 @@ export function MiniAppViewer() {
   const [app, setApp] = useState<MiniAppSummary | null>(null)
   const [iframeKey, setIframeKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const pendingShareData = useRef<unknown>(null)
 
   // Dialog state for confirm/prompt
   const [dialog, setDialog] = useState<{
@@ -152,6 +153,15 @@ export function MiniAppViewer() {
         }
         case 'ready': {
           sendAppMeta()
+          // Forward any pending shared data from another mini-app
+          if (pendingShareData.current && iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage({
+              source: 'kinbot-parent',
+              type: 'shared-data',
+              data: pendingShareData.current,
+            }, '*')
+            pendingShareData.current = null
+          }
           break
         }
         case 'fullpage': {
@@ -262,6 +272,25 @@ export function MiniAppViewer() {
             })
             .catch(() => {
               toast.error(t('miniApps.appNotFound', { slug }))
+            })
+          break
+        }
+        case 'share': {
+          const targetSlug = String(msg.targetSlug || '')
+          if (!targetSlug || !app?.kinId) break
+          const sharePayload = msg.shareData
+          // Resolve target app, open it, and forward shared data once it's ready
+          api.get<{ app: MiniAppSummary }>(`/mini-apps/by-slug/${app.kinId}/${encodeURIComponent(targetSlug)}`)
+            .then((data) => {
+              if (data.app?.id) {
+                pendingShareData.current = sharePayload
+                openApp(data.app.id)
+              } else {
+                toast.error(t('miniApps.appNotFound', { slug: targetSlug }))
+              }
+            })
+            .catch(() => {
+              toast.error(t('miniApps.appNotFound', { slug: targetSlug }))
             })
           break
         }
