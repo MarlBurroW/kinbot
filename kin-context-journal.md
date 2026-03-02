@@ -157,3 +157,26 @@ People currently in this conversation:
 - Add prompt-builder tests for participants section and tool usage strategy
 - Memory injection: structured formatting with relevance grouping
 - Channel/platform awareness: group vs DM context differentiation
+
+## 2026-03-02 (run 5) — Multi-user conversation guidance
+
+**Area:** System prompt quality / Conversation context
+
+**Problem:** The Kin already knows who the participants are (from run 3's participant awareness), but had no behavioral guidance for handling multi-user conversations. Common issues: not addressing the right person, merging responses to different users, not knowing how to handle conflicting instructions from different people, and being overly verbose in group contexts.
+
+**Change:** Added a "Multi-user conversations" subsection to the internal instructions block with 5 rules:
+1. Address the right person by name when responding
+2. Answer each person's question clearly without merging/confusing requests
+3. Acknowledge new participants without re-explaining everything
+4. Ask for clarification when users give conflicting instructions
+5. Keep responses focused in group contexts
+
+**Files changed:** `src/server/services/prompt-builder.ts`
+**Commit:** `64e8fd2` — `feat(context): add multi-user conversation guidance to system prompt`
+**Tests:** 26/26 prompt-builder tests pass, build OK
+
+**Next areas to explore:**
+- Conversation context: smart token-based truncation instead of hard 50-message cap
+- Add prompt-builder tests for participants, tool usage strategy, and multi-user sections
+- Compacting summary: add time range metadata so Kin knows when summarized events occurred
+- Channel/platform awareness: group vs DM context differentiation (adapt tone/verbosity)

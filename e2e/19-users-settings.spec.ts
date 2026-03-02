@@ -92,8 +92,8 @@ test.describe.serial('Users settings', () => {
     const linkValue = await linkInput.inputValue()
     expect(linkValue).toContain('/invite/')
 
-    // Close the revealed link dialog
-    await page.locator('[role="dialog"]').last().getByRole('button', { name: /close/i }).click()
+    // Close the revealed link dialog (use first() to avoid strict mode with X close + text Close)
+    await page.locator('[role="dialog"]').last().getByRole('button', { name: /close/i }).first().click()
   })
 
   test('should see created invitation in the list with active status', async ({ page }) => {
