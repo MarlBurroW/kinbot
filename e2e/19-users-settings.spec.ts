@@ -127,7 +127,7 @@ test.describe.serial('Users settings', () => {
     // Find the "For E2E Friend" invitation card and click the revoke button (XCircle icon)
     const invCard = page.locator('.rounded-xl.border.bg-card').filter({ hasText: 'For E2E Friend' })
     await expect(invCard).toBeVisible()
-    await invCard.locator('button:has(.lucide-x-circle)').click()
+    await invCard.locator('button:has(.lucide-circle-x)').click()
 
     // AlertDialog confirmation
     await expect(page.locator('[role="alertdialog"]')).toBeVisible({ timeout: 5_000 })
