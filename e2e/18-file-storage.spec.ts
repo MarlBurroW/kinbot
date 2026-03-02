@@ -81,8 +81,9 @@ test.describe.serial('File Storage settings', () => {
     const fileInput = page.locator('input[type="file"]')
     await expect(fileInput).toBeVisible()
 
-    // Kin selector
-    const kinSelector = page.locator('[data-slot="select-trigger"]').first()
+    // Kin selector (scoped to dialog to avoid matching hidden triggers elsewhere)
+    const dialog = page.locator('[role="dialog"]')
+    const kinSelector = dialog.locator('[data-slot="select-trigger"]').first()
     await expect(kinSelector).toBeVisible()
 
     // Name field
