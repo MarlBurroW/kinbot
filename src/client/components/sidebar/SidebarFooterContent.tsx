@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Settings2, Keyboard, Command } from 'lucide-react'
 import { Button } from '@/client/components/ui/button'
@@ -10,7 +10,7 @@ interface SidebarFooterContentProps {
   onOpenSettings?: (section?: string) => void
 }
 
-export function SidebarFooterContent({ onOpenSettings }: SidebarFooterContentProps) {
+export const SidebarFooterContent = memo(function SidebarFooterContent({ onOpenSettings }: SidebarFooterContentProps) {
   const { t } = useTranslation()
   const [version, setVersion] = useState<string | null>(null)
   const [whatsNewOpen, setWhatsNewOpen] = useState(false)
@@ -123,4 +123,4 @@ export function SidebarFooterContent({ onOpenSettings }: SidebarFooterContentPro
       </div>
     </div>
   )
-}
+})

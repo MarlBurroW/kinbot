@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroup,
@@ -117,7 +117,7 @@ function TaskCard({ task, onClick }: { task: TaskSummary; onClick: () => void })
   )
 }
 
-export function TaskList({ llmModels }: TaskListProps) {
+export const TaskList = memo(function TaskList({ llmModels }: TaskListProps) {
   const { t } = useTranslation()
   const {
     activeTasks,
@@ -317,4 +317,4 @@ export function TaskList({ llmModels }: TaskListProps) {
       )}
     </SidebarGroup>
   )
-}
+})

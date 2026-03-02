@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@/client/components/ui/input'
 import { Search } from 'lucide-react'
@@ -52,7 +52,7 @@ interface KinListProps {
 
 const KIN_SEARCH_THRESHOLD = 5
 
-export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onReorderKins }: KinListProps) {
+export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onReorderKins }: KinListProps) {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -211,4 +211,4 @@ export function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, k
       </SidebarGroupContent>
     </SidebarGroup>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, lazy, Suspense } from 'react'
+import { useState, useMemo, useCallback, lazy, Suspense, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   DndContext,
@@ -185,7 +185,7 @@ function SortableCronCard({
   )
 }
 
-export function CronList({ kins, llmModels }: CronListProps) {
+export const CronList = memo(function CronList({ kins, llmModels }: CronListProps) {
   const { t } = useTranslation()
   const {
     crons,
@@ -457,4 +457,4 @@ export function CronList({ kins, llmModels }: CronListProps) {
       )}
     </SidebarGroup>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroup,
@@ -98,7 +98,7 @@ function MiniAppCard({
   )
 }
 
-export function MiniAppList({ selectedKinId, kins = [] }: MiniAppListProps) {
+export const MiniAppList = memo(function MiniAppList({ selectedKinId, kins = [] }: MiniAppListProps) {
   const { t } = useTranslation()
   const { apps, isLoading, deleteApp } = useMiniApps(selectedKinId)
   const { activeAppId, badges, openApp, closePanel } = useMiniAppPanel()
@@ -195,4 +195,4 @@ export function MiniAppList({ selectedKinId, kins = [] }: MiniAppListProps) {
       />
     </SidebarGroup>
   )
-}
+})

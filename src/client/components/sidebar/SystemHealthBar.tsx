@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Tooltip,
@@ -26,7 +26,7 @@ interface SystemHealthBarProps {
   onOpenSettings?: (section?: string) => void
 }
 
-export function SystemHealthBar({ onOpenSettings }: SystemHealthBarProps) {
+export const SystemHealthBar = memo(function SystemHealthBar({ onOpenSettings }: SystemHealthBarProps) {
   const { t } = useTranslation()
   const [providers, setProviders] = useState<ProviderHealth | null>(null)
   const [channels, setChannels] = useState<ChannelHealth | null>(null)
@@ -188,4 +188,4 @@ export function SystemHealthBar({ onOpenSettings }: SystemHealthBarProps) {
       </div>
     </TooltipProvider>
   )
-}
+})

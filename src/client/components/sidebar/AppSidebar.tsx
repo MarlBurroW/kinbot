@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Sidebar,
@@ -56,6 +57,16 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const navigate = useNavigate()
 
+  const miniAppKins = useMemo(
+    () => kins.map((k) => ({ id: k.id, name: k.name, avatarPath: k.avatarUrl })),
+    [kins],
+  )
+
+  const cronKins = useMemo(
+    () => kins.map((k) => ({ id: k.id, name: k.name, role: k.role, avatarUrl: k.avatarUrl })),
+    [kins],
+  )
+
   return (
     <Sidebar className="surface-sidebar">
       {/* Header */}
@@ -92,7 +103,7 @@ export function AppSidebar({
           onReorderKins={onReorderKins}
         />
 
-        <MiniAppList selectedKinId={selectedKinId} kins={kins.map((k) => ({ id: k.id, name: k.name, avatarPath: k.avatarUrl }))} />
+        <MiniAppList selectedKinId={selectedKinId} kins={miniAppKins} />
 
         <SidebarSeparator />
 
@@ -101,7 +112,7 @@ export function AppSidebar({
         <SidebarSeparator />
 
         <CronList
-          kins={kins.map((k) => ({ id: k.id, name: k.name, role: k.role, avatarUrl: k.avatarUrl }))}
+          kins={cronKins}
           llmModels={llmModels}
         />
       </SidebarContent>
