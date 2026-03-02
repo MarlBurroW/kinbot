@@ -250,6 +250,11 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   const kinMemoryIds = db.select({ id: memories.id }).from(memories).where(eq(memories.kinId, kinId)).all().map((m) => m.id)
   const kinMiniAppIds = db.select({ id: miniApps.id }).from(miniApps).where(eq(miniApps.kinId, kinId)).all().map((a) => a.id)
 
+  // Gather cross-kin entities whose FK references will be nullified (for SSE notifications)
+  const affectedContactIds = db.select({ id: contacts.id }).from(contacts).where(eq(contacts.linkedKinId, kinId)).all().map((c) => c.id)
+  const affectedCronIds = db.select({ id: crons.id, cronKinId: crons.kinId }).from(crons).where(eq(crons.targetKinId, kinId)).all()
+  const affectedMcpServerIds = db.select({ id: mcpServers.id }).from(mcpServers).where(eq(mcpServers.createdByKinId, kinId)).all().map((m) => m.id)
+
   // Clean up all related records — topological order (leaves first)
   // humanPrompts must come before messages and tasks (references both)
   await db.delete(humanPrompts).where(eq(humanPrompts.kinId, kinId))
@@ -328,6 +333,17 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   }
   for (const appId of kinMiniAppIds) {
     sseManager.broadcast({ type: 'miniapp:deleted', kinId, data: { appId, kinId } })
+  }
+
+  // Notify about cross-kin entities whose FK references were nullified
+  for (const contactId of affectedContactIds) {
+    sseManager.broadcast({ type: 'contact:updated', data: { contactId, linkedKinId: null } })
+  }
+  for (const cron of affectedCronIds) {
+    sseManager.broadcast({ type: 'cron:updated', kinId: cron.cronKinId, data: { cronId: cron.id, kinId: cron.cronKinId, targetKinId: null } })
+  }
+  for (const mcpServerId of affectedMcpServerIds) {
+    sseManager.broadcast({ type: 'mcp-server:updated', data: { mcpServerId, createdByKinId: null } })
   }
 
   sseManager.broadcast({
