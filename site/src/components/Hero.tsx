@@ -254,7 +254,7 @@ export function Hero() {
       {/* Heading */}
       <div className="animate-fade-in-up text-center max-w-4xl" style={{ animationDelay: '0.1s' }}>
         <div className="flex items-center justify-center gap-4 mb-6">
-          <img src="/kinbot/kinbot.svg" alt="KinBot" className="size-16 sm:size-20 lg:size-24 rounded-2xl drop-shadow-xl" />
+          <img src="/kinbot/kinbot.svg" alt="KinBot" className="size-16 sm:size-20 lg:size-24 rounded-2xl drop-shadow-xl" fetchPriority="high" />
           <h1 className="text-6xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-none">
             <span className="gradient-text animate-gradient">KinBot</span>
           </h1>
