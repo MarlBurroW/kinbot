@@ -106,6 +106,36 @@ function formatMemoryLine(m: Memory): string {
   return `- ${parts.join(' ')}`
 }
 
+/**
+ * Build a rich context string with human-readable date/time info.
+ * Helps Kins reason about temporal context (day of week, time of day, etc.)
+ */
+function buildContextBlock(): string {
+  const now = new Date()
+  const iso = now.toISOString()
+  // Human-readable format: "Monday, March 2, 2026 at 01:31 UTC"
+  const readable = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+  const time = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    hour12: false,
+  })
+  return (
+    `## Context\n\n` +
+    `Current date: ${readable}\n` +
+    `Current time: ${time} UTC\n` +
+    `ISO timestamp: ${iso}\n` +
+    `Platform: KinBot`
+  )
+}
+
 const LANGUAGE_NAMES: Record<string, string> = {
   fr: 'French',
   en: 'English',
@@ -235,7 +265,7 @@ export function buildSystemPrompt(params: PromptParams): string {
 
     // [8] Date and context
     blocks.push(
-      `## Context\n\nCurrent date and time: ${new Date().toISOString()}\nPlatform: KinBot`,
+      buildContextBlock(),
     )
 
     return blocks.join('\n\n')
@@ -433,7 +463,7 @@ export function buildSystemPrompt(params: PromptParams): string {
 
   // [8] Date and context
   blocks.push(
-    `## Context\n\nCurrent date and time: ${new Date().toISOString()}\nPlatform: KinBot`,
+    buildContextBlock(),
   )
 
   return blocks.join('\n\n')

@@ -136,7 +136,7 @@ describe('buildSystemPrompt', () => {
 
   it('includes date context', () => {
     const result = buildSystemPrompt(makeParams())
-    expect(result).toContain('Current date and time:')
+    expect(result).toContain('Current date:')
     expect(result).toContain('Platform: KinBot')
   })
 
