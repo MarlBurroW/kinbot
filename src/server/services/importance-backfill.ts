@@ -3,7 +3,7 @@ import { memories } from '@/server/db/schema'
 import { eq, isNull, and } from 'drizzle-orm'
 import { generateText } from 'ai'
 import { config } from '@/server/config'
-import { createLogger } from '@/server/lib/logger'
+import { createLogger } from '@/server/logger'
 
 const log = createLogger('importance-backfill')
 
@@ -20,6 +20,10 @@ export async function backfillImportance(kinId?: string): Promise<{ updated: num
     config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
     null,
   )
+  if (!model) {
+    log.warn('No LLM model available for importance backfill')
+    return { updated: 0, skipped: 0 }
+  }
 
   // Find all memories with null importance
   const conditions = [isNull(memories.importance)]

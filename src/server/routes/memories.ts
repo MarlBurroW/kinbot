@@ -43,7 +43,8 @@ memoryRoutes.get('/', async (c) => {
 
 // POST /api/memories/backfill-importance — score importance for unscored memories
 memoryRoutes.post('/backfill-importance', async (c) => {
-  const { kinId } = await c.req.json<{ kinId?: string }>().catch(() => ({}))
+  const body = await c.req.json<{ kinId?: string }>().catch(() => ({} as { kinId?: string }))
+  const { kinId } = body
   const { backfillImportance } = await import('@/server/services/importance-backfill')
   const result = await backfillImportance(kinId || undefined)
   return c.json(result)
