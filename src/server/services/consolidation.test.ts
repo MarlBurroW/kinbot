@@ -11,7 +11,11 @@ mock.module('@/server/logger', () => ({
 mock.module('@/server/db/schema', () => ({ memories: {} }))
 mock.module('@/server/services/embeddings', () => ({ generateEmbedding: async () => null }))
 mock.module('@/server/config', () => ({
-  config: { memory: { consolidationMaxGeneration: 3, consolidationSimilarityThreshold: 0.9 }, compacting: { model: 'test' } },
+  config: {
+    memory: { consolidationMaxGeneration: 3, consolidationSimilarityThreshold: 0.9 },
+    compacting: { model: 'test' },
+    vault: { maxAttachmentSizeMb: 10, maxAttachmentsPerEntry: 20 },
+  },
 }))
 mock.module('@/server/services/memory', () => ({
   deleteMemory: async () => {},

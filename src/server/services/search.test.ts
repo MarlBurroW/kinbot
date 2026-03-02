@@ -38,6 +38,11 @@ mock.module('@/server/db/schema', () => ({
 
 mock.module('@/server/services/encryption', () => ({
   decrypt: async (val: string) => val,
+  encrypt: async (val: string) => val,
+  decryptBuffer: async (data: Uint8Array) => data,
+  encryptBuffer: async (data: Uint8Array) => data,
+  _resetKeyCache: () => {},
+  _setTestKey: async () => {},
 }))
 
 mock.module('@/server/services/app-settings', () => ({

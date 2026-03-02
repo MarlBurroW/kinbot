@@ -12,6 +12,7 @@ mock.module('@/server/config', () => ({
       headlessEnabled: false,
       proxy: null,
     },
+    vault: { maxAttachmentSizeMb: 10, maxAttachmentsPerEntry: 20 },
   },
 }))
 

@@ -33,6 +33,7 @@ mock.module('@/server/config', () => ({
         maxPerUser: 10,
       },
     },
+    vault: { maxAttachmentSizeMb: 10, maxAttachmentsPerEntry: 20 },
   },
 }))
 

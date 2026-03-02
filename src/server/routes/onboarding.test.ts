@@ -57,14 +57,60 @@ mock.module('@/server/db/index', () => {
   }
 })
 
+// Include all commonly-used schema exports to prevent mock leak breaking sibling test files
 mock.module('@/server/db/schema', () => ({
   userProfiles: { role: 'role', userId: 'user_id' },
-  providers: {},
+  providers: { id: 'id' },
   user: { id: 'id' },
+  kins: { id: 'id', toolConfig: 'toolConfig' },
+  files: { id: 'id' },
+  messages: { id: 'id' },
+  memories: { id: 'id' },
+  contacts: { id: 'id' },
+  session: { id: 'id' },
+  account: { id: 'id' },
+  compactingSnapshots: { id: 'id' },
+  humanPrompts: { id: 'id' },
+  messageReactions: { id: 'id' },
+  channels: { id: 'id' },
+  channelUserMappings: { id: 'id' },
+  invitations: { id: 'id' },
+  contactIdentifiers: { id: 'id' },
+  contactPlatformIds: { id: 'id' },
+  contactNotes: { id: 'id' },
+  customTools: { id: 'id' },
+  mcpServers: { id: 'id' },
+  kinMcpServers: { id: 'id' },
+  quickSessions: { id: 'id' },
+  tasks: { id: 'id' },
+  crons: { id: 'id' },
+  webhooks: { id: 'id' },
+  webhookLogs: { id: 'id' },
+  vaultSecrets: { id: 'id' },
+  vaultTypes: { id: 'id' },
+  vaultAttachments: { id: 'id' },
+  queueItems: { id: 'id' },
+  verification: { id: 'id' },
+  notifications: { id: 'id' },
 }))
 
+// Stub all commonly-used drizzle-orm operators to prevent mock leak
 mock.module('drizzle-orm', () => ({
   eq: (...args: unknown[]) => args,
+  ne: (...args: unknown[]) => args,
+  and: (...args: unknown[]) => args,
+  or: (...args: unknown[]) => args,
+  not: (a: unknown) => a,
+  inArray: (...args: unknown[]) => args,
+  like: (...args: unknown[]) => args,
+  isNull: (a: unknown) => a,
+  isNotNull: (a: unknown) => a,
+  desc: (a: unknown) => a,
+  asc: (a: unknown) => a,
+  count: (a?: unknown) => a,
+  sql: Object.assign((...args: unknown[]) => args, { raw: (s: string) => s }),
+  gte: (...args: unknown[]) => args,
+  lt: (...args: unknown[]) => args,
 }))
 
 mock.module('@/server/logger', () => ({
