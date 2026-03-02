@@ -883,3 +883,165 @@ export function Drawer({ open, onClose, title, side = 'right', width = '24rem', 
     ),
   )
 }
+
+// ─── Grid ─────────────────────────────────────────────────────────────────────
+
+/**
+ * CSS Grid layout with responsive column support.
+ * @param {{ columns?: number|string, minChildWidth?: string, gap?: string|number, rowGap?: string|number, colGap?: string|number, className?: string, style?: object, children: any }} props
+ *
+ * Usage:
+ *   <Grid columns={3} gap="1rem">...</Grid>
+ *   <Grid minChildWidth="250px">...</Grid>  // auto-fit responsive
+ */
+export function Grid({ columns, minChildWidth, gap = '1rem', rowGap, colGap, className, style, children, ...rest }) {
+  const gapVal = typeof gap === 'number' ? `${gap}px` : gap
+  let gridTemplateColumns
+  if (minChildWidth) {
+    gridTemplateColumns = `repeat(auto-fit, minmax(${minChildWidth}, 1fr))`
+  } else if (typeof columns === 'number') {
+    gridTemplateColumns = `repeat(${columns}, 1fr)`
+  } else if (typeof columns === 'string') {
+    gridTemplateColumns = columns
+  } else {
+    gridTemplateColumns = 'repeat(auto-fit, minmax(200px, 1fr))'
+  }
+  return React.createElement('div', {
+    className,
+    style: mergeStyles({
+      display: 'grid',
+      gridTemplateColumns,
+      gap: (!rowGap && !colGap) ? gapVal : undefined,
+      rowGap: rowGap ? (typeof rowGap === 'number' ? `${rowGap}px` : rowGap) : undefined,
+      columnGap: colGap ? (typeof colGap === 'number' ? `${colGap}px` : colGap) : undefined,
+    }, style),
+    ...rest,
+  }, children)
+}
+
+/**
+ * Grid item with optional span control.
+ * @param {{ colSpan?: number, rowSpan?: number, className?: string, style?: object, children: any }} props
+ */
+Grid.Item = function GridItem({ colSpan, rowSpan, className, style, children, ...rest }) {
+  return React.createElement('div', {
+    className,
+    style: mergeStyles({
+      gridColumn: colSpan ? `span ${colSpan}` : undefined,
+      gridRow: rowSpan ? `span ${rowSpan}` : undefined,
+    }, style),
+    ...rest,
+  }, children)
+}
+
+// ─── Breadcrumbs ──────────────────────────────────────────────────────────────
+
+/**
+ * Breadcrumb navigation.
+ * @param {{ items: Array<{label: string, href?: string, onClick?: function}>, separator?: string, className?: string, style?: object }} props
+ */
+export function Breadcrumbs({ items = [], separator = '/', className, style, ...rest }) {
+  return React.createElement('nav', {
+    'aria-label': 'Breadcrumb',
+    className,
+    style: mergeStyles({ fontSize: '0.875rem' }, style),
+    ...rest,
+  },
+    React.createElement('ol', {
+      style: { display: 'flex', alignItems: 'center', gap: '0.375rem', listStyle: 'none', margin: 0, padding: 0, flexWrap: 'wrap' },
+    },
+      items.map((item, i) => {
+        const isLast = i === items.length - 1
+        const elements = []
+        if (i > 0) {
+          elements.push(React.createElement('li', {
+            key: `sep-${i}`,
+            'aria-hidden': 'true',
+            style: { color: 'var(--color-muted-foreground)', userSelect: 'none' },
+          }, separator))
+        }
+        const linkStyle = isLast
+          ? { color: 'var(--color-foreground)', fontWeight: 500, cursor: 'default', textDecoration: 'none' }
+          : { color: 'var(--color-muted-foreground)', textDecoration: 'none', cursor: 'pointer' }
+        const el = (item.href && !isLast)
+          ? React.createElement('a', { href: item.href, style: linkStyle }, item.label)
+          : React.createElement('span', {
+              style: linkStyle,
+              role: (!isLast && item.onClick) ? 'button' : undefined,
+              tabIndex: (!isLast && item.onClick) ? 0 : undefined,
+              onClick: !isLast ? item.onClick : undefined,
+              onKeyDown: (!isLast && item.onClick) ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.onClick(e) } } : undefined,
+            }, item.label)
+        elements.push(React.createElement('li', {
+          key: `item-${i}`,
+          'aria-current': isLast ? 'page' : undefined,
+        }, el))
+        return elements
+      }).flat(),
+    ),
+  )
+}
+
+// ─── Popover ──────────────────────────────────────────────────────────────────
+
+/**
+ * Popover attached to a trigger element. Toggles on click, closes on outside click or Escape.
+ * @param {{ trigger: any, content: any, placement?: 'top'|'bottom'|'left'|'right', open?: boolean, onOpenChange?: function, className?: string, style?: object }} props
+ */
+export function Popover({ trigger, content, placement = 'bottom', open: controlledOpen, onOpenChange, className, style, ...rest }) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined
+  const isOpen = isControlled ? controlledOpen : internalOpen
+  const setOpen = useCallback((v) => {
+    if (!isControlled) setInternalOpen(v)
+    if (onOpenChange) onOpenChange(v)
+  }, [isControlled, onOpenChange])
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    function handleClick(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)
+    }
+    function handleEsc(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleEsc)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [isOpen, setOpen])
+
+  const placementStyles = {
+    top: { bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '0.5rem' },
+    bottom: { top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '0.5rem' },
+    left: { right: '100%', top: '50%', transform: 'translateY(-50%)', marginRight: '0.5rem' },
+    right: { left: '100%', top: '50%', transform: 'translateY(-50%)', marginLeft: '0.5rem' },
+  }
+
+  return React.createElement('div', {
+    ref: containerRef,
+    style: mergeStyles({ position: 'relative', display: 'inline-block' }, style),
+    ...rest,
+  },
+    React.createElement('div', {
+      onClick: () => setOpen(!isOpen),
+      style: { cursor: 'pointer' },
+    }, trigger),
+    isOpen && React.createElement('div', {
+      role: 'dialog',
+      className: cn('card', className),
+      style: {
+        position: 'absolute',
+        zIndex: 50,
+        minWidth: '12rem',
+        padding: '0.75rem',
+        animation: 'fade-in 0.15s ease-out',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        ...placementStyles[placement] || placementStyles.bottom,
+      },
+    }, content),
+  )
+}

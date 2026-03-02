@@ -49,3 +49,23 @@ Rewrote `src/server/routes/channel-telegram.ts` to extract file attachments from
 - Files test fails due to missing `files` export from schema (pre-existing)
 
 **Next step:** Step 5 — Discord adapter: extract `attachments[]` from MESSAGE_CREATE events, download via CDN URL.
+
+## 2026-03-02 — Run 3: Steps 5 & 6 — Discord + WhatsApp adapters
+
+**Commits:** 4ff8be7 (Discord, previous run), cd40a07 (WhatsApp)
+
+**Step 5 — Discord adapter** (done in previous run):
+- Already committed in `4ff8be7` — extracts `attachments[]` from MESSAGE_CREATE events
+- Maps Discord attachment fields (id, filename, content_type, size, url) to `IncomingAttachment`
+- Messages with attachments but no text now processed
+
+**Step 6 — WhatsApp adapter:**
+- Added support for media message types: image, document, audio, voice, video, sticker
+- WhatsApp Cloud API requires two-step media download: `GET /{media-id}` → get URL → download with auth
+- Added `headers` field to `IncomingAttachment` interface for auth-required downloads (WhatsApp needs `Authorization: Bearer <token>`)
+- Updated `downloadAndStoreAttachment()` in files.ts to pass `attachment.headers` to fetch
+- Captions on media messages are used as text content
+- Route handler now passes platform config to `handleWhatsAppWebhook()` for token resolution
+- Messages with unsupported types (contacts, location) are skipped gracefully
+
+**Next step:** Step 7 — Slack adapter: retrieve files via `files.info` API, download with bot token.

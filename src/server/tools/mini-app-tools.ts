@@ -65,7 +65,7 @@ export const createMiniAppTool: ToolRegistration = {
         '`events` (SSE from backend: `.on(event, cb)`, `.subscribe(cb)`, `.close()`, `.connected`). ' +
         '**@kinbot/components — React Component Library:** Add `"@kinbot/components": "/api/mini-apps/sdk/kinbot-components.js"` to app.json dependencies. ' +
         'Import: `import { Card, Button, Input, Select, Textarea, Checkbox, Switch, Badge, Tag, Stat, Avatar, Tooltip, ProgressBar, ' +
-        'Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Stack, Divider, ButtonGroup } from "@kinbot/components"`. ' +
+        'Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Stack, Divider, ButtonGroup, Grid, Breadcrumbs, Popover } from "@kinbot/components"`. ' +
         'All components auto-adapt to light/dark theme. Key components: ' +
         '`Card` (+ Card.Header, Card.Title, Card.Description, Card.Content, Card.Footer), ' +
         '`Button` (variant: primary|secondary|destructive|ghost|shine, size: sm|md|lg|icon), ' +
@@ -78,7 +78,10 @@ export const createMiniAppTool: ToolRegistration = {
         '`Tabs` (tabs: [{id, label}], active, onChange), `Table` (columns: [{key, label, render?}], data), ' +
         '`Modal` (open, onClose, title, size: sm|md|lg), `Drawer` (open, onClose, title, side: left|right), ' +
         '`Stack` (direction, gap, align, justify), `Divider`, `Pagination` (page, totalPages, onChange), ' +
-        '`Spinner`, `Skeleton`, `EmptyState` (icon, title, description, action), `List` (items: [{content}], divided). ' +
+        '`Spinner`, `Skeleton`, `EmptyState` (icon, title, description, action), `List` (items: [{content}], divided), ' +
+        '`Grid` (columns, minChildWidth for auto-fit responsive, gap; Grid.Item with colSpan/rowSpan), ' +
+        '`Breadcrumbs` (items: [{label, href?, onClick?}], separator), ' +
+        '`Popover` (trigger, content, placement: top|bottom|left|right, controlled via open/onOpenChange). ' +
         '**Design System CSS** (auto-injected): CSS variables like ' +
         'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border). ' +
         'Utility classes: .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +
@@ -101,7 +104,8 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.kin` → {id, name, avatarUrl} (info about the parent Kin). ' +
         '`KinBot.user` → {id, name, pseudonym, locale, timezone, avatarUrl} (info about the current user). ' +
         '`KinBot.resize(width?, height?)` → request panel resize (width: 320-1200px, height: 200-2000px). ' +
-        '`KinBot.notification(title, body?)` → Promise<boolean> (show a browser notification via the parent window).',
+        '`KinBot.notification(title, body?)` → Promise<boolean> (show a browser notification via the parent window). ' +
+        '`KinBot.shortcut(key, callback)` → register keyboard shortcuts (e.g. "ctrl+k", "meta+shift+p", "escape"). Returns unregister function. Pass null to remove.',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),

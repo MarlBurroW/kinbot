@@ -829,6 +829,38 @@
     })
   }
 
+  // ─── Keyboard Shortcuts ──────────────────────────────────────────────────
+
+  var _shortcuts = {}
+
+  function shortcut(key, callback) {
+    // key: e.g. 'ctrl+k', 'meta+shift+p', 'escape'
+    var normalized = key.toLowerCase().split('+').sort().join('+')
+    if (typeof callback === 'function') {
+      _shortcuts[normalized] = callback
+      return function unregister() { delete _shortcuts[normalized] }
+    } else if (callback === null || callback === undefined) {
+      delete _shortcuts[normalized]
+    }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var parts = []
+    if (e.ctrlKey) parts.push('ctrl')
+    if (e.metaKey) parts.push('meta')
+    if (e.altKey) parts.push('alt')
+    if (e.shiftKey) parts.push('shift')
+    var k = e.key.toLowerCase()
+    if (!['control', 'meta', 'alt', 'shift'].includes(k)) parts.push(k)
+    var combo = parts.sort().join('+')
+    var handler = _shortcuts[combo]
+    if (handler) {
+      e.preventDefault()
+      e.stopPropagation()
+      handler(e)
+    }
+  })
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -857,6 +889,7 @@
     sendMessage: sendMessage,
     resize: resize,
     notification: notification,
-    version: '1.12.0',
+    shortcut: shortcut,
+    version: '1.13.0',
   }
 })()
