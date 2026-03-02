@@ -65,7 +65,7 @@ export const createMiniAppTool: ToolRegistration = {
         '`events` (SSE from backend: `.on(event, cb)`, `.subscribe(cb)`, `.close()`, `.connected`). ' +
         '**@kinbot/components — React Component Library:** Add `"@kinbot/components": "/api/mini-apps/sdk/kinbot-components.js"` to app.json dependencies. ' +
         'Import: `import { Card, Button, Input, Select, Textarea, Checkbox, Switch, Badge, Tag, Stat, Avatar, Tooltip, ProgressBar, ' +
-        'Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Stack, Divider, ButtonGroup, Grid, Breadcrumbs, Popover } from "@kinbot/components"`. ' +
+        'Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Stack, Divider, ButtonGroup, Grid, Breadcrumbs, Popover, Form } from "@kinbot/components"`. ' +
         'All components auto-adapt to light/dark theme. Key components: ' +
         '`Card` (+ Card.Header, Card.Title, Card.Description, Card.Content, Card.Footer), ' +
         '`Button` (variant: primary|secondary|destructive|ghost|shine, size: sm|md|lg|icon), ' +
@@ -81,7 +81,10 @@ export const createMiniAppTool: ToolRegistration = {
         '`Spinner`, `Skeleton`, `EmptyState` (icon, title, description, action), `List` (items: [{content}], divided), ' +
         '`Grid` (columns, minChildWidth for auto-fit responsive, gap; Grid.Item with colSpan/rowSpan), ' +
         '`Breadcrumbs` (items: [{label, href?, onClick?}], separator), ' +
-        '`Popover` (trigger, content, placement: top|bottom|left|right, controlled via open/onOpenChange). ' +
+        '`Popover` (trigger, content, placement: top|bottom|left|right, controlled via open/onOpenChange), ' +
+        '`Form` (compound form with validation: onSubmit receives values object; Form.Field wraps Input/Select/Textarea/Checkbox/Switch with auto-binding of value/onChange/onBlur/error; ' +
+        'rules: ["required", "email", {type:"minLength",value:3,message?:"Too short"}, {type:"maxLength",value:50}, {type:"min",value:0}, {type:"max",value:100}, {type:"pattern",value:/regex/}, {type:"match",value:"fieldName"}, customFn]; ' +
+        'Form.Submit auto-disables during submit with loadingText; Form.Reset clears to initialValues; Form.Actions aligns buttons). ' +
         '**Design System CSS** (auto-injected): CSS variables like ' +
         'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border). ' +
         'Utility classes: .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +

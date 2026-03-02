@@ -1045,3 +1045,329 @@ export function Popover({ trigger, content, placement = 'bottom', open: controll
     }, content),
   )
 }
+
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
+const FormContext = createContext(null)
+
+/**
+ * Built-in validation rules.
+ * Each rule is a function (value, param?) => string|null (null = valid).
+ */
+const validators = {
+  required: (v) => {
+    if (v === undefined || v === null || v === '' || (typeof v === 'boolean' && !v)) return 'This field is required'
+    return null
+  },
+  email: (v) => {
+    if (!v) return null // let required handle empty
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'Invalid email address'
+  },
+  minLength: (v, min) => {
+    if (!v) return null
+    return String(v).length >= min ? null : `Must be at least ${min} characters`
+  },
+  maxLength: (v, max) => {
+    if (!v) return null
+    return String(v).length <= max ? null : `Must be at most ${max} characters`
+  },
+  min: (v, min) => {
+    if (v === '' || v === undefined || v === null) return null
+    return Number(v) >= min ? null : `Must be at least ${min}`
+  },
+  max: (v, max) => {
+    if (v === '' || v === undefined || v === null) return null
+    return Number(v) <= max ? null : `Must be at most ${max}`
+  },
+  pattern: (v, regex) => {
+    if (!v) return null
+    const re = typeof regex === 'string' ? new RegExp(regex) : regex
+    return re.test(v) ? null : 'Invalid format'
+  },
+  match: (v, _param, allValues, fieldName) => {
+    if (!v) return null
+    return v === allValues[_param] ? null : `Must match ${_param}`
+  },
+}
+
+function runValidation(value, rules, allValues, fieldName) {
+  if (!rules) return null
+  for (const rule of rules) {
+    let msg = null
+    if (typeof rule === 'string') {
+      // shorthand: "required", "email"
+      if (validators[rule]) msg = validators[rule](value)
+    } else if (typeof rule === 'function') {
+      // custom: (value, allValues) => string|null
+      msg = rule(value, allValues)
+    } else if (typeof rule === 'object' && rule.type) {
+      // { type: 'minLength', value: 3, message?: 'Too short' }
+      const fn = validators[rule.type]
+      if (fn) {
+        msg = fn(value, rule.value, allValues, fieldName)
+        if (msg && rule.message) msg = rule.message
+      }
+    }
+    if (msg) return msg
+  }
+  return null
+}
+
+/**
+ * Form component with validation support.
+ *
+ * @param {{
+ *   onSubmit: (values: object) => void|Promise<void>,
+ *   initialValues?: object,
+ *   validateOnChange?: boolean,
+ *   validateOnBlur?: boolean,
+ *   className?: string,
+ *   style?: object,
+ *   children: any
+ * }} props
+ *
+ * Usage:
+ *   <Form onSubmit={vals => console.log(vals)} initialValues={{ name: '' }}>
+ *     <Form.Field name="name" label="Name" rules={['required', { type: 'minLength', value: 2 }]}>
+ *       <Input />
+ *     </Form.Field>
+ *     <Form.Field name="email" label="Email" rules={['required', 'email']}>
+ *       <Input type="email" />
+ *     </Form.Field>
+ *     <Form.Actions>
+ *       <Button type="submit">Submit</Button>
+ *       <Form.Reset variant="ghost">Reset</Form.Reset>
+ *     </Form.Actions>
+ *   </Form>
+ *
+ * The child of Form.Field receives: value, onChange, onBlur, error, id props automatically.
+ * For custom inputs, ensure they accept these props.
+ */
+export function Form({ onSubmit, initialValues = {}, validateOnChange = false, validateOnBlur = true, className, style, children, ...rest }) {
+  const [values, setValues] = useState(() => ({ ...initialValues }))
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const fieldsRef = useRef({}) // { name: { rules } }
+
+  const registerField = useCallback((name, rules) => {
+    fieldsRef.current[name] = { rules }
+  }, [])
+
+  const unregisterField = useCallback((name) => {
+    delete fieldsRef.current[name]
+  }, [])
+
+  const setValue = useCallback((name, val) => {
+    setValues(prev => {
+      const next = { ...prev, [name]: val }
+      return next
+    })
+  }, [])
+
+  const setFieldError = useCallback((name, error) => {
+    setErrors(prev => {
+      if (prev[name] === error) return prev
+      const next = { ...prev }
+      if (error) next[name] = error; else delete next[name]
+      return next
+    })
+  }, [])
+
+  const validateField = useCallback((name, currentValues) => {
+    const field = fieldsRef.current[name]
+    if (!field) return null
+    const error = runValidation(currentValues[name], field.rules, currentValues, name)
+    setFieldError(name, error)
+    return error
+  }, [setFieldError])
+
+  const validateAll = useCallback((currentValues) => {
+    const newErrors = {}
+    let hasError = false
+    for (const name of Object.keys(fieldsRef.current)) {
+      const error = runValidation(currentValues[name], fieldsRef.current[name].rules, currentValues, name)
+      if (error) {
+        newErrors[name] = error
+        hasError = true
+      }
+    }
+    setErrors(newErrors)
+    return !hasError
+  }, [])
+
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault()
+    setSubmitted(true)
+    // Touch all fields
+    const allTouched = {}
+    for (const name of Object.keys(fieldsRef.current)) allTouched[name] = true
+    setTouched(allTouched)
+
+    const currentValues = { ...values }
+    if (!validateAll(currentValues)) return
+
+    setSubmitting(true)
+    try {
+      await onSubmit?.(currentValues)
+    } finally {
+      setSubmitting(false)
+    }
+  }, [values, validateAll, onSubmit])
+
+  const reset = useCallback(() => {
+    setValues({ ...initialValues })
+    setErrors({})
+    setTouched({})
+    setSubmitted(false)
+    setSubmitting(false)
+  }, [initialValues])
+
+  const ctx = {
+    values, errors, touched, submitting, submitted,
+    setValue, setFieldError, validateField, registerField, unregisterField,
+    setTouched, validateOnChange, validateOnBlur, reset,
+  }
+
+  return React.createElement(FormContext.Provider, { value: ctx },
+    React.createElement('form', {
+      onSubmit: handleSubmit,
+      noValidate: true,
+      className,
+      style,
+      ...rest,
+    }, typeof children === 'function' ? children({ values, errors, submitting, submitted, reset }) : children),
+  )
+}
+
+/**
+ * Form field wrapper with automatic validation binding.
+ * Clones the child element and injects value/onChange/onBlur/error/id props.
+ *
+ * @param {{
+ *   name: string,
+ *   label?: string,
+ *   rules?: Array<string | Function | {type: string, value?: any, message?: string}>,
+ *   helpText?: string,
+ *   children: ReactElement
+ * }} props
+ */
+Form.Field = function FormField({ name, label, rules, helpText, children, style, ...rest }) {
+  const ctx = useContext(FormContext)
+  const autoId = useId()
+  const id = `field-${name}-${autoId}`
+
+  useEffect(() => {
+    ctx.registerField(name, rules)
+    return () => ctx.unregisterField(name)
+  }, [name, rules])
+
+  const value = ctx.values[name] ?? ''
+  const error = (ctx.touched[name] || ctx.submitted) ? ctx.errors[name] : undefined
+
+  const handleChange = useCallback((eOrVal) => {
+    let val
+    if (eOrVal && eOrVal.target) {
+      const t = eOrVal.target
+      val = t.type === 'checkbox' ? t.checked : t.value
+    } else {
+      val = eOrVal
+    }
+    ctx.setValue(name, val)
+    if (ctx.validateOnChange || ctx.submitted) {
+      // Validate after state update via setTimeout
+      setTimeout(() => {
+        ctx.validateField(name, { ...ctx.values, [name]: val })
+      }, 0)
+    }
+  }, [name, ctx])
+
+  const handleBlur = useCallback(() => {
+    ctx.setTouched(prev => ({ ...prev, [name]: true }))
+    if (ctx.validateOnBlur) {
+      ctx.validateField(name, ctx.values)
+    }
+  }, [name, ctx])
+
+  // Clone child with injected props
+  const child = React.Children.only(children)
+  const isCheckboxOrSwitch = child.type === Checkbox || child.type === Switch ||
+    (child.props && child.props.type === 'checkbox')
+
+  const injectedProps = {
+    id,
+    [isCheckboxOrSwitch ? 'checked' : 'value']: isCheckboxOrSwitch ? !!value : value,
+    onChange: handleChange,
+    onBlur: handleBlur,
+    error: error,
+  }
+
+  // For checkbox/switch, pass label through the component rather than the field wrapper
+  if (isCheckboxOrSwitch && label && !child.props.label) {
+    injectedProps.label = label
+  }
+
+  return React.createElement('div', {
+    style: mergeStyles({ display: 'flex', flexDirection: 'column', gap: '0.375rem' }, style),
+    ...rest,
+  },
+    label && !isCheckboxOrSwitch && React.createElement('label', {
+      htmlFor: id,
+      className: 'label',
+    }, label),
+    React.cloneElement(child, injectedProps),
+    helpText && !error && React.createElement('p', {
+      style: { color: 'var(--color-muted-foreground)', fontSize: '0.8125rem', margin: 0 },
+    }, helpText),
+    error && React.createElement('p', {
+      id: `${id}-error`,
+      role: 'alert',
+      style: { color: 'var(--color-destructive)', fontSize: '0.8125rem', margin: 0 },
+    }, error),
+  )
+}
+
+/**
+ * Form actions container (buttons area).
+ * @param {{ align?: 'left'|'center'|'right'|'between', className?: string, children: any }} props
+ */
+Form.Actions = function FormActions({ align = 'left', className, style, children, ...rest }) {
+  const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end', between: 'space-between' }
+  return React.createElement('div', {
+    className,
+    style: mergeStyles({
+      display: 'flex',
+      gap: '0.5rem',
+      justifyContent: justifyMap[align] || 'flex-start',
+      paddingTop: '0.5rem',
+    }, style),
+    ...rest,
+  }, children)
+}
+
+/**
+ * Reset button that clears form to initial values.
+ * @param {{ variant?: string, children: any }} props
+ */
+Form.Reset = function FormReset({ children = 'Reset', ...rest }) {
+  const ctx = useContext(FormContext)
+  return React.createElement(Button, {
+    type: 'button',
+    onClick: ctx.reset,
+    ...rest,
+  }, children)
+}
+
+/**
+ * Submit button with automatic loading state.
+ * @param {{ children: any, loadingText?: string }} props
+ */
+Form.Submit = function FormSubmit({ children = 'Submit', loadingText = 'Submitting...', disabled, ...rest }) {
+  const ctx = useContext(FormContext)
+  return React.createElement(Button, {
+    type: 'submit',
+    disabled: disabled || ctx.submitting,
+    ...rest,
+  }, ctx.submitting ? loadingText : children)
+}
