@@ -1,5 +1,39 @@
 # Kin Context Improvement Journal
 
+## 2026-03-02 (run 7) — Structured compacting summaries with open thread tracking
+
+**Area:** Conversation context / Compacting quality
+
+**Problem:** The compacting prompt produced free-form summaries with no consistent structure. This meant:
+1. Open threads (pending tasks, unanswered questions, promises) could easily get lost in a wall of text
+2. No temporal context — the summary didn't indicate what time period it covered
+3. Completed work mixed with pending items, making it hard for the Kin to know what's still relevant
+4. When integrating previous summaries, there was no guidance on how to merge (close resolved threads, add new ones)
+
+Since compacted summaries permanently replace raw messages, a poorly structured summary = permanently degraded context.
+
+**Change:** Rewrote the compacting prompt in `compacting.ts` with:
+1. **Time range header** — injects the ISO timestamps of first and last message being summarized, plus message count, so the LLM knows the scope
+2. **Structured output sections** — instructs the LLM to organize the summary into 4 sections:
+   - **Key facts & decisions** — important information, attributed to speakers
+   - **Completed work** — tasks finished, problems solved, results obtained
+   - **Open threads** — unresolved questions, pending tasks, promised follow-ups (marked as CRITICAL)
+   - **Conversation dynamics** — only if relevant: who was active, tone, relationships
+3. **Open thread emphasis** — explicit instruction that open threads are the most important thing to preserve, with extra rule about merging: close resolved threads, add new ones
+4. **Integration guidance** — when a previous summary exists, explicit instructions to merge, consolidate, and update rather than just append
+
+**Rationale:** Open threads are the #1 failure mode in conversation compaction. When a user asks "did we resolve X?" and the summary lost that context, the Kin fails silently. The structured format also makes it easier for the Kin to scan the summary quickly during prompt construction.
+
+**Files changed:** `src/server/services/compacting.ts`
+**Commit:** `7ad041a` — `feat(context): structured compacting summaries with open thread tracking`
+**Tests:** 1282/1282 pass, build OK
+
+**Next areas to explore:**
+- Add prompt-builder tests for participants, tool usage strategy, and multi-user sections
+- Tool descriptions: audit across all tool files for consistency and when-to-use hints
+- Channel/platform awareness: group vs DM context differentiation (adapt tone/verbosity)
+- Compacting: add a test for the new structured prompt format
+
 ## 2026-03-01 — Honesty & uncertainty guidance
 
 **Area:** Alignment & safety

@@ -263,7 +263,7 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {t('kin.delete', { defaultValue: 'Delete this Kin' })}
+                {t('kin.delete')}
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {t('kin.deleteConfirm')}

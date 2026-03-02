@@ -342,7 +342,10 @@
     "modelUnavailableHint": "This Kin's model is no longer available. Update the model in Kin settings or add the provider back.",
     "modelUnavailableInput": "Cannot send messages - this Kin's model is unavailable",
     "invalidJsonFile": "Invalid JSON file",
-    "hub": "Hub"
+    "hub": "Hub",
+    "delete": "Delete this Kin",
+    "deleteConfirm": "This action cannot be undone. All conversations and data associated with this Kin will be permanently deleted.",
+    "deleteAction": "Delete"
   },
   "cron": {
     "create": {

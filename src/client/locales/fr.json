@@ -342,7 +342,10 @@
     "modelUnavailableHint": "Le modèle de ce Kin n'est plus disponible. Modifiez le modèle dans les paramètres du Kin ou réajoutez le fournisseur.",
     "modelUnavailableInput": "Envoi impossible - le modèle de ce Kin est indisponible",
     "invalidJsonFile": "Fichier JSON invalide",
-    "hub": "Hub"
+    "hub": "Hub",
+    "delete": "Supprimer ce Kin",
+    "deleteConfirm": "Cette action est irréversible. Toutes les conversations et données associées à ce Kin seront définitivement supprimées.",
+    "deleteAction": "Supprimer"
   },
   "cron": {
     "create": {
