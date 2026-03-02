@@ -1,7 +1,17 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { join, resolve } from 'path'
 
 const dataDir = process.env.KINBOT_DATA_DIR ?? './data'
+
+/** Read version from package.json (works whether started via `bun run start` or `bun src/server/index.ts`). */
+const appVersion: string = (() => {
+  try {
+    const pkgPath = resolve(import.meta.dirname ?? '.', '..', '..', 'package.json')
+    return JSON.parse(readFileSync(pkgPath, 'utf-8')).version ?? '0.0.0'
+  } catch {
+    return process.env.npm_package_version ?? '0.0.0'
+  }
+})()
 
 /**
  * Resolve the encryption key: env var > persisted file > auto-generate and persist.
@@ -30,6 +40,7 @@ function resolveEncryptionKey(): string {
 }
 
 export const config = {
+  version: appVersion,
   port: Number(process.env.PORT ?? 3333),
   dataDir,
   encryptionKey: resolveEncryptionKey(),

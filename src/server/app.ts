@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { count } from 'drizzle-orm'
+import { config } from '@/server/config'
 import { createLogger } from '@/server/logger'
 import { db } from '@/server/db/index'
 import { kins, providers, channels, crons, memories, mcpServers, contacts, user } from '@/server/db/schema'
@@ -77,7 +78,7 @@ const serverStartedAt = Date.now()
 app.get('/api/health', (c) => {
   return c.json({
     status: 'ok',
-    version: process.env.npm_package_version ?? '0.0.0',
+    version: config.version,
     uptime: Math.floor((Date.now() - serverStartedAt) / 1000),
     timestamp: Date.now(),
   })
@@ -119,7 +120,7 @@ app.get('/api/info', async (c) => {
     db.select({ value: count() }).from(user),
   ])
   return c.json({
-    version: process.env.npm_package_version ?? '0.1.0',
+    version: config.version,
     startedAt,
     uptimeMs: Date.now() - startedAt,
     stats: {
