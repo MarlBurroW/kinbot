@@ -101,6 +101,7 @@ const Install = lazy(() => import('./components/Install').then(m => ({ default: 
 const Pricing = lazy(() => import('./components/Pricing').then(m => ({ default: m.Pricing })))
 const FAQ = lazy(() => import('./components/FAQ').then(m => ({ default: m.FAQ })))
 const Changelog = lazy(() => import('./components/Changelog').then(m => ({ default: m.Changelog })))
+const EarlyAccess = lazy(() => import('./components/EarlyAccess').then(m => ({ default: m.EarlyAccess })))
 const GitHubCTA = lazy(() => import('./components/GitHubCTA').then(m => ({ default: m.GitHubCTA })))
 
 function SectionFallback() {
@@ -224,6 +225,11 @@ export default function App() {
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Changelog />
+          </ScrollReveal>
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <ScrollReveal>
+            <EarlyAccess />
           </ScrollReveal>
         </Suspense>
         <SectionDivider variant="fade" />
