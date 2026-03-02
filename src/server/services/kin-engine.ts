@@ -284,7 +284,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
 
     // Build message history (also returns compacting summary for system prompt injection)
-    const { messages: messageHistory, compactingSummary } = await buildMessageHistory(kinId)
+    const { messages: messageHistory, compactingSummary, participants } = await buildMessageHistory(kinId)
 
     const systemPrompt = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
@@ -299,6 +299,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       isHub,
       hubKinDirectory,
       compactingSummary,
+      participants: participants.length > 0 ? participants : undefined,
     })
 
     // ── E2E Mock LLM: stream a fake response without calling any provider ──
@@ -1023,7 +1024,14 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
  * Build the message history for LLM context.
  * Includes compacted summary (if any) + recent non-compacted messages.
  */
-async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null }> {
+export interface ConversationParticipant {
+  name: string
+  platform: string | null // null = KinBot web UI
+  messageCount: number
+  lastSeenAt: Date
+}
+
+async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null; participants: ConversationParticipant[] }> {
   const history: ModelMessage[] = []
 
   // Fetch active compacting snapshot (used to filter messages, summary is injected via system prompt)
@@ -1192,7 +1200,38 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
     // tool results are reconstructed from the assistant's toolCalls JSON above
   }
 
-  return { messages: history, compactingSummary: activeSnapshot?.summary ?? null }
+  // Extract conversation participant info from filtered messages
+  const participantMap = new Map<string, { name: string; platform: string | null; messageCount: number; lastSeenAt: Date }>()
+  for (const msg of filteredMessages) {
+    if (msg.role !== 'user') continue
+    let name = 'Unknown'
+    let platform: string | null = null
+
+    if (msg.sourceType === 'user' && msg.sourceId) {
+      name = pseudonymMap.get(msg.sourceId) ?? 'User'
+    } else if (msg.sourceType === 'channel') {
+      // Channel messages have content prefixed with [platform:Name]
+      const match = (msg.content ?? '').match(/^\[([^:]+):([^\]]+?)(?:\s*\(unknown[^)]*\))?\]/)
+      if (match) {
+        platform = match[1]!
+        name = match[2]!.trim()
+      }
+    }
+
+    const key = `${platform ?? 'kinbot'}:${name}`
+    const existing = participantMap.get(key)
+    const msgDate = msg.createdAt ? new Date(msg.createdAt as unknown as number) : new Date()
+    if (existing) {
+      existing.messageCount++
+      if (msgDate > existing.lastSeenAt) existing.lastSeenAt = msgDate
+    } else {
+      participantMap.set(key, { name, platform, messageCount: 1, lastSeenAt: msgDate })
+    }
+  }
+  const participants: ConversationParticipant[] = [...participantMap.values()]
+    .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
+
+  return { messages: history, compactingSummary: activeSnapshot?.summary ?? null, participants }
 }
 
 /**

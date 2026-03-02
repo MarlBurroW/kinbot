@@ -65,6 +65,7 @@ interface PromptParams {
   isHub?: boolean
   hubKinDirectory?: HubKinDirectoryEntry[]
   compactingSummary?: string | null
+  participants?: Array<{ name: string; platform: string | null; messageCount: number; lastSeenAt: Date }>
 }
 
 /**
@@ -447,6 +448,21 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- **Slack**: Supports Markdown-like syntax (mrkdwn). Use *bold*, _italic_, \`code\`. No headings.\n` +
       `- **Web UI (KinBot)**: Full Markdown support including tables, headings, code blocks, and LaTeX.\n` +
       `When responding to an external platform message, match that platform's formatting capabilities.`,
+    )
+  }
+
+  // [6.8] Conversation participants
+  if (params.participants && params.participants.length > 0) {
+    const participantLines = params.participants
+      .map((p) => {
+        const via = p.platform ? ` via ${p.platform}` : ''
+        const recency = formatRelativeTime(p.lastSeenAt)
+        return `- ${p.name}${via} (${p.messageCount} msg${p.messageCount > 1 ? 's' : ''}, last active ${recency ?? 'unknown'})`
+      })
+      .join('\n')
+    blocks.push(
+      `## Active participants\n\n` +
+      `People currently in this conversation:\n\n${participantLines}`,
     )
   }
 
