@@ -176,13 +176,12 @@ test.describe.serial('Vault settings', () => {
     // Delete DEPLOYMENT_NOTES
     const card = page.locator('.surface-card').filter({ hasText: 'DEPLOYMENT_NOTES' })
     await card.hover()
-    await card.locator('button:has(.lucide-trash-2)').click()
+    await page.waitForTimeout(200)
+    await card.locator('button:has(.lucide-trash-2)').click({ force: true })
 
-    // ConfirmDeleteButton shows a confirmation UI
-    await page.waitForTimeout(300)
-    // Look for a Delete confirm button in alertdialog or popover
-    const deleteConfirm = page.getByRole('button', { name: /^delete$/i }).last()
-    await deleteConfirm.click()
+    // ConfirmDeleteButton opens an AlertDialog
+    await expect(page.locator('[role="alertdialog"]')).toBeVisible({ timeout: 5_000 })
+    await page.locator('[role="alertdialog"]').getByRole('button', { name: /^delete$/i }).click()
 
     await expect(page.getByText('Entry deleted')).toBeVisible({ timeout: 5_000 })
     await expect(page.getByText('DEPLOYMENT_NOTES')).not.toBeVisible()
@@ -194,9 +193,10 @@ test.describe.serial('Vault settings', () => {
     // Delete GITHUB_LOGIN
     const card1 = page.locator('.surface-card').filter({ hasText: 'GITHUB_LOGIN' })
     await card1.hover()
-    await card1.locator('button:has(.lucide-trash-2)').click()
-    await page.waitForTimeout(300)
-    await page.getByRole('button', { name: /^delete$/i }).last().click()
+    await page.waitForTimeout(200)
+    await card1.locator('button:has(.lucide-trash-2)').click({ force: true })
+    await expect(page.locator('[role="alertdialog"]')).toBeVisible({ timeout: 5_000 })
+    await page.locator('[role="alertdialog"]').getByRole('button', { name: /^delete$/i }).click()
     await expect(page.getByText('Entry deleted').first()).toBeVisible({ timeout: 5_000 })
 
     // Wait for toast to disappear
@@ -205,9 +205,10 @@ test.describe.serial('Vault settings', () => {
     // Delete MY_API_KEY
     const card2 = page.locator('.surface-card').filter({ hasText: 'MY_API_KEY' })
     await card2.hover()
-    await card2.locator('button:has(.lucide-trash-2)').click()
-    await page.waitForTimeout(300)
-    await page.getByRole('button', { name: /^delete$/i }).last().click()
+    await page.waitForTimeout(200)
+    await card2.locator('button:has(.lucide-trash-2)').click({ force: true })
+    await expect(page.locator('[role="alertdialog"]')).toBeVisible({ timeout: 5_000 })
+    await page.locator('[role="alertdialog"]').getByRole('button', { name: /^delete$/i }).click()
     await expect(page.getByText('Entry deleted').first()).toBeVisible({ timeout: 5_000 })
 
     // Should be back to empty state

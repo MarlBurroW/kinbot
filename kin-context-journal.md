@@ -128,3 +128,32 @@ People currently in this conversation:
 - Conversation context: smart token-based truncation instead of hard 50-message cap
 - Tool descriptions: audit across all tool files for consistency and when-to-use hints
 - Add a prompt-builder test for the new participants section
+
+## 2026-03-02 (run 4) — Tool usage strategy guidance
+
+**Area:** System prompt quality / Tool context
+
+**Problem:** Kins had 20+ tools available but no strategic guidance on when to prefer one tool over another. Individual tool descriptions explained WHAT each tool does, but there was no decision framework for HOW to use tools effectively together. Common anti-patterns: guessing instead of using recall(), answering factual questions from training data instead of web_search(), not memorizing important facts immediately, using shell_command() when dedicated tools exist.
+
+**Change:** Added a "Tool usage strategy" subsection to the internal instructions block with 9 concrete rules:
+1. Use recall() before answering from memory (verify, don't guess)
+2. Use web_search() for factual/current questions
+3. Use browse_page() after web_search() for full content
+4. Memorize eagerly (don't postpone)
+5. Check duplicates before creating contacts
+6. Use store_file() for substantial content
+7. Use spawn_self/spawn_kin for heavy tasks
+8. Use notify() for time-sensitive alerts
+9. Minimize shell_command() when dedicated tools exist
+
+**Rationale:** This is a well-known prompt engineering pattern — LLMs perform significantly better at tool selection when given explicit decision heuristics rather than relying on tool descriptions alone. The guidance is concise (10 lines) to minimize context overhead.
+
+**Files changed:** `src/server/services/prompt-builder.ts`
+**Commit:** `a989c29` — `feat(context): add tool usage strategy guidance to system prompt`
+**Tests:** 26/26 prompt-builder tests pass, 1157/1160 total (3 pre-existing failures), build OK
+
+**Next areas to explore:**
+- Conversation context: smart token-based truncation instead of hard 50-message cap
+- Add prompt-builder tests for participants section and tool usage strategy
+- Memory injection: structured formatting with relevance grouping
+- Channel/platform awareness: group vs DM context differentiation
