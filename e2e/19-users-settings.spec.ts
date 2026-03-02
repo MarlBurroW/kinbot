@@ -56,7 +56,7 @@ test.describe.serial('Users settings', () => {
     await openUsersSettings(page)
 
     await page.getByRole('button', { name: /invite/i }).click()
-    await expect(page.locator('[role="dialog"]').last().getByText('Invite')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('[role="dialog"]').last().getByRole('heading', { name: 'Invite' })).toBeVisible({ timeout: 5_000 })
 
     // Check form fields
     await expect(page.getByText('Label')).toBeVisible()
