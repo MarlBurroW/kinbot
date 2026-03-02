@@ -470,16 +470,16 @@ test.describe.serial('File Storage settings', () => {
     const fileName = page.getByText('Delete Me.txt')
     await expect(fileName).toBeVisible({ timeout: 5000 })
 
-    // Click delete button (has trash icon, may need confirmation)
-    const deleteBtn = page.getByRole('button', { name: /delete/i }).first()
+    // Click delete button on the file card
+    const deleteBtn = page.locator('button[aria-label="Delete"]').first()
+    await expect(deleteBtn).toBeVisible({ timeout: 5000 })
     await deleteBtn.click()
     await page.waitForTimeout(300)
 
-    // Confirm deletion if there's a confirmation step
-    const confirmBtn = page.getByRole('button', { name: /confirm|delete|yes/i }).first()
-    if (await confirmBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await confirmBtn.click()
-    }
+    // Confirm deletion in the alert dialog
+    const dialog = page.getByRole('alertdialog')
+    await expect(dialog).toBeVisible({ timeout: 3000 })
+    await dialog.getByRole('button', { name: /delete/i }).click()
     await page.waitForTimeout(1000)
 
     // Success toast

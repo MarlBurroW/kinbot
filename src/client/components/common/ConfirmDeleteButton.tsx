@@ -61,6 +61,7 @@ export function ConfirmDeleteButton({
           variant={variant}
           size={size}
           className={className}
+          aria-label={t('common.delete')}
           onClick={(e) => {
             e.stopPropagation()
             setOpen(true)
