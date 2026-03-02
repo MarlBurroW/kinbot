@@ -108,6 +108,30 @@ const faqs: FAQItem[] = [
       'Yes. Kins can create custom tools at runtime (with user approval). Combined with MCP server support, this means your agents can extend their own capabilities — connecting to databases, calling APIs, running code, or interacting with any system you expose. No code changes needed.',
     category: 'Features',
   },
+  {
+    question: 'Can KinBot work fully offline?',
+    answer:
+      'Yes. Point KinBot at a local Ollama instance (or any OpenAI-compatible endpoint like vLLM, llama.cpp, or LM Studio) and nothing ever leaves your machine. For memory embeddings, Ollama supports local embedding models too. The only reason KinBot would reach the internet is if you configure a cloud AI provider. No telemetry, no phone-home, no hidden calls.',
+    category: 'Privacy & Hosting',
+  },
+  {
+    question: 'Is there a hosted or cloud version?',
+    answer:
+      'No, and that\'s by design. KinBot is self-hosted only. Your conversations, memories, and agent configurations live on your hardware, not someone else\'s server. The trade-off is you need somewhere to run it, but a Raspberry Pi, old laptop, or $5/mo VPS is all it takes.',
+    category: 'Getting Started',
+  },
+  {
+    question: 'What gets stored in the memory system?',
+    answer:
+      'When you chat with a Kin, it automatically extracts facts and knowledge from the conversation (names, preferences, decisions, technical details) and stores them as searchable memory entries in the local SQLite database. Memories are indexed both as vector embeddings (for semantic search) and full-text (for exact matches). You can see, search, and delete any memory through the UI. Vault secrets are never included in memories, and message redaction prevents sensitive data from leaking into compacted summaries.',
+    category: 'Privacy & Hosting',
+  },
+  {
+    question: 'What are Mini Apps?',
+    answer:
+      'Mini Apps are interactive web applications (HTML/CSS/JS) that Kins can build and deploy directly in the KinBot sidebar. Think dashboards, calculators, forms, or data visualizations, all created by your agents on the fly. They come with an auto-injected design system that matches your chosen theme, a JavaScript SDK for persistent storage and inter-app communication, and an App Gallery to browse and clone community-built apps.',
+    category: 'Features',
+  },
 ]
 
 function FAQEntry({ item, forceOpen }: { item: FAQItem; forceOpen?: boolean }) {
