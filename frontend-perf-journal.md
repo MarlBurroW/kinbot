@@ -127,3 +127,28 @@
 4. **Main entry at 309 KB** — investigate what's in it, possibly split sidebar components further
 5. **vendor-markdown at 612 KB** — katex/highlight could be lazy-loaded for messages that don't need them
 6. **Fix pre-existing test failures** (schema exports: files.test.ts, search.test.ts)
+
+---
+
+## 2026-03-02 06:28 UTC
+### Browser audit findings
+- **Browser unavailable** (sandbox browser disabled)
+- Skipped to code audit
+
+### Code audit findings
+- **Issue:** 7 frequently-rendered chat components missing `React.memo`, causing unnecessary re-renders on every ChatPanel state change (typing, new messages, streaming)
+- **Components affected:** ConversationHeader (407 lines), ConversationStats (257 lines), DateSeparator, TimeGapIndicator, InlineToolCall, ToolCallItem, ChatEmptyState
+- **Root cause:** These are presentational components receiving stable props but re-rendering because parent (ChatPanel) re-renders on every hook state change (useChat, useDraftMessage, etc.)
+
+### Fix applied
+- **What:** Wrapped all 7 components in `React.memo()` with named function expressions
+- **Files changed:** ConversationHeader.tsx, ConversationStats.tsx, DateSeparator.tsx, TimeGapIndicator.tsx, InlineToolCall.tsx, ToolCallItem.tsx, ChatEmptyState.tsx
+- **Impact:** Prevents re-renders of header, stats, date separators, time gaps, tool calls, and empty state when only message content/input changes. Most noticeable during typing and message streaming where ChatPanel re-renders rapidly but these components' props remain stable.
+
+### Next run priorities
+1. **Browser audit** — still needed when sandbox browser becomes available
+2. **useModels hook at 263 KB** — imported via useKins, loads on every page; could defer model metadata
+3. **ChatPage still 420 KB** — could further split ChatPanel (774 lines) or ConversationSearch
+4. **vendor-markdown at 612 KB** — katex/highlight could be lazy-loaded for messages that don't need them
+5. **Fix pre-existing test failures** (3 tests: schema exports in files.test.ts, search.test.ts)
+6. **ToolCallsViewer** — not memoized, rendered in sidebar sheet

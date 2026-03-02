@@ -107,6 +107,10 @@ export const config = {
   upload: {
     dir: process.env.UPLOAD_DIR ?? `${dataDir}/uploads`,
     maxFileSizeMb: Number(process.env.UPLOAD_MAX_FILE_SIZE ?? 50),
+    /** Retention period for channel-downloaded files (days). 0 = keep forever. */
+    channelFileRetentionDays: Number(process.env.UPLOAD_CHANNEL_RETENTION_DAYS ?? 30),
+    /** How often to run the channel file cleanup (minutes). */
+    channelFileCleanupIntervalMin: Number(process.env.UPLOAD_CHANNEL_CLEANUP_INTERVAL ?? 60),
   },
 
   fileStorage: {

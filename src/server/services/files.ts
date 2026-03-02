@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, and, lt } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { join } from 'path'
 import { mkdir } from 'fs/promises'
@@ -251,6 +251,65 @@ function getExtension(filename: string): string {
   const parts = filename.split('.')
   return parts.length > 1 ? parts.pop()! : ''
 }
+
+// ─── Channel file cleanup ────────────────────────────────────────────────────
+
+/**
+ * Delete channel-downloaded files older than the configured retention period.
+ * Removes both DB records and files on disk.
+ */
+export async function pruneOldChannelFiles(): Promise<number> {
+  const retentionDays = config.upload.channelFileRetentionDays
+  if (retentionDays <= 0) return 0
+
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
+
+  const oldFiles = await db
+    .select({ id: files.id, storedPath: files.storedPath })
+    .from(files)
+    .where(and(eq(files.uploadedBy, 'channel'), lt(files.createdAt, cutoff)))
+
+  if (oldFiles.length === 0) return 0
+
+  // Delete files from disk
+  const { unlink } = await import('fs/promises')
+  for (const f of oldFiles) {
+    try {
+      await unlink(f.storedPath)
+    } catch {
+      // File may already be missing
+    }
+  }
+
+  // Delete DB records
+  const ids = oldFiles.map((f) => f.id)
+  await db.delete(files).where(inArray(files.id, ids))
+
+  log.info({ count: oldFiles.length, retentionDays }, 'Pruned old channel files')
+  return oldFiles.length
+}
+
+/** Start periodic cleanup of old channel files. */
+export function startChannelFileCleanup(): void {
+  const intervalMin = config.upload.channelFileCleanupIntervalMin
+  if (intervalMin <= 0 || config.upload.channelFileRetentionDays <= 0) return
+
+  // Run once on startup (delayed 30s)
+  setTimeout(() => pruneOldChannelFiles().catch((e) => log.error(e, 'Channel file cleanup failed')), 30_000)
+
+  // Then at configured interval
+  setInterval(
+    () => pruneOldChannelFiles().catch((e) => log.error(e, 'Channel file cleanup failed')),
+    intervalMin * 60 * 1000,
+  )
+
+  log.info(
+    { intervalMin, retentionDays: config.upload.channelFileRetentionDays },
+    'Channel file cleanup scheduled',
+  )
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Guess a filename from a URL and MIME type when no original name is available */
 function guessFilename(url: string, mimeType: string): string {

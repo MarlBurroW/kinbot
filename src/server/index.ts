@@ -71,6 +71,10 @@ new Cron(`*/${config.fileStorage.cleanupIntervalMin} * * * *`, async () => {
   if (count > 0) log.info({ count }, 'File storage cleanup completed')
 })
 
+// Channel file cleanup (old downloads from platforms)
+import { startChannelFileCleanup } from '@/server/services/files'
+startChannelFileCleanup()
+
 // Notification cleanup cron (daily)
 import { cleanupOldNotifications } from '@/server/services/notifications'
 new Cron('0 3 * * *', async () => {
