@@ -86,6 +86,7 @@ export interface MemorySummary {
   subject: string | null
   sourceChannel: 'automatic' | 'explicit'
   importance: number | null
+  consolidationGeneration: number
   createdAt: number
   updatedAt: number
 }

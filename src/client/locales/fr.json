@@ -859,6 +859,7 @@
       },
       "sourceAutomatic": "Auto",
       "sourceExplicit": "Manuel",
+      "consolidated": "Gén {{gen}}",
       "filterAll": "Toutes les catégories",
       "filterAllKins": "Tous les Kins",
       "delete": "Supprimer le souvenir",
