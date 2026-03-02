@@ -100,6 +100,7 @@ export class WhatsAppAdapter implements ChannelAdapter {
     if (params.attachments?.length) {
       for (let i = 0; i < params.attachments.length; i++) {
         const att = params.attachments[i]
+        if (!att) continue
         const mediaId = await uploadWhatsAppMedia(accessToken, phoneNumberId, att)
         const caption = i === 0 && params.content && params.content.length <= 1024 ? params.content : undefined
 

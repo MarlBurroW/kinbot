@@ -354,6 +354,7 @@ export class DiscordAdapter implements ChannelAdapter {
       const attachmentsMeta: Array<{ id: number; filename: string }> = []
       for (let i = 0; i < Math.min(params.attachments.length, 10); i++) {
         const att = params.attachments[i]
+        if (!att) continue
         const blob = await readAttachmentBlob(att)
         const fileName = attachmentFileName(att)
         form.append(`files[${i}]`, blob, fileName)

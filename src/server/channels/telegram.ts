@@ -98,6 +98,7 @@ export class TelegramAdapter implements ChannelAdapter {
     if (params.attachments?.length) {
       for (let i = 0; i < params.attachments.length; i++) {
         const att = params.attachments[i]
+        if (!att) continue
         const result = await sendTelegramFile(token, params.chatId, att, {
           // First attachment gets the text as caption (if short enough for Telegram's 1024 limit)
           caption: i === 0 && params.content && params.content.length <= 1024 ? params.content : undefined,

@@ -106,3 +106,30 @@
 4. `KinBot.share(data)` — inter-app data sharing
 5. `KinBot.navigate(path)` — parent UI navigation
 6. New templates: kanban board, chat interface, settings panel
+
+## 2026-03-02 (run 2) — SDK API expansion: apps, conversation, share (v1.14.0)
+
+**What:** Added 3 new API namespaces to `kinbot-sdk.js` for richer mini-app capabilities.
+
+**New SDK APIs:**
+- **`KinBot.apps.list()`** — List all mini-apps from the same Kin (returns {id, name, slug, description, icon, version}). Calls `/api/mini-apps?kinId=...` directly.
+- **`KinBot.apps.get(appId)`** — Get details of a specific mini-app by ID.
+- **`KinBot.conversation.history(limit?)`** — Fetch recent conversation messages (default 20, max 100). Returns {id, role, content, createdAt, sourceType}. Calls `/api/kins/:kinId/messages` directly.
+- **`KinBot.conversation.send(text, options?)`** — Send a message to the Kin's conversation (alias of sendMessage with same rate limiting).
+- **`KinBot.share(targetSlug, data)`** — Share JSON data with another mini-app. Stores data in sender's storage under `__share__<slug>` key, then opens the target app.
+
+**Design decisions:**
+- All new APIs use direct `fetch()` to existing server routes (same-origin) — no new postMessage types or server routes needed
+- `conversation.history` returns a simplified message shape (no files/reactions) for lightweight use
+- `share()` uses storage as the transport mechanism — simple and persistent. Target app can check for shared data on load.
+- Version bumped to 1.14.0
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-sdk.js` — added apps, conversation, share (~90 lines)
+- `src/server/tools/mini-app-tools.ts` — documented all new APIs in tool descriptions
+
+**Next priorities:**
+1. Form compound component with validation
+2. `KinBot.memory.search()` / `KinBot.memory.store()` — needs new server routes for memory access
+3. New templates: chat interface, settings panel
+4. Improve shared-data pattern (add `KinBot.on('shared-data')` event listener in SDK)

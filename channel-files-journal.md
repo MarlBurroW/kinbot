@@ -90,3 +90,33 @@ Rewrote `src/server/routes/channel-telegram.ts` to extract file attachments from
 - 3 pre-existing test failures (unrelated) — used `--no-verify` for commit
 
 **Next step:** Step 8 — Signal & Matrix adapters.
+
+## 2026-03-02 — Run 5: Steps 8, 10, 11 — Signal/Matrix inbound + Outbound all adapters
+
+**Commit:** fdf9162
+
+**Discovery:** Signal and Matrix inbound file support (Step 8) was already implemented:
+- Signal: extracts `dataMessage.attachments[]`, resolves download URL via `/v1/attachments/{id}`
+- Matrix: handles `m.image`, `m.file`, `m.audio`, `m.video` message types, converts `mxc://` to download URLs with auth headers
+- Step 9 (Webchat): N/A — webchat uses its own file pipeline, not the channel adapter system
+
+**What was done (Steps 10 & 11 — Outbound file support):**
+
+Added `OutboundAttachment` interface to `adapter.ts`:
+- `source` (local path or URL), `mimeType`, optional `fileName`
+- Added `attachments?: OutboundAttachment[]` to `OutboundMessageParams`
+- Shared helpers: `readAttachmentBlob()`, `attachmentFileName()`, `isImageAttachment()`
+
+Implemented outbound files for all 6 adapters:
+- **Telegram**: `sendPhoto` for images, `sendDocument` for others, multipart FormData upload. Caption support (≤1024 chars).
+- **Discord**: multipart with `files[N]` + `payload_json`, up to 10 attachments. Falls back to text chunks if content exceeds 2000 chars.
+- **WhatsApp**: two-step — upload via `/{phoneNumberId}/media` → get media ID → send message with `{type, [type]: {id}}`. Caption support. `whatsAppMediaType()` maps MIME to image/audio/video/document.
+- **Slack**: `files.upload` with `initial_comment` for single-file+text combos. Multi-file sends each separately.
+- **Signal**: Base64-encoded `data:` URIs in `base64_attachments` array, attached to first chunk only.
+- **Matrix**: Upload to `/_matrix/media/v3/upload` → get `content_uri` → send `m.image` or `m.file` event with the MXC URI.
+
+All adapters are backward-compatible — text-only messages use the existing code path unchanged.
+
+**Pre-existing issues:** 3 test failures (schema export), E2E flake in file-storage spec — all unrelated.
+
+**Next step:** Step 12 — Give Kins a tool to attach files to their responses.
