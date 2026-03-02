@@ -8,8 +8,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Context** — add temporal metadata to compacting summary section
+- **Context** — smart token-based history truncation instead of hard message limit
+- **Context** — add multi-user conversation guidance to system prompt
+- **Mini Apps** — fix inter-app data sharing via shared-data events
+
+### Fixed
+- **Account** — close modal on save, show toast, and persist i18n language
+- **E2E** — correct lucide icon class name for XCircle, resolve strict mode violations
+
+### Changed
+- **Performance** — lazy-load MiniAppViewer, QuickChatPanel, rehype-highlight, remark-math, rehype-katex on demand
+- **Performance** — memoize sidebar components and stabilize derived prop references
+- **i18n** — replace hardcoded strings in MessageBubble, KinFormModal, VaultAttachmentList
+- **Site** — add dedicated Privacy & Security section, performance hints
+
+---
+
+## [0.8.1] - 2026-03-02
+
+### Added
+- **Mini Apps** — add Chat Interface and Settings Panel templates
+- **Mini Apps** — add DataGrid component with sorting, filtering, pagination & selection
+- **Context** — add tool usage strategy guidance to system prompt
+- **CI** — add E2E tests job (Playwright)
+- **Tests** — add tests for attach-file-tool staging API
+
+### Changed
+- **Performance** — lazy-load provider icons via dynamic imports
+
+### Fixed
+- **E2E** — stabilize file storage delete test with explicit waits
+- **a11y** — add aria-label to file storage edit button for E2E test accessibility
+
+### Removed
+- **Branding** — remove branding and promo from repo (keep local, internal strategy)
+
+---
+
+## [0.8.0] - 2026-03-02
+
+### Added
+- **Channels** — add `attach_file` tool for Kins to send files in channel responses
+- **Channels** — add outbound file attachment support to all adapters (Telegram, Discord, Slack, WhatsApp, Signal, Matrix)
+- **Channels** — add file download/storage service for channel attachments
+- **Channels** — auto-cleanup old channel files with configurable retention
+- **Context** — add conversation participant awareness, response calibration, honesty and uncertainty guidance to system prompt
+- **Context** — enrich context block with human-readable date and day of week
+- **Context** — add importance and recency metadata to memory injection
+- **Reactions** — add message reactions with emoji picker ([#20](https://github.com/MarlBurroW/kinbot/issues/20))
+- **Memory** — add importance backfill utility and manual consolidation/backfill API endpoints
+- **Memory** — show consolidation generation and importance badges on MemoryCard
+- **Mini Apps** — add Form compound component with validation
+- **Mini Apps** — add Grid, Breadcrumbs, Popover components + `KinBot.shortcut()` API
+- **Mini Apps** — add `KinBot.apps`, `KinBot.conversation`, `KinBot.share` APIs (SDK v1.14.0)
+- **Mini Apps** — add `KinBot.memory.search()` and `KinBot.memory.store()` SDK APIs
+- **Mini Apps** — add `KinBot.kin`, `KinBot.user`, `KinBot.resize()`, `KinBot.notification()`
+- **Mini Apps** — comprehensive CSS animations & transitions library
+- **PWA** — add Progressive Web App support ([#15](https://github.com/MarlBurroW/kinbot/issues/15))
+- **Tests** — add tests for crons service, cron utilities, channel adapter utilities, encryption, client API module, human-prompts validation
+
+### Fixed
+- **SSE** — emit events for cross-kin FK nullifications on kin deletion, contact sub-entities, and quick-session type
+- **CI** — fix labeler i18n path and add mini-apps/security labels
+- Various type errors and E2E test stabilization fixes
+
+### Changed
+- **Performance** — wrap chat components in `React.memo`, lazy-load CronDetailModal, TaskDetailModal, CronFormModal, KinFormModal, SettingsModal, AccountDialog
+- **Dependencies** — bump actions/labeler from 5 to 6 ([#21](https://github.com/MarlBurroW/kinbot/pull/21))
+- **Site** — add post-install journey timeline, 5 new FAQ entries
+
+---
+
+## [0.7.0] - 2026-03-01
+
+### Added
 - **Context** — move compacting summary from fake messages to system prompt for cleaner context
+- **Context** — add platform-specific formatting guide for external channels
 - **Health check** — version and uptime in `/api/health` response ([#18](https://github.com/MarlBurroW/kinbot/issues/18))
+- **Kin export/import** — export and import Kin configurations ([#17](https://github.com/MarlBurroW/kinbot/issues/17))
+- **Memory** — add memory consolidation, merge near-duplicate memories via LLM
+- **Tasks** — cross-kin task notifications and `get_task_detail` tool
+- **Chat** — add infinite scroll pagination for older messages
+- **Mini Apps** — add React component library (`@kinbot/components`)
+- **Mini Apps** — rewrite templates to use `@kinbot/components` library
+- **Mini Apps** — refactor templates, SDK improvements, and task title support
+- **CI** — add automated showcase video generation for landing site
+- **CI** — record E2E test videos and publish report to GitHub Pages
+- **Tests** — add tests for consolidation service, search service
+- **i18n** — add task assignment and chat pagination translation keys
+
+### Fixed
+- **Chat** — instant scroll to bottom when switching Kins (force remount + two-phase scroll)
+- **Chat** — remove auto-collapse on long messages
+- **SSE** — serialize SSE writes to prevent stream interleaving
+- **Tasks** — robust streaming init and polling fallback in task detail
+- **Tasks** — show typing indicator and handle streaming in task detail modal
+- **E2E** — resolve 4 failing E2E tests
+- **a11y** — add missing DialogDescription to suppress Radix warnings
+
+### Changed
+- **Performance** — add React.lazy code splitting for all page components
+- **Performance** — add manual chunk splitting to reduce main bundle size by 57%
+- **Installer** — harden Docker Compose with resource limits, log rotation, and security options
+- **Site** — add CI/E2E/CodeQL quality badges to GitHubCTA section
 
 ---
 
