@@ -152,3 +152,32 @@
 4. **vendor-markdown at 612 KB** — katex/highlight could be lazy-loaded for messages that don't need them
 5. **Fix pre-existing test failures** (3 tests: schema exports in files.test.ts, search.test.ts)
 6. **ToolCallsViewer** — not memoized, rendered in sidebar sheet
+
+---
+
+## 2026-03-02 10:28 UTC
+### Browser audit findings
+- **Browser unavailable** (sandbox disabled, Chrome extension not attached)
+- Skipped to code audit
+
+### Code audit findings
+- **Issue:** useModels chunk at 263 KB loaded eagerly on every page — bulk was 19 @lobehub/icons SVG components (~367 KB total) statically imported in ProviderIcon.tsx
+- **Root cause:** ProviderIcon imported all 19 provider icons at top level. Used by ModelPicker → ConversationHeader → ChatPage, so all icons bundled into initial load.
+- **Pre-existing test failures:** 3 tests fail in full suite run (files.test.ts, search.test.ts side effects) but pass individually. CI is green.
+
+### Fix applied
+- **What:** Converted all @lobehub/icons imports in ProviderIcon to dynamic `import()` with in-memory cache
+- **Files changed:** src/client/components/common/ProviderIcon.tsx
+- **Impact:**
+  - useModels chunk (263 KB / 51 KB gzip) eliminated from initial page load
+  - Icons now lazy-loaded on-demand per provider type, cached after first load
+  - Added React.memo to ProviderIcon
+  - Faded Cpu placeholder shown during icon load to prevent layout shift
+  - Total initial JS reduced by ~263 KB
+
+### Next run priorities
+1. **Browser audit** — still needed when sandbox browser becomes available
+2. **ChatPage still 420 KB** — could split ChatPanel (774 lines), ConversationSearch
+3. **vendor-markdown at 612 KB** — katex/highlight could be lazy-loaded for messages that don't use them
+4. **React.memo audit** — MessageInput (500 lines, forwardRef but no memo), ChatPanel candidates
+5. **Fix pre-existing test side effects** (files.test.ts, search.test.ts fail in full suite but pass alone)
