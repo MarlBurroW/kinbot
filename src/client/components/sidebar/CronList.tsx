@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   DndContext,
@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avat
 import { Badge } from '@/client/components/ui/badge'
 import { Button } from '@/client/components/ui/button'
 import { Switch } from '@/client/components/ui/switch'
-import { CronFormModal } from '@/client/components/sidebar/CronFormModal'
+const CronFormModal = lazy(() => import('@/client/components/sidebar/CronFormModal').then(m => ({ default: m.CronFormModal })))
 import { CronDetailModal } from '@/client/components/sidebar/CronDetailModal'
 import { useCrons } from '@/client/hooks/useCrons'
 import { cn } from '@/client/lib/utils'
@@ -399,28 +399,36 @@ export function CronList({ kins, llmModels }: CronListProps) {
       </Collapsible>
 
       {/* Create modal */}
-      <CronFormModal
-        open={showCreateModal}
-        onOpenChange={(open) => {
-          setShowCreateModal(open)
-          if (!open) setDuplicateDefaults(null)
-        }}
-        kins={kins}
-        llmModels={llmModels}
-        defaults={duplicateDefaults}
-        onCreate={createCron}
-      />
+      {showCreateModal && (
+        <Suspense fallback={null}>
+          <CronFormModal
+            open={showCreateModal}
+            onOpenChange={(open) => {
+              setShowCreateModal(open)
+              if (!open) setDuplicateDefaults(null)
+            }}
+            kins={kins}
+            llmModels={llmModels}
+            defaults={duplicateDefaults}
+            onCreate={createCron}
+          />
+        </Suspense>
+      )}
 
       {/* Edit modal */}
-      <CronFormModal
-        open={editCron !== null}
-        onOpenChange={(open) => { if (!open) setEditCron(null) }}
-        kins={kins}
-        llmModels={llmModels}
-        cron={editCron}
-        onUpdate={updateCron}
-        onDelete={deleteCron}
-      />
+      {editCron !== null && (
+        <Suspense fallback={null}>
+          <CronFormModal
+            open={editCron !== null}
+            onOpenChange={(open) => { if (!open) setEditCron(null) }}
+            kins={kins}
+            llmModels={llmModels}
+            cron={editCron}
+            onUpdate={updateCron}
+            onDelete={deleteCron}
+          />
+        </Suspense>
+      )}
 
       {/* Detail modal */}
       {currentDetailCron && (

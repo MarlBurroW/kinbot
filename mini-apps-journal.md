@@ -81,3 +81,28 @@
 2. SDK API expansion (KinBot.kin, KinBot.user, KinBot.memory, etc.)
 3. Add Breadcrumbs, Popover components
 4. Update tool descriptions with component usage examples
+
+## 2026-03-02 — Grid, Breadcrumbs, Popover + KinBot.shortcut()
+
+**What:** Added 3 new React components to `kinbot-components.js` and 1 new SDK API.
+
+**New components (28 total):**
+- **`Grid`** — CSS Grid layout with responsive support. Props: `columns` (number or template string), `minChildWidth` (auto-fit responsive), `gap`, `rowGap`, `colGap`. Sub-component `Grid.Item` with `colSpan`/`rowSpan`.
+- **`Breadcrumbs`** — Navigation breadcrumbs. Props: `items` (array of `{label, href?, onClick?}`), `separator`. Accessible with `aria-label`, `aria-current` on last item, keyboard support on clickable items.
+- **`Popover`** — Click-triggered popover attached to a trigger element. Props: `trigger`, `content`, `placement` (top/bottom/left/right). Supports controlled mode (`open`/`onOpenChange`). Closes on outside click or Escape.
+
+**New SDK API (v1.13.0):**
+- **`KinBot.shortcut(key, callback)`** — Register keyboard shortcuts within mini-apps. Key combos like `"ctrl+k"`, `"meta+shift+p"`, `"escape"`. Returns unregister function. Pass `null` to remove.
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-components.js` — added Grid, Grid.Item, Breadcrumbs, Popover (~160 lines)
+- `src/server/mini-app-sdk/kinbot-sdk.js` — added shortcut system (~30 lines), bumped to v1.13.0
+- `src/server/tools/mini-app-tools.ts` — documented new components and shortcut API
+
+**Next priorities:**
+1. `KinBot.memory.search()` / `KinBot.memory.store()` — requires new API routes
+2. `KinBot.conversation.history()` / `KinBot.conversation.send()` — requires new API routes
+3. Form compound component with validation
+4. `KinBot.share(data)` — inter-app data sharing
+5. `KinBot.navigate(path)` — parent UI navigation
+6. New templates: kanban board, chat interface, settings panel
