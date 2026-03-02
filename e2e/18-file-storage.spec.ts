@@ -84,6 +84,7 @@ test.describe.serial('File Storage settings', () => {
     // Kin selector (scoped to dialog to avoid matching hidden triggers elsewhere)
     const dialog = page.locator('[role="dialog"]')
     const kinSelector = dialog.locator('[data-slot="select-trigger"]').first()
+    await kinSelector.scrollIntoViewIfNeeded()
     await expect(kinSelector).toBeVisible()
 
     // Name field
