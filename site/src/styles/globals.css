@@ -274,6 +274,29 @@ body {
   outline-offset: 2px;
 }
 
+/* ─── SCROLL REVEAL FALLBACK ─────────────────────────── */
+/* CSS-only fallback: if JS never marks elements visible, they become
+   visible after a short delay via CSS animation. This guarantees content
+   is always accessible on mobile even if IntersectionObserver fails. */
+@keyframes scroll-reveal-fallback {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.scroll-reveal:not(.scroll-reveal--visible) {
+  animation: scroll-reveal-fallback 0.5s ease forwards;
+  animation-delay: 4s;
+}
+
+/* Noscript: if JS is disabled, show everything immediately */
+noscript ~ * .scroll-reveal,
+.scroll-reveal--visible {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 /* ─── REDUCED MOTION ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
