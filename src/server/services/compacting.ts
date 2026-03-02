@@ -157,19 +157,37 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     })
     .join('\n\n')
 
-  // Build compacting prompt
+  // Build compacting prompt with structured output guidance
   const previousSummary = activeSnapshot?.summary
+
+  // Compute time range of messages being summarized
+  const firstMsg = messagesToSummarize[0]!
+  const lastMsg = messagesToSummarize[messagesToSummarize.length - 1]!
+  const firstTs = firstMsg.createdAt ? new Date(firstMsg.createdAt as unknown as number).toISOString() : 'unknown'
+  const lastTs = lastMsg.createdAt ? new Date(lastMsg.createdAt as unknown as number).toISOString() : 'unknown'
+
   let systemPrompt =
     `You are an assistant specialized in conversation summarization.\n` +
-    `Your role is to produce a faithful and complete summary of the exchanges below.\n\n` +
-    `Rules:\n` +
+    `Your role is to produce a faithful, structured summary of the exchanges below.\n\n` +
+    `Time range: ${firstTs} to ${lastTs} (${messagesToSummarize.length} messages)\n\n` +
+    `## Output structure\n\n` +
+    `Organize your summary using these sections (skip any that are empty):\n\n` +
+    `### Key facts & decisions\n` +
+    `Bullet points of important information learned, decisions made, preferences expressed. Attribute to the person who said it.\n\n` +
+    `### Completed work\n` +
+    `What was accomplished: tasks finished, research done, problems solved, results obtained.\n\n` +
+    `### Open threads\n` +
+    `Unresolved questions, pending tasks, things promised but not yet done, topics that need follow-up. This section is CRITICAL — it ensures nothing falls through the cracks.\n\n` +
+    `### Conversation dynamics\n` +
+    `Only if relevant: who was active, any notable interactions, tone shifts, or relationship context worth preserving.\n\n` +
+    `## Rules\n\n` +
     `- Preserve ALL important facts, decisions made, commitments, and expressed preferences\n` +
     `- Preserve the identity of who said what (use names/pseudonyms)\n` +
-    `- Preserve the context of ongoing or recently completed tasks\n` +
     `- Preserve results of research, calculations, or work performed\n` +
     `- Do not invent anything — only summarize what is explicitly present\n` +
-    `- Be concise but complete. Prefer bullet points for facts\n` +
-    `- If a previous summary exists, integrate it into your new summary\n`
+    `- Be concise but complete. Prefer bullet points\n` +
+    `- Pay special attention to OPEN THREADS — unfinished business is the most important thing to preserve\n` +
+    `- If a previous summary exists, integrate it: merge completed items, update open threads (close resolved ones, add new ones), and consolidate facts\n`
 
   if (previousSummary) {
     systemPrompt += `\n## Previous summary\n\n${previousSummary}\n`
