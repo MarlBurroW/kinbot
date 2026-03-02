@@ -46,6 +46,11 @@ export const config = {
     maxSnapshotsPerKin: Number(process.env.COMPACTING_MAX_SNAPSHOTS ?? 10),
   },
 
+  /** Max estimated tokens for conversation history injected into the LLM context.
+   *  Messages are trimmed from the oldest end when this budget is exceeded.
+   *  This prevents tool-heavy conversations from blowing up context windows. */
+  historyTokenBudget: Number(process.env.HISTORY_TOKEN_BUDGET ?? 40000),
+
   memory: {
     extractionModel: process.env.MEMORY_EXTRACTION_MODEL ?? undefined,
     maxRelevantMemories: Number(process.env.MEMORY_MAX_RELEVANT ?? 10),

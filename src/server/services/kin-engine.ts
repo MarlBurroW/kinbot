@@ -1047,18 +1047,40 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
     .from(messages)
     .where(and(eq(messages.kinId, kinId), isNull(messages.taskId), isNull(messages.sessionId), ne(messages.sourceType, 'compacting')))
     .orderBy(desc(messages.createdAt))
-    .limit(50) // Get last 50 messages
+    .limit(100) // Fetch generously; token budget will trim further down
     .all()
 
   // Reverse to get chronological order
   recentMessages.reverse()
 
   // If we have a compacted snapshot, only include messages after it
-  const filteredMessages = activeSnapshot
+  const postSnapshotMessages = activeSnapshot
     ? recentMessages.filter(
         (m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt,
       )
     : recentMessages
+
+  // Token-budget trimming: drop oldest messages until we fit within the budget.
+  // This prevents tool-heavy conversations from blowing up the context window.
+  const tokenBudget = config.historyTokenBudget
+  let filteredMessages = postSnapshotMessages
+  if (tokenBudget > 0) {
+    // Estimate tokens per message (content + tool calls JSON)
+    const msgTokens = postSnapshotMessages.map((m) => {
+      let chars = (m.content ?? '').length
+      if (m.toolCalls) chars += (m.toolCalls as string).length
+      return Math.ceil(chars / 4)
+    })
+    let totalTokens = msgTokens.reduce((a, b) => a + b, 0)
+    let startIdx = 0
+    while (totalTokens > tokenBudget && startIdx < postSnapshotMessages.length - 1) {
+      totalTokens -= msgTokens[startIdx]!
+      startIdx++
+    }
+    if (startIdx > 0) {
+      filteredMessages = postSnapshotMessages.slice(startIdx)
+    }
+  }
 
   // Build a map of user pseudonyms for prefixing user messages in LLM context
   const userSourceIds = [
