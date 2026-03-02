@@ -25,6 +25,15 @@ test.describe('Account Settings', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible({ timeout: 10_000 })
     await loginAs(page)
     await expect(page.getByText('Kins', { exact: true })).toBeVisible({ timeout: 10_000 })
+
+    // Reset user profile to known state (handles dirty state from retries)
+    await page.request.patch('/api/me', {
+      data: {
+        firstName: TEST_USER.firstName,
+        lastName: TEST_USER.lastName,
+        pseudonym: TEST_USER.pseudonym,
+      },
+    })
   })
 
   test('should open account dialog from user menu', async ({ page }) => {
@@ -89,7 +98,7 @@ test.describe('Account Settings', () => {
     await pseudonymInput.fill('NewPseudo')
     await dialog.getByRole('button', { name: /save/i }).click()
     // Wait for save to complete
-    await page.waitForTimeout(1000)
+    await expect(page.locator('[data-sonner-toast]').first()).toBeVisible({ timeout: 5000 })
 
     // Close and reopen to verify persistence
     await dialog.getByRole('button', { name: /cancel/i }).click()
@@ -103,7 +112,7 @@ test.describe('Account Settings', () => {
     await restoreInput.clear()
     await restoreInput.fill(TEST_USER.pseudonym)
     await page.getByRole('dialog').getByRole('button', { name: /save/i }).click()
-    await page.waitForTimeout(1000)
+    await expect(page.locator('[data-sonner-toast]').first()).toBeVisible({ timeout: 5000 })
   })
 
   test('should close dialog via Cancel button', async ({ page }) => {
