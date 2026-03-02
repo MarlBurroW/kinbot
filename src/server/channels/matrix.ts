@@ -1,4 +1,5 @@
 import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import { readAttachmentBlob, attachmentFileName, isImageAttachment } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { createLogger } from '@/server/logger'
@@ -139,35 +140,84 @@ export class MatrixAdapter implements ChannelAdapter {
   ): Promise<{ platformMessageId: string }> {
     const homeserver = getHomeserverUrl(cfg)
     const token = await resolveToken(cfg)
-    const chunks = splitMessage(params.content)
+    const roomId = encodeURIComponent(params.chatId)
 
     let lastEventId = ''
-    for (let i = 0; i < chunks.length; i++) {
-      const txnId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${i}`
-      const body: Record<string, unknown> = {
-        msgtype: 'm.text',
-        body: chunks[i],
-      }
 
-      // Reply threading via m.relates_to
-      if (i === 0 && params.replyToMessageId) {
-        body['m.relates_to'] = {
-          'm.in_reply_to': {
-            event_id: params.replyToMessageId,
+    // Send file attachments first
+    if (params.attachments?.length) {
+      for (const att of params.attachments) {
+        const blob = await readAttachmentBlob(att)
+        const fileName = attachmentFileName(att)
+
+        // Upload to Matrix content repo
+        const uploadResp = await fetch(
+          `${homeserver}/_matrix/media/v3/upload?filename=${encodeURIComponent(fileName)}`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': att.mimeType,
+            },
+            body: blob,
           },
+        )
+        if (!uploadResp.ok) {
+          const text = await uploadResp.text()
+          throw new Error(`Matrix media upload failed (${uploadResp.status}): ${text}`)
         }
+        const uploadData = await uploadResp.json() as { content_uri: string }
+
+        // Send media event
+        const txnId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+        const isImage = isImageAttachment(att)
+        const msgtype = isImage ? 'm.image' : 'm.file'
+
+        const body: Record<string, unknown> = {
+          msgtype,
+          body: fileName,
+          url: uploadData.content_uri,
+          info: { mimetype: att.mimeType },
+        }
+
+        const result = await matrixApi(
+          homeserver,
+          token,
+          'PUT',
+          `/rooms/${roomId}/send/m.room.message/${encodeURIComponent(txnId)}`,
+          body,
+        ) as { event_id: string }
+        lastEventId = result.event_id
       }
+    }
 
-      const roomId = encodeURIComponent(params.chatId)
-      const result = await matrixApi(
-        homeserver,
-        token,
-        'PUT',
-        `/rooms/${roomId}/send/m.room.message/${encodeURIComponent(txnId)}`,
-        body,
-      ) as { event_id: string }
+    // Send text message
+    if (params.content) {
+      const chunks = splitMessage(params.content)
+      for (let i = 0; i < chunks.length; i++) {
+        const txnId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${i}`
+        const body: Record<string, unknown> = {
+          msgtype: 'm.text',
+          body: chunks[i],
+        }
 
-      lastEventId = result.event_id
+        if (i === 0 && params.replyToMessageId && !params.attachments?.length) {
+          body['m.relates_to'] = {
+            'm.in_reply_to': {
+              event_id: params.replyToMessageId,
+            },
+          }
+        }
+
+        const result = await matrixApi(
+          homeserver,
+          token,
+          'PUT',
+          `/rooms/${roomId}/send/m.room.message/${encodeURIComponent(txnId)}`,
+          body,
+        ) as { event_id: string }
+        lastEventId = result.event_id
+      }
     }
 
     return { platformMessageId: lastEventId }

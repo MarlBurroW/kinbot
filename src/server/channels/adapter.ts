@@ -1,4 +1,5 @@
 import type { ChannelPlatform } from '@/shared/types'
+import { existsSync } from 'fs'
 
 // ─── Incoming attachments from an external platform ─────────────────────────
 
@@ -32,12 +33,25 @@ export interface IncomingMessage {
 
 export type IncomingMessageHandler = (message: IncomingMessage) => Promise<void>
 
+// ─── Outbound attachment (file to send) ─────────────────────────────────────
+
+export interface OutboundAttachment {
+  /** Local file path (absolute) or a public URL */
+  source: string
+  /** MIME type (e.g. 'image/png', 'application/pdf') */
+  mimeType: string
+  /** Display file name (optional, derived from source if omitted) */
+  fileName?: string
+}
+
 // ─── Outbound message params ────────────────────────────────────────────────
 
 export interface OutboundMessageParams {
   chatId: string
   content: string
   replyToMessageId?: string
+  /** Optional file attachments to send with the message */
+  attachments?: OutboundAttachment[]
 }
 
 // ─── Platform adapter interface ─────────────────────────────────────────────
@@ -86,4 +100,42 @@ export interface ChannelAdapter {
    * Platforms that don't support it can leave this unimplemented.
    */
   sendTypingIndicator?(channelId: string, config: Record<string, unknown>, chatId: string): Promise<void>
+}
+
+// ─── Outbound attachment helpers ────────────────────────────────────────────
+
+/**
+ * Read an OutboundAttachment into a Blob suitable for multipart uploads.
+ * Supports local file paths and HTTP(S) URLs.
+ */
+export async function readAttachmentBlob(att: OutboundAttachment): Promise<Blob> {
+  if (att.source.startsWith('http://') || att.source.startsWith('https://')) {
+    const resp = await fetch(att.source)
+    if (!resp.ok) throw new Error(`Failed to fetch attachment URL: ${resp.status}`)
+    return await resp.blob()
+  }
+  // Local file
+  if (!existsSync(att.source)) throw new Error(`Attachment file not found: ${att.source}`)
+  const file = Bun.file(att.source)
+  return file
+}
+
+/**
+ * Derive a file name for an outbound attachment.
+ */
+export function attachmentFileName(att: OutboundAttachment): string {
+  if (att.fileName) return att.fileName
+  // Try to extract from source path/URL
+  const lastSegment = att.source.split('/').pop()?.split('?')[0]
+  if (lastSegment && lastSegment.includes('.')) return lastSegment
+  // Fallback based on mime type
+  const ext = att.mimeType.split('/')[1]?.split('+')[0] ?? 'bin'
+  return `file.${ext}`
+}
+
+/**
+ * Check if an attachment is an image type.
+ */
+export function isImageAttachment(att: OutboundAttachment): boolean {
+  return att.mimeType.startsWith('image/')
 }

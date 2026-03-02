@@ -1,4 +1,5 @@
-import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams, OutboundAttachment } from '@/server/channels/adapter'
+import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { config } from '@/server/config'
@@ -92,25 +93,61 @@ export class WhatsAppAdapter implements ChannelAdapter {
   ): Promise<{ platformMessageId: string }> {
     const accessToken = await resolveSecret(cfg, 'accessTokenVaultKey')
     const phoneNumberId = (cfg as unknown as WhatsAppChannelConfig).phoneNumberId
-    const chunks = splitMessage(params.content)
 
     let lastMessageId = ''
-    for (let i = 0; i < chunks.length; i++) {
-      const body: Record<string, unknown> = {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: params.chatId,
-        type: 'text',
-        text: { body: chunks[i] },
+
+    // Send file attachments
+    if (params.attachments?.length) {
+      for (let i = 0; i < params.attachments.length; i++) {
+        const att = params.attachments[i]
+        const mediaId = await uploadWhatsAppMedia(accessToken, phoneNumberId, att)
+        const caption = i === 0 && params.content && params.content.length <= 1024 ? params.content : undefined
+
+        const mediaType = whatsAppMediaType(att.mimeType)
+        const body: Record<string, unknown> = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: params.chatId,
+          type: mediaType,
+          [mediaType]: {
+            id: mediaId,
+            ...(caption ? { caption } : {}),
+            ...(mediaType === 'document' ? { filename: attachmentFileName(att) } : {}),
+          },
+        }
+        if (i === 0 && params.replyToMessageId) {
+          body.context = { message_id: params.replyToMessageId }
+        }
+
+        const data = await whatsappApi(accessToken, phoneNumberId, 'messages', body)
+        lastMessageId = data.messages?.[0]?.id ?? ''
       }
 
-      // Reply to the original message for the first chunk
-      if (i === 0 && params.replyToMessageId) {
-        body.context = { message_id: params.replyToMessageId }
+      // If caption covered the text, we're done
+      if (!params.content || params.content.length <= 1024) {
+        return { platformMessageId: lastMessageId }
       }
+    }
 
-      const data = await whatsappApi(accessToken, phoneNumberId, 'messages', body)
-      lastMessageId = data.messages?.[0]?.id ?? ''
+    // Send text message
+    if (params.content) {
+      const chunks = splitMessage(params.content)
+      for (let i = 0; i < chunks.length; i++) {
+        const body: Record<string, unknown> = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: params.chatId,
+          type: 'text',
+          text: { body: chunks[i] },
+        }
+
+        if (i === 0 && params.replyToMessageId && !params.attachments?.length) {
+          body.context = { message_id: params.replyToMessageId }
+        }
+
+        const data = await whatsappApi(accessToken, phoneNumberId, 'messages', body)
+        lastMessageId = data.messages?.[0]?.id ?? ''
+      }
     }
 
     return { platformMessageId: lastMessageId }
@@ -157,6 +194,41 @@ export class WhatsAppAdapter implements ChannelAdapter {
   async sendTypingIndicator(_channelId: string, _cfg: Record<string, unknown>, _chatId: string): Promise<void> {
     // WhatsApp Cloud API does not support typing indicators
   }
+}
+
+/** Determine WhatsApp media type from MIME */
+function whatsAppMediaType(mimeType: string): string {
+  if (mimeType.startsWith('image/')) return 'image'
+  if (mimeType.startsWith('audio/')) return 'audio'
+  if (mimeType.startsWith('video/')) return 'video'
+  return 'document'
+}
+
+/** Upload a file to WhatsApp Cloud API and return the media ID */
+async function uploadWhatsAppMedia(
+  accessToken: string,
+  phoneNumberId: string,
+  att: OutboundAttachment,
+): Promise<string> {
+  const blob = await readAttachmentBlob(att)
+  const fileName = attachmentFileName(att)
+
+  const form = new FormData()
+  form.append('messaging_product', 'whatsapp')
+  form.append('file', blob, fileName)
+  form.append('type', att.mimeType)
+
+  const resp = await fetch(`${GRAPH_API}/${phoneNumberId}/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form,
+  })
+  const data = await resp.json() as { id?: string; error?: { message: string } }
+  if (!resp.ok || data.error) {
+    throw new Error(`WhatsApp media upload failed: ${data.error?.message ?? `HTTP ${resp.status}`}`)
+  }
+  if (!data.id) throw new Error('WhatsApp media upload returned no ID')
+  return data.id
 }
 
 /** MIME type mapping for WhatsApp media types */

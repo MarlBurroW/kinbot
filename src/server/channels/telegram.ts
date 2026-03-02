@@ -1,4 +1,5 @@
-import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams, OutboundAttachment } from '@/server/channels/adapter'
+import { readAttachmentBlob, attachmentFileName, isImageAttachment } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { config } from '@/server/config'
@@ -90,22 +91,47 @@ export class TelegramAdapter implements ChannelAdapter {
     params: OutboundMessageParams,
   ): Promise<{ platformMessageId: string }> {
     const token = await resolveToken(cfg)
-    const chunks = splitMessage(params.content)
 
     let lastMessageId = ''
-    for (let i = 0; i < chunks.length; i++) {
-      const body: Record<string, unknown> = {
-        chat_id: params.chatId,
-        text: chunks[i],
-      }
 
-      // Reply to the original message only for the first chunk
-      if (i === 0 && params.replyToMessageId) {
-        body.reply_parameters = { message_id: Number(params.replyToMessageId) }
+    // Send file attachments first (or with caption for the first one)
+    if (params.attachments?.length) {
+      for (let i = 0; i < params.attachments.length; i++) {
+        const att = params.attachments[i]
+        const result = await sendTelegramFile(token, params.chatId, att, {
+          // First attachment gets the text as caption (if short enough for Telegram's 1024 limit)
+          caption: i === 0 && params.content && params.content.length <= 1024 ? params.content : undefined,
+          replyToMessageId: i === 0 ? params.replyToMessageId : undefined,
+        })
+        lastMessageId = result
       }
+      // If text was used as caption, we're done; otherwise send text separately
+      if (params.content && (params.content.length > 1024 || !params.attachments.length)) {
+        // Fall through to text sending below
+      } else if (!params.content) {
+        return { platformMessageId: lastMessageId }
+      } else {
+        // Caption was sent with the first attachment
+        return { platformMessageId: lastMessageId }
+      }
+    }
 
-      const result = await telegramApi(token, 'sendMessage', body) as { message_id: number }
-      lastMessageId = String(result.message_id)
+    // Send text message (or remaining text if caption was too long)
+    if (params.content) {
+      const chunks = splitMessage(params.content)
+      for (let i = 0; i < chunks.length; i++) {
+        const body: Record<string, unknown> = {
+          chat_id: params.chatId,
+          text: chunks[i],
+        }
+
+        if (i === 0 && params.replyToMessageId && !params.attachments?.length) {
+          body.reply_parameters = { message_id: Number(params.replyToMessageId) }
+        }
+
+        const result = await telegramApi(token, 'sendMessage', body) as { message_id: number }
+        lastMessageId = String(result.message_id)
+      }
     }
 
     return { platformMessageId: lastMessageId }
@@ -138,4 +164,38 @@ export class TelegramAdapter implements ChannelAdapter {
     const token = await resolveToken(cfg)
     await telegramApi(token, 'sendChatAction', { chat_id: chatId, action: 'typing' })
   }
+}
+
+/** Send a file to Telegram using multipart/form-data upload */
+async function sendTelegramFile(
+  token: string,
+  chatId: string,
+  att: OutboundAttachment,
+  opts: { caption?: string; replyToMessageId?: string },
+): Promise<string> {
+  const blob = await readAttachmentBlob(att)
+  const fileName = attachmentFileName(att)
+  const isImage = isImageAttachment(att)
+
+  // Choose Telegram method based on file type
+  const method = isImage ? 'sendPhoto' : 'sendDocument'
+  const fieldName = isImage ? 'photo' : 'document'
+
+  const form = new FormData()
+  form.append('chat_id', chatId)
+  form.append(fieldName, blob, fileName)
+  if (opts.caption) form.append('caption', opts.caption)
+  if (opts.replyToMessageId) {
+    form.append('reply_parameters', JSON.stringify({ message_id: Number(opts.replyToMessageId) }))
+  }
+
+  const resp = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
+    method: 'POST',
+    body: form,
+  })
+  const data = await resp.json() as { ok: boolean; result?: { message_id: number }; description?: string }
+  if (!data.ok) {
+    throw new Error(`Telegram API ${method} failed: ${data.description ?? 'Unknown error'}`)
+  }
+  return String(data.result?.message_id ?? '')
 }
