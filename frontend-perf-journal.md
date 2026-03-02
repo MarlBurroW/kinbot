@@ -65,3 +65,32 @@
 4. **React.memo audit** - MessageInput (500 lines, forwardRef but no memo), ChatPanel candidates
 5. **vendor-codemirror at 641 KB** - CodeMirror only needed in mini-app editor, could be fully lazy
 6. **vendor-markdown at 612 KB** - needed for chat messages, harder to lazy-load but could use dynamic import for katex/highlight
+
+---
+
+## 2026-03-02 00:28 UTC
+### Browser audit findings
+- **Browser unavailable** (sandbox browser disabled)
+- Skipped to code audit
+
+### Code audit findings
+- **Issue:** vendor-codemirror (641 KB / 218 KB gzip) loaded eagerly on every page
+- **Root cause:** AppSidebar → CronList → CronFormModal → MarkdownEditor → CodeMirror. CronFormModal was a static import even though it's only shown as a modal on user action.
+- **Pre-existing test failures:** 3 tests fail due to missing schema exports (files.test.ts, search.test.ts) — unrelated to frontend
+
+### Fix applied
+- **What:** Lazy-load CronFormModal in CronList using React.lazy + Suspense. Modals wrapped in conditional rendering so chunk only loads when modal opens.
+- **Files changed:** src/client/components/sidebar/CronList.tsx
+- **Impact:**
+  - CronFormModal split to separate 6.3 KB on-demand chunk
+  - vendor-codemirror (641 KB) now fully deferred — only loaded when user opens cron create/edit modal or settings
+  - ChatPage: 441 KB → 432 KB
+  - Initial page load saves ~650 KB of JS parsing/execution
+
+### Next run priorities
+1. **Browser audit** — still needed when sandbox browser becomes available
+2. **useModels hook at 264 KB** — imported via useKins, loads on every page; could defer model metadata
+3. **ChatPage still 432 KB** — could further split ChatPanel (765 lines), ConversationHeader (407 lines)
+4. **React.memo audit** — MessageInput (500 lines, forwardRef but no memo), ChatPanel candidates
+5. **vendor-markdown at 612 KB** — used in chat messages so harder to defer, but katex/highlight could be lazy
+6. **Fix pre-existing test failures** (schema exports: files, kins)

@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { config } from '@/server/config'
@@ -105,6 +105,7 @@ async function verifySlackSignature(
 interface SlackChannelState {
   onMessage: IncomingMessageHandler
   signingSecret: string
+  botToken: string
   botUserId: string | null
   allowedChannelIds: Set<string> | null
 }
@@ -168,16 +169,45 @@ export async function handleSlackWebhook(
         return { status: 200, body: { ok: true } }
       }
 
-      if (text) {
-        state.onMessage({
-          platformUserId: userId,
-          platformMessageId: messageTs,
-          platformChatId: channelIdSlack,
-          content: text,
-        }).catch((err) => {
-          log.error({ channelId, err }, 'Error handling Slack message')
-        })
+      // Extract file attachments
+      // Slack files use url_private_download which requires bot token auth
+      let attachments: IncomingAttachment[] | undefined
+      const files = event.files as Array<{
+        id: string
+        name?: string
+        mimetype?: string
+        size?: number
+        url_private_download?: string
+      }> | undefined
+
+      if (files?.length) {
+        attachments = files
+          .filter((f) => f.url_private_download)
+          .map((f) => ({
+            platformFileId: f.id,
+            mimeType: f.mimetype,
+            fileName: f.name,
+            fileSize: f.size,
+            url: f.url_private_download,
+            headers: { Authorization: `Bearer ${state.botToken}` },
+          }))
+        if (attachments.length === 0) attachments = undefined
       }
+
+      // Ignore empty messages (no text and no attachments)
+      if (!text && !attachments) {
+        return { status: 200, body: { ok: true } }
+      }
+
+      state.onMessage({
+        platformUserId: userId,
+        platformMessageId: messageTs,
+        platformChatId: channelIdSlack,
+        content: text || '',
+        attachments,
+      }).catch((err) => {
+        log.error({ channelId, err }, 'Error handling Slack message')
+      })
     }
 
     return { status: 200, body: { ok: true } }
@@ -200,6 +230,7 @@ export class SlackAdapter implements ChannelAdapter {
     const state: SlackChannelState = {
       onMessage,
       signingSecret,
+      botToken: token,
       botUserId: (authResult.user_id as string) ?? null,
       allowedChannelIds: slackCfg.allowedChannelIds?.length
         ? new Set(slackCfg.allowedChannelIds)
