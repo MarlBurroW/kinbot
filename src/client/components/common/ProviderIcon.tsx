@@ -1,74 +1,36 @@
-import type { ComponentType, SVGProps } from 'react'
+import { type ComponentType, type SVGProps, useState, useEffect, memo } from 'react'
 import { Cpu, Search } from 'lucide-react'
-import Claude from '@lobehub/icons/es/Claude'
-import OpenAI from '@lobehub/icons/es/OpenAI'
-import Gemini from '@lobehub/icons/es/Gemini'
-import Voyage from '@lobehub/icons/es/Voyage'
-import Mistral from '@lobehub/icons/es/Mistral'
-import Groq from '@lobehub/icons/es/Groq'
-import Together from '@lobehub/icons/es/Together'
-import Fireworks from '@lobehub/icons/es/Fireworks'
-import DeepSeek from '@lobehub/icons/es/DeepSeek'
-import Ollama from '@lobehub/icons/es/Ollama'
-import OpenRouter from '@lobehub/icons/es/OpenRouter'
-import Cohere from '@lobehub/icons/es/Cohere'
-import XAI from '@lobehub/icons/es/XAI'
-import Tavily from '@lobehub/icons/es/Tavily'
-import Jina from '@lobehub/icons/es/Jina'
-import Replicate from '@lobehub/icons/es/Replicate'
-import Stability from '@lobehub/icons/es/Stability'
-import Fal from '@lobehub/icons/es/Fal'
 
 type SvgIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>
 
-/** Mono icons (use currentColor) */
-const PROVIDER_MONO: Record<string, SvgIcon> = {
-  anthropic: Claude,
-  'anthropic-oauth': Claude,
-  openai: OpenAI,
-  gemini: Gemini,
-  voyage: Voyage,
-  mistral: Mistral,
-  groq: Groq,
-  together: Together,
-  fireworks: Fireworks,
-  deepseek: DeepSeek,
-  ollama: Ollama,
-  openrouter: OpenRouter,
-  cohere: Cohere,
-  xai: XAI,
-  tavily: Tavily,
-  jina: Jina,
-  replicate: Replicate,
-  stability: Stability,
-  fal: Fal,
-  serper: Search as unknown as SvgIcon,
+/** Lazy icon loaders — each provider's icons are only fetched when first rendered */
+const ICON_LOADERS: Record<string, () => Promise<{ default: SvgIcon & { Color?: SvgIcon } }>> = {
+  anthropic: () => import('@lobehub/icons/es/Claude') as any,
+  'anthropic-oauth': () => import('@lobehub/icons/es/Claude') as any,
+  openai: () => import('@lobehub/icons/es/OpenAI') as any,
+  gemini: () => import('@lobehub/icons/es/Gemini') as any,
+  voyage: () => import('@lobehub/icons/es/Voyage') as any,
+  mistral: () => import('@lobehub/icons/es/Mistral') as any,
+  groq: () => import('@lobehub/icons/es/Groq') as any,
+  together: () => import('@lobehub/icons/es/Together') as any,
+  fireworks: () => import('@lobehub/icons/es/Fireworks') as any,
+  deepseek: () => import('@lobehub/icons/es/DeepSeek') as any,
+  ollama: () => import('@lobehub/icons/es/Ollama') as any,
+  openrouter: () => import('@lobehub/icons/es/OpenRouter') as any,
+  cohere: () => import('@lobehub/icons/es/Cohere') as any,
+  xai: () => import('@lobehub/icons/es/XAI') as any,
+  tavily: () => import('@lobehub/icons/es/Tavily') as any,
+  jina: () => import('@lobehub/icons/es/Jina') as any,
+  replicate: () => import('@lobehub/icons/es/Replicate') as any,
+  stability: () => import('@lobehub/icons/es/Stability') as any,
+  fal: () => import('@lobehub/icons/es/Fal') as any,
 }
 
-/** Color icons — use .Color variant where available */
-const PROVIDER_COLOR: Record<string, SvgIcon> = {
-  anthropic: Claude.Color,
-  'anthropic-oauth': Claude.Color,
-  openai: OpenAI,
-  gemini: Gemini.Color,
-  voyage: Voyage.Color,
-  mistral: Mistral.Color,
-  together: Together.Color,
-  fireworks: Fireworks.Color,
-  deepseek: DeepSeek.Color,
-  cohere: Cohere.Color,
-  tavily: Tavily.Color,
-  replicate: Replicate,
-  stability: Stability,
-  fal: Fal,
-  // Mono-only icons — brand color applied via PROVIDER_BRAND_COLORS
-  groq: Groq,
-  openrouter: OpenRouter,
-  ollama: Ollama,
-  xai: XAI,
-  jina: Jina,
-  serper: Search as unknown as SvgIcon,
-}
+/** Providers that have a .Color variant */
+const HAS_COLOR_VARIANT = new Set([
+  'anthropic', 'anthropic-oauth', 'gemini', 'voyage', 'mistral',
+  'together', 'fireworks', 'deepseek', 'cohere', 'tavily',
+])
 
 /** Brand colors for providers that only have Mono icons */
 const PROVIDER_BRAND_COLORS: Record<string, string> = {
@@ -83,6 +45,9 @@ const PROVIDER_IMG_FALLBACKS: Record<string, string> = {
   nomic: 'https://nomic.ai/favicon.ico',
 }
 
+/** Cache resolved icon modules to avoid re-importing */
+const iconCache = new Map<string, SvgIcon & { Color?: SvgIcon }>()
+
 interface ProviderIconProps {
   providerType: string
   className?: string
@@ -90,21 +55,69 @@ interface ProviderIconProps {
   variant?: 'mono' | 'color'
 }
 
-export function ProviderIcon({ providerType, className, variant = 'mono' }: ProviderIconProps) {
+export const ProviderIcon = memo(function ProviderIcon({ providerType, className, variant = 'mono' }: ProviderIconProps) {
   // Image fallback (providers not covered by @lobehub/icons)
   const imgSrc = PROVIDER_IMG_FALLBACKS[providerType]
   if (imgSrc) {
     return <img src={imgSrc} alt={providerType} className={className} style={{ objectFit: 'contain' }} />
   }
 
-  if (variant === 'color') {
-    const Icon = PROVIDER_COLOR[providerType]
-    if (!Icon) return <Cpu className={className} />
-    const brandColor = PROVIDER_BRAND_COLORS[providerType]
-    return <Icon className={className} {...(brandColor ? { color: brandColor } : {})} />
+  // Serper uses lucide Search icon — no lazy load needed
+  if (providerType === 'serper') {
+    const brandColor = PROVIDER_BRAND_COLORS.serper
+    return <Search className={className} {...(variant === 'color' && brandColor ? { color: brandColor } : {})} />
   }
 
-  const Icon = PROVIDER_MONO[providerType]
-  if (!Icon) return <Cpu className={className} />
-  return <Icon className={className} />
+  const loader = ICON_LOADERS[providerType]
+  if (!loader) return <Cpu className={className} />
+
+  // Check cache first (synchronous render if already loaded)
+  const cached = iconCache.get(providerType)
+  if (cached) {
+    return <ResolvedIcon icon={cached} providerType={providerType} variant={variant} className={className} />
+  }
+
+  return <LazyIcon providerType={providerType} loader={loader} variant={variant} className={className} />
+})
+
+/** Renders an already-resolved icon */
+function ResolvedIcon({ icon, providerType, variant, className }: {
+  icon: SvgIcon & { Color?: SvgIcon }
+  providerType: string
+  variant: 'mono' | 'color'
+  className?: string
+}) {
+  if (variant === 'color' && HAS_COLOR_VARIANT.has(providerType) && icon.Color) {
+    const Icon = icon.Color
+    return <Icon className={className} />
+  }
+  const brandColor = variant === 'color' ? PROVIDER_BRAND_COLORS[providerType] : undefined
+  const Icon = icon
+  return <Icon className={className} {...(brandColor ? { color: brandColor } : {})} />
+}
+
+/** Lazy-loads an icon on mount, then renders it */
+function LazyIcon({ providerType, loader, variant, className }: {
+  providerType: string
+  loader: () => Promise<{ default: SvgIcon & { Color?: SvgIcon } }>
+  variant: 'mono' | 'color'
+  className?: string
+}) {
+  const [icon, setIcon] = useState<(SvgIcon & { Color?: SvgIcon }) | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    loader().then((mod) => {
+      iconCache.set(providerType, mod.default)
+      if (!cancelled) setIcon(mod.default)
+    })
+    return () => { cancelled = true }
+  }, [providerType, loader])
+
+  if (!icon) {
+    // Placeholder with same dimensions to avoid layout shift
+    return <Cpu className={className} style={{ opacity: 0.3 }} />
+  }
+
+  return <ResolvedIcon icon={icon} providerType={providerType} variant={variant} className={className} />
 }
