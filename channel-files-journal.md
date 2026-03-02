@@ -120,3 +120,33 @@ All adapters are backward-compatible — text-only messages use the existing cod
 **Pre-existing issues:** 3 test failures (schema export), E2E flake in file-storage spec — all unrelated.
 
 **Next step:** Step 12 — Give Kins a tool to attach files to their responses.
+
+## 2026-03-02 — Run 6: Step 12 — Give Kins a tool to attach files to their responses
+
+**Commit:** 566236c
+
+**What was done:**
+
+Created `src/server/tools/attach-file-tool.ts` with:
+- `attach_file` tool: Kins call this during their turn to stage files for delivery
+- Supports 3 source types: internal API paths (`/api/uploads/...`, `/api/file-storage/...`), workspace files, and external URLs
+- In-memory staging store (`pendingAttachments` Map keyed by kinId)
+- `stageAttachment()`, `popStagedAttachments()`, `clearStagedAttachments()` exports
+- Built-in MIME type detection from file extension (no external dependency)
+
+Updated `src/server/tools/channel-tools.ts`:
+- `send_channel_message` tool now accepts optional `attachments` array for proactive sends
+
+Updated `src/server/services/channels.ts`:
+- `deliverChannelResponse()` accepts optional `OutboundAttachment[]` parameter
+- Passes attachments through to `adapter.sendMessage()`
+
+Updated `src/server/services/kin-engine.ts`:
+- After LLM turn completes, pops staged attachments and passes to `deliverChannelResponse`
+- Cleanup on abort, non-channel sources, or missing channel meta
+
+Registered in `src/server/tools/register.ts`.
+
+**Pre-existing issues:** 3 test failures (unrelated) — used HUSKY=0
+
+**Next step:** Step 13 (Phase 4) — UI updates: show file attachments in conversation view (thumbnails for images, download links for docs)
