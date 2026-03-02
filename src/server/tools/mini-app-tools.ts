@@ -91,6 +91,13 @@ export const createMiniAppTool: ToolRegistration = {
         '**Design System CSS** (auto-injected): CSS variables like ' +
         'var(--color-primary), var(--color-background), var(--color-foreground), var(--color-muted), var(--color-card), var(--color-border). ' +
         'Utility classes: .glass-strong, .surface-card, .gradient-primary, .btn-shine, .card-hover, .animate-fade-in-up. ' +
+        '**Animations:** .animate-fade-in, .animate-fade-out, .animate-fade-in-up, .animate-fade-in-down, .animate-fade-out-up, .animate-fade-out-down, ' +
+        '.animate-slide-in-left, .animate-slide-in-right, .animate-slide-out-left, .animate-slide-out-right, ' +
+        '.animate-scale-in, .animate-scale-out, .animate-bounce-in, .animate-shake, .animate-spin, .animate-ping, .animate-wiggle, ' +
+        '.animate-collapse-down, .animate-expand-up, .animate-flip-in-x, .animate-flip-in-y, .animate-levitate. ' +
+        'Animation modifiers: .delay-1 to .delay-10, .duration-75/100/150/200/300/500/700/1000. ' +
+        '**Transitions:** .transition-all, .transition-colors, .transition-opacity, .transition-transform, .transition-shadow, ' +
+        '.transition-fast/normal/slow/slower, .ease-in/out/in-out/bounce/spring. Respects prefers-reduced-motion. ' +
         'Layout (Tailwind-like): .flex, .flex-col, .grid, .grid-cols-2, .items-center, .justify-between, .gap-4, ' +
         '.p-4, .px-3, .py-2, .m-4, .mx-auto, .w-full, .h-full, .max-w-md, .text-sm, .text-xl, .font-bold, .text-center, ' +
         '.bg-card, .bg-muted, .border, .rounded-lg, .shadow-md, .space-y-4, .overflow-auto, .relative, .absolute, .transition. ' +
