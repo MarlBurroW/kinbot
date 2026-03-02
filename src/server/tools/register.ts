@@ -132,6 +132,7 @@ import {
 } from '@/server/tools/mini-app-tools'
 import { getMiniAppTemplatesTool } from '@/server/tools/mini-app-templates'
 import { browseMiniAppsTool, cloneMiniAppTool } from '@/server/tools/mini-app-gallery'
+import { attachFileTool } from '@/server/tools/attach-file-tool'
 
 const log = createLogger('tools')
 
@@ -252,6 +253,7 @@ export function registerAllTools(): void {
   toolRegistry.register('list_channels', listChannelsTool)
   toolRegistry.register('list_channel_conversations', listChannelConversationsTool)
   toolRegistry.register('send_channel_message', sendChannelMessageTool)
+  toolRegistry.register('attach_file', attachFileTool)
 
   // Platform / system tools (main only, opt-in required)
   toolRegistry.register('get_platform_logs', getPlatformLogsTool)

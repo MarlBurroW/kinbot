@@ -33,6 +33,7 @@ import { listAvailableKins } from '@/server/services/inter-kin'
 import { listContactsForPrompt } from '@/server/services/contacts'
 import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
 import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel } from '@/server/services/channels'
+import { popStagedAttachments, clearStagedAttachments } from '@/server/tools/attach-file-tool'
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import { getGlobalPrompt, getHubKinId } from '@/server/services/app-settings'
 import { channelAdapters } from '@/server/channels/index'
@@ -577,10 +578,17 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       if (queueItem.sourceType === 'channel' && fullContent) {
         const channelMeta = popChannelQueueMeta(queueItem.id)
         if (channelMeta) {
-          deliverChannelResponse(channelMeta, assistantMessageId, fullContent).catch((err) => {
+          const stagedFiles = popStagedAttachments(kinId)
+          deliverChannelResponse(channelMeta, assistantMessageId, fullContent, stagedFiles.length > 0 ? stagedFiles : undefined).catch((err) => {
             log.error({ kinId, channelId: channelMeta.channelId, err }, 'Channel response delivery failed')
           })
+        } else {
+          // No channel meta — clear any staged attachments to avoid leaking to next turn
+          clearStagedAttachments(kinId)
         }
+      } else {
+        // Non-channel source — clear any staged attachments
+        clearStagedAttachments(kinId)
       }
 
       // Mention notifications (fire-and-forget)
@@ -591,6 +599,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           }
         }).catch(() => {})
       }
+    } else {
+      // Aborted — clear any staged attachments
+      clearStagedAttachments(kinId)
     }
 
     await markQueueItemDone(queueItem.id)

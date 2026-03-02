@@ -10,7 +10,7 @@ import { createContact } from '@/server/services/contacts'
 import { channelAdapters } from '@/server/channels/index'
 import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
-import type { IncomingMessage } from '@/server/channels/adapter'
+import type { IncomingMessage, OutboundAttachment } from '@/server/channels/adapter'
 import type { ChannelPlatform, ChannelStatus } from '@/shared/types'
 
 const log = createLogger('channels')
@@ -444,6 +444,7 @@ export async function deliverChannelResponse(
   meta: ChannelQueueMeta,
   assistantMessageId: string,
   content: string,
+  attachments?: OutboundAttachment[],
 ) {
   const channel = await getChannel(meta.channelId)
   if (!channel || channel.status !== 'active') return
@@ -461,6 +462,7 @@ export async function deliverChannelResponse(
       chatId: meta.platformChatId,
       content,
       replyToMessageId: meta.platformMessageId,
+      attachments: attachments?.length ? attachments : undefined,
     })
 
     // Record the outbound link

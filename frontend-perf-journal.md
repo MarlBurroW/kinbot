@@ -94,3 +94,36 @@
 4. **React.memo audit** — MessageInput (500 lines, forwardRef but no memo), ChatPanel candidates
 5. **vendor-markdown at 612 KB** — used in chat messages so harder to defer, but katex/highlight could be lazy
 6. **Fix pre-existing test failures** (schema exports: files, kins)
+
+---
+
+## 2026-03-02 04:28 UTC
+### Browser audit findings
+- **Browser unavailable** (sandbox browser disabled)
+- Skipped to code audit
+
+### Code audit findings
+- **Issue:** CronDetailModal (359 lines) and TaskDetailModal (333 lines) statically imported in sidebar and ChatPanel, bundled into main/ChatPage chunks despite only rendering on user click
+- **Root cause:** Static imports in CronList.tsx, TaskList.tsx, ChatPanel.tsx, CronDetailModal.tsx
+- **useModels chunk (263 KB):** Investigated — bulk is @lobehub/icons (provider SVG icons for OpenAI, Anthropic, etc.). Already using individual ES module imports. Size is inherent to the icon library, not easily reducible without replacing icons.
+
+### Fix applied
+- **What:** Lazy-load CronDetailModal and TaskDetailModal using React.lazy + Suspense in all consumer files
+- **Files changed:**
+  - src/client/components/sidebar/CronList.tsx
+  - src/client/components/sidebar/TaskList.tsx
+  - src/client/components/sidebar/CronDetailModal.tsx
+  - src/client/components/chat/ChatPanel.tsx
+- **Impact:**
+  - CronDetailModal: 8 KB on-demand chunk (was in main bundle)
+  - TaskDetailModal: 10 KB on-demand chunk (was in ChatPage)
+  - ChatPage: 434 KB → 420 KB (-3.5%)
+  - Both modals only load when user clicks to view details
+
+### Next run priorities
+1. **Browser audit** — still needed when sandbox browser becomes available
+2. **React.memo audit** — MessageInput (500 lines, forwardRef but no memo), ChatPanel, ConversationHeader candidates
+3. **ChatPage still 420 KB** — could split ConversationHeader (407 lines), MessageBubble, or other heavy sub-components
+4. **Main entry at 309 KB** — investigate what's in it, possibly split sidebar components further
+5. **vendor-markdown at 612 KB** — katex/highlight could be lazy-loaded for messages that don't need them
+6. **Fix pre-existing test failures** (schema exports: files.test.ts, search.test.ts)
