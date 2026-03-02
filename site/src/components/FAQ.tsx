@@ -137,6 +137,14 @@ const faqs: FAQItem[] = [
 function FAQEntry({ item, forceOpen }: { item: FAQItem; forceOpen?: boolean }) {
   const [open, setOpen] = useState(false)
   const isOpen = forceOpen || open
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight)
+    }
+  }, [isOpen, item.answer])
 
   return (
     <div
@@ -166,11 +174,12 @@ function FAQEntry({ item, forceOpen }: { item: FAQItem; forceOpen?: boolean }) {
         />
       </button>
       <div
+        ref={contentRef}
         id={`faq-answer-${item.question.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}`}
         role="region"
         className="overflow-hidden transition-all duration-300"
         style={{
-          maxHeight: isOpen ? '300px' : '0',
+          maxHeight: isOpen ? `${height}px` : '0',
           opacity: isOpen ? 1 : 0,
         }}
       >

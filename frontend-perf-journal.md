@@ -210,3 +210,37 @@
 3. **vendor-markdown at 154 KB** — already well-optimized (was 612 KB)
 4. **React.memo on remaining chat components** — ToolCallsViewer, QuickChatPanel
 5. **Monitor CI** — E2E fix pushed, verify it passes
+
+---
+
+## 2026-03-02 18:45 UTC
+### Browser audit findings
+- **Browser unavailable** (sandbox browser disabled)
+- Skipped to code audit
+
+### Code audit findings
+- **Issue:** MiniAppViewer (570 lines) and QuickChatPanel (240 lines) statically imported in ChatPanel despite being side panels only visible on user action
+- **Root cause:** Static imports bundle these components into the ChatPage chunk even though they're conditionally rendered (Sheet/side panel)
+
+### Fix applied
+- **What:** Lazy-load MiniAppViewer and QuickChatPanel using React.lazy + Suspense
+- **Files changed:** src/client/components/chat/ChatPanel.tsx
+- **Impact:**
+  - MiniAppViewer: 9.5 KB on-demand chunk (only loads when mini-app panel opens)
+  - QuickChatPanel: 7.4 KB on-demand chunk (only loads when quick chat sheet opens)
+  - ChatPage: 412 KB → 407 KB direct reduction
+  - Total deferred: ~17 KB moved to on-demand loading
+
+### Cumulative progress (since journal start)
+- **Initial state:** Single 2,881 KB chunk (825 KB gzip)
+- **Current main entry:** 304 KB (app shell)
+- **ChatPage:** 407 KB (from 590 KB at start)
+- **Lazy chunks created:** KinFormModal, SettingsPage, AccountDialog, CronFormModal, CronDetailModal, TaskDetailModal, MiniAppViewer, QuickChatPanel, ProviderIcon icons, rehype-highlight, remark-math, rehype-katex
+- **React.memo added:** 14 components (7 chat + 6 sidebar + ProviderIcon)
+
+### Next run priorities
+1. **Browser audit** — still needed when sandbox browser becomes available
+2. **ChatPage still 407 KB** — MessageBubble (812 lines) is the heaviest remaining child, but it's core chat so hard to lazy-load
+3. **ConversationSearch** (135 lines) — could lazy-load, shown conditionally
+4. **HumanPromptCard / CompactingCard** — conditionally rendered, small lazy-load candidates
+5. **Verify CI passes** on both recent commits

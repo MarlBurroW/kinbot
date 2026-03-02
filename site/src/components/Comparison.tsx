@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Check, X, Minus, ChevronDown } from 'lucide-react'
 
 type Support = 'yes' | 'no' | 'partial'
@@ -125,6 +125,76 @@ function CellLabel({ value }: { value: Support }) {
   return <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)', opacity: 0.5 }}>No</span>
 }
 
+function PositioningBlurb({ id, title, text, when, isOpen, onToggle }: {
+  id: string; title: string; text: string; when: string; isOpen: boolean; onToggle: () => void
+}) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight)
+    }
+  }, [isOpen, text])
+
+  return (
+    <div
+      className="glass-strong rounded-xl overflow-hidden transition-all duration-300"
+      style={{
+        border: isOpen
+          ? '1px solid color-mix(in oklch, var(--color-glow-1) 25%, transparent)'
+          : '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)',
+      }}
+    >
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors duration-150"
+        style={{
+          background: isOpen
+            ? 'color-mix(in oklch, var(--color-glow-1) 5%, transparent)'
+            : 'transparent',
+        }}
+      >
+        <span className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>
+          {title}
+        </span>
+        <ChevronDown
+          size={16}
+          className="transition-transform duration-300 flex-shrink-0 ml-3"
+          style={{
+            color: 'var(--color-muted-foreground)',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        />
+      </button>
+      <div
+        ref={contentRef}
+        className="overflow-hidden transition-all duration-300"
+        style={{
+          maxHeight: isOpen ? `${height}px` : '0',
+          opacity: isOpen ? 1 : 0,
+        }}
+      >
+        <div className="px-5 pb-5 space-y-3">
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
+            {text}
+          </p>
+          <div
+            className="text-xs px-3 py-2 rounded-lg"
+            style={{
+              background: 'color-mix(in oklch, var(--color-muted-foreground) 6%, transparent)',
+              color: 'var(--color-muted-foreground)',
+            }}
+          >
+            <span className="font-semibold">When to pick the other tool: </span>
+            {when}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Expandable positioning blurbs */
 function PositioningSection() {
   const [expanded, setExpanded] = useState<BlurbId | null>(null)
@@ -134,65 +204,17 @@ function PositioningSection() {
       <p className="text-center text-sm font-medium mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
         Wondering how KinBot stacks up? Read the honest take.
       </p>
-      {positioningBlurbs.map(({ id, title, text, when }) => {
-        const isOpen = expanded === id
-        return (
-          <div
-            key={id}
-            className="glass-strong rounded-xl overflow-hidden transition-all duration-300"
-            style={{
-              border: isOpen
-                ? '1px solid color-mix(in oklch, var(--color-glow-1) 25%, transparent)'
-                : '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)',
-            }}
-          >
-            <button
-              onClick={() => setExpanded(isOpen ? null : id)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors duration-150"
-              style={{
-                background: isOpen
-                  ? 'color-mix(in oklch, var(--color-glow-1) 5%, transparent)'
-                  : 'transparent',
-              }}
-            >
-              <span className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>
-                {title}
-              </span>
-              <ChevronDown
-                size={16}
-                className="transition-transform duration-300 flex-shrink-0 ml-3"
-                style={{
-                  color: 'var(--color-muted-foreground)',
-                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}
-              />
-            </button>
-            <div
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                maxHeight: isOpen ? '300px' : '0',
-                opacity: isOpen ? 1 : 0,
-              }}
-            >
-              <div className="px-5 pb-5 space-y-3">
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-                  {text}
-                </p>
-                <div
-                  className="text-xs px-3 py-2 rounded-lg"
-                  style={{
-                    background: 'color-mix(in oklch, var(--color-muted-foreground) 6%, transparent)',
-                    color: 'var(--color-muted-foreground)',
-                  }}
-                >
-                  <span className="font-semibold">When to pick the other tool: </span>
-                  {when}
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      })}
+      {positioningBlurbs.map(({ id, title, text, when }) => (
+        <PositioningBlurb
+          key={id}
+          id={id}
+          title={title}
+          text={text}
+          when={when}
+          isOpen={expanded === id}
+          onToggle={() => setExpanded(expanded === id ? null : id)}
+        />
+      ))}
     </div>
   )
 }
