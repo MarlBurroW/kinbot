@@ -169,3 +169,34 @@
 3. DataGrid component (sortable/filterable table)
 4. `KinBot.share(data)` improvements — add `KinBot.on('shared-data')` event
 5. `KinBot.navigate(path)` — parent UI navigation
+
+## 2026-03-02 (run 4) — SDK API: KinBot.memory (v1.15.0)
+
+**What:** Added `KinBot.memory.search()` and `KinBot.memory.store()` APIs, allowing mini-apps to search and create memories for their parent Kin.
+
+**New SDK APIs:**
+- **`KinBot.memory.search(query, limit?)`** — Hybrid semantic + full-text search across the Kin's memories. Returns `{id, content, category, subject, score, updatedAt}`. Default 20 results, max 50.
+- **`KinBot.memory.store(content, {category?, subject?})`** — Store a new memory. Categories: fact, preference, decision, knowledge (default: knowledge). Max 2000 chars. Returns the created memory.
+
+**Server routes added:**
+- `GET /api/mini-apps/:id/memories/search?q=...&limit=N` — delegates to `searchMemories()` (reciprocal rank fusion, temporal decay, importance weighting)
+- `POST /api/mini-apps/:id/memories` — delegates to `createMemory()` with validation
+
+**Design decisions:**
+- Routes use the app's kinId from DB lookup (not from client) for security
+- Reuses existing `searchMemories` and `createMemory` from memory service — full hybrid search with embeddings
+- sourceChannel set to 'explicit' (type constraint; mini-app origin is implicit from the API path)
+- 2000 char limit on content to prevent abuse
+
+**Files changed:**
+- `src/server/routes/mini-apps.ts` — added 2 new routes + import for memory service (~45 lines)
+- `src/server/mini-app-sdk/kinbot-sdk.js` — added memory namespace (~45 lines), bumped to v1.15.0
+- `src/server/tools/mini-app-tools.ts` — documented memory APIs
+
+**Note:** 3 pre-existing test failures (schema import issues) — not related to this change. Build passes clean.
+
+**Next priorities:**
+1. New templates: chat interface, settings panel (good showcase for memory + form)
+2. DataGrid component (sortable/filterable table)
+3. `KinBot.navigate(path)` — parent UI navigation
+4. `KinBot.share(data)` improvements — add `KinBot.on('shared-data')` event

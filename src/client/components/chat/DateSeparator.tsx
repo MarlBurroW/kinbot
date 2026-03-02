@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface DateSeparatorProps {
@@ -9,7 +9,7 @@ interface DateSeparatorProps {
  * A visual separator showing the date between messages from different days.
  * Displays "Today", "Yesterday", or a formatted date string.
  */
-export function DateSeparator({ date }: DateSeparatorProps) {
+export const DateSeparator = memo(function DateSeparator({ date }: DateSeparatorProps) {
   const { t } = useTranslation()
 
   const label = useMemo(() => {
@@ -51,4 +51,4 @@ export function DateSeparator({ date }: DateSeparatorProps) {
       <div className="h-px flex-1 bg-border" />
     </div>
   )
-}
+})

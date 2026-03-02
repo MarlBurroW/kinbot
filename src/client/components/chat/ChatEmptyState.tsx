@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Sparkles, MessageSquare, Lightbulb, Wrench } from 'lucide-react'
@@ -12,7 +12,7 @@ interface ChatEmptyStateProps {
 
 const SUGGESTION_ICONS = [Sparkles, MessageSquare, Lightbulb, Wrench] as const
 
-export function ChatEmptyState({ kinName, kinRole, kinAvatarUrl, onSendMessage }: ChatEmptyStateProps) {
+export const ChatEmptyState = memo(function ChatEmptyState({ kinName, kinRole, kinAvatarUrl, onSendMessage }: ChatEmptyStateProps) {
   const { t } = useTranslation()
 
   const initials = kinName.slice(0, 2).toUpperCase()
@@ -70,4 +70,4 @@ export function ChatEmptyState({ kinName, kinRole, kinAvatarUrl, onSendMessage }
       </p>
     </div>
   )
-}
+})

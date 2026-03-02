@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Collapsible,
@@ -28,7 +28,7 @@ interface ToolCallItemProps {
   toolCall: ToolCallViewItem
 }
 
-export function ToolCallItem({ toolCall }: ToolCallItemProps) {
+export const ToolCallItem = memo(function ToolCallItem({ toolCall }: ToolCallItemProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
@@ -84,4 +84,4 @@ export function ToolCallItem({ toolCall }: ToolCallItemProps) {
       </div>
     </Collapsible>
   )
-}
+})

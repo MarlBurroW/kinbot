@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/client/components/ui/popover'
@@ -140,7 +140,7 @@ function StatRow({ icon: Icon, label, value, iconClass }: {
   )
 }
 
-export function ConversationStats({ messages, toolCallCount }: ConversationStatsProps) {
+export const ConversationStats = memo(function ConversationStats({ messages, toolCallCount }: ConversationStatsProps) {
   const { t } = useTranslation()
 
   const stats = useMemo(() => {
@@ -254,4 +254,4 @@ export function ConversationStats({ messages, toolCallCount }: ConversationStats
       </PopoverContent>
     </Popover>
   )
-}
+})

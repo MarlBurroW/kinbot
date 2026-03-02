@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Collapsible,
@@ -29,7 +29,7 @@ interface InlineToolCallProps {
 }
 
 /** Compact collapsible inline tool call shown within the Kin's message flow. */
-export function InlineToolCall({ toolCall }: InlineToolCallProps) {
+export const InlineToolCall = memo(function InlineToolCall({ toolCall }: InlineToolCallProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const meta = TOOL_DOMAIN_META[toolCall.domain]
@@ -79,4 +79,4 @@ export function InlineToolCall({ toolCall }: InlineToolCallProps) {
       </div>
     </Collapsible>
   )
-}
+})

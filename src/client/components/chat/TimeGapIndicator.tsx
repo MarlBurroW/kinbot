@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Clock } from 'lucide-react'
 
@@ -17,7 +17,7 @@ interface TimeGapIndicatorProps {
  * that are more than 30 minutes apart within the same day.
  * Inspired by Discord/Slack conversation gap indicators.
  */
-export function TimeGapIndicator({ prevTimestamp, currentTimestamp }: TimeGapIndicatorProps) {
+export const TimeGapIndicator = memo(function TimeGapIndicator({ prevTimestamp, currentTimestamp }: TimeGapIndicatorProps) {
   const { t } = useTranslation()
 
   const label = useMemo(() => {
@@ -52,4 +52,4 @@ export function TimeGapIndicator({ prevTimestamp, currentTimestamp }: TimeGapInd
       <div className="h-px flex-1 bg-border/50" />
     </div>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarImage, AvatarFallback } from '@/client/components/ui/avatar'
 import { Button } from '@/client/components/ui/button'
@@ -70,7 +70,7 @@ function formatTokenCount(n: number): string {
   return String(n)
 }
 
-export function ConversationHeader({
+export const ConversationHeader = memo(function ConversationHeader({
   name,
   role,
   model,
@@ -404,4 +404,4 @@ export function ConversationHeader({
       </Button>
     </div>
   )
-}
+})
