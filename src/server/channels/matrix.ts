@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { createLogger } from '@/server/logger'
@@ -286,6 +286,8 @@ export class MatrixAdapter implements ChannelAdapter {
                       msgtype?: string
                       body?: string
                       displayname?: string
+                      url?: string
+                      info?: unknown
                     }
                   }>
                 }
@@ -313,7 +315,14 @@ export class MatrixAdapter implements ChannelAdapter {
             const events = roomData.timeline?.events ?? []
             for (const event of events) {
               if (event.type !== 'm.room.message') continue
-              if (!event.content.body || event.content.msgtype !== 'm.text') continue
+
+              const msgtype = event.content.msgtype
+              const mediaTypes = ['m.image', 'm.file', 'm.audio', 'm.video']
+              const isMedia = msgtype && mediaTypes.includes(msgtype)
+              const isText = msgtype === 'm.text'
+
+              if (!isText && !isMedia) continue
+              if (!event.content.body && !isMedia) continue
 
               // Ignore own messages
               const botUserId = this.botUserIds.get(channelId)
@@ -322,6 +331,31 @@ export class MatrixAdapter implements ChannelAdapter {
               const handler = this.handlers.get(channelId)
               if (!handler) continue
 
+              // Extract file attachment from media messages
+              let attachments: IncomingAttachment[] | undefined
+              if (isMedia && event.content.url) {
+                const mxcUrl = event.content.url as string
+                // Convert mxc://server/mediaId to download URL
+                const downloadUrl = mxcUrl.startsWith('mxc://')
+                  ? `${homeserver}/_matrix/media/v3/download/${mxcUrl.slice(6)}`
+                  : mxcUrl
+
+                attachments = [{
+                  platformFileId: mxcUrl,
+                  mimeType: (event.content.info as Record<string, unknown> | undefined)?.mimetype as string | undefined,
+                  fileName: event.content.body ?? undefined,
+                  fileSize: (event.content.info as Record<string, unknown> | undefined)?.size as number | undefined,
+                  url: downloadUrl,
+                  headers: { Authorization: `Bearer ${token}` },
+                }]
+              }
+
+              // For media messages, use body as caption (Matrix uses body as filename fallback)
+              const content = isText ? (event.content.body ?? '') : ''
+
+              // Skip if no text AND no attachments
+              if (!content && !attachments) continue
+
               try {
                 await handler.onMessage({
                   platformUserId: event.sender,
@@ -329,7 +363,8 @@ export class MatrixAdapter implements ChannelAdapter {
                   platformDisplayName: event.content.displayname ?? event.sender,
                   platformMessageId: event.event_id,
                   platformChatId: roomId,
-                  content: event.content.body,
+                  content,
+                  attachments,
                 })
               } catch (err) {
                 log.error({ channelId, roomId, eventId: event.event_id, err }, 'Error handling Matrix message')

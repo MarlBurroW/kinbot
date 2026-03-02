@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { config } from '@/server/config'
@@ -208,11 +208,17 @@ export class SignalAdapter implements ChannelAdapter {
         message?: string
         timestamp?: number
         groupInfo?: { groupId?: string }
+        attachments?: Array<{
+          contentType?: string
+          filename?: string
+          size?: number
+          id?: string
+        }>
       }
     }
 
     const dataMessage = envelope.dataMessage
-    if (!dataMessage?.message) return // Not a text message
+    if (!dataMessage) return
 
     const source = envelope.source ?? envelope.sourceUuid ?? ''
     const chatId = dataMessage.groupInfo?.groupId ?? source
@@ -224,13 +230,33 @@ export class SignalAdapter implements ChannelAdapter {
       }
     }
 
+    // Extract file attachments from signal-cli
+    let attachments: IncomingAttachment[] | undefined
+    if (dataMessage.attachments?.length) {
+      const apiUrl = await resolveApiUrl(handler.cfg as unknown as Record<string, unknown>)
+      attachments = dataMessage.attachments
+        .filter((att) => att.id)
+        .map((att) => ({
+          platformFileId: att.id!,
+          mimeType: att.contentType,
+          fileName: att.filename,
+          fileSize: att.size,
+          url: `${apiUrl}/v1/attachments/${att.id}`,
+        }))
+      if (attachments.length === 0) attachments = undefined
+    }
+
+    // Skip if no text AND no attachments
+    if (!dataMessage.message && !attachments) return
+
     await handler.onMessage({
       platformUserId: source,
       platformUsername: source,
       platformDisplayName: envelope.sourceName ?? source,
       platformMessageId: String(dataMessage.timestamp ?? envelope.timestamp ?? Date.now()),
       platformChatId: chatId,
-      content: dataMessage.message,
+      content: dataMessage.message ?? '',
+      attachments,
     })
   }
 }
