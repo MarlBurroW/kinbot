@@ -328,3 +328,31 @@ KinBot.on('shared-data', ({ from, fromName, data, ts }) => {
 2. New template ideas: form builder improvements
 3. `KinBot.shortcut(key, callback)` — keyboard shortcut registration
 4. `KinBot.apps.list()` — list other mini-apps from the same Kin
+
+## 2026-03-02 (run 9) — DataGrid Component
+
+**What:** Implemented the `DataGrid` component in `kinbot-components.js` - an advanced data table with sorting, filtering, pagination, and row selection.
+
+**Features:**
+- **Sorting:** Click column headers to sort asc/desc with locale-aware comparison (strings + numbers)
+- **Filtering:** Per-column text filter inputs in header (opt-in via `filterable: true` on column)
+- **Pagination:** Smart page range display (ellipsis for large datasets), first/prev/next/last buttons
+- **Row selection:** Checkbox column with select-all-per-page, `onSelectionChange` callback
+- **Theming:** Full CSS variable integration (light/dark mode), hover highlighting, striped rows option
+- **Sticky header:** Optional `stickyHeader` prop for scrollable containers
+- **Accessibility:** ARIA attributes (`aria-sort`, `aria-current`, `aria-label`), keyboard-friendly
+- **Info bar:** Shows row count, filtered count, selection count, page indicator
+
+**Props:** `columns` (key, label, sortable?, filterable?, align?, width?, render?), `data`, `pageSize` (default 10), `selectable`, `onSelectionChange`, `onRowClick`, `stickyHeader`, `striped`, `emptyMessage`, `className`, `style`
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-components.js` — +~280 lines (DataGrid + pagination helpers)
+- `src/server/tools/mini-app-tools.ts` — updated DataGrid docs to match actual implementation
+
+**Tests:** 1282 pass, 0 fail. Build clean.
+
+**Next priorities:**
+1. `KinBot.notification(title, body?)` — browser notification via parent (check if already done)
+2. `KinBot.resize(width?, height?)` improvements
+3. New template: data table template using DataGrid
+4. Panel component (wrapper with title bar, collapsible?)

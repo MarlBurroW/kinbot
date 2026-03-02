@@ -544,7 +544,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                 kinName={kin.name}
                 kinRole={kin.role}
                 kinAvatarUrl={kin.avatarUrl}
-                onSendMessage={(content) => handleSend(content)}
+                onSendMessage={handleSend}
               />
             ) : (
               <div className="space-y-1">
@@ -610,10 +610,12 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       toolCalls={toolCallsByMessage.get(msg.id)}
                       injectedMemories={msg.injectedMemories}
                       isGrouped={isGrouped}
-                      onOpenTaskDetail={isTask && msg.resolvedTaskId ? () => setDetailTaskId(msg.resolvedTaskId) : undefined}
+                      messageId={msg.id}
+                      resolvedTaskId={msg.resolvedTaskId}
+                      onOpenTaskDetail={isTask && msg.resolvedTaskId ? setDetailTaskId : undefined}
                       reactions={msg.reactions}
                       currentUserId={user?.id}
-                      onToggleReaction={(emoji) => toggleReaction(msg.id, emoji)}
+                      onToggleReaction={toggleReaction}
                       onQuoteReply={handleQuoteReply}
                       onEditResend={handleEditResend}
                       onRegenerate={msg.id === lastAssistantMsgId && !isStreaming && !isProcessing ? handleRegenerate : undefined}

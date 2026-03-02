@@ -45,11 +45,13 @@ interface MessageBubbleProps {
   currentUserId?: string
   /** When true, the message is part of a consecutive group from the same sender — avatar and name are hidden, spacing is tighter. */
   isGrouped?: boolean
-  onOpenTaskDetail?: () => void
+  messageId?: string
+  resolvedTaskId?: string | null
+  onOpenTaskDetail?: (taskId: string) => void
   onRegenerate?: () => void
   onQuoteReply?: (text: string) => void
   onEditResend?: (text: string) => void
-  onToggleReaction?: (emoji: string) => void
+  onToggleReaction?: (messageId: string, emoji: string) => void
 }
 
 /** A content part is either a text segment or a group of tool calls at the same offset. */
@@ -620,6 +622,8 @@ export const MessageBubble = memo(function MessageBubble({
   files,
   reactions,
   currentUserId,
+  messageId,
+  resolvedTaskId,
   isGrouped = false,
   onOpenTaskDetail,
   onRegenerate,
@@ -627,6 +631,14 @@ export const MessageBubble = memo(function MessageBubble({
   onEditResend,
   onToggleReaction,
 }: MessageBubbleProps) {
+  const handleToggleReaction = useCallback((emoji: string) => {
+    if (onToggleReaction && messageId) onToggleReaction(messageId, emoji)
+  }, [onToggleReaction, messageId])
+
+  const handleOpenTaskDetail = useCallback(() => {
+    if (onOpenTaskDetail && resolvedTaskId) onOpenTaskDetail(resolvedTaskId)
+  }, [onOpenTaskDetail, resolvedTaskId])
+
   const isUser = role === 'user' && sourceType === 'user'
   const isFromOtherKin = sourceType === 'kin' && role === 'user'
   const isFromChannel = sourceType === 'channel'
@@ -645,7 +657,7 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Task result cards (from persisted messages)
   if (isTaskResult) {
-    return <TaskResultCard mode="message" content={content} timestamp={timestamp} avatarUrl={avatarUrl} senderName={senderName} onOpenDetail={onOpenTaskDetail} />
+    return <TaskResultCard mode="message" content={content} timestamp={timestamp} avatarUrl={avatarUrl} senderName={senderName} onOpenDetail={handleOpenTaskDetail} />
   }
 
   // System messages centered
@@ -717,7 +729,7 @@ export const MessageBubble = memo(function MessageBubble({
           {/* Injected memories indicator */}
           {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
 
-          <ReactionDisplay reactions={reactions ?? []} currentUserId={currentUserId} onToggle={onToggleReaction} />
+          <ReactionDisplay reactions={reactions ?? []} currentUserId={currentUserId} onToggle={handleToggleReaction} />
 
           <div className="flex items-center gap-1.5">
             {timestamp && (
@@ -726,7 +738,7 @@ export const MessageBubble = memo(function MessageBubble({
             <ReadingTime content={content} />
             {onRegenerate && <RegenerateButton onRegenerate={onRegenerate} />}
             <ReadAloudButton content={content} />
-            {onToggleReaction && <ReactionPicker onSelect={onToggleReaction} isUser={false} />}
+            {onToggleReaction && <ReactionPicker onSelect={handleToggleReaction} isUser={false} />}
           </div>
         </div>
       </div>
@@ -788,7 +800,7 @@ export const MessageBubble = memo(function MessageBubble({
         {/* Injected memories indicator */}
         {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
 
-        <ReactionDisplay reactions={reactions ?? []} currentUserId={currentUserId} onToggle={onToggleReaction} />
+        <ReactionDisplay reactions={reactions ?? []} currentUserId={currentUserId} onToggle={handleToggleReaction} />
 
         <div className="flex items-center gap-1.5 mt-1">
           {timestamp && (
@@ -803,7 +815,7 @@ export const MessageBubble = memo(function MessageBubble({
           {!isUser && <ReadingTime content={content} />}
           {!isUser && onRegenerate && <RegenerateButton onRegenerate={onRegenerate} />}
           {!isUser && <ReadAloudButton content={content} />}
-          {onToggleReaction && <ReactionPicker onSelect={onToggleReaction} isUser={isUser} />}
+          {onToggleReaction && <ReactionPicker onSelect={handleToggleReaction} isUser={isUser} />}
         </div>
       </div>
     </div>
