@@ -67,4 +67,22 @@
 
 "i18n":
   - changed-files:
-      - any-glob-to-any-file: "src/client/i18n/**"
+      - any-glob-to-any-file:
+          - "src/client/locales/**"
+          - "src/client/lib/i18n.ts"
+
+"mini-apps":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/mini-app*"
+          - "src/server/tools/mini-app*"
+          - "src/server/routes/mini-app*"
+          - "src/client/**/mini-app*"
+          - "src/client/**/*MiniApp*"
+
+"security":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/auth/**"
+          - "src/server/services/vault*"
+          - "SECURITY.md"

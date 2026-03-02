@@ -97,3 +97,34 @@ The day of week is particularly useful — it helps Kins reason about schedules,
 - Conversation participant awareness: inject active participant list so Kin knows who's in the chat
 - Tool descriptions: audit across all tool files for consistency
 - Channel/platform awareness: group vs DM context differentiation
+
+## 2026-03-02 (run 3) — Conversation participant awareness
+
+**Area:** System prompt quality / Conversation context
+
+**Problem:** The Kin had no awareness of who was actively participating in the conversation. While individual messages were prefixed with sender names (e.g. `[telegram:Nicolas]`), the Kin had no summary view of participants — who's active, how many messages they've sent, which platform they're on, or when they last spoke. This makes it harder to personalize responses and track multi-user conversations.
+
+**Change:**
+1. Added `ConversationParticipant` interface (`name`, `platform`, `messageCount`, `lastSeenAt`) exported from `kin-engine.ts`
+2. Extended `buildMessageHistory()` to extract participant data from filtered messages, parsing channel prefixes for platform detection and using `pseudonymMap` for web UI users
+3. Added `participants` optional param to `PromptParams` in prompt-builder
+4. Added "Active participants" section (block 6.8) to the system prompt, showing each participant with platform, message count, and recency
+
+**Example output:**
+```
+## Active participants
+
+People currently in this conversation:
+
+- Nicolas via telegram (12 msgs, last active 2h ago)
+- Marie (3 msgs, last active 1d ago)
+```
+
+**Files changed:** `src/server/services/kin-engine.ts`, `src/server/services/prompt-builder.ts`
+**Commit:** `c142211` — `feat(context): add conversation participant awareness to system prompt`
+**Tests:** 26/26 prompt-builder tests pass, build OK
+
+**Next areas to explore:**
+- Conversation context: smart token-based truncation instead of hard 50-message cap
+- Tool descriptions: audit across all tool files for consistency and when-to-use hints
+- Add a prompt-builder test for the new participants section
