@@ -674,6 +674,336 @@ const TEMPLATES: MiniAppTemplate[] = [
 </html>`,
     },
   },
+  {
+    id: 'chat',
+    name: 'Chat Interface',
+    description: 'A conversational chat interface that uses KinBot.sendMessage() to talk to the Kin and KinBot.memory to search/store memories. Great for building custom chat experiences or knowledge assistants.',
+    icon: '💬',
+    tags: ['chat', 'messaging', 'memory', 'conversational'],
+    suggestedSlug: 'chat',
+    files: {
+      'app.json': REACT_APP_JSON,
+      'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .chat-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.75rem; }
+    .chat-header h2 { font-size: 1rem; font-weight: 600; margin: 0; }
+    .chat-header .subtitle { font-size: 0.75rem; color: var(--color-muted-foreground); }
+    .messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .message { max-width: 80%; padding: 0.625rem 0.875rem; border-radius: var(--radius-lg); font-size: 0.875rem; line-height: 1.5; animation: msg-in 0.2s ease-out; }
+    .message.user { align-self: flex-end; background: var(--color-primary); color: var(--color-primary-foreground); border-bottom-right-radius: var(--radius-sm); }
+    .message.bot { align-self: flex-start; border-bottom-left-radius: var(--radius-sm); }
+    .message .time { font-size: 0.65rem; opacity: 0.6; margin-top: 0.25rem; }
+    .typing { align-self: flex-start; padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--color-muted-foreground); font-style: italic; }
+    .input-bar { padding: 0.75rem 1rem; border-top: 1px solid var(--color-border); display: flex; gap: 0.5rem; }
+    .input-bar input { flex: 1; padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-input); color: var(--color-foreground); font-size: 0.875rem; outline: none; }
+    .input-bar input:focus { border-color: var(--color-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ring) 25%, transparent); }
+    .memory-results { padding: 0.5rem 1rem; max-height: 120px; overflow-y: auto; border-top: 1px solid var(--color-border); }
+    .memory-item { font-size: 0.75rem; padding: 0.25rem 0; color: var(--color-muted-foreground); border-bottom: 1px solid var(--color-border); }
+    .memory-item:last-child { border-bottom: none; }
+    @keyframes msg-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/jsx">
+    import { useState, useRef, useEffect } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { useKinBot, useStorage, toast } from '@kinbot/react'
+    import { Button, Badge, Spinner } from '@kinbot/components'
+
+    function App() {
+      const { ready } = useKinBot()
+      if (!ready) return <div style={{ padding: '2rem', textAlign: 'center' }}><Spinner size="lg" /></div>
+      return <ChatApp />
+    }
+
+    function ChatApp() {
+      const [messages, setMessages, loading] = useStorage('chat-messages', [])
+      const [input, setInput] = useState('')
+      const [sending, setSending] = useState(false)
+      const [memories, setMemories] = useState(null)
+      const endRef = useRef(null)
+
+      useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+      const send = async () => {
+        const text = input.trim()
+        if (!text || sending) return
+        setInput('')
+        const userMsg = { role: 'user', text, time: Date.now() }
+        setMessages(prev => [...prev, userMsg])
+        setSending(true)
+        try {
+          const reply = await KinBot.sendMessage(text)
+          setMessages(prev => [...prev, { role: 'bot', text: reply?.text || reply || 'No response', time: Date.now() }])
+        } catch (err) {
+          toast('Failed to send message', 'error')
+        }
+        setSending(false)
+      }
+
+      const searchMemory = async () => {
+        const q = input.trim()
+        if (!q) return
+        try {
+          const results = await KinBot.memory.search(q, 5)
+          setMemories(results)
+        } catch { toast('Memory search failed', 'error') }
+      }
+
+      const fmt = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          <div className="chat-header glass-strong">
+            <Badge variant="primary">💬</Badge>
+            <div>
+              <h2>Chat</h2>
+              <div className="subtitle">{messages.length} messages</div>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+              <Button size="sm" variant="ghost" onClick={searchMemory} title="Search memories">🔍</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setMessages([]); setMemories(null) }} title="Clear">🗑️</Button>
+            </div>
+          </div>
+
+          <div className="messages">
+            {messages.length === 0 && (
+              <div style={{ textAlign: 'center', color: 'var(--color-muted-foreground)', padding: '3rem 1rem', fontSize: '0.875rem' }}>
+                Start a conversation. Type a message below.
+              </div>
+            )}
+            {messages.map((m, i) => (
+              <div key={i} className={"message " + m.role + (m.role === 'bot' ? ' surface-card' : '')}>
+                <div>{m.text}</div>
+                <div className="time">{fmt(m.time)}</div>
+              </div>
+            ))}
+            {sending && <div className="typing">Thinking...</div>}
+            <div ref={endRef} />
+          </div>
+
+          {memories && memories.length > 0 && (
+            <div className="memory-results glass-subtle">
+              <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-muted-foreground)', marginBottom: '0.25rem' }}>🧠 Memory results</div>
+              {memories.map((m, i) => <div key={i} className="memory-item">{m.content}</div>)}
+              <Button size="sm" variant="ghost" onClick={() => setMemories(null)} style={{ marginTop: '0.25rem', width: '100%' }}>Close</Button>
+            </div>
+          )}
+
+          <div className="input-bar glass-strong">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+              placeholder="Type a message..."
+              disabled={sending}
+            />
+            <Button onClick={send} disabled={sending || !input.trim()}>Send</Button>
+          </div>
+        </div>
+      )
+    }
+
+    createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>`,
+    },
+  },
+  {
+    id: 'settings',
+    name: 'Settings Panel',
+    description: 'A settings/preferences panel using Form, Switch, Select, and Input components with storage persistence. Great for configuration UIs.',
+    icon: '⚙️',
+    tags: ['settings', 'form', 'preferences', 'config', 'storage'],
+    suggestedSlug: 'settings',
+    files: {
+      'app.json': REACT_APP_JSON,
+      'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings</title>
+  <style>
+    body { padding: 1.5rem; max-width: 640px; margin: 0 auto; }
+    h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 0.85rem; color: var(--color-muted-foreground); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 1.5rem; }
+    .section-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted-foreground); margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border); }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 0.625rem 0; }
+    .setting-label { font-size: 0.875rem; font-weight: 500; }
+    .setting-desc { font-size: 0.75rem; color: var(--color-muted-foreground); margin-top: 0.125rem; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/jsx">
+    import { useState, useEffect } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { useKinBot, useStorage, toast } from '@kinbot/react'
+    import { Card, Switch, Select, Input, Button, Divider, Badge, Alert } from '@kinbot/components'
+
+    const DEFAULTS = {
+      notifications: true,
+      darkMode: 'auto',
+      language: 'en',
+      fontSize: '14',
+      autoSave: true,
+      compactMode: false,
+      soundEffects: true,
+      displayName: '',
+    }
+
+    function App() {
+      const { ready } = useKinBot()
+      if (!ready) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-muted-foreground)' }}>Loading...</div>
+      return <SettingsPanel />
+    }
+
+    function SettingsPanel() {
+      const [settings, setSettings, loading] = useStorage('app-settings', DEFAULTS)
+      const [dirty, setDirty] = useState(false)
+
+      if (loading) return null
+
+      const update = (key, value) => {
+        setSettings(prev => ({ ...prev, [key]: value }))
+        setDirty(true)
+      }
+
+      const save = () => {
+        setDirty(false)
+        toast('Settings saved!', 'success')
+      }
+
+      const reset = () => {
+        setSettings(DEFAULTS)
+        setDirty(true)
+        toast('Reset to defaults', 'info')
+      }
+
+      return (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+            <h2 className="gradient-primary-text">Settings</h2>
+            {dirty && <Badge variant="warning">Unsaved</Badge>}
+          </div>
+          <div className="subtitle">Configure your app preferences</div>
+
+          <Card className="section">
+            <div className="section-title">Appearance</div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Theme</div>
+                <div className="setting-desc">Choose your preferred color scheme</div>
+              </div>
+              <Select value={settings.darkMode} onChange={e => update('darkMode', e.target.value)} style={{ width: 130 }}>
+                <option value="auto">Auto</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </Select>
+            </div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Font Size</div>
+                <div className="setting-desc">Base text size in pixels</div>
+              </div>
+              <Select value={settings.fontSize} onChange={e => update('fontSize', e.target.value)} style={{ width: 130 }}>
+                <option value="12">Small (12px)</option>
+                <option value="14">Default (14px)</option>
+                <option value="16">Large (16px)</option>
+                <option value="18">Extra Large (18px)</option>
+              </Select>
+            </div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Compact Mode</div>
+                <div className="setting-desc">Reduce spacing for denser layouts</div>
+              </div>
+              <Switch checked={settings.compactMode} onChange={e => update('compactMode', e.target.checked)} />
+            </div>
+          </Card>
+
+          <Card className="section">
+            <div className="section-title">Notifications</div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Push Notifications</div>
+                <div className="setting-desc">Receive alerts for important updates</div>
+              </div>
+              <Switch checked={settings.notifications} onChange={e => update('notifications', e.target.checked)} />
+            </div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Sound Effects</div>
+                <div className="setting-desc">Play sounds for interactions</div>
+              </div>
+              <Switch checked={settings.soundEffects} onChange={e => update('soundEffects', e.target.checked)} />
+            </div>
+          </Card>
+
+          <Card className="section">
+            <div className="section-title">Profile</div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Display Name</div>
+                <div className="setting-desc">How others see you</div>
+              </div>
+              <Input value={settings.displayName} onChange={e => update('displayName', e.target.value)} placeholder="Enter name" style={{ width: 180 }} />
+            </div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Language</div>
+                <div className="setting-desc">Interface language</div>
+              </div>
+              <Select value={settings.language} onChange={e => update('language', e.target.value)} style={{ width: 130 }}>
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
+                <option value="ja">日本語</option>
+              </Select>
+            </div>
+
+            <div className="setting-row">
+              <div>
+                <div className="setting-label">Auto-Save</div>
+                <div className="setting-desc">Automatically save changes</div>
+              </div>
+              <Switch checked={settings.autoSave} onChange={e => update('autoSave', e.target.checked)} />
+            </div>
+          </Card>
+
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <Button variant="outline" onClick={reset}>Reset to Defaults</Button>
+            <Button onClick={save} disabled={!dirty}>Save Changes</Button>
+          </div>
+        </div>
+      )
+    }
+
+    createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>`,
+    },
+  },
 ]
 
 export function getTemplateById(id: string): MiniAppTemplate | undefined {
