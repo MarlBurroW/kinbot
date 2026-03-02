@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Moon, Sun, Github, Menu, X } from 'lucide-react'
+import { Moon, Sun, Github, Menu, X, Star } from 'lucide-react'
+import { useGitHubData } from './GitHubDataProvider'
 
 interface NavbarProps {
   dark: boolean
@@ -46,10 +47,20 @@ function useActiveSection() {
   return active
 }
 
+function formatStarCount(count: number): string {
+  if (count >= 1000) {
+    const k = count / 1000
+    return k % 1 === 0 ? `${k}k` : `${k.toFixed(1)}k`
+  }
+  return count.toString()
+}
+
 export function Navbar({ dark, onToggleDark }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const activeSection = useActiveSection()
+  const { repo } = useGitHubData()
+  const starCount = repo?.stars ?? null
 
   const [scrollProgress, setScrollProgress] = useState(0)
 
@@ -135,6 +146,18 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
           >
             <Github size={15} />
             GitHub
+            {starCount !== null && starCount > 0 && (
+              <span
+                className="flex items-center gap-1 ml-0.5 px-2 py-0.5 rounded-full text-xs font-semibold"
+                style={{
+                  background: 'color-mix(in oklch, var(--color-primary-foreground) 20%, transparent)',
+                  color: 'var(--color-primary-foreground)',
+                }}
+              >
+                <Star size={11} fill="currentColor" />
+                {formatStarCount(starCount)}
+              </span>
+            )}
           </a>
 
           {/* Mobile hamburger */}
@@ -207,6 +230,18 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
           >
             <Github size={15} />
             View on GitHub
+            {starCount !== null && starCount > 0 && (
+              <span
+                className="flex items-center gap-1 ml-0.5 px-2 py-0.5 rounded-full text-xs font-semibold"
+                style={{
+                  background: 'color-mix(in oklch, var(--color-primary-foreground) 20%, transparent)',
+                  color: 'var(--color-primary-foreground)',
+                }}
+              >
+                <Star size={11} fill="currentColor" />
+                {formatStarCount(starCount)}
+              </span>
+            )}
           </a>
         </div>
       )}
