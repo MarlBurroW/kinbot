@@ -59,7 +59,7 @@ export function VaultAttachmentList({ entryId }: VaultAttachmentListProps) {
       const response = await fetch(`/api/vault/attachments/${attachment.id}`, {
         credentials: 'include',
       })
-      if (!response.ok) throw new Error('Download failed')
+      if (!response.ok) throw new Error(t('vault.downloadFailed'))
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

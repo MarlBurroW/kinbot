@@ -340,7 +340,9 @@
     "processing": "Processing...",
     "modelUnavailable": "Model unavailable",
     "modelUnavailableHint": "This Kin's model is no longer available. Update the model in Kin settings or add the provider back.",
-    "modelUnavailableInput": "Cannot send messages - this Kin's model is unavailable"
+    "modelUnavailableInput": "Cannot send messages - this Kin's model is unavailable",
+    "invalidJsonFile": "Invalid JSON file",
+    "hub": "Hub"
   },
   "cron": {
     "create": {
@@ -571,7 +573,8 @@
       "hours": "{{count}}h later",
       "hoursMinutes": "{{hours}}h {{minutes}}min later"
     },
-    "quickChat": "Quick Chat"
+    "quickChat": "Quick Chat",
+    "react": "React"
   },
   "quickChat": {
     "title": "Quick Session",
@@ -1427,7 +1430,8 @@
       "card": "Card",
       "note": "Note",
       "identity": "Identity"
-    }
+    },
+    "downloadFailed": "Download failed"
   },
   "chat.stats.title": "Conversation Statistics",
   "chat.stats.totalMessages": "Total messages",

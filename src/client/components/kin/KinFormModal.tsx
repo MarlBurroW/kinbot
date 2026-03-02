@@ -213,7 +213,7 @@ export function KinFormModal({
         setWizardStep('form')
         markDirty()
       } catch {
-        setError('Invalid JSON file')
+        setError(t('kin.invalidJsonFile'))
       }
     }
     reader.readAsText(file)
@@ -501,7 +501,7 @@ export function KinFormModal({
                             <div className="flex size-7 items-center justify-center rounded-full bg-primary/20 ring-1 ring-primary/40">
                               <Network className="size-3.5 text-primary" />
                             </div>
-                            <span className="text-xs font-semibold text-primary">Hub</span>
+                            <span className="text-xs font-semibold text-primary">{t('kin.hub')}</span>
                           </div>
 
                           {/* Fan-out + Specialists — shared grid so SVG endpoints align with icon centers */}

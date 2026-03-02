@@ -427,6 +427,7 @@ function ReadingTime({ content }: { content: string }) {
 // ─── Reaction display & picker ────────────────────────────────────────────────
 
 function ReactionPicker({ onSelect, isUser }: { onSelect: (emoji: string) => void; isUser: boolean }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
   return (
@@ -439,8 +440,8 @@ function ReactionPicker({ onSelect, isUser }: { onSelect: (emoji: string) => voi
           'rounded-md p-1 hover:bg-muted/80 active:scale-95',
           'text-muted-foreground hover:text-foreground',
         )}
-        title="React"
-        aria-label="React"
+        title={t('chat.react')}
+        aria-label={t('chat.react')}
       >
         <SmilePlus className="size-3.5" />
       </button>

@@ -340,7 +340,9 @@
     "processing": "En cours...",
     "modelUnavailable": "Modèle indisponible",
     "modelUnavailableHint": "Le modèle de ce Kin n'est plus disponible. Modifiez le modèle dans les paramètres du Kin ou réajoutez le fournisseur.",
-    "modelUnavailableInput": "Envoi impossible - le modèle de ce Kin est indisponible"
+    "modelUnavailableInput": "Envoi impossible - le modèle de ce Kin est indisponible",
+    "invalidJsonFile": "Fichier JSON invalide",
+    "hub": "Hub"
   },
   "cron": {
     "create": {
@@ -571,7 +573,8 @@
       "hours": "{{count}}h plus tard",
       "hoursMinutes": "{{hours}}h {{minutes}}min plus tard"
     },
-    "quickChat": "Chat rapide"
+    "quickChat": "Chat rapide",
+    "react": "Réagir"
   },
   "quickChat": {
     "title": "Session rapide",
@@ -1427,7 +1430,8 @@
       "card": "Carte",
       "note": "Note",
       "identity": "Identité"
-    }
+    },
+    "downloadFailed": "Échec du téléchargement"
   },
   "chat.stats.title": "Statistiques de conversation",
   "chat.stats.totalMessages": "Messages totaux",
