@@ -6,7 +6,6 @@ import { Label } from '@/client/components/ui/label'
 import { Badge } from '@/client/components/ui/badge'
 import { LanguageSelector } from '@/client/components/common/LanguageSelector'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
-import { Alert, AlertDescription } from '@/client/components/ui/alert'
 import { Separator } from '@/client/components/ui/separator'
 import {
   Dialog,
@@ -15,9 +14,10 @@ import {
   DialogFooter,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import { Camera, CheckCircle2, Loader2 } from 'lucide-react'
+import { Camera, Loader2 } from 'lucide-react'
 import { useAuth } from '@/client/hooks/useAuth'
-import { api } from '@/client/lib/api'
+import { api, getErrorMessage } from '@/client/lib/api'
+import { toast } from 'sonner'
 
 interface AccountDialogProps {
   open: boolean
@@ -25,7 +25,7 @@ interface AccountDialogProps {
 }
 
 export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user, refetch } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -36,7 +36,6 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl ?? null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   // Reset form state when dialog opens
   useEffect(() => {
@@ -47,7 +46,6 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
       setLanguage(user.language ?? 'en')
       setAvatarPreview(user.avatarUrl)
       setAvatarFile(null)
-      setSaved(false)
     }
   }, [open, user])
 
@@ -63,7 +61,6 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setSaved(false)
 
     try {
       await api.patch('/me', { firstName, lastName, pseudonym, language })
@@ -80,10 +77,13 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
       }
 
       await refetch()
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    } catch {
-      // Ignore errors
+      if (language !== i18n.language) {
+        await i18n.changeLanguage(language)
+      }
+      onOpenChange(false)
+      toast.success(t('account.saved'))
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err))
     } finally {
       setIsLoading(false)
     }
@@ -149,13 +149,6 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col">
           <div className="px-6 py-5 space-y-4">
-            {saved && (
-              <Alert className="animate-scale-in border-success/30 bg-success/10">
-                <CheckCircle2 className="size-4 text-success" />
-                <AlertDescription className="text-success">{t('account.saved')}</AlertDescription>
-              </Alert>
-            )}
-
             {/* Name fields */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

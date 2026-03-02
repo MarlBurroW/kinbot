@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/client/lib/api'
+import i18n from '@/client/lib/i18n'
 
 interface UserProfile {
   id: string
@@ -29,6 +30,9 @@ export function useAuth() {
   const fetchUser = useCallback(async () => {
     try {
       const user = await api.get<UserProfile>('/me')
+      if (user.language && user.language !== i18n.language) {
+        await i18n.changeLanguage(user.language)
+      }
       setState({ user, isLoading: false, isAuthenticated: true })
     } catch {
       setState({ user: null, isLoading: false, isAuthenticated: false })
@@ -54,6 +58,9 @@ export function useAuth() {
 
     // Verify the session was actually established — throws if not
     const user = await api.get<UserProfile>('/me')
+    if (user.language && user.language !== i18n.language) {
+      await i18n.changeLanguage(user.language)
+    }
     setState({ user, isLoading: false, isAuthenticated: true })
   }
 
