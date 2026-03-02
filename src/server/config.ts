@@ -72,6 +72,7 @@ export const config = {
     consolidationSimilarityThreshold: Number(process.env.MEMORY_CONSOLIDATION_SIMILARITY ?? 0.85),
     consolidationMaxGeneration: Number(process.env.MEMORY_CONSOLIDATION_MAX_GEN ?? 5),
     consolidationModel: process.env.MEMORY_CONSOLIDATION_MODEL ?? undefined,
+    multiQueryModel: process.env.MEMORY_MULTI_QUERY_MODEL ?? undefined,
   },
 
   queue: {

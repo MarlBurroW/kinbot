@@ -1,5 +1,6 @@
 import { eq, and, like, or, desc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
+import { generateText } from 'ai'
 import { db, sqlite } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { memories } from '@/server/db/schema'
@@ -213,29 +214,68 @@ function temporalDecayWeight(updatedAt: Date | null, category: string): number {
   return Math.exp(-effectiveLambda * daysSinceUpdate)
 }
 
-// ─── Hybrid Search (FTS5 + sqlite-vec rank fusion) ───────────────────────────
+// ─── Multi-Query Generation ──────────────────────────────────────────────────
 
 /**
- * Search memories using hybrid search: semantic (sqlite-vec KNN) + textual (FTS5).
- * Results are merged via reciprocal rank fusion scoring, then weighted by temporal decay.
+ * Generate alternative query formulations to improve recall.
+ * Uses a fast/cheap LLM to create 2-3 variations of the original query,
+ * capturing different perspectives and phrasings.
  */
-export async function searchMemories(
+async function generateQueryVariations(query: string): Promise<string[]> {
+  const multiQueryModel = config.memory.multiQueryModel
+  if (!multiQueryModel) return [query]
+
+  try {
+    const { resolveLLMModel } = await import('@/server/services/kin-engine')
+    const model = await resolveLLMModel(multiQueryModel, null)
+    if (!model) return [query]
+
+    const result = await generateText({
+      model,
+      messages: [{
+        role: 'user',
+        content:
+          `Generate 3 alternative search queries for retrieving relevant memories based on this message. ` +
+          `Each query should capture a different angle or keyword emphasis.\n\n` +
+          `Original: "${query}"\n\n` +
+          `Return ONLY a JSON array of 3 strings, no explanation. Example: ["query1", "query2", "query3"]`,
+      }],
+    })
+
+    const jsonMatch = result.text.match(/\[[\s\S]*\]/)
+    if (!jsonMatch) return [query]
+
+    const variations = JSON.parse(jsonMatch[0]) as string[]
+    if (!Array.isArray(variations) || variations.length === 0) return [query]
+
+    // Return original + variations (deduplicated)
+    const all = [query, ...variations.filter((v) => typeof v === 'string' && v.trim().length > 0)]
+    return [...new Set(all)].slice(0, 4) // Cap at 4 total queries
+  } catch (err) {
+    log.debug({ err }, 'Multi-query generation failed, falling back to single query')
+    return [query]
+  }
+}
+
+// ─── Hybrid Search (FTS5 + sqlite-vec rank fusion) ───────────────────────────
+
+type ScoreMapEntry = { score: number; content: string; category: string; subject: string | null; importance: number | null; updatedAt: Date | null }
+
+/**
+ * Run hybrid search for a single query and accumulate RRF scores into a shared score map.
+ */
+async function hybridSearchSingleQuery(
   kinId: string,
   query: string,
-  limit?: number,
-): Promise<MemorySearchResult[]> {
-  const maxResults = limit ?? config.memory.maxRelevantMemories
-
-  // Run both searches in parallel
+  candidateLimit: number,
+  scoreMap: Map<string, ScoreMapEntry>,
+  K: number,
+): Promise<void> {
   const [vecResults, ftsResults] = await Promise.all([
-    searchByVector(kinId, query, maxResults * 2),
-    searchByFTS(kinId, query, maxResults * 2),
+    searchByVector(kinId, query, candidateLimit),
+    searchByFTS(kinId, query, candidateLimit),
   ])
 
-  // Reciprocal rank fusion
-  const scoreMap = new Map<string, { score: number; content: string; category: string; subject: string | null; importance: number | null; updatedAt: Date | null }>()
-
-  const K = 60 // RRF constant
   for (let i = 0; i < vecResults.length; i++) {
     const r = vecResults[i]!
     const existing = scoreMap.get(r.id)
@@ -256,15 +296,42 @@ export async function searchMemories(
       scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt })
     }
   }
+}
+
+/**
+ * Search memories using hybrid search: semantic (sqlite-vec KNN) + textual (FTS5).
+ * When multi-query is enabled, generates query variations first for better recall.
+ * Results are merged via reciprocal rank fusion scoring, then weighted by temporal decay.
+ */
+export async function searchMemories(
+  kinId: string,
+  query: string,
+  limit?: number,
+): Promise<MemorySearchResult[]> {
+  const maxResults = limit ?? config.memory.maxRelevantMemories
+  const K = 60 // RRF constant
+  const scoreMap = new Map<string, ScoreMapEntry>()
+
+  // Generate query variations if multi-query is enabled
+  const queries = config.memory.multiQueryModel
+    ? await generateQueryVariations(query)
+    : [query]
+
+  if (queries.length > 1) {
+    log.debug({ kinId, queries: queries.length }, 'Multi-query search')
+  }
+
+  // Run hybrid search for each query variation in parallel
+  const candidateLimit = maxResults * 2
+  await Promise.all(
+    queries.map((q) => hybridSearchSingleQuery(kinId, q, candidateLimit, scoreMap, K)),
+  )
 
   // Apply temporal decay and importance weighting to fused scores
-  // Formula: finalScore = rrfScore * decayWeight * importanceWeight
-  // importanceWeight normalizes importance (1-10) to a [0.5, 1.5] range
-  // Unscored memories (null) default to 5 → weight 1.0 (neutral)
   for (const [, data] of scoreMap) {
     const decay = temporalDecayWeight(data.updatedAt, data.category)
-    const imp = data.importance ?? 5 // Default: neutral importance
-    const importanceWeight = 0.5 + (imp / 10) // Maps 1→0.6, 5→1.0, 10→1.5
+    const imp = data.importance ?? 5
+    const importanceWeight = 0.5 + (imp / 10)
     data.score *= decay * importanceWeight
   }
 
