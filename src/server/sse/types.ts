@@ -54,6 +54,7 @@ export type SSEEventType =
   | 'contact:deleted'
   | 'reaction:added'
   | 'reaction:removed'
+  | 'quick-session:closed'
   | 'settings:hub-changed'
   | 'connected'
 

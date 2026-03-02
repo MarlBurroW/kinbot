@@ -300,7 +300,7 @@ sessionRoutes.post('/:id/close', async (c) => {
 
   // Notify via SSE
   sseManager.sendToKin(session!.kinId, {
-    type: 'quick-session:closed' as any,
+    type: 'quick-session:closed',
     kinId: session!.kinId,
     data: { sessionId: session!.id },
   })

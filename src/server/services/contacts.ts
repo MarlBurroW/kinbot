@@ -275,6 +275,11 @@ export function addContactIdentifier(contactId: string, label: string, value: st
     updatedAt: now,
   }).run()
 
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId },
+  })
+
   return { id, contactId, label, value, createdAt: now, updatedAt: now }
 }
 
@@ -291,6 +296,11 @@ export function updateContactIdentifier(identifierId: string, updates: { label?:
     .where(eq(contactIdentifiers.id, identifierId))
     .run()
 
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId: existing.contactId },
+  })
+
   return db.select().from(contactIdentifiers).where(eq(contactIdentifiers.id, identifierId)).get()!
 }
 
@@ -299,6 +309,12 @@ export function removeContactIdentifier(identifierId: string): boolean {
   if (!existing) return false
 
   db.delete(contactIdentifiers).where(eq(contactIdentifiers.id, identifierId)).run()
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId: existing.contactId },
+  })
+
   return true
 }
 
@@ -367,6 +383,12 @@ export function updateContactNote(noteId: string, content: string) {
   const existing = db.select().from(contactNotes).where(eq(contactNotes.id, noteId)).get()
   if (!existing) return null
   db.update(contactNotes).set({ content, updatedAt: now }).where(eq(contactNotes.id, noteId)).run()
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId: existing.contactId },
+  })
+
   return { ...existing, content, updatedAt: now }
 }
 
@@ -374,6 +396,12 @@ export function deleteContactNote(noteId: string) {
   const existing = db.select().from(contactNotes).where(eq(contactNotes.id, noteId)).get()
   if (!existing) return false
   db.delete(contactNotes).where(eq(contactNotes.id, noteId)).run()
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId: existing.contactId },
+  })
+
   return true
 }
 

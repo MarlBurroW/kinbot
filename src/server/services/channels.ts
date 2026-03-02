@@ -748,6 +748,12 @@ export function removeContactPlatformId(id: string): boolean {
   if (!existing) return false
   db.delete(contactPlatformIds).where(eq(contactPlatformIds.id, id)).run()
   log.info({ id, contactId: existing.contactId, platform: existing.platform, platformId: existing.platformId }, 'Contact platform ID removed (access revoked)')
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId: existing.contactId },
+  })
+
   return true
 }
 
@@ -762,6 +768,12 @@ export function addContactPlatformId(contactId: string, platform: string, platfo
     createdAt: now,
     updatedAt: now,
   }).run()
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId },
+  })
+
   return { id, contactId, platform, platformId, createdAt: now }
 }
 
