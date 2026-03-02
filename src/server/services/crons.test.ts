@@ -146,7 +146,7 @@ describe('CreateCronParams interface contracts', () => {
     // Kin-created crons should require approval (isActive=false by default)
     const isKinCreated = kinCron.createdBy === 'kin'
     expect(isKinCreated).toBe(true)
-    expect(userCron.createdBy === 'kin').toBe(false)
+    expect(userCron.createdBy).not.toBe('kin')
   })
 
   it('runOnce defaults to false when not specified', () => {

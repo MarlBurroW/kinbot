@@ -81,11 +81,10 @@ test.describe.serial('File Storage settings', () => {
     const fileInput = page.locator('input[type="file"]')
     await expect(fileInput).toBeVisible()
 
-    // Kin selector (scoped to dialog to avoid matching hidden triggers elsewhere)
-    const dialog = page.locator('[role="dialog"]')
-    const kinSelector = dialog.locator('[data-slot="select-trigger"]').first()
-    await kinSelector.scrollIntoViewIfNeeded()
-    await expect(kinSelector).toBeVisible()
+    // Kin selector — the upload dialog is the last [role="dialog"] (nested inside settings dialog)
+    const uploadDialog = page.locator('[role="dialog"]').last()
+    const kinSelector = uploadDialog.locator('[data-slot="select-trigger"]').first()
+    await expect(kinSelector).toBeVisible({ timeout: 5000 })
 
     // Name field
     const nameInput = page.locator('input').filter({ hasText: '' }).nth(1)
@@ -330,15 +329,15 @@ test.describe.serial('File Storage settings', () => {
     const fileName = page.getByText('Secure File.pdf')
     await expect(fileName).toBeVisible({ timeout: 5000 })
 
-    // Should show password-protected badge/icon
-    const passwordBadge = page.getByText(/password/i).first()
-    await expect(passwordBadge).toBeVisible()
+    // Should show password-protected badge (Lock icon only, no text)
+    const lockIcon = page.locator('.lucide-lock').first()
+    await expect(lockIcon).toBeVisible()
 
-    // Should show read & burn badge/icon
-    const burnBadge = page.getByText(/read.*burn/i).first()
-    await expect(burnBadge).toBeVisible()
+    // Should show read & burn badge (Flame icon only, no text)
+    const flameIcon = page.locator('.lucide-flame').first()
+    await expect(flameIcon).toBeVisible()
 
-    // Should show private badge
+    // Should show private badge (Eye icon + text)
     const privateBadge = page.getByText(/private/i).first()
     await expect(privateBadge).toBeVisible()
   })
@@ -579,8 +578,8 @@ test.describe.serial('File Storage settings', () => {
     const fileName = page.getByText('Popular File.zip')
     await expect(fileName).toBeVisible({ timeout: 5000 })
 
-    // Download count should be displayed
-    const downloads = page.getByText(/42.*download/i)
+    // Download count should be displayed (icon + number)
+    const downloads = page.getByText('42')
     await expect(downloads).toBeVisible()
   })
 })
