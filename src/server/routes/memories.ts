@@ -41,4 +41,21 @@ memoryRoutes.get('/', async (c) => {
   return c.json({ memories: result })
 })
 
+// POST /api/memories/backfill-importance — score importance for unscored memories
+memoryRoutes.post('/backfill-importance', async (c) => {
+  const { kinId } = await c.req.json<{ kinId?: string }>().catch(() => ({}))
+  const { backfillImportance } = await import('@/server/services/importance-backfill')
+  const result = await backfillImportance(kinId || undefined)
+  return c.json(result)
+})
+
+// POST /api/memories/consolidate — trigger memory consolidation manually
+memoryRoutes.post('/consolidate', async (c) => {
+  const { kinId } = await c.req.json<{ kinId: string }>()
+  if (!kinId) return c.json({ error: 'kinId is required' }, 400)
+  const { consolidateMemories } = await import('@/server/services/consolidation')
+  const removed = await consolidateMemories(kinId)
+  return c.json({ removed })
+})
+
 export { memoryRoutes }
