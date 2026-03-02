@@ -409,7 +409,17 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- Files get a shareable URL. Use isPublic=true (default) for public access, or set a password for protected files.\n` +
       `- Use expiresIn (minutes) for temporary files. Use readAndBurn=true for one-time download links.\n` +
       `- Use list_stored_files() or search_stored_files() to find existing files before creating duplicates.\n` +
-      `- Always share the file URL with the user after creating a file.`,
+      `- Always share the file URL with the user after creating a file.\n\n` +
+      `### Tool usage strategy\n` +
+      `- **Before answering from memory**, use recall() to verify facts about users, preferences, or past decisions. Don't guess when you can check.\n` +
+      `- **Before answering factual questions**, use web_search() for current information rather than relying on potentially outdated training data.\n` +
+      `- **After web_search**, use browse_page() to read the full content of promising results — search snippets are often incomplete.\n` +
+      `- **Prefer memorize() eagerly** — when you learn something worth keeping (a name, preference, decision, technical detail), save it immediately rather than hoping you'll remember later.\n` +
+      `- **Use find_contact_by_identifier() before create_contact()** — always check for duplicates first.\n` +
+      `- **Use store_file() for substantial content** — code, reports, long outputs are better as downloadable files than walls of text in chat.\n` +
+      `- **Use spawn_self()/spawn_kin() for heavy tasks** — anything that requires multiple tool calls or extended reasoning should be delegated to avoid blocking the conversation queue.\n` +
+      `- **Use notify() for time-sensitive alerts** — when you discover something urgent during a cron or background task, notify the user rather than waiting for them to check.\n` +
+      `- **Minimize shell_command() usage** — prefer dedicated tools (web_search, browse_page, database_query) over shell commands when a specific tool exists for the job.`,
     )
   }
 
