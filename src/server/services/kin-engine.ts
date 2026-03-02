@@ -296,7 +296,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           currentMessageSource = { platform: ch.platform }
           // Extract sender name from message prefix "[platform:Name] ..."
           const prefixMatch = queueItem.content.match(/^\[[\w-]+:([^\]]+)\]/)
-          if (prefixMatch) {
+          if (prefixMatch?.[1]) {
             currentMessageSource.senderName = prefixMatch[1].trim()
           }
         }

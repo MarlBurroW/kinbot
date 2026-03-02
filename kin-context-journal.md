@@ -1,5 +1,37 @@
 # Kin Context Improvement Journal
 
+## 2026-03-02 (run 8) — Current message source platform injection
+
+**Area:** Channel/platform awareness
+
+**Problem:** The Kin had a generic "Platform formatting guide" in the system prompt listing all platform capabilities, but no signal about which platform the *current* message came from. The Kin had to parse `[telegram:Name]` prefixes from message content to figure out the platform — fragile and indirect. This meant formatting adaptation was hit-or-miss.
+
+**Change:**
+1. Added `currentMessageSource` optional field to `PromptParams` with `platform` (string) and optional `senderName`
+2. In `kin-engine.ts`, resolved the platform from `queueItem.sourceType`:
+   - For channel messages: look up the channel record via `getChannelQueueMeta` → `getChannel` to get `ch.platform`
+   - For web UI messages: set platform to `"web"`
+   - Extract sender name from `[platform:Name]` prefix
+3. Added `buildCurrentMessageHint()` helper that generates a concise hint:
+   ```
+   Current message from: **telegram** (sender: Nicolas)
+   Format: Supports Markdown. Keep moderate length.
+   ```
+4. Platform-specific formatting reminders for discord, telegram, whatsapp, slack, web
+5. Injected at position [7.5], right before the Context block — last thing the Kin sees before responding
+
+**Rationale:** LLMs follow formatting instructions much better when they're specific and contextual ("this message is from WhatsApp, keep it short") vs generic ("here are 5 platforms and their capabilities"). The per-message hint eliminates the need for the Kin to parse message prefixes and provides an immediate, actionable formatting signal.
+
+**Files changed:** `src/server/services/prompt-builder.ts`, `src/server/services/kin-engine.ts`, `src/server/services/prompt-builder.test.ts`
+**Commit:** `213e78f` — `feat(context): inject current message source platform for formatting adaptation`
+**Tests:** 30/30 prompt-builder tests pass (4 new), build OK
+
+**Next areas to explore:**
+- Tool descriptions: audit across all tool files for consistency and when-to-use hints
+- Group vs DM detection: pass whether the current channel is a group or DM so the Kin adapts verbosity
+- Compacting: test the structured summary format
+- Add prompt-builder tests for participants section
+
 ## 2026-03-02 (run 7) — Structured compacting summaries with open thread tracking
 
 **Area:** Conversation context / Compacting quality
