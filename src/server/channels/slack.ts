@@ -1,4 +1,5 @@
 import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { config } from '@/server/config'
@@ -254,22 +255,59 @@ export class SlackAdapter implements ChannelAdapter {
     params: OutboundMessageParams,
   ): Promise<{ platformMessageId: string }> {
     const token = await resolveToken(cfg)
-    const chunks = splitMessage(params.content)
 
     let lastMessageTs = ''
-    for (let i = 0; i < chunks.length; i++) {
-      const body: Record<string, unknown> = {
-        channel: params.chatId,
-        text: chunks[i],
+
+    // Upload file attachments via Slack files.uploadV2
+    if (params.attachments?.length) {
+      for (const att of params.attachments) {
+        const blob = await readAttachmentBlob(att)
+        const fileName = attachmentFileName(att)
+
+        const form = new FormData()
+        form.append('file', blob, fileName)
+        form.append('channels', params.chatId)
+        form.append('filename', fileName)
+        if (params.content && params.attachments.length === 1) {
+          form.append('initial_comment', params.content)
+        }
+        if (params.replyToMessageId) {
+          form.append('thread_ts', params.replyToMessageId)
+        }
+
+        const resp = await fetch(`${SLACK_API}/files.upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        })
+        const data = await resp.json() as { ok: boolean; file?: { shares?: Record<string, unknown> }; error?: string }
+        if (!data.ok) {
+          throw new Error(`Slack files.upload failed: ${data.error ?? 'Unknown error'}`)
+        }
       }
 
-      // Reply in thread if replyToMessageId is set
-      if (params.replyToMessageId) {
-        body.thread_ts = params.replyToMessageId
+      // If initial_comment covered the text, we're done
+      if (!params.content || params.attachments.length === 1) {
+        return { platformMessageId: lastMessageTs || String(Date.now()) }
       }
+    }
 
-      const result = await slackApi(token, 'chat.postMessage', body)
-      lastMessageTs = result.ts as string
+    // Send text message
+    if (params.content) {
+      const chunks = splitMessage(params.content)
+      for (let i = 0; i < chunks.length; i++) {
+        const body: Record<string, unknown> = {
+          channel: params.chatId,
+          text: chunks[i],
+        }
+
+        if (params.replyToMessageId) {
+          body.thread_ts = params.replyToMessageId
+        }
+
+        const result = await slackApi(token, 'chat.postMessage', body)
+        lastMessageTs = result.ts as string
+      }
     }
 
     return { platformMessageId: lastMessageTs }

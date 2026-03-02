@@ -1,4 +1,5 @@
 import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { createLogger } from '@/server/logger'
@@ -341,8 +342,51 @@ export class DiscordAdapter implements ChannelAdapter {
     params: OutboundMessageParams,
   ): Promise<{ platformMessageId: string }> {
     const token = await resolveToken(cfg)
-    const chunks = splitMessage(params.content)
 
+    // If attachments, use multipart/form-data
+    if (params.attachments?.length) {
+      const form = new FormData()
+      const payload: Record<string, unknown> = {}
+      if (params.content) payload.content = params.content.slice(0, MAX_MESSAGE_LENGTH)
+      if (params.replyToMessageId) payload.message_reference = { message_id: params.replyToMessageId }
+
+      // Discord supports up to 10 attachments per message
+      const attachmentsMeta: Array<{ id: number; filename: string }> = []
+      for (let i = 0; i < Math.min(params.attachments.length, 10); i++) {
+        const att = params.attachments[i]
+        const blob = await readAttachmentBlob(att)
+        const fileName = attachmentFileName(att)
+        form.append(`files[${i}]`, blob, fileName)
+        attachmentsMeta.push({ id: i, filename: fileName })
+      }
+      payload.attachments = attachmentsMeta
+      form.append('payload_json', JSON.stringify(payload))
+
+      const resp = await fetch(`${DISCORD_API}/channels/${params.chatId}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bot ${token}` },
+        body: form,
+      })
+      if (!resp.ok) {
+        const text = await resp.text()
+        throw new Error(`Discord API POST /messages failed (${resp.status}): ${text}`)
+      }
+      const result = await resp.json() as { id: string }
+
+      // If content was too long, send remaining chunks as follow-up text
+      if (params.content && params.content.length > MAX_MESSAGE_LENGTH) {
+        const remaining = params.content.slice(MAX_MESSAGE_LENGTH)
+        for (const chunk of splitMessage(remaining)) {
+          const r = await discordApi(token, 'POST', `/channels/${params.chatId}/messages`, { content: chunk }) as { id: string }
+          return { platformMessageId: r.id }
+        }
+      }
+
+      return { platformMessageId: result.id }
+    }
+
+    // Text-only path
+    const chunks = splitMessage(params.content)
     let lastMessageId = ''
     for (let i = 0; i < chunks.length; i++) {
       const body: Record<string, unknown> = {

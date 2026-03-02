@@ -1,4 +1,5 @@
 import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelPlatform } from '@/shared/types'
 import { getSecretValue } from '@/server/services/vault'
 import { config } from '@/server/config'
@@ -138,10 +139,23 @@ export class SignalAdapter implements ChannelAdapter {
     const phone = getPhoneNumber(cfg)
     const chunks = splitMessage(params.content)
 
+    // Prepare base64 attachments if any
+    let base64Attachments: Array<string> | undefined
+    if (params.attachments?.length) {
+      base64Attachments = []
+      for (const att of params.attachments) {
+        const blob = await readAttachmentBlob(att)
+        const buffer = await blob.arrayBuffer()
+        const base64 = Buffer.from(buffer).toString('base64')
+        const dataUri = `data:${att.mimeType};filename=${attachmentFileName(att)};base64,${base64}`
+        base64Attachments.push(dataUri)
+      }
+    }
+
     let lastTimestamp = ''
-    for (const chunk of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
       const body: Record<string, unknown> = {
-        message: chunk,
+        message: chunks[i],
         number: phone,
         // chatId is either a phone number (DM) or a group ID (base64)
         ...(params.chatId.startsWith('+')
@@ -149,8 +163,13 @@ export class SignalAdapter implements ChannelAdapter {
           : { recipients: [], group_id: params.chatId }),
       }
 
-      if (params.replyToMessageId) {
+      if (i === 0 && params.replyToMessageId) {
         body.quote = { id: Number(params.replyToMessageId) }
+      }
+
+      // Attach files to the first chunk only
+      if (i === 0 && base64Attachments?.length) {
+        body.base64_attachments = base64Attachments
       }
 
       const result = await signalApi(apiUrl, 'POST', `/v2/send`, body) as {
