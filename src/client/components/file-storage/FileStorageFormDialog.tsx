@@ -145,7 +145,7 @@ export function FileStorageFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
           <FormErrorAlert error={error} />
 
           {!isEditing && (
