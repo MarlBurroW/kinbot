@@ -88,4 +88,5 @@ jobs:
           branch: gh-pages
           folder: playwright-report
           target-folder: e2e-report
+          single-commit: true
           commit-message: 'chore: update E2E test report'

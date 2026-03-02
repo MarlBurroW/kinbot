@@ -111,4 +111,5 @@ jobs:
           branch: gh-pages
           folder: showcase-videos
           target-folder: showcase
+          single-commit: true
           commit-message: 'chore: update showcase videos'
