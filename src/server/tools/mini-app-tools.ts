@@ -105,7 +105,12 @@ export const createMiniAppTool: ToolRegistration = {
         '`KinBot.user` → {id, name, pseudonym, locale, timezone, avatarUrl} (info about the current user). ' +
         '`KinBot.resize(width?, height?)` → request panel resize (width: 320-1200px, height: 200-2000px). ' +
         '`KinBot.notification(title, body?)` → Promise<boolean> (show a browser notification via the parent window). ' +
-        '`KinBot.shortcut(key, callback)` → register keyboard shortcuts (e.g. "ctrl+k", "meta+shift+p", "escape"). Returns unregister function. Pass null to remove.',
+        '`KinBot.shortcut(key, callback)` → register keyboard shortcuts (e.g. "ctrl+k", "meta+shift+p", "escape"). Returns unregister function. Pass null to remove. ' +
+        '`KinBot.apps.list()` → Promise<Array> (list all mini-apps from the same Kin: {id, name, slug, description, icon, version}). ' +
+        '`KinBot.apps.get(appId)` → Promise<object> (get details of a specific mini-app). ' +
+        '`KinBot.conversation.history(limit?)` → Promise<Array> (get recent messages: {id, role, content, createdAt, sourceType}; default 20, max 100). ' +
+        '`KinBot.conversation.send(text, options?)` → Promise<boolean> (send a message to the Kin; alias of sendMessage). ' +
+        '`KinBot.share(targetSlug, data)` → Promise<boolean> (share JSON data with another mini-app and open it).',
       inputSchema: z.object({
         name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
         slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),

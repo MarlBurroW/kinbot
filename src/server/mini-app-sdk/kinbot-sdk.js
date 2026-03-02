@@ -34,6 +34,11 @@
  *   KinBot.user — info about the current user (id, name, pseudonym, locale, timezone, avatarUrl)
  *   KinBot.resize(width?, height?) — request the parent panel to resize
  *   KinBot.notification(title, body?) — show a browser notification via the parent (returns Promise<boolean>)
+ *   KinBot.apps.list() — list all mini-apps from the same Kin
+ *   KinBot.apps.get(appId) — get details of a specific mini-app
+ *   KinBot.conversation.history(limit?) — get recent conversation messages
+ *   KinBot.conversation.send(text, options?) — send a message to the Kin's conversation
+ *   KinBot.share(targetSlug, data) — share data with another mini-app and open it
  *   KinBot.locale — current UI language code (e.g. 'en', 'fr')
  *   KinBot.on('locale-changed', cb) — listen for language changes (cb receives {locale})
  *   KinBot.events — real-time event stream from backend (_server.js)
@@ -861,6 +866,104 @@
     }
   })
 
+  // ─── Apps (sibling mini-apps) ──────────────────────────────────────────
+
+  var apps = {
+    /**
+     * List all mini-apps from the same Kin.
+     * @returns {Promise<Array<{id: string, name: string, slug: string, description: string, icon: string, version: number}>>}
+     */
+    list: function () {
+      if (!_appMeta || !_kinInfo || !_kinInfo.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+      return fetch('/api/mini-apps?kinId=' + encodeURIComponent(_kinInfo.id))
+        .then(function (r) {
+          if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'Failed to list apps') })
+          return r.json()
+        })
+        .then(function (d) {
+          return (d.apps || []).map(function (a) {
+            return { id: a.id, name: a.name, slug: a.slug, description: a.description, icon: a.icon, version: a.version }
+          })
+        })
+    },
+
+    /**
+     * Get details of a specific mini-app by ID.
+     * @param {string} appId
+     * @returns {Promise<object>}
+     */
+    get: function (appId) {
+      return fetch('/api/mini-apps/' + encodeURIComponent(appId))
+        .then(function (r) {
+          if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'App not found') })
+          return r.json()
+        })
+        .then(function (d) { return d.app })
+    },
+  }
+
+  // ─── Conversation ────────────────────────────────────────────────────────
+
+  var conversation = {
+    /**
+     * Get recent conversation messages for the parent Kin.
+     * @param {number} [limit=20] — number of messages to fetch (max 100)
+     * @returns {Promise<Array<{id: string, role: string, content: string, createdAt: string, sourceType: string}>>}
+     */
+    history: function (limit) {
+      if (!_appMeta || !_kinInfo || !_kinInfo.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+      var n = Math.min(Math.max(1, limit || 20), 100)
+      return fetch('/api/kins/' + encodeURIComponent(_kinInfo.id) + '/messages?limit=' + n)
+        .then(function (r) {
+          if (!r.ok) return r.json().then(function (d) { throw new Error(d.error?.message || 'Failed to fetch history') })
+          return r.json()
+        })
+        .then(function (d) {
+          return (d.messages || []).map(function (m) {
+            return {
+              id: m.id,
+              role: m.messageType || m.role,
+              content: m.content,
+              createdAt: m.createdAt,
+              sourceType: m.sourceType,
+            }
+          })
+        })
+    },
+
+    /**
+     * Send a message to the Kin's conversation.
+     * Uses postMessage to the parent (which handles rate limiting and prefixing).
+     * @param {string} text — message content (max 2000 chars)
+     * @param {object} [options]
+     * @param {boolean} [options.silent] — if true, don't show a toast confirmation
+     * @returns {Promise<boolean>} — true if sent successfully
+     */
+    send: function (text, options) {
+      return sendMessage(text, options)
+    },
+  }
+
+  // ─── Share (inter-app data) ──────────────────────────────────────────────
+
+  /**
+   * Share data with another mini-app by slug. Data is stored in the sender's storage
+   * under a special key and the target app is opened.
+   * The target app can read shared data via KinBot.on('shared-data', callback).
+   * @param {string} targetSlug — slug of the target mini-app
+   * @param {any} data — JSON-serializable data to share
+   */
+  function share(targetSlug, data) {
+    if (!_appMeta || !_appMeta.id) return Promise.reject(new Error('App not ready — call KinBot.ready() first'))
+    // Store the shared data in sender's storage with a key the target can read
+    var shareKey = '__share__' + targetSlug
+    return storage.set(shareKey, { from: _appMeta.slug || _appMeta.id, data: data, ts: Date.now() })
+      .then(function () {
+        openApp(targetSlug)
+        return true
+      })
+  }
+
   // ─── Public API ─────────────────────────────────────────────────────────
 
   window.KinBot = {
@@ -890,6 +993,9 @@
     resize: resize,
     notification: notification,
     shortcut: shortcut,
-    version: '1.13.0',
+    apps: apps,
+    conversation: conversation,
+    share: share,
+    version: '1.14.0',
   }
 })()
