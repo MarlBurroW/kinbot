@@ -1,5 +1,28 @@
 # Kin Context Improvement Journal
 
+## 2026-03-03 (run 10) — Group vs one-on-one conversation awareness
+
+**Area:** Channel/platform awareness / System prompt quality
+
+**Problem:** The Kin already knows who the participants are (from run 3), but doesn't know whether it's in a group conversation or a one-on-one chat. This distinction matters for behavior: in groups, responses should be concise, address people by name, and avoid lengthy monologues. In 1-on-1 conversations, the Kin can be more detailed and personalized.
+
+**Change:** Enhanced the "Active participants" section in the system prompt to include a conversation type hint:
+- When multiple unique participants exist → labeled as "group conversation" with guidance to keep responses focused, address people by name, and avoid derailing the group flow
+- When only one participant → labeled as "one-on-one conversation" with permission to be more detailed and personalized
+- Uses `Set` of participant names to determine unique humans (avoids counting the same person from different platforms twice)
+
+**Rationale:** This is a natural extension of the participant awareness (run 3) and multi-user guidance (run 5). Those runs told the Kin *who* is present and *how* to handle multi-user conversations, but didn't tell it *what kind* of conversation it's in. The group/DM distinction is one of the strongest signals for response calibration.
+
+**Files changed:** `src/server/services/prompt-builder.ts`
+**Commit:** `886a339` (merged with test commit due to pre-commit hook issue)
+**Tests:** 1322/1322 pass, build OK
+
+**Next areas to explore:**
+- Add prompt-builder tests for group/DM awareness, participants, tool usage strategy, and multi-user sections
+- Tool descriptions: audit across all tool files for consistency and when-to-use hints
+- Memory injection: add category grouping (facts vs preferences vs decisions) for clearer presentation
+- Compacting: consider injecting key open threads as a separate high-priority section
+
 ## 2026-03-03 (run 9) — Conversation state awareness
 
 **Area:** System prompt quality / Conversation context
