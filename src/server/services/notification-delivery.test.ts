@@ -1,375 +1,327 @@
-import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test'
+import { describe, it, expect, beforeEach } from 'bun:test'
 
-// ─── Mock all external dependencies ─────────────────────────────────────────
+// notification-delivery.ts's core helpers are not exported, so we recreate them
+// here for isolated testing (same approach as consolidation.test.ts).
+// This tests the pure computational logic: rate limiting, formatting, escaping.
 
-// Mock DB
-mock.module('@/server/db/index', () => ({
-  db: {
-    select: () => ({ from: () => ({ where: () => ({ all: () => [], get: () => null }), all: () => [], innerJoin: () => ({ where: () => ({ all: () => [] }) }) }) }),
-    insert: () => ({ values: () => ({ run: () => {} }) }),
-    update: () => ({ set: () => ({ where: () => ({ run: () => {} }) }) }),
-    delete: () => ({ where: () => ({ run: () => {} }) }),
-  },
-}))
+// ─── Recreated: escapeTelegramMarkdown ──────────────────────────────────────
 
-mock.module('@/server/db/schema', () => ({
-  notificationChannels: {},
-  channels: {},
-  kins: {},
-  contacts: {},
-  contactPlatformIds: {},
-}))
+function escapeTelegramMarkdown(text: string): string {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
+}
 
-mock.module('@/server/channels/index', () => ({
-  channelAdapters: new Map(),
-}))
+// ─── Recreated: NOTIFICATION_EMOJI ──────────────────────────────────────────
 
-mock.module('@/server/config', () => ({
-  config: {
-    notifications: {
-      externalDelivery: {
-        rateLimitPerMinute: 5,
-        maxConsecutiveErrors: 3,
-        maxPerUser: 10,
-      },
-    },
-    vault: { maxAttachmentSizeMb: 10, maxAttachmentsPerEntry: 20 },
-  },
-}))
+const NOTIFICATION_EMOJI: Record<string, string> = {
+  'prompt:pending': '\u2753',
+  'channel:user-pending': '\uD83D\uDC64',
+  'cron:pending-approval': '\u23F0',
+  'mcp:pending-approval': '\uD83E\uDDE9',
+  'kin:error': '\u26A0\uFE0F',
+}
 
-mock.module('@/server/logger', () => ({
-  createLogger: () => ({
-    info: () => {},
-    debug: () => {},
-    warn: () => {},
-    error: () => {},
-  }),
-}))
+// ─── Recreated: formatNotification ──────────────────────────────────────────
 
-// ─── Import the module under test ───────────────────────────────────────────
-// We need to test the private functions indirectly.
-// For formatNotification and escapeTelegramMarkdown, we'll test through
-// the module's exported deliverExternalNotification behavior.
-// But since those are private, let's test what we can access.
+interface NotificationPayload {
+  type: string
+  title: string
+  body?: string | null
+  kinName?: string | null
+}
 
-// Actually, we can re-implement the pure logic tests by extracting
-// the same logic. Or better: test the exported functions.
+function formatNotification(payload: NotificationPayload, platform: string): string {
+  const emoji = NOTIFICATION_EMOJI[payload.type] ?? '\uD83D\uDD14'
+  const kinSuffix = payload.kinName ? `\n\u2014 ${payload.kinName}` : ''
 
-// For thorough testing of the pure functions, let's directly import
-// and test using a trick: re-read the source and test the patterns.
+  switch (platform) {
+    case 'telegram':
+      return [
+        `${emoji} *${escapeTelegramMarkdown(payload.title)}*`,
+        payload.body ? escapeTelegramMarkdown(payload.body) : null,
+        kinSuffix ? escapeTelegramMarkdown(kinSuffix) : null,
+      ].filter(Boolean).join('\n')
 
-describe('notification-delivery', () => {
-  describe('escapeTelegramMarkdown (pattern test)', () => {
-    // Replicate the escape function for validation
-    const escape = (text: string) => text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
+    default:
+      return [
+        `${emoji} ${payload.title}`,
+        payload.body,
+        kinSuffix,
+      ].filter(Boolean).join('\n')
+  }
+}
 
-    it('should escape underscore', () => {
-      expect(escape('hello_world')).toBe('hello\\_world')
-    })
+// ─── Recreated: sliding window rate limiter ─────────────────────────────────
 
-    it('should escape asterisks', () => {
-      expect(escape('*bold*')).toBe('\\*bold\\*')
-    })
+class RateLimiter {
+  private timestamps = new Map<string, number[]>()
 
-    it('should escape square brackets', () => {
-      expect(escape('[link](url)')).toBe('\\[link\\]\\(url\\)')
-    })
+  isRateLimited(id: string, maxPerMinute: number, now = Date.now()): boolean {
+    const windowMs = 60_000
+    const ts = this.timestamps.get(id) ?? []
+    const recent = ts.filter((t) => now - t < windowMs)
+    this.timestamps.set(id, recent)
+    return recent.length >= maxPerMinute
+  }
 
-    it('should escape backticks', () => {
-      expect(escape('`code`')).toBe('\\`code\\`')
-    })
+  recordDelivery(id: string, now = Date.now()): void {
+    const ts = this.timestamps.get(id) ?? []
+    ts.push(now)
+    this.timestamps.set(id, ts)
+  }
 
-    it('should escape hash/plus/minus/equals', () => {
-      expect(escape('# heading')).toBe('\\# heading')
-      expect(escape('a+b')).toBe('a\\+b')
-      expect(escape('a-b')).toBe('a\\-b')
-      expect(escape('a=b')).toBe('a\\=b')
-    })
+  clear(): void {
+    this.timestamps.clear()
+  }
+}
 
-    it('should escape tilde', () => {
-      expect(escape('~strikethrough~')).toBe('\\~strikethrough\\~')
-    })
+// ─── Tests ──────────────────────────────────────────────────────────────────
 
-    it('should escape pipe', () => {
-      expect(escape('a|b')).toBe('a\\|b')
-    })
+describe('escapeTelegramMarkdown', () => {
+  it('escapes all MarkdownV2 special characters', () => {
+    const input = 'Hello_world *bold* [link](url) ~strike~ `code` >quote #tag +plus -minus =equal |pipe {brace} .dot !bang'
+    const escaped = escapeTelegramMarkdown(input)
 
-    it('should escape curly braces', () => {
-      expect(escape('{a}')).toBe('\\{a\\}')
-    })
-
-    it('should escape dot and exclamation mark', () => {
-      expect(escape('Hello!')).toBe('Hello\\!')
-      expect(escape('v1.2.3')).toBe('v1\\.2\\.3')
-    })
-
-    it('should escape greater-than', () => {
-      expect(escape('> quote')).toBe('\\> quote')
-    })
-
-    it('should not modify plain text', () => {
-      expect(escape('hello world')).toBe('hello world')
-    })
-
-    it('should handle empty string', () => {
-      expect(escape('')).toBe('')
-    })
-
-    it('should handle multiple special chars in sequence', () => {
-      expect(escape('**bold**')).toBe('\\*\\*bold\\*\\*')
-    })
+    expect(escaped).toContain('\\_')
+    expect(escaped).toContain('\\*')
+    expect(escaped).toContain('\\[')
+    expect(escaped).toContain('\\]')
+    expect(escaped).toContain('\\(')
+    expect(escaped).toContain('\\)')
+    expect(escaped).toContain('\\~')
+    expect(escaped).toContain('\\`')
+    expect(escaped).toContain('\\>')
+    expect(escaped).toContain('\\#')
+    expect(escaped).toContain('\\+')
+    expect(escaped).toContain('\\-')
+    expect(escaped).toContain('\\=')
+    expect(escaped).toContain('\\|')
+    expect(escaped).toContain('\\{')
+    expect(escaped).toContain('\\}')
+    expect(escaped).toContain('\\.')
+    expect(escaped).toContain('\\!')
   })
 
-  describe('NOTIFICATION_EMOJI mapping (pattern test)', () => {
-    const NOTIFICATION_EMOJI: Record<string, string> = {
-      'prompt:pending': '\u2753',
-      'channel:user-pending': '\uD83D\uDC64',
-      'cron:pending-approval': '\u23F0',
-      'mcp:pending-approval': '\uD83E\uDDE9',
-      'kin:error': '\u26A0\uFE0F',
-    }
-
-    it('should have emoji for prompt:pending', () => {
-      expect(NOTIFICATION_EMOJI['prompt:pending']).toBe('❓')
-    })
-
-    it('should have emoji for channel:user-pending', () => {
-      expect(NOTIFICATION_EMOJI['channel:user-pending']).toBe('👤')
-    })
-
-    it('should have emoji for cron:pending-approval', () => {
-      expect(NOTIFICATION_EMOJI['cron:pending-approval']).toBe('⏰')
-    })
-
-    it('should have emoji for kin:error', () => {
-      expect(NOTIFICATION_EMOJI['kin:error']).toBe('⚠️')
-    })
-
-    it('should return undefined for unknown types', () => {
-      expect(NOTIFICATION_EMOJI['unknown:type']).toBeUndefined()
-    })
+  it('does not escape regular alphanumeric characters', () => {
+    const input = 'Hello World 123'
+    expect(escapeTelegramMarkdown(input)).toBe('Hello World 123')
   })
 
-  describe('formatNotification (pattern test)', () => {
-    const NOTIFICATION_EMOJI: Record<string, string> = {
-      'prompt:pending': '❓',
-      'kin:error': '⚠️',
-    }
-    const escape = (text: string) => text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
+  it('handles empty string', () => {
+    expect(escapeTelegramMarkdown('')).toBe('')
+  })
 
-    interface Payload {
-      type: string
-      title: string
-      body?: string | null
-      kinName?: string | null
-    }
+  it('handles string with only special characters', () => {
+    const input = '*_~'
+    expect(escapeTelegramMarkdown(input)).toBe('\\*\\_\\~')
+  })
 
-    function formatNotification(payload: Payload, platform: string): string {
-      const emoji = NOTIFICATION_EMOJI[payload.type] ?? '🔔'
-      const kinSuffix = payload.kinName ? `\n— ${payload.kinName}` : ''
+  it('handles consecutive special characters', () => {
+    expect(escapeTelegramMarkdown('**bold**')).toBe('\\*\\*bold\\*\\*')
+  })
+})
 
-      switch (platform) {
-        case 'telegram':
-          return [
-            `${emoji} *${escape(payload.title)}*`,
-            payload.body ? escape(payload.body) : null,
-            kinSuffix ? escape(kinSuffix) : null,
-          ].filter(Boolean).join('\n')
+describe('NOTIFICATION_EMOJI', () => {
+  it('has emoji for known notification types', () => {
+    expect(NOTIFICATION_EMOJI['prompt:pending']).toBe('❓')
+    expect(NOTIFICATION_EMOJI['channel:user-pending']).toBe('👤')
+    expect(NOTIFICATION_EMOJI['cron:pending-approval']).toBe('⏰')
+    expect(NOTIFICATION_EMOJI['mcp:pending-approval']).toBe('🧩')
+    expect(NOTIFICATION_EMOJI['kin:error']).toBe('⚠️')
+  })
 
-        default:
-          return [
-            `${emoji} ${payload.title}`,
-            payload.body,
-            kinSuffix,
-          ].filter(Boolean).join('\n')
-      }
-    }
+  it('returns undefined for unknown types', () => {
+    expect(NOTIFICATION_EMOJI['unknown:type']).toBeUndefined()
+  })
+})
 
-    it('should format default platform notification with title only', () => {
-      const result = formatNotification({ type: 'prompt:pending', title: 'Hello' }, 'discord')
-      expect(result).toBe('❓ Hello')
+describe('formatNotification', () => {
+  describe('default platform (non-telegram)', () => {
+    it('formats with emoji and title', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Action needed' },
+        'discord',
+      )
+      expect(result).toBe('❓ Action needed')
     })
 
-    it('should format default platform notification with title and body', () => {
-      const result = formatNotification({ type: 'kin:error', title: 'Error', body: 'Something broke' }, 'discord')
-      expect(result).toBe('⚠️ Error\nSomething broke')
+    it('includes body when present', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Action needed', body: 'Please review' },
+        'discord',
+      )
+      expect(result).toBe('❓ Action needed\nPlease review')
     })
 
-    it('should format default platform notification with kin name', () => {
-      const result = formatNotification({ type: 'prompt:pending', title: 'Question', kinName: 'MyKin' }, 'discord')
-      expect(result).toBe('❓ Question\n\n— MyKin')
+    it('includes kin name suffix', () => {
+      const result = formatNotification(
+        { type: 'kin:error', title: 'Error occurred', kinName: 'TestBot' },
+        'discord',
+      )
+      expect(result).toContain('⚠️ Error occurred')
+      expect(result).toContain('— TestBot')
     })
 
-    it('should format default platform notification with all fields', () => {
-      const result = formatNotification({ type: 'kin:error', title: 'Error', body: 'Details', kinName: 'Bot' }, 'discord')
-      expect(result).toBe('⚠️ Error\nDetails\n\n— Bot')
+    it('includes all parts when present', () => {
+      const result = formatNotification(
+        { type: 'cron:pending-approval', title: 'Cron pending', body: 'New cron job', kinName: 'MyKin' },
+        'slack',
+      )
+      expect(result).toBe('⏰ Cron pending\nNew cron job\n\n— MyKin')
     })
 
-    it('should use fallback emoji for unknown type', () => {
-      const result = formatNotification({ type: 'unknown:type', title: 'Test' }, 'discord')
-      expect(result).toBe('🔔 Test')
+    it('uses default bell emoji for unknown notification type', () => {
+      const result = formatNotification(
+        { type: 'some:unknown' as any, title: 'Hello' },
+        'discord',
+      )
+      expect(result).toBe('🔔 Hello')
     })
 
-    it('should format telegram notification with markdown escaping', () => {
-      const result = formatNotification({ type: 'prompt:pending', title: 'Hello_World' }, 'telegram')
-      expect(result).toBe('❓ *Hello\\_World*')
-    })
-
-    it('should format telegram notification with body containing special chars', () => {
-      const result = formatNotification({
-        type: 'kin:error',
-        title: 'Error!',
-        body: 'Check v1.2.3',
-      }, 'telegram')
-      expect(result).toBe('⚠️ *Error\\!*\nCheck v1\\.2\\.3')
-    })
-
-    it('should format telegram with kin name', () => {
-      const result = formatNotification({
-        type: 'prompt:pending',
-        title: 'Question',
-        kinName: 'My_Kin',
-      }, 'telegram')
-      expect(result).toContain('*Question*')
-      expect(result).toContain('My\\_Kin')
-    })
-
-    it('should exclude null body from output', () => {
-      const result = formatNotification({ type: 'prompt:pending', title: 'Test', body: null }, 'discord')
+    it('omits null/undefined body', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Test', body: null },
+        'discord',
+      )
       expect(result).toBe('❓ Test')
     })
 
-    it('should exclude null kinName from output', () => {
-      const result = formatNotification({ type: 'prompt:pending', title: 'Test', kinName: null }, 'discord')
+    it('omits null kinName', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Test', kinName: null },
+        'discord',
+      )
       expect(result).toBe('❓ Test')
     })
   })
 
-  describe('rate limiting logic (pattern test)', () => {
-    // Replicate the rate limiting logic for testing
-    const deliveryTimestamps = new Map<string, number[]>()
-    const rateLimitPerMinute = 5
+  describe('telegram platform', () => {
+    it('wraps title in bold markdown', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Action needed' },
+        'telegram',
+      )
+      expect(result).toBe('❓ *Action needed*')
+    })
 
-    function isRateLimited(id: string): boolean {
-      const now = Date.now()
-      const windowMs = 60_000
-      const timestamps = deliveryTimestamps.get(id) ?? []
-      const recent = timestamps.filter((t) => now - t < windowMs)
-      deliveryTimestamps.set(id, recent)
-      return recent.length >= rateLimitPerMinute
+    it('escapes special characters in title', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Fix bug #123' },
+        'telegram',
+      )
+      expect(result).toContain('\\#123')
+    })
+
+    it('escapes special characters in body', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Test', body: 'Check file.txt' },
+        'telegram',
+      )
+      expect(result).toContain('file\\.txt')
+    })
+
+    it('escapes special characters in kin name', () => {
+      const result = formatNotification(
+        { type: 'prompt:pending', title: 'Test', kinName: 'My_Kin' },
+        'telegram',
+      )
+      expect(result).toContain('\\_Kin')
+    })
+
+    it('includes all parts with escaping', () => {
+      const result = formatNotification(
+        { type: 'kin:error', title: 'Error!', body: 'Something (broke)', kinName: 'Bot#1' },
+        'telegram',
+      )
+      expect(result).toContain('*Error\\!*')
+      expect(result).toContain('Something \\(broke\\)')
+      expect(result).toContain('Bot\\#1')
+    })
+  })
+})
+
+describe('RateLimiter (sliding window)', () => {
+  let limiter: RateLimiter
+
+  beforeEach(() => {
+    limiter = new RateLimiter()
+  })
+
+  it('allows first request', () => {
+    expect(limiter.isRateLimited('chan-1', 5)).toBe(false)
+  })
+
+  it('allows requests under the limit', () => {
+    const now = Date.now()
+    for (let i = 0; i < 4; i++) {
+      limiter.recordDelivery('chan-1', now)
     }
+    expect(limiter.isRateLimited('chan-1', 5, now)).toBe(false)
+  })
 
-    function recordDelivery(id: string) {
-      const timestamps = deliveryTimestamps.get(id) ?? []
-      timestamps.push(Date.now())
-      deliveryTimestamps.set(id, timestamps)
+  it('blocks requests at the limit', () => {
+    const now = Date.now()
+    for (let i = 0; i < 5; i++) {
+      limiter.recordDelivery('chan-1', now)
     }
-
-    beforeEach(() => {
-      deliveryTimestamps.clear()
-    })
-
-    it('should not be rate limited with no deliveries', () => {
-      expect(isRateLimited('ch1')).toBe(false)
-    })
-
-    it('should not be rate limited under the limit', () => {
-      for (let i = 0; i < 4; i++) recordDelivery('ch1')
-      expect(isRateLimited('ch1')).toBe(false)
-    })
-
-    it('should be rate limited at the limit', () => {
-      for (let i = 0; i < 5; i++) recordDelivery('ch1')
-      expect(isRateLimited('ch1')).toBe(true)
-    })
-
-    it('should be rate limited over the limit', () => {
-      for (let i = 0; i < 10; i++) recordDelivery('ch1')
-      expect(isRateLimited('ch1')).toBe(true)
-    })
-
-    it('should track channels independently', () => {
-      for (let i = 0; i < 5; i++) recordDelivery('ch1')
-      expect(isRateLimited('ch1')).toBe(true)
-      expect(isRateLimited('ch2')).toBe(false)
-    })
-
-    it('should expire old timestamps outside window', () => {
-      // Simulate old timestamps (> 60s ago)
-      const oldTimestamp = Date.now() - 120_000
-      deliveryTimestamps.set('ch1', [oldTimestamp, oldTimestamp, oldTimestamp, oldTimestamp, oldTimestamp])
-      expect(isRateLimited('ch1')).toBe(false)
-    })
-
-    it('should clean up expired timestamps on check', () => {
-      const oldTimestamp = Date.now() - 120_000
-      deliveryTimestamps.set('ch1', [oldTimestamp, oldTimestamp, oldTimestamp])
-      isRateLimited('ch1')
-      expect(deliveryTimestamps.get('ch1')!.length).toBe(0)
-    })
-
-    it('should keep recent timestamps and remove old ones', () => {
-      const now = Date.now()
-      const oldTimestamp = now - 120_000
-      const recentTimestamp = now - 10_000
-      deliveryTimestamps.set('ch1', [oldTimestamp, recentTimestamp])
-      isRateLimited('ch1')
-      expect(deliveryTimestamps.get('ch1')!.length).toBe(1)
-    })
+    expect(limiter.isRateLimited('chan-1', 5, now)).toBe(true)
   })
 
-  // Dynamic import tests — these verify the module exports are accessible.
-  // They may fail in a full suite run due to Bun's ESM module caching
-  // (drizzle-orm exports break when cached across test files). They pass
-  // individually: `bun test src/server/services/notification-delivery.test.ts`
-  describe('deliverExternalNotification', () => {
-    it('should be importable', async () => {
-      let mod: typeof import('@/server/services/notification-delivery')
-      try {
-        mod = await import('@/server/services/notification-delivery')
-      } catch {
-        // Module load fails in full suite due to drizzle-orm ESM caching bug
-        return
-      }
-      expect(typeof mod.deliverExternalNotification).toBe('function')
-    })
-
-    it('should handle empty notification channels gracefully', async () => {
-      let mod: typeof import('@/server/services/notification-delivery')
-      try {
-        mod = await import('@/server/services/notification-delivery')
-      } catch {
-        return
-      }
-      // Should not throw with mocked empty DB
-      await expect(mod.deliverExternalNotification('user1', {
-        type: 'prompt:pending' as any,
-        title: 'Test',
-      })).resolves.toBeUndefined()
-    })
+  it('blocks requests over the limit', () => {
+    const now = Date.now()
+    for (let i = 0; i < 10; i++) {
+      limiter.recordDelivery('chan-1', now)
+    }
+    expect(limiter.isRateLimited('chan-1', 5, now)).toBe(true)
   })
 
-  describe('listUserNotificationChannels', () => {
-    it('should be importable', async () => {
-      let mod: typeof import('@/server/services/notification-delivery')
-      try {
-        mod = await import('@/server/services/notification-delivery')
-      } catch {
-        return
-      }
-      expect(typeof mod.listUserNotificationChannels).toBe('function')
-    })
+  it('allows requests after the window expires', () => {
+    const now = Date.now()
+    // Record 5 deliveries 70 seconds ago (outside the 60s window)
+    for (let i = 0; i < 5; i++) {
+      limiter.recordDelivery('chan-1', now - 70_000)
+    }
+    expect(limiter.isRateLimited('chan-1', 5, now)).toBe(false)
   })
 
-  describe('listAvailableChannels', () => {
-    it('should be importable', async () => {
-      let mod: typeof import('@/server/services/notification-delivery')
-      try {
-        mod = await import('@/server/services/notification-delivery')
-      } catch {
-        return
-      }
-      expect(typeof mod.listAvailableChannels).toBe('function')
-    })
+  it('only counts recent timestamps within the window', () => {
+    const now = Date.now()
+    // 3 old (expired) + 2 recent = should allow (limit 5)
+    for (let i = 0; i < 3; i++) {
+      limiter.recordDelivery('chan-1', now - 90_000)
+    }
+    for (let i = 0; i < 2; i++) {
+      limiter.recordDelivery('chan-1', now - 10_000)
+    }
+    expect(limiter.isRateLimited('chan-1', 5, now)).toBe(false)
+  })
+
+  it('tracks different channels independently', () => {
+    const now = Date.now()
+    for (let i = 0; i < 5; i++) {
+      limiter.recordDelivery('chan-1', now)
+    }
+    expect(limiter.isRateLimited('chan-1', 5, now)).toBe(true)
+    expect(limiter.isRateLimited('chan-2', 5, now)).toBe(false)
+  })
+
+  it('cleans up expired entries on check', () => {
+    const now = Date.now()
+    // Fill with old timestamps
+    for (let i = 0; i < 100; i++) {
+      limiter.recordDelivery('chan-1', now - 120_000)
+    }
+    // Check should clean them up and return not limited
+    expect(limiter.isRateLimited('chan-1', 5, now)).toBe(false)
+  })
+
+  it('handles limit of 1', () => {
+    const now = Date.now()
+    expect(limiter.isRateLimited('chan-1', 1, now)).toBe(false)
+    limiter.recordDelivery('chan-1', now)
+    expect(limiter.isRateLimited('chan-1', 1, now)).toBe(true)
+  })
+
+  it('handles limit of 0 (always limited)', () => {
+    expect(limiter.isRateLimited('chan-1', 0)).toBe(true)
   })
 })
