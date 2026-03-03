@@ -33,7 +33,8 @@ interface PaletteItem {
 const sections: Omit<PaletteItem, 'action'>[] = [
   { id: 'hero', label: 'Home', description: 'Back to the top', icon: Zap, keywords: ['home', 'top', 'start', 'hero'] },
   { id: 'what-is-a-kin', label: 'What is a Kin?', description: 'Core concept explained', icon: Users, keywords: ['kin', 'agent', 'concept', 'what'] },
-  { id: 'features', label: 'Features', description: 'Core capabilities', icon: Zap, keywords: ['features', 'capabilities', 'tools', 'mini apps'] },
+  { id: 'features', label: 'Features', description: 'Core capabilities', icon: Zap, keywords: ['features', 'capabilities', 'mini apps'] },
+  { id: 'tools', label: 'Built-in Tools', description: '90+ tools out of the box', icon: Zap, keywords: ['tools', 'built-in', 'recall', 'memorize', 'shell', 'cron', 'vault'] },
   { id: 'use-cases', label: 'Use Cases', description: 'What people are building', icon: Layers, keywords: ['use case', 'build', 'homelab', 'dev'] },
   { id: 'screenshots', label: 'Demo Videos', description: 'See KinBot in action', icon: Image, keywords: ['demo', 'video', 'screenshot', 'preview'] },
   { id: 'comparison', label: 'Comparison', description: 'vs ChatGPT, Open WebUI, etc.', icon: BarChart3, keywords: ['compare', 'versus', 'vs', 'alternative'] },
