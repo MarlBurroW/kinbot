@@ -27,9 +27,9 @@ const TEMPLATES: MiniAppTemplate[] = [
   {
     id: 'dashboard',
     name: 'Dashboard',
-    description: 'A responsive dashboard using @kinbot/components (Card, Stat, Badge, Table, ProgressBar, Tabs). Great starting point for data visualization apps.',
+    description: 'A rich analytics dashboard with interactive charts (LineChart, BarChart, PieChart, SparkLine), stats, tables, and activity feed. Showcases the full @kinbot/components library.',
     icon: '📊',
-    tags: ['data', 'charts', 'statistics', 'components'],
+    tags: ['data', 'charts', 'statistics', 'components', 'analytics'],
     suggestedSlug: 'dashboard',
     files: {
       'app.json': REACT_APP_JSON,
@@ -43,17 +43,17 @@ const TEMPLATES: MiniAppTemplate[] = [
     body { padding: 1.5rem; }
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
     .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
-    @media (max-width: 640px) { .main-grid { grid-template-columns: 1fr; } }
-    .chart-placeholder {
-      height: 200px; border-radius: var(--radius-md); background: var(--color-muted);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--color-muted-foreground); font-size: 0.875rem;
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 768px) {
+      .main-grid, .charts-grid { grid-template-columns: 1fr; }
     }
+    .stat-spark { display: flex; align-items: center; gap: 0.75rem; }
+    .stat-spark > :first-child { flex: 1; }
   </style>
 </head>
 <body>
@@ -62,13 +62,49 @@ const TEMPLATES: MiniAppTemplate[] = [
     import { useState } from 'react'
     import { createRoot } from 'react-dom/client'
     import { useKinBot } from '@kinbot/react'
-    import { Card, Stat, Badge, Table, List, ProgressBar, Tabs, Spinner, Stack } from '@kinbot/components'
+    import {
+      Card, Stat, Badge, Table, List, ProgressBar, Tabs, Spinner, Stack,
+      LineChart, BarChart, PieChart, SparkLine
+    } from '@kinbot/components'
+
+    // --- Data ---
+    const revenueData = [
+      { label: 'Jan', value: 12400, values: [12400, 8200] },
+      { label: 'Feb', value: 15800, values: [15800, 9100] },
+      { label: 'Mar', value: 14200, values: [14200, 11300] },
+      { label: 'Apr', value: 18600, values: [18600, 10800] },
+      { label: 'May', value: 22100, values: [22100, 14200] },
+      { label: 'Jun', value: 19800, values: [19800, 12600] },
+      { label: 'Jul', value: 24500, values: [24500, 15100] },
+      { label: 'Aug', value: 28200, values: [28200, 16800] },
+      { label: 'Sep', value: 26100, values: [26100, 18200] },
+      { label: 'Oct', value: 31400, values: [31400, 19500] },
+      { label: 'Nov', value: 35800, values: [35800, 21300] },
+      { label: 'Dec', value: 48200, values: [48200, 24100] },
+    ]
+
+    const channelData = [
+      { label: 'Organic', value: 42 },
+      { label: 'Direct', value: 28 },
+      { label: 'Referral', value: 18 },
+      { label: 'Social', value: 12 },
+    ]
+
+    const weeklySignups = [
+      { label: 'Mon', value: 34 },
+      { label: 'Tue', value: 52 },
+      { label: 'Wed', value: 41 },
+      { label: 'Thu', value: 67 },
+      { label: 'Fri', value: 55 },
+      { label: 'Sat', value: 23 },
+      { label: 'Sun', value: 18 },
+    ]
 
     const stats = [
-      { label: 'Total Users', value: '2,847', trend: '\\u2191 12.5%', trendUp: true },
-      { label: 'Revenue', value: '$48.2k', trend: '\\u2191 8.1%', trendUp: true },
-      { label: 'Active Now', value: '142', trend: '\\u2193 3.2%', trendUp: false },
-      { label: 'Conversion', value: '3.6%', trend: '\\u2191 0.4%', trendUp: true },
+      { label: 'Total Users', value: '2,847', trend: '\\u2191 12.5%', trendUp: true, spark: [18, 22, 19, 25, 28, 24, 31, 35] },
+      { label: 'Revenue', value: '$48.2k', trend: '\\u2191 8.1%', trendUp: true, spark: [12, 15, 14, 18, 22, 19, 24, 48] },
+      { label: 'Active Now', value: '142', trend: '\\u2193 3.2%', trendUp: false, spark: [160, 155, 148, 152, 145, 142, 138, 142] },
+      { label: 'Conversion', value: '3.6%', trend: '\\u2191 0.4%', trendUp: true, spark: [2.8, 3.0, 2.9, 3.1, 3.3, 3.2, 3.5, 3.6] },
     ]
 
     const tableColumns = [
@@ -106,7 +142,10 @@ const TEMPLATES: MiniAppTemplate[] = [
             {stats.map((s, i) => (
               <Card key={i} hover className={"animate-fade-in-up delay-" + i}>
                 <Card.Content>
-                  <Stat value={s.value} label={s.label} trend={s.trend} trendUp={s.trendUp} />
+                  <div className="stat-spark">
+                    <Stat value={s.value} label={s.label} trend={s.trend} trendUp={s.trendUp} />
+                    <SparkLine data={s.spark} width={64} height={28} color={s.trendUp ? 'var(--color-success)' : 'var(--color-destructive)'} showArea />
+                  </div>
                 </Card.Content>
               </Card>
             ))}
@@ -115,6 +154,7 @@ const TEMPLATES: MiniAppTemplate[] = [
           <Tabs
             tabs={[
               { id: 'overview', label: 'Overview', icon: '\\ud83d\\udcca' },
+              { id: 'analytics', label: 'Analytics', icon: '\\ud83d\\udcc8' },
               { id: 'projects', label: 'Projects', icon: '\\ud83d\\udcc1' },
             ]}
             active={tab}
@@ -127,10 +167,10 @@ const TEMPLATES: MiniAppTemplate[] = [
               <Card>
                 <Card.Header>
                   <Card.Title>Revenue Overview</Card.Title>
-                  <Card.Description>Monthly revenue trend</Card.Description>
+                  <Card.Description>Revenue vs. costs over the last 12 months</Card.Description>
                 </Card.Header>
                 <Card.Content>
-                  <div className="chart-placeholder">Replace with your chart library</div>
+                  <LineChart data={revenueData} series={['Revenue', 'Costs']} height={220} showDots showArea curved animate />
                 </Card.Content>
               </Card>
               <Card>
@@ -139,6 +179,29 @@ const TEMPLATES: MiniAppTemplate[] = [
                 </Card.Header>
                 <Card.Content>
                   <List items={activities} />
+                </Card.Content>
+              </Card>
+            </div>
+          )}
+
+          {tab === 'analytics' && (
+            <div className="charts-grid animate-fade-in">
+              <Card>
+                <Card.Header>
+                  <Card.Title>Weekly Signups</Card.Title>
+                  <Card.Description>New user registrations this week</Card.Description>
+                </Card.Header>
+                <Card.Content>
+                  <BarChart data={weeklySignups} height={200} showValues showGrid animate />
+                </Card.Content>
+              </Card>
+              <Card>
+                <Card.Header>
+                  <Card.Title>Traffic Sources</Card.Title>
+                  <Card.Description>Breakdown by acquisition channel</Card.Description>
+                </Card.Header>
+                <Card.Content>
+                  <PieChart data={channelData} height={200} donut showLabels showLegend animate />
                 </Card.Content>
               </Card>
             </div>
