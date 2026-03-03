@@ -71,6 +71,12 @@ interface PromptParams {
     platform: string  // e.g. "telegram", "discord", "whatsapp", "web"
     senderName?: string
   }
+  conversationState?: {
+    visibleMessageCount: number    // Messages currently in context window
+    totalMessageCount: number      // Total messages (including compacted)
+    hasCompactedHistory: boolean   // Whether older messages were compacted
+    oldestVisibleMessageAt?: Date  // Timestamp of oldest visible message
+  }
 }
 
 /**
@@ -165,6 +171,34 @@ function buildCurrentMessageHint(source: PromptParams['currentMessageSource']): 
     parts.push(`Format: ${hint}`)
   }
   return parts.join('\n')
+}
+
+/**
+ * Build a conversation state awareness block so the Kin knows the depth
+ * and age of its current context window.
+ */
+function buildConversationStateBlock(state: PromptParams['conversationState']): string | null {
+  if (!state) return null
+  const lines: string[] = ['## Conversation state\n']
+  if (state.hasCompactedHistory) {
+    const compactedCount = state.totalMessageCount - state.visibleMessageCount
+    lines.push(
+      `This is a long-running conversation. ${compactedCount} older message${compactedCount !== 1 ? 's have' : ' has'} been summarized (see "Previous conversation summary" above).`,
+    )
+    lines.push(`You can see the ${state.visibleMessageCount} most recent message${state.visibleMessageCount !== 1 ? 's' : ''} in full detail.`)
+  } else {
+    lines.push(`You have the full conversation history: ${state.visibleMessageCount} message${state.visibleMessageCount !== 1 ? 's' : ''}.`)
+  }
+  if (state.oldestVisibleMessageAt) {
+    const age = formatRelativeTime(state.oldestVisibleMessageAt)
+    if (age) {
+      lines.push(`Oldest visible message: ${age}.`)
+    }
+  }
+  if (state.hasCompactedHistory) {
+    lines.push(`If you need details from before your visible history, use search_history() to look further back.`)
+  }
+  return lines.join('\n')
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -525,6 +559,12 @@ export function buildSystemPrompt(params: PromptParams): string {
       `## Active participants\n\n` +
       `People currently in this conversation:\n\n${participantLines}`,
     )
+  }
+
+  // [6.85] Conversation state awareness
+  const stateBlock = buildConversationStateBlock(params.conversationState)
+  if (stateBlock) {
+    blocks.push(stateBlock)
   }
 
   // [6.9] Compacting summary (older conversation context)

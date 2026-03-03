@@ -284,7 +284,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
 
     // Build message history (also returns compacting summary for system prompt injection)
-    const { messages: messageHistory, compactingSummary, compactedUpTo, participants } = await buildMessageHistory(kinId)
+    const { messages: messageHistory, compactingSummary, compactedUpTo, participants, visibleMessageCount, totalMessageCount, hasCompactedHistory, oldestVisibleMessageAt } = await buildMessageHistory(kinId)
 
     // Resolve the current message's originating platform for formatting hints
     let currentMessageSource: { platform: string; senderName?: string } | undefined
@@ -321,6 +321,12 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       compactedUpTo,
       participants: participants.length > 0 ? participants : undefined,
       currentMessageSource,
+      conversationState: {
+        visibleMessageCount,
+        totalMessageCount,
+        hasCompactedHistory,
+        oldestVisibleMessageAt,
+      },
     })
 
     // ── E2E Mock LLM: stream a fake response without calling any provider ──
@@ -1055,7 +1061,7 @@ export interface ConversationParticipant {
   lastSeenAt: Date
 }
 
-async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null; compactedUpTo: Date | null; participants: ConversationParticipant[] }> {
+async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null; compactedUpTo: Date | null; participants: ConversationParticipant[]; visibleMessageCount: number; totalMessageCount: number; hasCompactedHistory: boolean; oldestVisibleMessageAt?: Date }> {
   const history: ModelMessage[] = []
 
   // Fetch active compacting snapshot (used to filter messages, summary is injected via system prompt)
@@ -1277,11 +1283,20 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   const participants: ConversationParticipant[] = [...participantMap.values()]
     .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
 
+  const hasCompactedHistory = !!activeSnapshot?.summary
+  const visibleMessageCount = filteredMessages.length
+  const totalMessageCount = recentMessages.length + (hasCompactedHistory ? (recentMessages.length - postSnapshotMessages.length) : 0)
+  const oldestVisibleMessageAt = filteredMessages.length > 0 ? (filteredMessages[0]!.createdAt ?? undefined) : undefined
+
   return {
     messages: history,
     compactingSummary: activeSnapshot?.summary ?? null,
     compactedUpTo: activeSnapshot?.createdAt ?? null,
     participants,
+    visibleMessageCount,
+    totalMessageCount: Math.max(totalMessageCount, visibleMessageCount),
+    hasCompactedHistory,
+    oldestVisibleMessageAt: oldestVisibleMessageAt ?? undefined,
   }
 }
 
