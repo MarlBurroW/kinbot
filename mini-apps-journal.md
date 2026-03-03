@@ -392,3 +392,41 @@ Stack, Divider, Card (+Header/Title/Description/Content/Footer), Button, ButtonG
 2. `KinBot.navigate(path)` — verify parent-side handler exists in MiniAppViewer
 3. Component docs/storybook mini-app (a mini-app that showcases all components)
 4. Chart components (BarChart, LineChart) using SVG
+
+## 2026-03-03 (run 11) — SVG Chart Components
+
+**What:** Added 4 SVG-based chart components to the React component library, plus CSS keyframe animations.
+
+### New Components
+1. **BarChart** — Vertical bar chart with auto-scaling grid, value labels, animated bars (scaleY entrance), rounded tops. Props: data [{label, value, color?}], width, height, showValues, showGrid, barRadius, gap, animate.
+2. **LineChart** — Multi-series line chart with Catmull-Rom smooth curves, optional area fill with gradient, dot markers, legend. Supports single-series (data[].value) or multi-series (data[].values[]). Props: series names, showDots, showArea, curved, animate.
+3. **PieChart** — Pie/donut chart with percentage labels, 2-column legend, animated slice entrance. Donut mode shows total in center. Props: donut, showLabels, showLegend, animate.
+4. **SparkLine** — Tiny inline sparkline for embedding in stats/cards. Smooth Catmull-Rom curves with optional gradient area fill. Props: data (number[]), width, height, color, showArea, strokeWidth.
+
+### Shared Chart Infrastructure
+- `CHART_COLORS` array using `--color-chart-1` through `--color-chart-5` CSS variables (theme-aware across all palettes)
+- `niceNumber()` for clean axis scaling
+- `formatCompact()` for K/M number formatting
+- `catmullRomPath()` for smooth bezier curves from point arrays
+- `arcPath()` for pie/donut slice geometry (outer + inner radius)
+- `truncLabel()` for axis label truncation
+
+### CSS Additions
+- `@keyframes kb-bar-grow` (scaleY 0→1 for bar entrance)
+- `@keyframes kb-pie-grow` (opacity+scale for pie slice entrance)
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-components.js` — +~400 lines (4 chart components + helpers)
+- `src/server/mini-app-sdk/kinbot-sdk.css` — +10 lines (chart keyframes)
+- `src/server/tools/mini-app-tools.ts` — updated import list + chart component docs
+
+**Tests:** 1314 pass, 0 fail. Build clean (pre-commit hook OOM'd but CI build verified clean).
+
+**Component inventory (40 total):**
+Stack, Divider, Card (+Header/Title/Description/Content/Footer), Button, ButtonGroup, Input, Textarea, Select, Checkbox, Switch, Badge, Tag, Stat, Avatar, Tooltip, ProgressBar, Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Grid, Breadcrumbs, Popover, Form (+Field/Submit/Reset/Actions), DataGrid, Accordion, DropdownMenu, Panel, RadioGroup, Slider, DatePicker, **BarChart**, **LineChart**, **PieChart**, **SparkLine**
+
+**Next priorities:**
+1. Component showcase mini-app (a mini-app that demos all 40 components)
+2. New template: dashboard template using charts + stats
+3. `KinBot.navigate(path)` — parent-side handler verification
+4. `KinBot.notification(title, body?)` — browser notifications via parent

@@ -546,7 +546,7 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [6.8] Conversation participants
+  // [6.8] Conversation participants + group/DM awareness
   if (params.participants && params.participants.length > 0) {
     const participantLines = params.participants
       .map((p) => {
@@ -555,9 +555,28 @@ export function buildSystemPrompt(params: PromptParams): string {
         return `- ${p.name}${via} (${p.messageCount} msg${p.messageCount > 1 ? 's' : ''}, last active ${recency ?? 'unknown'})`
       })
       .join('\n')
+
+    // Determine conversation type based on unique human participants
+    const uniqueNames = new Set(params.participants.map((p) => p.name))
+    const isGroup = uniqueNames.size > 1
+
+    let contextHint: string
+    if (isGroup) {
+      contextHint =
+        `This is a **group conversation** with ${uniqueNames.size} participants. ` +
+        `Keep responses focused and concise. Address people by name when responding to avoid ambiguity. ` +
+        `Avoid lengthy monologues that derail the group flow.`
+    } else {
+      const soloName = params.participants[0]?.name ?? 'the user'
+      contextHint =
+        `This is a **one-on-one conversation** with ${soloName}. ` +
+        `You can be more detailed and personalized in your responses.`
+    }
+
     blocks.push(
       `## Active participants\n\n` +
-      `People currently in this conversation:\n\n${participantLines}`,
+      `${contextHint}\n\n` +
+      participantLines,
     )
   }
 
