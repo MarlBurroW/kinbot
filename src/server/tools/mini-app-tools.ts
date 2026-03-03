@@ -50,7 +50,16 @@ export const createMiniAppTool: ToolRegistration = {
         '`api` is the backend API client — use it after ready is true), ' +
         '`useStorage(key, defaultValue)` → `[value, setValue, loading]` (reactive key-value storage with auto-persist — like useState but persistent; ' +
         'setValue accepts a value or an updater function like useState; loading is true while fetching initial value), ' +
-        '`useTheme()` → `{ mode, palette }` (reactive theme, lighter alternative to useKinBot when you only need theme). ' +
+        '`useTheme()` → `{ mode, palette }` (reactive theme, lighter alternative to useKinBot when you only need theme), ' +
+        '`useKin()` → `{ kin, loading }` (reactive access to parent Kin info: id, name, avatarUrl), ' +
+        '`useUser()` → `{ user, loading }` (reactive access to current user info: id, name, locale, timezone, avatarUrl), ' +
+        '`useMemory()` → `{ search, store, results, loading }` (search/store Kin memories from mini-apps), ' +
+        '`useConversation()` → `{ history, send, messages, loading }` (interact with Kin conversation), ' +
+        '`useForm(initialValues, validate?)` → `{ values, errors, touched, handleChange, handleBlur, handleSubmit, reset, isValid, isDirty }` (form state management with validation), ' +
+        '`useMediaQuery(query)` → `boolean` (reactive CSS media query, e.g. useMediaQuery("(min-width: 768px)")), ' +
+        '`useDebounce(value, delayMs?)` → debounced value (default 300ms), ' +
+        '`useInterval(callback, delayMs)` (declarative setInterval, pass null to pause), ' +
+        '`useClickOutside(ref, handler)` (call handler when click outside ref element). ' +
         '**@kinbot/react Exports (convenience re-exports from KinBot SDK):** ' +
         '`toast(message, type)` (type: "info"|"success"|"warning"|"error"), ' +
         '`confirm(message, options?)` → Promise<boolean> (options: {title?, confirmLabel?, cancelLabel?, variant?: "default"|"destructive"}), ' +

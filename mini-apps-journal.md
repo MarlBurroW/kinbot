@@ -456,3 +456,33 @@ Stack, Divider, Card (+Header/Title/Description/Content/Footer), Button, ButtonG
 2. `KinBot.notification(title, body?)` — browser notifications via parent
 3. Settings page template (using Panel, RadioGroup, Slider, Switch)
 4. `KinBot.navigate(path)` — verify parent-side handler
+
+## 2026-03-03 (run 13) — Component Showcase Template
+
+**What:** Added a new "Component Showcase" template — an interactive storybook that demos all 40 @kinbot/components.
+
+### Template Details
+- **ID:** `component-showcase`
+- **Layout:** Sidebar navigation + main content area, responsive (collapses on mobile)
+- **7 categories:** Layout, Forms, Data Display, Feedback, Navigation, Overlays, Charts
+- **Every component demonstrated** with interactive examples:
+  - Layout: Stack, Divider, Card (hover), Grid (3-col), Panel (collapsible)
+  - Forms: All 7 Button variants, ButtonGroup, Input (with error), Textarea, Select, Checkbox, Switch (togglable), RadioGroup, Slider, DatePicker
+  - Data: Badge variants, Tags (removable), Stats (with trends), Avatars, Tooltip, ProgressBar, Table, List, Accordion
+  - Feedback: All 4 Alert variants (dismissible), Spinner sizes, Skeleton, EmptyState with action
+  - Nav: Tabs (interactive), Breadcrumbs, Pagination (interactive), DropdownMenu
+  - Overlays: Modal (open/close), Drawer (open/close), Popover
+  - Charts: BarChart, LineChart (area+dots), PieChart (normal+donut), SparkLine (dual)
+
+**Files changed:**
+- `src/server/tools/mini-app-templates.ts` — +351 lines (new template)
+
+**Tests:** 1339 pass, 0 fail. Build clean (pre-commit OOM'd, CI verified).
+
+**Component inventory:** 40 (unchanged). **Templates:** 8 total.
+
+**Next priorities:**
+1. `KinBot.notification(title, body?)` — browser notifications via parent
+2. `KinBot.navigate(path)` — verify parent-side handler
+3. Settings template using new components (RadioGroup, Slider, etc.)
+4. Form template demonstrating the Form component with validation
