@@ -1067,6 +1067,357 @@ const TEMPLATES: MiniAppTemplate[] = [
 </html>`,
     },
   },
+  {
+    id: 'component-showcase',
+    name: 'Component Showcase',
+    description: 'An interactive storybook that demos all 40 @kinbot/components with live examples. Browse by category: Layout, Forms, Data Display, Feedback, Navigation, Overlays, and Charts.',
+    icon: '🧩',
+    tags: ['components', 'storybook', 'demo', 'reference', 'ui'],
+    suggestedSlug: 'component-showcase',
+    files: {
+      'app.json': REACT_APP_JSON,
+      'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component Showcase</title>
+  <style>
+    body { padding: 0; margin: 0; }
+    .showcase { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 220px; min-width: 220px; padding: 1rem;
+      border-right: 1px solid var(--color-border);
+      background: var(--color-surface-secondary);
+      overflow-y: auto; position: sticky; top: 0; height: 100vh;
+    }
+    .sidebar h2 { font-size: 1rem; margin: 0 0 1rem; color: var(--color-text-primary); }
+    .sidebar-cat { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--color-text-tertiary); margin: 1rem 0 0.25rem; font-weight: 600; }
+    .sidebar-item {
+      padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); cursor: pointer;
+      font-size: 0.8rem; color: var(--color-text-secondary); transition: all 0.15s;
+    }
+    .sidebar-item:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+    .sidebar-item.active { background: var(--color-primary); color: white; }
+    .main { flex: 1; padding: 1.5rem; overflow-y: auto; }
+    .section { margin-bottom: 2rem; }
+    .section-title { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem; color: var(--color-text-primary); }
+    .section-desc { font-size: 0.8rem; color: var(--color-text-tertiary); margin-bottom: 1rem; }
+    .demo-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem; }
+    .demo-box {
+      padding: 1rem; border-radius: var(--radius-md);
+      border: 1px solid var(--color-border); background: var(--color-surface-primary);
+    }
+    .demo-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--color-text-tertiary); margin-bottom: 0.5rem; font-weight: 600; }
+    @media (max-width: 640px) {
+      .showcase { flex-direction: column; }
+      .sidebar { width: 100%; min-width: 100%; height: auto; position: static;
+        display: flex; flex-wrap: wrap; gap: 0.25rem; border-right: none;
+        border-bottom: 1px solid var(--color-border); }
+      .sidebar-cat { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/jsx">
+    import { useState, useRef } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { useKinBot } from '@kinbot/react'
+    import {
+      Stack, Divider, Card, Button, ButtonGroup, Input, Textarea, Select,
+      Checkbox, Switch, Badge, Tag, Stat, Avatar, Tooltip, ProgressBar,
+      Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination,
+      Modal, Drawer, Grid, Breadcrumbs, Popover, Form, DataGrid, Accordion,
+      DropdownMenu, Panel, RadioGroup, Slider, DatePicker,
+      BarChart, LineChart, PieChart, SparkLine
+    } from '@kinbot/components'
+
+    const CATEGORIES = [
+      { id: 'layout', label: 'Layout', items: ['Stack','Divider','Card','Grid','Panel'] },
+      { id: 'forms', label: 'Forms', items: ['Button','ButtonGroup','Input','Textarea','Select','Checkbox','Switch','RadioGroup','Slider','DatePicker','Form'] },
+      { id: 'data', label: 'Data Display', items: ['Badge','Tag','Stat','Avatar','Tooltip','ProgressBar','Table','List','DataGrid','Accordion'] },
+      { id: 'feedback', label: 'Feedback', items: ['Alert','Spinner','Skeleton','EmptyState'] },
+      { id: 'nav', label: 'Navigation', items: ['Tabs','Breadcrumbs','Pagination','DropdownMenu'] },
+      { id: 'overlays', label: 'Overlays', items: ['Modal','Drawer','Popover'] },
+      { id: 'charts', label: 'Charts', items: ['BarChart','LineChart','PieChart','SparkLine'] },
+    ]
+
+    // ─── Demo sections ───
+    function LayoutDemo() {
+      return <>
+        <div className="demo-box">
+          <div className="demo-label">Stack (horizontal)</div>
+          <Stack direction="row" gap="0.5rem">
+            <Badge>One</Badge><Badge variant="success">Two</Badge><Badge variant="warning">Three</Badge>
+          </Stack>
+        </div>
+        <div className="demo-box">
+          <div className="demo-label">Grid (3 columns)</div>
+          <Grid columns={3} gap="0.5rem">
+            <Card style={{padding:'0.75rem',textAlign:'center'}}>A</Card>
+            <Card style={{padding:'0.75rem',textAlign:'center'}}>B</Card>
+            <Card style={{padding:'0.75rem',textAlign:'center'}}>C</Card>
+          </Grid>
+        </div>
+        <div className="demo-box">
+          <div className="demo-label">Panel (collapsible)</div>
+          <Panel title="Settings" icon="⚙️" collapsible>
+            <div>Panel content goes here</div>
+          </Panel>
+        </div>
+        <div className="demo-box" style={{maxWidth:'400px'}}>
+          <div className="demo-label">Divider</div>
+          <Stack gap="0.5rem"><span>Above</span><Divider /><span>Below</span></Stack>
+        </div>
+        <div className="demo-box">
+          <div className="demo-label">Card</div>
+          <Card hover style={{padding:'1rem',maxWidth:'240px'}}>Hoverable card with content</Card>
+        </div>
+      </>
+    }
+
+    function FormsDemo() {
+      const [sw, setSw] = useState(true)
+      const [sl, setSl] = useState(50)
+      const [radio, setRadio] = useState('a')
+      return <>
+        <div className="demo-row">
+          <Button variant="primary">Primary</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="outline">Outline</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Button variant="danger">Danger</Button>
+          <Button size="sm">Small</Button>
+          <Button disabled>Disabled</Button>
+        </div>
+        <div className="demo-row">
+          <ButtonGroup><Button variant="outline">Left</Button><Button variant="outline">Center</Button><Button variant="outline">Right</Button></ButtonGroup>
+        </div>
+        <div className="demo-row" style={{maxWidth:'300px'}}>
+          <Input label="Text input" placeholder="Type something..." />
+          <Input label="With error" error="This field is required" />
+        </div>
+        <div className="demo-row" style={{maxWidth:'300px'}}>
+          <Textarea label="Textarea" placeholder="Write more..." />
+          <Select label="Select" options={[{value:'a',label:'Option A'},{value:'b',label:'Option B'},{value:'c',label:'Option C'}]} placeholder="Choose..." />
+        </div>
+        <div className="demo-row">
+          <Checkbox label="Accept terms" />
+          <Switch label="Dark mode" checked={sw} onChange={() => setSw(!sw)} />
+        </div>
+        <div className="demo-box" style={{maxWidth:'300px'}}>
+          <RadioGroup name="demo" label="Choose one" value={radio} onChange={e => setRadio(e.target.value)}
+            options={[{value:'a',label:'Alpha'},{value:'b',label:'Beta'},{value:'c',label:'Gamma'}]} />
+        </div>
+        <div className="demo-box" style={{maxWidth:'300px'}}>
+          <Slider label="Volume" value={sl} onChange={e => setSl(Number(e.target.value))} min={0} max={100} />
+        </div>
+        <div className="demo-box" style={{maxWidth:'220px'}}>
+          <DatePicker label="Pick a date" />
+        </div>
+      </>
+    }
+
+    function DataDemo() {
+      return <>
+        <div className="demo-row">
+          <Badge>Default</Badge>
+          <Badge variant="success">Success</Badge>
+          <Badge variant="warning">Warning</Badge>
+          <Badge variant="danger">Danger</Badge>
+          <Badge variant="outline">Outline</Badge>
+        </div>
+        <div className="demo-row">
+          <Tag>React</Tag><Tag onRemove={() => {}}>Removable</Tag><Tag variant="success">New</Tag>
+        </div>
+        <div className="demo-row">
+          <Stat value="1,234" label="Users" trend="+12%" trendUp />
+          <Stat value="$48.2k" label="Revenue" trend="-3%" />
+        </div>
+        <div className="demo-row">
+          <Avatar initials="NV" /><Avatar initials="EM" size={32} /><Avatar initials="CB" size={48} />
+        </div>
+        <div className="demo-row">
+          <Tooltip text="I'm a tooltip!"><Button variant="outline" size="sm">Hover me</Button></Tooltip>
+        </div>
+        <div className="demo-box" style={{maxWidth:'300px'}}>
+          <div className="demo-label">ProgressBar</div>
+          <Stack gap="0.5rem">
+            <ProgressBar value={75} showLabel />
+            <ProgressBar value={30} color="var(--color-warning)" height={6} />
+          </Stack>
+        </div>
+        <div className="demo-box">
+          <div className="demo-label">Table</div>
+          <Table columns={[{key:'name',label:'Name'},{key:'role',label:'Role'}]}
+            data={[{name:'Alice',role:'Admin'},{name:'Bob',role:'Editor'},{name:'Claire',role:'Viewer'}]} />
+        </div>
+        <div className="demo-box">
+          <div className="demo-label">List</div>
+          <List items={[{id:'1',content:'First item'},{id:'2',content:'Second item'},{id:'3',content:'Third item'}]} />
+        </div>
+        <div className="demo-box">
+          <div className="demo-label">Accordion</div>
+          <Accordion items={[{title:'Section 1',content:'Content for section one'},{title:'Section 2',content:'Content for section two'}]} />
+        </div>
+      </>
+    }
+
+    function FeedbackDemo() {
+      return <>
+        <div className="demo-box"><Alert variant="info" title="Info">Informational message</Alert></div>
+        <div className="demo-box"><Alert variant="success" title="Success">Operation completed</Alert></div>
+        <div className="demo-box"><Alert variant="warning" title="Warning" dismissible>Be careful</Alert></div>
+        <div className="demo-box"><Alert variant="danger" title="Error">Something went wrong</Alert></div>
+        <div className="demo-row">
+          <Spinner /><Spinner size={16} /><Spinner size={32} />
+        </div>
+        <div className="demo-box" style={{maxWidth:'300px'}}>
+          <div className="demo-label">Skeleton</div>
+          <Stack gap="0.5rem">
+            <Skeleton width="60%" /><Skeleton /><Skeleton height="4rem" rounded />
+          </Stack>
+        </div>
+        <div className="demo-box">
+          <EmptyState icon="📭" title="No results" description="Try a different search query"
+            action={<Button size="sm">Clear filters</Button>} />
+        </div>
+      </>
+    }
+
+    function NavDemo() {
+      const [tab, setTab] = useState('one')
+      const [page, setPage] = useState(3)
+      return <>
+        <div className="demo-box">
+          <Tabs tabs={[{id:'one',label:'First'},{id:'two',label:'Second'},{id:'three',label:'Third'}]}
+            active={tab} onChange={setTab} />
+          <div style={{padding:'0.75rem',color:'var(--color-text-secondary)'}}>Active: {tab}</div>
+        </div>
+        <div className="demo-box">
+          <Breadcrumbs items={[{label:'Home',href:'#'},{label:'Components',href:'#'},{label:'Nav'}]} />
+        </div>
+        <div className="demo-box">
+          <Pagination page={page} totalPages={10} onChange={setPage} />
+        </div>
+        <div className="demo-box">
+          <DropdownMenu trigger={<Button variant="outline" size="sm">Actions ▾</Button>}
+            items={[{label:'Edit',icon:'✏️',onClick:()=>{}},{label:'Duplicate',icon:'📋',onClick:()=>{}},{type:'separator'},{label:'Delete',icon:'🗑️',variant:'danger',onClick:()=>{}}]} />
+        </div>
+      </>
+    }
+
+    function OverlaysDemo() {
+      const [modal, setModal] = useState(false)
+      const [drawer, setDrawer] = useState(false)
+      return <>
+        <div className="demo-row">
+          <Button onClick={() => setModal(true)}>Open Modal</Button>
+          <Button variant="outline" onClick={() => setDrawer(true)}>Open Drawer</Button>
+          <Popover trigger={<Button variant="secondary">Popover</Button>}
+            content={<div style={{padding:'0.5rem'}}>Popover content here</div>} />
+        </div>
+        <Modal open={modal} onClose={() => setModal(false)} title="Example Modal">
+          <div style={{padding:'1rem'}}>
+            <p>This is a modal dialog with a title and close button.</p>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:'0.5rem',marginTop:'1rem'}}>
+              <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
+              <Button onClick={() => setModal(false)}>Confirm</Button>
+            </div>
+          </div>
+        </Modal>
+        <Drawer open={drawer} onClose={() => setDrawer(false)} title="Example Drawer">
+          <div style={{padding:'1rem'}}>
+            <p>Drawer slides in from the side. Great for detail panels.</p>
+            <List items={[{id:'1',content:'Item A'},{id:'2',content:'Item B'},{id:'3',content:'Item C'}]} />
+          </div>
+        </Drawer>
+      </>
+    }
+
+    function ChartsDemo() {
+      const barData = [{label:'Mon',value:34},{label:'Tue',value:52},{label:'Wed',value:41},{label:'Thu',value:67},{label:'Fri',value:55}]
+      const lineData = [{label:'Jan',value:120},{label:'Feb',value:180},{label:'Mar',value:150},{label:'Apr',value:220},{label:'May',value:190},{label:'Jun',value:280}]
+      const pieData = [{label:'Desktop',value:55},{label:'Mobile',value:35},{label:'Tablet',value:10}]
+      return <>
+        <div className="demo-box">
+          <div className="demo-label">BarChart</div>
+          <BarChart data={barData} height={180} showValues showGrid animate />
+        </div>
+        <div className="demo-box">
+          <div className="demo-label">LineChart</div>
+          <LineChart data={lineData} height={180} showDots showArea curved animate />
+        </div>
+        <div className="demo-row">
+          <div className="demo-box">
+            <div className="demo-label">PieChart</div>
+            <PieChart data={pieData} width={200} height={200} showLabels showLegend animate />
+          </div>
+          <div className="demo-box">
+            <div className="demo-label">PieChart (donut)</div>
+            <PieChart data={pieData} width={200} height={200} donut showLegend animate />
+          </div>
+        </div>
+        <div className="demo-box" style={{maxWidth:'300px'}}>
+          <div className="demo-label">SparkLine</div>
+          <Stack direction="row" gap="1.5rem" align="center">
+            <SparkLine data={[10,25,18,32,28,45,38]} width={120} height={32} showArea />
+            <SparkLine data={[40,35,42,30,25,20,15]} width={120} height={32} color="var(--color-danger)" showArea />
+          </Stack>
+        </div>
+      </>
+    }
+
+    const SECTIONS = {
+      layout: { title: 'Layout', desc: 'Stack, Divider, Card, Grid, Panel', render: LayoutDemo },
+      forms: { title: 'Forms', desc: 'Buttons, inputs, selects, toggles, sliders, date pickers', render: FormsDemo },
+      data: { title: 'Data Display', desc: 'Badges, tags, stats, avatars, tables, lists, accordions', render: DataDemo },
+      feedback: { title: 'Feedback', desc: 'Alerts, spinners, skeletons, empty states', render: FeedbackDemo },
+      nav: { title: 'Navigation', desc: 'Tabs, breadcrumbs, pagination, dropdown menus', render: NavDemo },
+      overlays: { title: 'Overlays', desc: 'Modal, Drawer, Popover', render: OverlaysDemo },
+      charts: { title: 'Charts', desc: 'Bar, Line, Pie, SparkLine', render: ChartsDemo },
+    }
+
+    function App() {
+      const { theme } = useKinBot()
+      const [active, setActive] = useState('layout')
+      const section = SECTIONS[active]
+
+      return (
+        <div className="showcase">
+          <nav className="sidebar">
+            <h2>🧩 Components</h2>
+            {CATEGORIES.map(cat => (
+              <div key={cat.id}>
+                <div className="sidebar-cat">{cat.label}</div>
+                {cat.items.map(item => {
+                  const catId = cat.id
+                  return <div key={item} className={'sidebar-item' + (active === catId ? ' active' : '')}
+                    onClick={() => setActive(catId)}>{item}</div>
+                })}
+              </div>
+            ))}
+          </nav>
+          <main className="main">
+            <div className="section">
+              <h1 className="section-title">{section.title}</h1>
+              <div className="section-desc">{section.desc}</div>
+              <section.render />
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>`,
+    },
+  },
 ]
 
 export function getTemplateById(id: string): MiniAppTemplate | undefined {
