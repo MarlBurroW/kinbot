@@ -225,6 +225,13 @@
       "when": 1772413903122,
       "tag": "0031_large_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1772565046070,
+      "tag": "0032_breezy_captain_cross",
+      "breakpoints": true
     }
   ]
 }

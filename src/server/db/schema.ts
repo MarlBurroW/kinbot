@@ -151,6 +151,8 @@ export const memories = sqliteTable('memories', {
   sourceMessageId: text('source_message_id').references(() => messages.id),
   sourceChannel: text('source_channel').notNull().default('automatic'), // 'automatic' | 'explicit'
   importance: real('importance'), // 1-10 scale, null = unscored (treated as 5)
+  retrievalCount: integer('retrieval_count').notNull().default(0), // How many times this memory has been retrieved
+  lastRetrievedAt: integer('last_retrieved_at', { mode: 'timestamp_ms' }), // When it was last retrieved
   consolidationGeneration: integer('consolidation_generation').notNull().default(0), // 0 = original, 1+ = consolidated
   consolidatedFromIds: text('consolidated_from_ids'), // JSON array of source memory IDs (null for originals)
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),

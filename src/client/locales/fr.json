@@ -873,6 +873,7 @@
       "sourceAutomatic": "Auto",
       "sourceExplicit": "Manuel",
       "consolidated": "Gén {{gen}}",
+      "retrievalCount": "Récupéré {{count}} fois",
       "filterAll": "Toutes les catégories",
       "filterAllKins": "Tous les Kins",
       "delete": "Supprimer le souvenir",

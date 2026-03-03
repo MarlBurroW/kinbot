@@ -306,7 +306,7 @@ function applyAdaptiveK<T extends { score: number }>(results: T[]): T[] {
 
 // ─── Hybrid Search (FTS5 + sqlite-vec rank fusion) ───────────────────────────
 
-type ScoreMapEntry = { score: number; content: string; category: string; subject: string | null; importance: number | null; updatedAt: Date | null }
+type ScoreMapEntry = { score: number; content: string; category: string; subject: string | null; importance: number | null; retrievalCount: number; updatedAt: Date | null }
 
 /**
  * Run hybrid search for a single query and accumulate RRF scores into a shared score map.
@@ -330,7 +330,7 @@ async function hybridSearchSingleQuery(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, retrievalCount: r.retrievalCount, updatedAt: r.updatedAt })
     }
   }
   for (let i = 0; i < ftsResults.length; i++) {
@@ -340,7 +340,7 @@ async function hybridSearchSingleQuery(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, retrievalCount: r.retrievalCount, updatedAt: r.updatedAt })
     }
   }
 }
@@ -377,12 +377,15 @@ export async function searchMemories(
     queries.map((q) => hybridSearchSingleQuery(kinId, q, candidateLimit, scoreMap, K)),
   )
 
-  // Apply temporal decay and importance weighting to fused scores
+  // Apply temporal decay, importance weighting, and retrieval frequency boost to fused scores
   for (const [, data] of scoreMap) {
     const decay = temporalDecayWeight(data.updatedAt, data.category)
     const imp = data.importance ?? 5
     const importanceWeight = 0.5 + (imp / 10)
-    data.score *= decay * importanceWeight
+    // Logarithmic retrieval frequency boost: memories retrieved more often get a mild boost
+    // log2(1) = 0 → boost = 1.0 (never retrieved), log2(11) ≈ 3.46 → boost ≈ 1.17
+    const retrievalBoost = 1 + Math.log2(1 + data.retrievalCount) * 0.05
+    data.score *= decay * importanceWeight * retrievalBoost
   }
 
   // Sort by weighted score descending
@@ -407,7 +410,7 @@ async function searchByVector(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; distance: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; retrievalCount: number; distance: number; updatedAt: Date | null }>> {
   try {
     const queryEmbedding = await generateEmbedding(query)
     const queryBuf = Buffer.from(new Float32Array(queryEmbedding).buffer)
@@ -433,10 +436,10 @@ async function searchByVector(
     const placeholders = matchingIds.map(() => '?').join(', ')
     const memRows = sqlite
       .query<
-        { id: string; content: string; category: string; subject: string | null; importance: number | null; updated_at: string | null },
+        { id: string; content: string; category: string; subject: string | null; importance: number | null; retrieval_count: number; updated_at: string | null },
         string[]
       >(
-        `SELECT id, content, category, subject, importance, updated_at FROM memories
+        `SELECT id, content, category, subject, importance, retrieval_count, updated_at FROM memories
          WHERE id IN (${placeholders}) AND kin_id = ?`,
       )
       .all(...matchingIds, kinId)
@@ -447,7 +450,7 @@ async function searchByVector(
       .filter((r) => memMap.has(r.memory_id))
       .map((r) => {
         const m = memMap.get(r.memory_id)!
-        return { id: m.id, content: m.content, category: m.category, subject: m.subject, importance: m.importance, distance: r.distance, updatedAt: m.updated_at ? new Date(m.updated_at) : null }
+        return { id: m.id, content: m.content, category: m.category, subject: m.subject, importance: m.importance, retrievalCount: m.retrieval_count, distance: r.distance, updatedAt: m.updated_at ? new Date(m.updated_at) : null }
       })
   } catch {
     // sqlite-vec or embedding provider not available
@@ -462,7 +465,7 @@ function searchByFTS(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; rank: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; retrievalCount: number; rank: number; updatedAt: Date | null }>> {
   try {
     // Escape FTS5 special characters, filter noise, build query with prefix matching
     const terms = query
@@ -480,10 +483,10 @@ function searchByFTS(
     const ftsQueryOr = terms.map((term) => `"${term}"*`).join(' OR ')
 
     const stmt = sqlite.query<
-      { id: string; content: string; category: string; subject: string | null; importance: number | null; rank: number; updated_at: string | null },
+      { id: string; content: string; category: string; subject: string | null; importance: number | null; retrieval_count: number; rank: number; updated_at: string | null },
       [string, string, number]
     >(
-      `SELECT m.id, m.content, m.category, m.subject, m.importance, fts.rank, m.updated_at
+      `SELECT m.id, m.content, m.category, m.subject, m.importance, m.retrieval_count, fts.rank, m.updated_at
        FROM memories_fts fts
        JOIN memories m ON m.rowid = fts.rowid
        WHERE memories_fts MATCH ? AND m.kin_id = ?
@@ -497,7 +500,7 @@ function searchByFTS(
       rows = stmt.all(ftsQueryOr, kinId, limit)
     }
 
-    return Promise.resolve(rows.map((r) => ({ ...r, updatedAt: r.updated_at ? new Date(r.updated_at) : null })))
+    return Promise.resolve(rows.map((r) => ({ ...r, retrievalCount: r.retrieval_count, updatedAt: r.updated_at ? new Date(r.updated_at) : null })))
   } catch {
     return Promise.resolve([])
   }
@@ -582,6 +585,26 @@ async function rerankWithLLM(
   }
 }
 
+// ─── Retrieval Tracking ──────────────────────────────────────────────────────
+
+/**
+ * Increment retrieval_count and update last_retrieved_at for the given memory IDs.
+ * Fire-and-forget: errors are logged but never block the caller.
+ */
+function trackRetrievals(memoryIds: string[]): void {
+  if (memoryIds.length === 0) return
+  try {
+    const now = Date.now()
+    const placeholders = memoryIds.map(() => '?').join(', ')
+    sqlite.run(
+      `UPDATE memories SET retrieval_count = retrieval_count + 1, last_retrieved_at = ? WHERE id IN (${placeholders})`,
+      [now, ...memoryIds],
+    )
+  } catch (err) {
+    log.warn({ err, count: memoryIds.length }, 'Failed to track memory retrievals')
+  }
+}
+
 // ─── Convenience: retrieve relevant memories for prompt injection ────────────
 
 /**
@@ -593,6 +616,8 @@ export async function getRelevantMemories(
   query: string,
 ): Promise<Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null }>> {
   const results = await searchMemories(kinId, query, config.memory.maxRelevantMemories)
+  // Track which memories were actually injected into the prompt (fire-and-forget)
+  trackRetrievals(results.map((r) => r.id))
   return results.map((r) => ({ id: r.id, category: r.category, content: r.content, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt }))
 }
 

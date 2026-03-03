@@ -86,6 +86,8 @@ export interface MemorySummary {
   subject: string | null
   sourceChannel: 'automatic' | 'explicit'
   importance: number | null
+  retrievalCount: number
+  lastRetrievedAt: number | null
   consolidationGeneration: number
   createdAt: number
   updatedAt: number

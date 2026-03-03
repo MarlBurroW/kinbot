@@ -3,7 +3,7 @@ import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
 import { KinBadge } from '@/client/components/common/KinBadge'
-import { Brain, Pencil, Trash2, Layers, Star } from 'lucide-react'
+import { Brain, Pencil, Trash2, Layers, Star, ArrowUpFromLine } from 'lucide-react'
 import { TOOL_DOMAIN_META } from '@/shared/constants'
 import type { MemorySummary } from '@/shared/types'
 
@@ -55,6 +55,12 @@ export function MemoryCard({ memory, kinName, kinAvatarUrl, showKinName, onEdit,
  <Badge variant="outline" size="xs" className="shrink-0 font-normal text-amber-500 border-amber-500/30">
                   <Star className="size-3 mr-0.5" />
                   {memory.importance.toFixed(1)}
+                </Badge>
+              )}
+              {memory.retrievalCount > 0 && (
+ <Badge variant="outline" size="xs" className="shrink-0 font-normal text-emerald-500 border-emerald-500/30" title={t('settings.memories.retrievalCount', { count: memory.retrievalCount })}>
+                  <ArrowUpFromLine className="size-3 mr-0.5" />
+                  {memory.retrievalCount}
                 </Badge>
               )}
             </div>

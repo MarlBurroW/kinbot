@@ -873,6 +873,7 @@
       "sourceAutomatic": "Auto",
       "sourceExplicit": "Manual",
       "consolidated": "Gen {{gen}}",
+      "retrievalCount": "Retrieved {{count}} times",
       "filterAll": "All categories",
       "filterAllKins": "All Kins",
       "delete": "Delete memory",
