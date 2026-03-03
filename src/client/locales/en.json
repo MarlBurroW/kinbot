@@ -265,6 +265,8 @@
       "characterHint": "Define personality, tone, and communication style. This shapes how the Kin speaks and behaves in conversations.",
       "expertiseHint": "Describe what the Kin knows and what it should focus on. This guides its responses and areas of competence.",
       "totalPromptTokens": "Total system prompt: ~{{tokens}} tokens",
+      "memoryEmptyTitle": "Memory is configured after creation",
+      "memoryEmptyDescription": "Once your Kin is created, it will automatically build memories from conversations. You can also add memories manually from the edit dialog.",
       "nameHint": "A short, memorable name for this Kin.",
       "roleHint": "A brief description of what this Kin does (shown in the sidebar).",
       "nameTip": "A short, recognizable name. This is how the Kin appears in the sidebar and in conversations.",

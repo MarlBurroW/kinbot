@@ -743,7 +743,7 @@ export function KinFormModal({
                             <div className="flex-1 space-y-4">
                               <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                  <Label htmlFor="kinFormName" className="inline-flex items-center gap-1.5">{t('kin.create.name')} <InfoTip content={t('kin.create.nameTip')} /></Label>
+                                  <Label htmlFor="kinFormName" className="inline-flex items-center gap-1.5">{t('kin.create.name')} <span className="text-destructive">*</span> <InfoTip content={t('kin.create.nameTip')} /></Label>
                                   <Input
                                     id="kinFormName"
                                     value={name}
@@ -753,7 +753,7 @@ export function KinFormModal({
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label htmlFor="kinFormRole" className="inline-flex items-center gap-1.5">{t('kin.create.role')} <InfoTip content={t('kin.create.roleTip')} /></Label>
+                                  <Label htmlFor="kinFormRole" className="inline-flex items-center gap-1.5">{t('kin.create.role')} <span className="text-destructive">*</span> <InfoTip content={t('kin.create.roleTip')} /></Label>
                                   <Input
                                     id="kinFormRole"
                                     value={role}
@@ -763,7 +763,7 @@ export function KinFormModal({
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="inline-flex items-center gap-1.5">{t('kin.create.model')} <InfoTip content={t('kin.create.modelTip')} /></Label>
+                                  <Label className="inline-flex items-center gap-1.5">{t('kin.create.model')} {!isEdit && <span className="text-destructive">*</span>} <InfoTip content={t('kin.create.modelTip')} /></Label>
                                   <ModelPicker
                                     models={llmModels}
                                     value={model}
@@ -850,7 +850,12 @@ export function KinFormModal({
                       )}
 
                       {activeTab === 'memory' && !isEdit && (
-                        <EmptyState minimal title={t('settings.memories.saveKinFirst')} />
+                        <EmptyState
+                          minimal
+                          icon={Brain}
+                          title={t('kin.create.memoryEmptyTitle')}
+                          description={t('kin.create.memoryEmptyDescription')}
+                        />
                       )}
                     </div>
                   </div>

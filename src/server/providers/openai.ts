@@ -18,6 +18,20 @@ interface OpenAIClassification {
   supportsImageInput?: boolean
 }
 
+/** Patterns for OpenAI models that are NOT chat-completion capable */
+const NON_CHAT_PATTERNS = [
+  '-tts',           // text-to-speech (gpt-4o-mini-tts, etc.)
+  '-transcribe',    // speech-to-text (gpt-4o-transcribe, etc.)
+  '-realtime',      // realtime audio (gpt-4o-realtime-preview, etc.)
+  '-search-api',    // search API models
+  'gpt-audio',      // audio models
+  'gpt-realtime',   // realtime models
+  '-instruct',      // completion-only (gpt-3.5-turbo-instruct)
+  '-codex',         // codex models (code completion, not chat)
+  'deep-research',  // deep research models
+  'chatgpt-image',  // image generation (chatgpt-image-latest)
+]
+
 function classifyModel(id: string): OpenAIClassification | null {
   if (id.startsWith('ft:')) return null
   if (id.includes('embedding')) return { capability: 'embedding' }
@@ -25,6 +39,8 @@ function classifyModel(id: string): OpenAIClassification | null {
   if (id.startsWith('dall-e')) return { capability: 'image', supportsImageInput: false }
   // GPT Image models support image input (editing/inpainting)
   if (id.startsWith('gpt-image')) return { capability: 'image', supportsImageInput: true }
+  // Exclude non-chat models before the broad gpt-/o* catch-all
+  if (NON_CHAT_PATTERNS.some((p) => id.includes(p))) return null
   if (
     id.startsWith('gpt-') ||
     id.startsWith('chatgpt-') ||

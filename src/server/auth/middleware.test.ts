@@ -7,12 +7,26 @@ import { Hono } from 'hono'
 // ─── Mock the auth module ────────────────────────────────────────────────────
 
 let mockGetSession: ReturnType<typeof mock>
+let mockDbGet: ReturnType<typeof mock>
 
 mock.module('@/server/auth/index', () => ({
   auth: {
     api: {
       getSession: (...args: unknown[]) => mockGetSession(...args),
     },
+  },
+}))
+
+// Mock the db module — the middleware queries userProfiles to verify profile exists
+mock.module('@/server/db/index', () => ({
+  db: {
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          get: (...args: unknown[]) => mockDbGet(...args),
+        }),
+      }),
+    }),
   },
 }))
 
@@ -41,6 +55,7 @@ describe('authMiddleware', () => {
   beforeEach(() => {
     app = createTestApp()
     mockGetSession = mock(() => Promise.resolve(null)) // default: no session
+    mockDbGet = mock(() => Promise.resolve(null)) // default: no profile
   })
 
   // ── Paths that should skip auth (always pass through) ──────────────────
@@ -140,6 +155,7 @@ describe('authMiddleware', () => {
 
     beforeEach(() => {
       mockGetSession = mock(() => Promise.resolve(fakeSession))
+      mockDbGet = mock(() => Promise.resolve({ userId: 'user-1' })) // has profile
     })
 
     it('passes through and attaches user to context', async () => {
@@ -155,6 +171,14 @@ describe('authMiddleware', () => {
         const res = await app.request('/api/kins', { method })
         expect(res.status).toBe(200)
       }
+    })
+
+    it('returns 403 when session exists but no profile', async () => {
+      mockDbGet = mock(() => Promise.resolve(null))
+      const res = await app.request('/api/kins')
+      expect(res.status).toBe(403)
+      const body = await res.json()
+      expect(body.error.code).toBe('PROFILE_REQUIRED')
     })
   })
 

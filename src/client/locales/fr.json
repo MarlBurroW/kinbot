@@ -265,6 +265,8 @@
       "characterHint": "Définissez la personnalité, le ton et le style de communication. Cela influence la façon dont le Kin s'exprime et se comporte.",
       "expertiseHint": "Décrivez ce que le Kin sait et sur quoi il doit se concentrer. Cela guide ses réponses et ses domaines de compétence.",
       "totalPromptTokens": "Prompt système total : ~{{tokens}} tokens",
+      "memoryEmptyTitle": "La mémoire se configure après la création",
+      "memoryEmptyDescription": "Une fois votre Kin créé, il construira automatiquement des souvenirs à partir des conversations. Vous pouvez aussi ajouter des souvenirs manuellement depuis le dialogue d'édition.",
       "nameHint": "Un nom court et mémorable pour ce Kin.",
       "roleHint": "Une brève description de ce que fait ce Kin (affiché dans la barre latérale).",
       "nameTip": "Un nom court et reconnaissable. C'est ainsi que le Kin apparaît dans la barre latérale et les conversations.",
