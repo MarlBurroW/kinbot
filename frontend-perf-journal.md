@@ -313,3 +313,48 @@
 3. **vendor-markdown at 157 KB** — katex/highlight already lazy, not much more to do
 4. **Consider virtualizing long message lists** — React-window or similar for conversations with 100+ messages
 5. **Profile runtime performance** — most bundle optimizations done, shift to runtime (memo, callbacks, virtualization)
+
+## 2026-03-03 00:28 UTC
+### Browser audit findings
+- **Browser unavailable** (sandbox browser disabled)
+- Skipped to code audit
+
+### Code audit findings
+- **Comprehensive review** of remaining optimization opportunities:
+  - All chat components (MessageBubble, TypingIndicator, TaskResultCard, HumanPromptCard, CompactingCard, DateSeparator, TimeGapIndicator, InlineToolCall, ToolCallItem, ChatEmptyState, ConversationHeader, ConversationStats, ConversationSearch, ToolCallsViewer) are wrapped in `React.memo`
+  - All sidebar components (KinList, TaskList, CronList, MiniAppList, SystemHealthBar, SidebarFooterContent) are wrapped in `React.memo`
+  - ChatPanel uses `useMemo` for `displayMessages`, `processedMessages`, and derived data
+  - `useChat` hook batches streaming tokens at 50ms intervals
+  - `useToolCalls` returns memoized `toolCallsByMessage` Map
+  - MarkdownContent lazy-loads rehype-highlight and remark-math/rehype-katex on demand
+  - ProviderIcon dynamically imports @lobehub/icons per provider type with caching
+  - All modals (KinFormModal, SettingsPage, AccountDialog, CronFormModal, CronDetailModal, TaskDetailModal, MiniAppViewer, QuickChatPanel, ConversationSearch) are lazy-loaded
+  - Remaining inline closures in `liveTasks.map` are negligible (0-2 items typically)
+  - `TypingIndicator` not memoized but has internal timer state, so memo wouldn't help
+  - No remaining heavy static imports in the initial bundle path
+
+- **Build output analysis:**
+  - ChatPage: 405 KB (down from 590 KB initial)
+  - vendor-codemirror: 641 KB (fully deferred, only loads on modal open)
+  - vendor-markdown: 157 KB (core only, highlight/katex lazy)
+  - vendor-ui: 270 KB (radix + lucide, unavoidable)
+  - vendor-react: 38 KB
+  - All tests pass (1289/1289)
+  - Build clean, CI green
+
+### Fix applied
+- **None** — codebase is well-optimized across bundle splitting, lazy loading, and React.memo patterns. No remaining low-hanging fruit found.
+
+### Assessment
+The frontend has been significantly optimized over 12 sessions:
+- **Bundle:** 2,881 KB single chunk → split into 20+ chunks with lazy loading
+- **Initial load:** ~650 KB deferred (vendor-codemirror, provider icons, modals)
+- **React.memo:** 17+ components memoized with stable prop references
+- **Streaming:** Token batching at 50ms prevents excessive re-renders
+
+### Next run priorities (diminishing returns)
+1. **Browser audit** — still needed when sandbox browser becomes available (visual bugs, dark mode, responsive)
+2. **List virtualization** — react-window/@tanstack/virtual for 100+ message conversations (complex due to variable heights)
+3. **Runtime profiling** — use React DevTools Profiler to identify remaining re-render hotspots
+4. **Pre-commit hook** — consider removing the full build step to avoid OOM (typecheck + tests should suffice)
+5. **Consider pausing this cron** — most impactful perf work is done; remaining gains are marginal

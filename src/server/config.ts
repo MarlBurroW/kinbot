@@ -73,6 +73,7 @@ export const config = {
     consolidationMaxGeneration: Number(process.env.MEMORY_CONSOLIDATION_MAX_GEN ?? 5),
     consolidationModel: process.env.MEMORY_CONSOLIDATION_MODEL ?? undefined,
     multiQueryModel: process.env.MEMORY_MULTI_QUERY_MODEL ?? undefined,
+    rerankModel: process.env.MEMORY_RERANK_MODEL ?? undefined,
   },
 
   queue: {

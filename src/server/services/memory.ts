@@ -309,6 +309,9 @@ export async function searchMemories(
   limit?: number,
 ): Promise<MemorySearchResult[]> {
   const maxResults = limit ?? config.memory.maxRelevantMemories
+  const useRerank = !!config.memory.rerankModel
+  // When re-ranking, fetch more candidates to give the LLM a wider pool
+  const fetchLimit = useRerank ? maxResults * 3 : maxResults
   const K = 60 // RRF constant
   const scoreMap = new Map<string, ScoreMapEntry>()
 
@@ -336,10 +339,17 @@ export async function searchMemories(
   }
 
   // Sort by weighted score descending
-  return Array.from(scoreMap.entries())
+  const sorted = Array.from(scoreMap.entries())
     .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, importance: data.importance, score: data.score, updatedAt: data.updatedAt }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, maxResults)
+    .slice(0, fetchLimit)
+
+  // Apply LLM re-ranking if enabled
+  if (useRerank && sorted.length > 0) {
+    return rerankWithLLM(query, sorted, maxResults)
+  }
+
+  return sorted.slice(0, maxResults)
 }
 
 /**
@@ -442,6 +452,85 @@ function searchByFTS(
     return Promise.resolve(rows.map((r) => ({ ...r, updatedAt: r.updated_at ? new Date(r.updated_at) : null })))
   } catch {
     return Promise.resolve([])
+  }
+}
+
+// ─── LLM Re-ranking ─────────────────────────────────────────────────────────
+
+/**
+ * Re-rank memory search results using an LLM for better precision.
+ * Takes the top candidates from hybrid search and asks an LLM to score
+ * each memory's relevance to the query on a 0-10 scale.
+ * Falls back to original ordering if the LLM call fails.
+ */
+async function rerankWithLLM(
+  query: string,
+  candidates: MemorySearchResult[],
+  limit: number,
+): Promise<MemorySearchResult[]> {
+  const rerankModel = config.memory.rerankModel
+  if (!rerankModel || candidates.length === 0) return candidates.slice(0, limit)
+
+  try {
+    const { resolveLLMModel } = await import('@/server/services/kin-engine')
+    const model = await resolveLLMModel(rerankModel, null)
+    if (!model) return candidates.slice(0, limit)
+
+    // Build a numbered list of memory snippets (truncate long ones)
+    const memoryList = candidates
+      .map((m, i) => `[${i}] (${m.category}${m.subject ? `, subject: ${m.subject}` : ''}) ${m.content.slice(0, 300)}`)
+      .join('\n')
+
+    const result = await generateText({
+      model,
+      messages: [{
+        role: 'user',
+        content:
+          `You are a relevance judge. Given a user query and a list of memory snippets, ` +
+          `score each memory's relevance to the query from 0 (irrelevant) to 10 (highly relevant).\n\n` +
+          `Query: "${query}"\n\n` +
+          `Memories:\n${memoryList}\n\n` +
+          `Return ONLY a JSON array of objects with "index" and "score" fields, sorted by score descending. ` +
+          `Example: [{"index":2,"score":9},{"index":0,"score":7},{"index":1,"score":3}]`,
+      }],
+    })
+
+    const jsonMatch = result.text.match(/\[[\s\S]*\]/)
+    if (!jsonMatch) return candidates.slice(0, limit)
+
+    const scores = JSON.parse(jsonMatch[0]) as Array<{ index: number; score: number }>
+    if (!Array.isArray(scores) || scores.length === 0) return candidates.slice(0, limit)
+
+    // Validate and rebuild results with LLM scores blended into existing scores
+    const reranked: MemorySearchResult[] = []
+    for (const entry of scores) {
+      if (typeof entry.index !== 'number' || entry.index < 0 || entry.index >= candidates.length) continue
+      if (typeof entry.score !== 'number') continue
+
+      const original = candidates[entry.index]!
+      // Blend: use LLM score as primary, original hybrid score as tiebreaker
+      reranked.push({
+        ...original,
+        score: (entry.score / 10) + (original.score * 0.01),
+      })
+    }
+
+    // Sort by blended score descending
+    reranked.sort((a, b) => b.score - a.score)
+
+    // If LLM missed some candidates, append them at the end
+    if (reranked.length < candidates.length) {
+      const seen = new Set(reranked.map((r) => r.id))
+      for (const c of candidates) {
+        if (!seen.has(c.id)) reranked.push(c)
+      }
+    }
+
+    log.debug({ query: query.slice(0, 80), candidates: candidates.length, reranked: reranked.length }, 'LLM re-ranking complete')
+    return reranked.slice(0, limit)
+  } catch (err) {
+    log.debug({ err }, 'LLM re-ranking failed, using original order')
+    return candidates.slice(0, limit)
   }
 }
 
