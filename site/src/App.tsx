@@ -92,7 +92,7 @@ const Features = lazy(() => import('./components/Features').then(m => ({ default
 const Memory = lazy(() => import('./components/Memory').then(m => ({ default: m.Memory })))
 const UseCases = lazy(() => import('./components/UseCases').then(m => ({ default: m.UseCases })))
 const Privacy = lazy(() => import('./components/Privacy').then(m => ({ default: m.Privacy })))
-const Screenshots = lazy(() => import('./components/Screenshots').then(m => ({ default: m.Screenshots })))
+// const Screenshots = lazy(() => import('./components/Screenshots').then(m => ({ default: m.Screenshots })))
 const Comparison = lazy(() => import('./components/Comparison').then(m => ({ default: m.Comparison })))
 const Providers = lazy(() => import('./components/Providers').then(m => ({ default: m.Providers })))
 const Channels = lazy(() => import('./components/Channels').then(m => ({ default: m.Channels })))
@@ -174,12 +174,6 @@ export default function App() {
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <Privacy />
-          </ScrollReveal>
-        </Suspense>
-        <SectionDivider variant="wave" flip />
-        <Suspense fallback={<SectionFallback />}>
-          <ScrollReveal>
-            <Screenshots />
           </ScrollReveal>
         </Suspense>
         <SectionDivider variant="glow" />
