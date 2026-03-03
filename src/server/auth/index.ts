@@ -19,7 +19,12 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    disableSignUp: true,
+    // Note: open sign-up is gated at the application layer, not here.
+    // The onboarding /profile endpoint requires a valid invitation token
+    // when an admin already exists. Without a profile, an auth-only user
+    // cannot access any protected routes (the /me endpoint returns 404,
+    // and the client redirects to onboarding). This is safer than
+    // disableSignUp:true which also blocks the onboarding & invitation flows.
   },
   session: {
     cookieCache: {
