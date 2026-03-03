@@ -1,5 +1,54 @@
 # Kin Context Improvement Journal
 
+## 2026-03-03 (run 9) — Conversation state awareness
+
+**Area:** System prompt quality / Conversation context
+
+**Problem:** The Kin had no awareness of its own context window state — how many messages it could see, whether older messages had been compacted away, or how far back its visible history went. This led to issues like:
+1. The Kin not knowing when to suggest using `search_history()` for older context
+2. No self-awareness about whether it's in a fresh conversation vs. a long-running one
+3. No signal about how much context might have been lost to compaction
+
+**Change:**
+1. Added `conversationState` optional field to `PromptParams` with `visibleMessageCount`, `totalMessageCount`, `hasCompactedHistory`, and `oldestVisibleMessageAt`
+2. Extended `buildMessageHistory()` return type to include these metrics, computed from `filteredMessages` and `activeSnapshot`
+3. Added `buildConversationStateBlock()` helper that generates contextual awareness:
+   - For long-running conversations: "This is a long-running conversation. X older messages have been summarized. You can see the Y most recent messages."
+   - For fresh conversations: "You have the full conversation history: X messages."
+   - Oldest visible message age for temporal context
+   - Reminder to use `search_history()` when compaction is active
+4. Injected at position [6.85], between participants and compacting summary
+
+**Example output (compacted):**
+```
+## Conversation state
+
+This is a long-running conversation. 47 older messages have been summarized (see "Previous conversation summary" above).
+You can see the 23 most recent messages in full detail.
+Oldest visible message: 3h ago.
+If you need details from before your visible history, use search_history() to look further back.
+```
+
+**Example output (fresh):**
+```
+## Conversation state
+
+You have the full conversation history: 12 messages.
+Oldest visible message: 2d ago.
+```
+
+**Rationale:** Self-awareness about context state helps the Kin make better decisions about when to search for older context, when to ask the user for clarification about past events, and how to frame responses about conversation history. It also reinforces the `search_history()` tool usage when compaction is active.
+
+**Files changed:** `src/server/services/prompt-builder.ts`, `src/server/services/kin-engine.ts`
+**Commit:** `221df5c` — `feat(context): add conversation state awareness to system prompt`
+**Tests:** 1314/1314 pass, 30/30 prompt-builder tests pass, build OK
+
+**Next areas to explore:**
+- Group vs DM detection: adapt tone/verbosity based on conversation type
+- Add prompt-builder tests for conversation state, participants, tool usage strategy sections
+- Tool descriptions: audit across all tool files for consistency and when-to-use hints
+- Compacting: test the structured summary format
+
 ## 2026-03-02 (run 8) — Current message source platform injection
 
 **Area:** Channel/platform awareness
