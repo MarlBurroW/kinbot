@@ -1,5 +1,44 @@
 # Kin Context Improvement Journal
 
+## 2026-03-03 (run 11) — Memory grouping by category
+
+**Area:** Memory injection
+
+**Problem:** Memories were injected as a flat list regardless of count. When 10+ memories were retrieved, mixing facts, preferences, decisions, and knowledge in a single list made it harder for the LLM to scan and prioritize relevant information.
+
+**Change:** Added `buildMemoriesBlock()` helper that:
+- Groups memories by category (Facts, Preferences, Decisions, Knowledge) with `###` subheadings when >3 memories
+- Keeps flat list for ≤3 memories (grouping adds overhead for small sets)
+- Categories are sorted in a consistent order via `MEMORY_CATEGORY_META`
+- Applied to both quick session and main prompt memory injection sites
+
+**Example output (grouped):**
+```
+## Memories
+
+Relevant information from your past interactions (★ = high importance):
+
+### Facts
+- ★ [fact] Nicolas lives in Grenoble (subject: Nicolas) — 2d ago
+- [fact] Works at Acme (subject: Nicolas) — 1mo ago
+
+### Preferences
+- [preference] Prefers dark mode — 3mo ago
+
+### Decisions
+- [decision] Use PostgreSQL for the new project — just now
+```
+
+**Files changed:** `src/server/services/prompt-builder.ts`, `src/server/services/prompt-builder.test.ts`
+**Commit:** `1d893a0` — `feat(context): group memories by category for easier LLM scanning`
+**Tests:** 1339/1339 pass (32/32 prompt-builder, 2 new), build OK
+
+**Next areas to explore:**
+- Tool descriptions: audit across all tool files for consistency and when-to-use hints
+- Add prompt-builder tests for conversation state, participants, tool usage strategy sections
+- Compacting: test the structured summary format
+- Sub-kin context: inject parent Kin identity so sub-kins know who spawned them
+
 ## 2026-03-03 (run 10) — Group vs one-on-one conversation awareness
 
 **Area:** Channel/platform awareness / System prompt quality
