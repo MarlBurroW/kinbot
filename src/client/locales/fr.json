@@ -47,6 +47,7 @@
     "submit": "Se connecter",
     "submitting": "Connexion...",
     "error": "Email ou mot de passe invalide",
+    "forgotPassword": "Mot de passe oublié ? Contactez l'administrateur de votre espace.",
     "noAccount": "Première visite ?",
     "startOnboarding": "Configurer votre espace"
   },

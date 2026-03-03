@@ -89,7 +89,7 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
     }
   }
 
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+  const initials = `${(firstName ?? '?').charAt(0)}${(lastName ?? '?').charAt(0)}`.toUpperCase()
   const displayName = [firstName, lastName].filter(Boolean).join(' ')
 
   return (

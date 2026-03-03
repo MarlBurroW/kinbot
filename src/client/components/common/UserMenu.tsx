@@ -26,7 +26,7 @@ interface UserMenuProps {
 export function UserMenu({ user, onLogout, onOpenSettings, onOpenAccount }: UserMenuProps) {
   const { t } = useTranslation()
 
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+  const initials = `${(user.firstName ?? '?').charAt(0)}${(user.lastName ?? '?').charAt(0)}`.toUpperCase()
 
   return (
     <DropdownMenu>

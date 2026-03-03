@@ -143,7 +143,7 @@ export function InvitePage() {
     }
   }
 
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+  const initials = `${(firstName ?? '?').charAt(0)}${(lastName ?? '?').charAt(0)}`.toUpperCase()
 
   // Loading state
   if (validating) {

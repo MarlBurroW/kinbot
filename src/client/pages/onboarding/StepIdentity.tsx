@@ -85,7 +85,7 @@ export function StepIdentity({ onComplete }: StepIdentityProps) {
     }
   }
 
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+  const initials = `${(firstName ?? '?').charAt(0)}${(lastName ?? '?').charAt(0)}`.toUpperCase()
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

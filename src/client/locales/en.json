@@ -47,6 +47,7 @@
     "submit": "Sign in",
     "submitting": "Signing in...",
     "error": "Invalid email or password",
+    "forgotPassword": "Forgot your password? Contact your workspace admin.",
     "noAccount": "First time here?",
     "startOnboarding": "Set up your workspace"
   },

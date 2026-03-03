@@ -86,6 +86,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               />
             </div>
 
+            <div className="text-right animate-fade-in-up delay-2">
+              <p className="text-xs text-muted-foreground">
+                {t('login.forgotPassword')}
+              </p>
+            </div>
+
             <div className="animate-fade-in-up delay-3 pt-1">
               <Button
                 type="submit"

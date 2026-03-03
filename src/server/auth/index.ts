@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { APIError } from 'better-auth/api'
 import { db } from '@/server/db/index'
 import * as schema from '@/server/db/schema'
 import { config } from '@/server/config'
@@ -18,6 +19,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    disableSignUp: true,
   },
   session: {
     cookieCache: {
