@@ -430,3 +430,29 @@ Stack, Divider, Card (+Header/Title/Description/Content/Footer), Button, ButtonG
 2. New template: dashboard template using charts + stats
 3. `KinBot.navigate(path)` — parent-side handler verification
 4. `KinBot.notification(title, body?)` — browser notifications via parent
+
+## 2026-03-03 (run 12) — Dashboard Template Upgrade with Charts
+
+**What:** Replaced the placeholder chart in the dashboard template with real chart components.
+
+### Changes
+- **LineChart** in Overview tab: revenue vs costs over 12 months, with dots, area fill, smooth curves, animated
+- **SparkLine** in stat cards: each stat now shows a mini sparkline (green for upward trends, red for downward)
+- **New Analytics tab** with:
+  - **BarChart**: weekly signups (Mon-Sun) with values and grid
+  - **PieChart**: traffic sources breakdown (donut mode with labels and legend)
+- Template now imports `LineChart, BarChart, PieChart, SparkLine` from `@kinbot/components`
+- 3 tabs total: Overview, Analytics, Projects
+- Removed the old `.chart-placeholder` CSS class
+- Added `.charts-grid` (2-column) and `.stat-spark` (inline sparkline layout) styles
+
+**Files changed:**
+- `src/server/tools/mini-app-templates.ts` — dashboard template rewritten (+79/-16 lines)
+
+**Tests:** 1322 pass, 0 fail. Build clean (pre-commit OOM'd on build but main build verified clean).
+
+**Next priorities:**
+1. Component showcase/storybook mini-app template
+2. `KinBot.notification(title, body?)` — browser notifications via parent
+3. Settings page template (using Panel, RadioGroup, Slider, Switch)
+4. `KinBot.navigate(path)` — verify parent-side handler
