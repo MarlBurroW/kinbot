@@ -74,6 +74,8 @@ export const config = {
     consolidationModel: process.env.MEMORY_CONSOLIDATION_MODEL ?? undefined,
     multiQueryModel: process.env.MEMORY_MULTI_QUERY_MODEL ?? undefined,
     rerankModel: process.env.MEMORY_RERANK_MODEL ?? undefined,
+    adaptiveK: process.env.MEMORY_ADAPTIVE_K !== 'false',
+    adaptiveKMinScoreRatio: Number(process.env.MEMORY_ADAPTIVE_K_MIN_SCORE_RATIO ?? 0.3),
   },
 
   queue: {

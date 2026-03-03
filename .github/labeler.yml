@@ -80,6 +80,39 @@
           - "src/client/**/mini-app*"
           - "src/client/**/*MiniApp*"
 
+"memory":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/memory*"
+          - "src/server/tools/memory*"
+
+"mcp":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/mcp*"
+          - "src/server/tools/mcp*"
+          - "src/server/routes/mcp*"
+          - "src/client/**/mcp*"
+          - "src/client/**/*Mcp*"
+          - "src/client/**/*MCP*"
+
+"webhooks":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/webhook*"
+          - "src/server/routes/webhook*"
+          - "src/client/**/webhook*"
+          - "src/client/**/*Webhook*"
+
+"cron":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/cron*"
+          - "src/server/tools/cron*"
+          - "src/server/routes/cron*"
+          - "src/client/**/cron*"
+          - "src/client/**/*Cron*"
+
 "security":
   - changed-files:
       - any-glob-to-any-file:

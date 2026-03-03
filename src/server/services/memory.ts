@@ -257,6 +257,53 @@ async function generateQueryVariations(query: string): Promise<string[]> {
   }
 }
 
+// ─── Adaptive K ──────────────────────────────────────────────────────────────
+
+/**
+ * Adaptively trim a sorted (descending) result list based on score distribution.
+ * Uses two heuristics:
+ * 1. Minimum score ratio: drop results below `minScoreRatio * topScore`
+ * 2. Largest gap detection: if there's a steep drop between consecutive scores
+ *    (gap > 40% of the score range seen so far), truncate there.
+ * Always returns at least 1 result.
+ */
+function applyAdaptiveK<T extends { score: number }>(results: T[]): T[] {
+  if (!config.memory.adaptiveK || results.length <= 1) return results
+
+  const first = results[0]
+  if (!first || first.score <= 0) return results.slice(0, 1)
+
+  const topScore = first.score
+  const minScore = topScore * config.memory.adaptiveKMinScoreRatio
+  let cutoff = results.length
+
+  // Pass 1: find the largest relative gap
+  for (let i = 1; i < results.length; i++) {
+    const prev = results[i - 1]!
+    const curr = results[i]!
+    const gap = prev.score - curr.score
+    const rangeFromTop = topScore - curr.score
+    // If this single gap accounts for >40% of the total drop from the top score,
+    // it's a significant cliff — truncate here
+    if (rangeFromTop > 0 && gap / rangeFromTop > 0.4) {
+      cutoff = i
+      break
+    }
+  }
+
+  // Pass 2: enforce minimum score ratio
+  for (let i = 1; i < cutoff; i++) {
+    if (results[i]!.score < minScore) {
+      cutoff = i
+      break
+    }
+  }
+
+  log.debug({ total: results.length, kept: cutoff, topScore: topScore.toFixed(4), minKept: results[cutoff - 1]?.score.toFixed(4) }, 'Adaptive-K trimming')
+
+  return results.slice(0, Math.max(1, cutoff))
+}
+
 // ─── Hybrid Search (FTS5 + sqlite-vec rank fusion) ───────────────────────────
 
 type ScoreMapEntry = { score: number; content: string; category: string; subject: string | null; importance: number | null; updatedAt: Date | null }
@@ -346,10 +393,11 @@ export async function searchMemories(
 
   // Apply LLM re-ranking if enabled
   if (useRerank && sorted.length > 0) {
-    return rerankWithLLM(query, sorted, maxResults)
+    const reranked = await rerankWithLLM(query, sorted, maxResults)
+    return applyAdaptiveK(reranked)
   }
 
-  return sorted.slice(0, maxResults)
+  return applyAdaptiveK(sorted.slice(0, maxResults))
 }
 
 /**
