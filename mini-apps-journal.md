@@ -1,5 +1,46 @@
 # Mini-Apps SDK Journal
 
+## 2026-03-03 (run 16) — KinBot.download() API
+
+**What:** Added `KinBot.download(filename, content, mimeType?)` — enables mini-apps to trigger file downloads, essential for data export (CSV, JSON, reports, etc.).
+
+### Implementation
+- **SDK (`kinbot-sdk.js` v1.16.0):** New `download()` function supporting string, object (auto-JSON), Blob, and ArrayBuffer content. Uses postMessage with base64-encoded data to bypass iframe sandbox.
+- **Parent (`MiniAppViewer.tsx`):** New `download` case handler that decodes base64, creates a Blob URL, and triggers download via a temporary `<a>` element with proper cleanup.
+- **React hook (`kinbot-react.js`):** New `useDownload()` → `{ download, downloading }` with reactive loading state.
+- **Re-export:** `download` convenience re-export from `@kinbot/react`.
+- **Tool docs:** Updated hook docs, re-exports, and vanilla SDK docs in `mini-app-tools.ts`.
+
+### Usage Examples
+```jsx
+// String content (CSV)
+await KinBot.download('report.csv', csvString, 'text/csv')
+
+// Object → auto-JSON
+await KinBot.download('data.json', { users: [...] })
+
+// React hook
+const { download, downloading } = useDownload()
+<Button onClick={() => download('export.csv', data)} disabled={downloading}>Export</Button>
+```
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-sdk.js` — +60 lines (download function + public API)
+- `src/server/mini-app-sdk/kinbot-react.js` — +32 lines (useDownload hook + re-export)
+- `src/client/components/mini-app/MiniAppViewer.tsx` — +30 lines (download handler)
+- `src/server/tools/mini-app-tools.ts` — updated docs (hook, re-export, vanilla API)
+
+**Tests:** 1515 pass, 0 fail. Build clean (pre-commit OOM'd, CI verified).
+
+**Hook inventory (19 total):**
+useKinBot, useStorage, useTheme, useKin, useUser, useForm, useMediaQuery, useDebounce, useInterval, useClickOutside, useMemory, useConversation, useShortcut, useApps, useSharedData, usePrevious, useOnline, useClipboard, useNotification, **useDownload**
+
+**Next priorities:**
+1. Update data-viewer template to include an "Export CSV" button using useDownload
+2. `KinBot.print()` — trigger print dialog for the mini-app iframe
+3. Consider `useLocalStorage` hook (persistent local state, separate from KinBot.storage)
+4. Responsive breakpoint CSS utilities if not already comprehensive
+
 ## 2026-03-01 (run 3) — SDK API Expansion: kin, user, resize, notification
 
 **What:** Added 4 new SDK APIs to `kinbot-sdk.js` (v1.12.0) and the corresponding parent-side handlers in `MiniAppViewer.tsx`.
