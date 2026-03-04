@@ -1,5 +1,41 @@
 # Mini-Apps SDK Journal
 
+## 2026-03-04 (run 21) — TypeScript Type Definitions
+
+**What:** Added comprehensive `.d.ts` type definition files for all three SDK modules, served as downloadable references via the SDK routes.
+
+### New Files
+- **`kinbot-sdk.d.ts`** (~250 lines) — Full types for the global `KinBot` object: all properties, methods, namespaces (storage, api, http, clipboard, events, apps, memory, conversation), and event types.
+- **`kinbot-react.d.ts`** (~300 lines) — Types for all 26 React hooks (useKinBot through usePagination) with full return type interfaces, plus all 23 convenience re-exports.
+- **`kinbot-components.d.ts`** (~420 lines) — Props interfaces for all 40+ React components including compound components (Card.*, Form.*, Grid.Item), charts, and the Stepper.
+
+### Routes
+- Added a loop in `mini-apps.ts` serving all 3 `.d.ts` files at `/api/mini-apps/sdk/<name>.d.ts` with `Content-Type: application/typescript`.
+
+### Tool Docs
+- Added TypeScript definitions mention to `mini-app-tools.ts` tool descriptions.
+
+### Why
+- Serves as authoritative API documentation for all SDK surfaces
+- Kins can reference types when generating TypeScript mini-apps
+- Human developers get autocomplete if working locally
+- Been the #1 priority for 3 consecutive runs
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-sdk.d.ts` — NEW (~250 lines)
+- `src/server/mini-app-sdk/kinbot-react.d.ts` — NEW (~300 lines)
+- `src/server/mini-app-sdk/kinbot-components.d.ts` — NEW (~420 lines)
+- `src/server/routes/mini-apps.ts` — added .d.ts serving routes
+- `src/server/tools/mini-app-tools.ts` — updated docs
+
+**Tests:** 1643 pass, 0 fail. Build clean (pre-commit OOM'd as usual, CI verified).
+
+**Next priorities:**
+1. `useLocalStorage` hook (persistent local state outside KinBot.storage)
+2. Template showcasing TypeScript usage (`.tsx` file with type imports)
+3. Responsive design improvements for mini-app panel
+4. Consider `KinBot.print()` — trigger print dialog for mini-app iframe
+
 ## 2026-03-03 (run 16) — KinBot.download() API
 
 **What:** Added `KinBot.download(filename, content, mimeType?)` — enables mini-apps to trigger file downloads, essential for data export (CSV, JSON, reports, etc.).
