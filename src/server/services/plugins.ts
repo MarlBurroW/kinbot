@@ -1,5 +1,6 @@
-import { resolve, join } from 'path'
-import { readdir, readFile, access } from 'fs/promises'
+import { resolve, join, basename } from 'path'
+import { readdir, readFile, access, rm, mkdir } from 'fs/promises'
+import { watch, type FSWatcher } from 'fs'
 import { eq, and, like } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { pluginStates, pluginStorage } from '@/server/db/schema'
@@ -7,9 +8,10 @@ import { encrypt, decrypt } from '@/server/services/encryption'
 import { createLogger } from '@/server/logger'
 import { toolRegistry } from '@/server/tools/index'
 import { hookRegistry } from '@/server/hooks/index'
+import { sseManager } from '@/server/sse/index'
 import type { ToolRegistration } from '@/server/tools/types'
 import type { HookName, HookHandler } from '@/server/hooks/types'
-import type { PluginManifest, PluginConfigField, PluginSummary, PluginProviderMeta, PluginChannelMeta } from '@/shared/types/plugin'
+import type { PluginManifest, PluginConfigField, PluginSummary, PluginProviderMeta, PluginChannelMeta, PluginInstallSource, PluginInstallMeta } from '@/shared/types/plugin'
 import type { ProviderDefinition } from '@/server/providers/types'
 import type { ChannelAdapter } from '@/server/channels/adapter'
 import { registerPluginProvider, unregisterPluginProvider } from '@/server/providers/index'
@@ -76,6 +78,8 @@ interface LoadedPlugin {
   registeredHooks: Array<{ name: HookName; handler: HookHandler }>
   registeredProviders: PluginProviderMeta[]
   registeredChannels: PluginChannelMeta[]
+  installSource?: PluginInstallSource
+  installMeta?: PluginInstallMeta
 }
 
 // ─── Manifest validation ─────────────────────────────────────────────────────
@@ -150,6 +154,8 @@ export function validateManifest(data: unknown): { valid: boolean; errors: strin
 class PluginManager {
   private plugins = new Map<string, LoadedPlugin>()
   private pluginsDir: string
+  private watcher: FSWatcher | null = null
+  private reloadTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   constructor() {
     this.pluginsDir = resolve(process.cwd(), 'plugins')
@@ -213,8 +219,10 @@ class PluginManager {
           enabled: state?.enabled ?? false,
           registeredTools: [],
           registeredHooks: [],
-            registeredProviders: [],
-            registeredChannels: [],
+          registeredProviders: [],
+          registeredChannels: [],
+          installSource: (state?.installSource as PluginInstallSource) ?? 'local',
+          installMeta: state?.installMeta ? JSON.parse(state.installMeta) : undefined,
         })
 
         log.info({ plugin: manifest.name, version: manifest.version, enabled: state?.enabled ?? false }, 'Plugin discovered')
@@ -381,8 +389,10 @@ class PluginManager {
     }
     plugin.registeredHooks = []
 
-    // Note: toolRegistry doesn't support unregister yet, but tools from disabled plugins
-    // won't be resolved because they're defaultDisabled and not in enabledOptInTools
+    // Unregister tools
+    for (const toolName of plugin.registeredTools) {
+      toolRegistry.unregister(toolName)
+    }
     plugin.registeredTools = []
 
     // Unregister providers
@@ -622,6 +632,8 @@ class PluginManager {
       providers: p.registeredProviders,
       channels: p.registeredChannels,
       configSchema: p.manifest.config ?? {},
+      installSource: p.installSource,
+      installMeta: p.installMeta,
     }))
   }
 
@@ -649,6 +661,422 @@ class PluginManager {
     }
     this.plugins.clear()
     await this.scan()
+  }
+
+  // ─── Install / Uninstall / Update ────────────────────────────────────────
+
+  /** Install a plugin from a git URL */
+  async installFromGit(url: string): Promise<{ name: string }> {
+    // Ensure plugins dir exists
+    await mkdir(this.pluginsDir, { recursive: true })
+
+    // Clone to a temp directory first
+    const tempName = `_installing_${Date.now()}`
+    const tempDir = join(this.pluginsDir, tempName)
+
+    try {
+      // Clone the repo
+      const proc = Bun.spawn(['git', 'clone', '--depth', '1', url, tempDir], {
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      const exitCode = await proc.exited
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text()
+        throw new Error(`Git clone failed: ${stderr.trim()}`)
+      }
+
+      // Read and validate manifest
+      const manifestPath = join(tempDir, 'plugin.json')
+      let raw: string
+      try {
+        raw = await readFile(manifestPath, 'utf-8')
+      } catch {
+        throw new Error('No plugin.json found in repository')
+      }
+
+      const data = JSON.parse(raw)
+      const validation = validateManifest(data)
+      if (!validation.valid) {
+        throw new Error(`Invalid manifest: ${validation.errors.join('; ')}`)
+      }
+
+      const manifest = data as PluginManifest
+      const targetDir = join(this.pluginsDir, manifest.name)
+
+      // Check if already installed
+      if (this.plugins.has(manifest.name)) {
+        throw new Error(`Plugin "${manifest.name}" is already installed`)
+      }
+
+      // Rename temp dir to plugin name
+      const renameProc = Bun.spawn(['mv', tempDir, targetDir], { stdout: 'pipe', stderr: 'pipe' })
+      await renameProc.exited
+
+      // Remove .git directory to save space (keep it simple)
+      // Actually keep .git for updates via git pull
+
+      // Save install source in DB
+      const now = new Date()
+      const installMeta: PluginInstallMeta = {
+        url,
+        version: manifest.version,
+        installedAt: now.toISOString(),
+      }
+
+      const existing = await this.getState(manifest.name)
+      if (existing) {
+        await db.update(pluginStates).set({
+          enabled: true,
+          installSource: 'git',
+          installMeta: JSON.stringify(installMeta),
+          updatedAt: now,
+        }).where(eq(pluginStates.name, manifest.name))
+      } else {
+        await db.insert(pluginStates).values({
+          name: manifest.name,
+          enabled: true,
+          installSource: 'git',
+          installMeta: JSON.stringify(installMeta),
+          createdAt: now,
+          updatedAt: now,
+        })
+      }
+
+      // Register and activate
+      this.plugins.set(manifest.name, {
+        manifest,
+        exports: null,
+        enabled: false,
+        registeredTools: [],
+        registeredHooks: [],
+        registeredProviders: [],
+        registeredChannels: [],
+        installSource: 'git',
+        installMeta,
+      })
+
+      await this.activatePlugin(manifest.name)
+
+      // Broadcast SSE
+      sseManager.broadcast({
+        type: 'plugin:installed',
+        data: { name: manifest.name, source: 'git', url },
+      })
+
+      log.info({ plugin: manifest.name, url }, 'Plugin installed from git')
+      return { name: manifest.name }
+    } catch (err) {
+      // Cleanup temp dir on failure
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+      throw err
+    }
+  }
+
+  /** Install a plugin from an npm package */
+  async installFromNpm(packageName: string): Promise<{ name: string }> {
+    await mkdir(this.pluginsDir, { recursive: true })
+
+    // Use a temp directory approach: create plugin dir, init, install
+    const tempName = `_npm_${Date.now()}`
+    const tempDir = join(this.pluginsDir, tempName)
+
+    try {
+      await mkdir(tempDir, { recursive: true })
+
+      // Initialize a minimal package.json and install the package
+      await Bun.write(join(tempDir, 'package.json'), JSON.stringify({ name: 'kinbot-plugin-install', private: true }))
+
+      const proc = Bun.spawn(['bun', 'add', packageName], {
+        cwd: tempDir,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      const exitCode = await proc.exited
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text()
+        throw new Error(`npm install failed: ${stderr.trim()}`)
+      }
+
+      // Find the installed package's plugin.json
+      const nodeModulesDir = join(tempDir, 'node_modules', packageName)
+      const manifestPath = join(nodeModulesDir, 'plugin.json')
+      let raw: string
+      try {
+        raw = await readFile(manifestPath, 'utf-8')
+      } catch {
+        throw new Error(`Package "${packageName}" does not contain a plugin.json`)
+      }
+
+      const data = JSON.parse(raw)
+      const validation = validateManifest(data)
+      if (!validation.valid) {
+        throw new Error(`Invalid manifest: ${validation.errors.join('; ')}`)
+      }
+
+      const manifest = data as PluginManifest
+
+      if (this.plugins.has(manifest.name)) {
+        throw new Error(`Plugin "${manifest.name}" is already installed`)
+      }
+
+      // Move the package contents to plugins/<name>
+      const targetDir = join(this.pluginsDir, manifest.name)
+      const mvProc = Bun.spawn(['mv', nodeModulesDir, targetDir], { stdout: 'pipe', stderr: 'pipe' })
+      await mvProc.exited
+
+      // Cleanup temp dir
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+
+      // Save state
+      const now = new Date()
+      const installMeta: PluginInstallMeta = {
+        package: packageName,
+        version: manifest.version,
+        installedAt: now.toISOString(),
+      }
+
+      await db.insert(pluginStates).values({
+        name: manifest.name,
+        enabled: true,
+        installSource: 'npm',
+        installMeta: JSON.stringify(installMeta),
+        createdAt: now,
+        updatedAt: now,
+      }).onConflictDoUpdate({
+        target: pluginStates.name,
+        set: { enabled: true, installSource: 'npm', installMeta: JSON.stringify(installMeta), updatedAt: now },
+      })
+
+      this.plugins.set(manifest.name, {
+        manifest,
+        exports: null,
+        enabled: false,
+        registeredTools: [],
+        registeredHooks: [],
+        registeredProviders: [],
+        registeredChannels: [],
+        installSource: 'npm',
+        installMeta,
+      })
+
+      await this.activatePlugin(manifest.name)
+
+      sseManager.broadcast({
+        type: 'plugin:installed',
+        data: { name: manifest.name, source: 'npm', package: packageName },
+      })
+
+      log.info({ plugin: manifest.name, package: packageName }, 'Plugin installed from npm')
+      return { name: manifest.name }
+    } catch (err) {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+      throw err
+    }
+  }
+
+  /** Uninstall a plugin: deactivate, remove files, clean DB */
+  async uninstallPlugin(name: string): Promise<void> {
+    const plugin = this.plugins.get(name)
+    if (!plugin) throw new Error(`Plugin "${name}" not found`)
+
+    const source = plugin.installSource ?? 'local'
+    if (source === 'local') {
+      throw new Error('Cannot uninstall a local plugin — remove its folder manually')
+    }
+
+    // Deactivate if active
+    if (plugin.enabled) {
+      await this.deactivatePlugin(name)
+    }
+
+    // Remove plugin directory
+    const pluginDir = join(this.pluginsDir, name)
+    await rm(pluginDir, { recursive: true, force: true })
+
+    // Clean up DB
+    await db.delete(pluginStorage).where(eq(pluginStorage.pluginName, name))
+    await db.delete(pluginStates).where(eq(pluginStates.name, name))
+
+    // Remove from memory
+    this.plugins.delete(name)
+
+    sseManager.broadcast({
+      type: 'plugin:uninstalled',
+      data: { name },
+    })
+
+    log.info({ plugin: name }, 'Plugin uninstalled')
+  }
+
+  /** Update a plugin (git pull or npm update) */
+  async updatePlugin(name: string): Promise<void> {
+    const plugin = this.plugins.get(name)
+    if (!plugin) throw new Error(`Plugin "${name}" not found`)
+
+    const source = plugin.installSource
+    const pluginDir = join(this.pluginsDir, name)
+
+    if (source === 'git') {
+      // Git pull
+      const proc = Bun.spawn(['git', 'pull'], {
+        cwd: pluginDir,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      const exitCode = await proc.exited
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text()
+        throw new Error(`Git pull failed: ${stderr.trim()}`)
+      }
+    } else if (source === 'npm') {
+      const packageName = plugin.installMeta?.package
+      if (!packageName) throw new Error('No package name stored for npm plugin')
+
+      // Re-install from npm (overwrite)
+      const tempDir = join(this.pluginsDir, `_update_${Date.now()}`)
+      await mkdir(tempDir, { recursive: true })
+      await Bun.write(join(tempDir, 'package.json'), JSON.stringify({ name: 'kinbot-plugin-update', private: true }))
+
+      const proc = Bun.spawn(['bun', 'add', packageName], { cwd: tempDir, stdout: 'pipe', stderr: 'pipe' })
+      const exitCode = await proc.exited
+      if (exitCode !== 0) {
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+        const stderr = await new Response(proc.stderr).text()
+        throw new Error(`npm update failed: ${stderr.trim()}`)
+      }
+
+      // Replace plugin dir
+      await rm(pluginDir, { recursive: true, force: true })
+      const mvProc = Bun.spawn(['mv', join(tempDir, 'node_modules', packageName), pluginDir], { stdout: 'pipe', stderr: 'pipe' })
+      await mvProc.exited
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+    } else {
+      throw new Error('Cannot update a local plugin')
+    }
+
+    // Re-read manifest
+    const raw = await readFile(join(pluginDir, 'plugin.json'), 'utf-8')
+    const data = JSON.parse(raw)
+    const validation = validateManifest(data)
+    if (!validation.valid) {
+      throw new Error(`Updated manifest is invalid: ${validation.errors.join('; ')}`)
+    }
+
+    const manifest = data as PluginManifest
+
+    // Deactivate and re-activate
+    if (plugin.enabled) {
+      await this.deactivatePlugin(name)
+    }
+
+    plugin.manifest = manifest
+    if (plugin.installMeta) {
+      plugin.installMeta.version = manifest.version
+    }
+
+    // Update DB
+    const now = new Date()
+    await db.update(pluginStates).set({
+      installMeta: JSON.stringify(plugin.installMeta),
+      updatedAt: now,
+    }).where(eq(pluginStates.name, name))
+
+    // Re-activate if was enabled
+    if (plugin.enabled || true) {
+      await this.activatePlugin(name)
+      await this.setState(name, true)
+    }
+
+    sseManager.broadcast({
+      type: 'plugin:updated',
+      data: { name, version: manifest.version },
+    })
+
+    log.info({ plugin: name, version: manifest.version }, 'Plugin updated')
+  }
+
+  // ─── Hot Reload (File Watcher) ───────────────────────────────────────────
+
+  /** Start watching the plugins directory for changes */
+  startWatching(): void {
+    if (this.watcher) return
+
+    try {
+      this.watcher = watch(this.pluginsDir, { recursive: true }, (eventType, filename) => {
+        if (!filename) return
+
+        // Extract plugin name (first path segment)
+        const pluginName = filename.split('/')[0]?.split('\\')[0]
+        if (!pluginName || pluginName.startsWith('_')) return
+
+        // Debounce: wait 500ms after last change
+        const existing = this.reloadTimers.get(pluginName)
+        if (existing) clearTimeout(existing)
+
+        this.reloadTimers.set(pluginName, setTimeout(async () => {
+          this.reloadTimers.delete(pluginName)
+          await this.hotReloadPlugin(pluginName)
+        }, 500))
+      })
+
+      log.info('Plugin file watcher started')
+    } catch {
+      log.warn('Could not start plugin file watcher (plugins/ dir may not exist)')
+    }
+  }
+
+  /** Stop watching */
+  stopWatching(): void {
+    if (this.watcher) {
+      this.watcher.close()
+      this.watcher = null
+    }
+    for (const timer of this.reloadTimers.values()) {
+      clearTimeout(timer)
+    }
+    this.reloadTimers.clear()
+  }
+
+  /** Hot-reload a single plugin */
+  private async hotReloadPlugin(name: string): Promise<void> {
+    const plugin = this.plugins.get(name)
+    if (!plugin) {
+      // New plugin added? Rescan
+      log.info({ plugin: name }, 'New plugin detected, rescanning')
+      await this.reload()
+      return
+    }
+
+    if (!plugin.enabled) return // Don't reload disabled plugins
+
+    log.info({ plugin: name }, 'Hot-reloading plugin')
+
+    try {
+      // Re-read manifest
+      const manifestPath = join(this.pluginsDir, name, 'plugin.json')
+      const raw = await readFile(manifestPath, 'utf-8')
+      const data = JSON.parse(raw)
+      const validation = validateManifest(data)
+      if (!validation.valid) {
+        log.warn({ plugin: name, errors: validation.errors }, 'Hot-reload skipped: invalid manifest')
+        return
+      }
+
+      // Deactivate and re-activate
+      await this.deactivatePlugin(name)
+      plugin.manifest = data as PluginManifest
+      await this.activatePlugin(name)
+
+      sseManager.broadcast({
+        type: 'plugin:reloaded',
+        data: { name, version: plugin.manifest.version },
+      })
+
+      log.info({ plugin: name }, 'Plugin hot-reloaded')
+    } catch (err) {
+      log.error({ plugin: name, err }, 'Hot-reload failed')
+    }
   }
 }
 

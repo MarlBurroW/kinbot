@@ -13,6 +13,12 @@ class ToolRegistry {
     log.debug({ toolName: name }, 'Tool registered')
   }
 
+  unregister(name: string): boolean {
+    const deleted = this.tools.delete(name)
+    if (deleted) log.debug({ toolName: name }, 'Tool unregistered')
+    return deleted
+  }
+
   /**
    * Resolve all tools available for a given execution context.
    * Wraps each tool's execute function with beforeToolCall/afterToolCall hooks.

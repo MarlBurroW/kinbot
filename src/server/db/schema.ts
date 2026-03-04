@@ -622,6 +622,8 @@ export const pluginStates = sqliteTable('plugin_states', {
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
   configEncrypted: text('config_encrypted'), // JSON, secrets encrypted
   approvedPermissions: text('approved_permissions'), // JSON array
+  installSource: text('install_source'), // 'local' | 'git' | 'npm'
+  installMeta: text('install_meta'), // JSON: { url, package, version, ... }
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 })

@@ -42,6 +42,13 @@ import {
   ExternalLink,
   Cpu,
   Radio,
+  Plus,
+  Trash2,
+  ArrowUpCircle,
+  GitBranch,
+  Package,
+  FolderOpen,
+  Loader2,
 } from 'lucide-react'
 import type { PluginSummary, PluginConfigField } from '@/shared/types/plugin'
 
@@ -53,6 +60,20 @@ export function PluginsSettings() {
   const [configPlugin, setConfigPlugin] = useState<PluginSummary | null>(null)
   const [configValues, setConfigValues] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState(false)
+
+  // Install dialog state
+  const [installOpen, setInstallOpen] = useState(false)
+  const [installSource, setInstallSource] = useState<'git' | 'npm'>('git')
+  const [installUrl, setInstallUrl] = useState('')
+  const [installPackage, setInstallPackage] = useState('')
+  const [installing, setInstalling] = useState(false)
+
+  // Uninstall confirmation
+  const [uninstallPlugin, setUninstallPlugin] = useState<string | null>(null)
+  const [uninstalling, setUninstalling] = useState(false)
+
+  // Update state
+  const [updatingPlugin, setUpdatingPlugin] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPlugins()
@@ -97,6 +118,54 @@ export function PluginsSettings() {
     }
   }
 
+  const handleInstall = async () => {
+    setInstalling(true)
+    try {
+      const body = installSource === 'git'
+        ? { source: 'git' as const, url: installUrl }
+        : { source: 'npm' as const, package: installPackage }
+
+      const result = await api.post<{ success: boolean; name: string }>('/plugins/install', body)
+      toast.success(t('settings.plugins.installSuccess', { name: result.name }))
+      setInstallOpen(false)
+      setInstallUrl('')
+      setInstallPackage('')
+      await fetchPlugins()
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setInstalling(false)
+    }
+  }
+
+  const handleUninstall = async () => {
+    if (!uninstallPlugin) return
+    setUninstalling(true)
+    try {
+      await api.delete(`/plugins/${uninstallPlugin}`)
+      toast.success(t('settings.plugins.uninstallSuccess'))
+      setUninstallPlugin(null)
+      await fetchPlugins()
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setUninstalling(false)
+    }
+  }
+
+  const handleUpdate = async (name: string) => {
+    setUpdatingPlugin(name)
+    try {
+      await api.post(`/plugins/${name}/update`)
+      toast.success(t('settings.plugins.updateSuccess'))
+      await fetchPlugins()
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setUpdatingPlugin(null)
+    }
+  }
+
   const openConfig = async (plugin: PluginSummary) => {
     try {
       const config = await api.get<Record<string, any>>(`/plugins/${plugin.name}/config`)
@@ -122,6 +191,22 @@ export function PluginsSettings() {
     }
   }
 
+  const getSourceIcon = (source?: string) => {
+    switch (source) {
+      case 'git': return <GitBranch className="size-3" />
+      case 'npm': return <Package className="size-3" />
+      default: return <FolderOpen className="size-3" />
+    }
+  }
+
+  const getSourceLabel = (source?: string) => {
+    switch (source) {
+      case 'git': return 'Git'
+      case 'npm': return 'npm'
+      default: return t('settings.plugins.sourceLocal')
+    }
+  }
+
   if (isLoading) return <SettingsListSkeleton />
 
   return (
@@ -132,10 +217,16 @@ export function PluginsSettings() {
           <h3 className="text-lg font-semibold">{t('settings.plugins.title')}</h3>
           <p className="text-sm text-muted-foreground">{t('settings.plugins.description')}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleReload} disabled={reloading}>
-          <RefreshCw className={`size-4 mr-2 ${reloading ? 'animate-spin' : ''}`} />
-          {t('settings.plugins.reload')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setInstallOpen(true)}>
+            <Plus className="size-4 mr-2" />
+            {t('settings.plugins.install')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleReload} disabled={reloading}>
+            <RefreshCw className={`size-4 mr-2 ${reloading ? 'animate-spin' : ''}`} />
+            {t('settings.plugins.reload')}
+          </Button>
+        </div>
       </div>
 
       {/* Plugin list */}
@@ -158,6 +249,10 @@ export function PluginsSettings() {
                     <h4 className="font-medium">{plugin.name}</h4>
                     <Badge variant="outline" className="text-xs">
                       v{plugin.version}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      {getSourceIcon(plugin.installSource)}
+                      {getSourceLabel(plugin.installSource)}
                     </Badge>
                     {plugin.error && (
                       <Badge variant="destructive" className="text-xs">
@@ -235,6 +330,34 @@ export function PluginsSettings() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
+                  {/* Update button for git/npm plugins */}
+                  {(plugin.installSource === 'git' || plugin.installSource === 'npm') && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleUpdate(plugin.name)}
+                      disabled={updatingPlugin === plugin.name}
+                      title={t('settings.plugins.update')}
+                    >
+                      {updatingPlugin === plugin.name ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <ArrowUpCircle className="size-4" />
+                      )}
+                    </Button>
+                  )}
+                  {/* Uninstall button for git/npm plugins */}
+                  {(plugin.installSource === 'git' || plugin.installSource === 'npm') && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setUninstallPlugin(plugin.name)}
+                      title={t('settings.plugins.uninstall')}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
                   {Object.keys(plugin.configSchema ?? {}).length > 0 && (
                     <Button
                       variant="ghost"
@@ -268,6 +391,105 @@ export function PluginsSettings() {
           ))}
         </div>
       )}
+
+      {/* Install dialog */}
+      <Dialog open={installOpen} onOpenChange={setInstallOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('settings.plugins.installTitle')}</DialogTitle>
+            <DialogDescription>{t('settings.plugins.installDescription')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>{t('settings.plugins.installSourceLabel')}</Label>
+              <Select value={installSource} onValueChange={(v) => setInstallSource(v as 'git' | 'npm')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="git">
+                    <span className="flex items-center gap-2">
+                      <GitBranch className="size-3" /> Git URL
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="npm">
+                    <span className="flex items-center gap-2">
+                      <Package className="size-3" /> npm
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {installSource === 'git' ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="git-url">{t('settings.plugins.gitUrl')}</Label>
+                <Input
+                  id="git-url"
+                  placeholder="https://github.com/user/kinbot-plugin-xxx.git"
+                  value={installUrl}
+                  onChange={(e) => setInstallUrl(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="npm-package">{t('settings.plugins.npmPackage')}</Label>
+                <Input
+                  id="npm-package"
+                  placeholder="kinbot-plugin-xxx"
+                  value={installPackage}
+                  onChange={(e) => setInstallPackage(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInstallOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleInstall}
+              disabled={installing || (installSource === 'git' ? !installUrl : !installPackage)}
+            >
+              {installing ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  {t('settings.plugins.installing')}
+                </>
+              ) : (
+                t('settings.plugins.install')
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Uninstall confirmation dialog */}
+      <Dialog open={!!uninstallPlugin} onOpenChange={(open) => !open && setUninstallPlugin(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('settings.plugins.uninstallTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('settings.plugins.uninstallDescription', { name: uninstallPlugin })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUninstallPlugin(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleUninstall} disabled={uninstalling}>
+              {uninstalling ? (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="size-4 mr-2" />
+              )}
+              {t('settings.plugins.uninstall')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Config dialog */}
       <Dialog open={!!configPlugin} onOpenChange={(open) => !open && setConfigPlugin(null)}>

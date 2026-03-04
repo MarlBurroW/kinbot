@@ -42,6 +42,15 @@ export interface PluginChannelMeta {
   displayName: string
 }
 
+export type PluginInstallSource = 'local' | 'git' | 'npm'
+
+export interface PluginInstallMeta {
+  url?: string        // git URL
+  package?: string    // npm package name
+  version?: string    // installed version
+  installedAt?: string // ISO date
+}
+
 export interface PluginSummary {
   name: string
   version: string
@@ -60,4 +69,6 @@ export interface PluginSummary {
   providers: PluginProviderMeta[]
   channels: PluginChannelMeta[]
   configSchema: Record<string, PluginConfigField>
+  installSource?: PluginInstallSource
+  installMeta?: PluginInstallMeta
 }

@@ -456,7 +456,7 @@
       "step1Desc": "Add an AI provider (OpenAI, Anthropic, Google, etc.) with your API key. This powers your Kins’ intelligence.",
       "step1Action": "Add provider",
       "step2Title": "Create your Hub",
-      "step2Desc": "The Hub is your central coordinator — it receives messages and routes them to the right specialist Kin.",
+      "step2Desc": "The Hub is your central coordinator. It receives messages and routes them to the right specialist Kin.",
       "step2Action": "Create Hub",
       "step3Title": "Add a specialist Kin",
       "step3Desc": "Create a Kin with specific expertise (finance, coding, writing...) that the Hub can delegate to.",
@@ -1211,7 +1211,22 @@
       "empty": {
         "title": "No plugins installed",
         "description": "Drop a plugin folder into the plugins/ directory and click Reload."
-      }
+      },
+      "install": "Install Plugin",
+      "installTitle": "Install Plugin",
+      "installDescription": "Install a plugin from a Git repository or npm package.",
+      "installSourceLabel": "Source",
+      "gitUrl": "Git Repository URL",
+      "npmPackage": "npm Package Name",
+      "installing": "Installing...",
+      "installSuccess": "Plugin \"{{name}}\" installed successfully",
+      "uninstall": "Uninstall",
+      "uninstallTitle": "Uninstall Plugin",
+      "uninstallDescription": "Are you sure you want to uninstall \"{{name}}\"? This will remove all plugin files and data.",
+      "uninstallSuccess": "Plugin uninstalled",
+      "update": "Update",
+      "updateSuccess": "Plugin updated successfully",
+      "sourceLocal": "Local"
     }
   },
   "notifications": {

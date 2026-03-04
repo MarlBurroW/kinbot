@@ -42,6 +42,7 @@ registerAllTools()
 // Scan and load plugins
 log.info('Scanning for plugins...')
 await pluginManager.scan()
+pluginManager.startWatching()
 
 // Start the queue worker
 log.info('Starting queue worker...')

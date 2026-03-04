@@ -239,6 +239,13 @@
       "when": 1772628164083,
       "tag": "0033_equal_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1772646241135,
+      "tag": "0034_glorious_salo",
+      "breakpoints": true
     }
   ]
 }
