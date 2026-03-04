@@ -103,6 +103,7 @@ import {
 } from '@/server/tools/channel-tools'
 import { getPlatformLogsTool } from '@/server/tools/platform-tools'
 import { getSystemInfoTool } from '@/server/tools/system-info-tools'
+import { httpRequestTool } from '@/server/tools/http-request-tools'
 import { executeSqlTool } from '@/server/tools/database-tools'
 import {
   listUsersTool,
@@ -261,6 +262,7 @@ export function registerAllTools(): void {
   // Platform / system tools (main only, opt-in required)
   toolRegistry.register('get_platform_logs', getPlatformLogsTool)
   toolRegistry.register('get_system_info', getSystemInfoTool)
+  toolRegistry.register('http_request', httpRequestTool)
 
   // Database tools (main only, opt-in required — God Tier)
   toolRegistry.register('execute_sql', executeSqlTool)
