@@ -3,3 +3,6 @@ contact_links:
   - name: 💬 Discussions
     url: https://github.com/MarlBurroW/kinbot/discussions
     about: Ask questions, share ideas, or show off your setup
+  - name: 🔒 Security vulnerability
+    url: https://github.com/MarlBurroW/kinbot/security/advisories/new
+    about: Report security vulnerabilities privately (do not open a public issue)
