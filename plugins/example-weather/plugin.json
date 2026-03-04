@@ -1,0 +1,26 @@
+{
+  "name": "example-weather",
+  "version": "1.0.0",
+  "description": "Get current weather for any location using OpenWeatherMap",
+  "author": "KinBot",
+  "license": "MIT",
+  "main": "index.ts",
+  "permissions": [
+    "http:api.openweathermap.org"
+  ],
+  "config": {
+    "apiKey": {
+      "type": "string",
+      "label": "OpenWeatherMap API Key",
+      "description": "Get a free key at https://openweathermap.org/api",
+      "required": true,
+      "secret": true
+    },
+    "units": {
+      "type": "select",
+      "label": "Temperature Units",
+      "options": ["metric", "imperial"],
+      "default": "metric"
+    }
+  }
+}

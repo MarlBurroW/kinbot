@@ -614,3 +614,25 @@ export const fileStorage = sqliteTable('file_storage', {
   index('idx_file_storage_kin').on(table.kinId),
   index('idx_file_storage_expires').on(table.expiresAt),
 ])
+
+// ─── Plugin System ───────────────────────────────────────────────────────────
+
+export const pluginStates = sqliteTable('plugin_states', {
+  name: text('name').primaryKey(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  configEncrypted: text('config_encrypted'), // JSON, secrets encrypted
+  approvedPermissions: text('approved_permissions'), // JSON array
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export const pluginStorage = sqliteTable('plugin_storage', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  pluginName: text('plugin_name').notNull(),
+  key: text('key').notNull(),
+  value: text('value').notNull(), // JSON-encoded
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  uniqueIndex('idx_plugin_storage_name_key').on(table.pluginName, table.key),
+  index('idx_plugin_storage_plugin').on(table.pluginName),
+])

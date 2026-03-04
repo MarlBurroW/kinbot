@@ -1187,6 +1187,29 @@
       "days": "d",
       "hours": "h",
       "minutes": "m"
+    },
+    "plugins": {
+      "title": "Plugins",
+      "description": "Manage plugins that extend KinBot with new tools, hooks, and integrations.",
+      "reload": "Reload",
+      "reloaded": "Plugins reloaded",
+      "enabled": "Plugin enabled",
+      "disabled": "Plugin disabled",
+      "error": "Error",
+      "by": "by",
+      "tools": "tools",
+      "hooks": "hooks",
+      "permissions": "permissions",
+      "viewPermissions": "View permissions",
+      "configure": "Configure",
+      "configureTitle": "Configure {{name}}",
+      "configureDescription": "Update the plugin settings below.",
+      "configSaved": "Plugin configuration saved",
+      "homepage": "Homepage",
+      "empty": {
+        "title": "No plugins installed",
+        "description": "Drop a plugin folder into the plugins/ directory and click Reload."
+      }
     }
   },
   "notifications": {
