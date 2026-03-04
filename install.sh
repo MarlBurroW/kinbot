@@ -187,6 +187,8 @@ cleanup_on_signal() {
 
   warn "Interrupted by user"
 
+  release_lock
+
   # EXIT trap will fire next and handle rollback
   exit 130
 }
@@ -277,6 +279,54 @@ retry() {
     delay=$((delay * 2))
     attempt=$((attempt + 1))
   done
+}
+
+# ─── Lockfile (prevent concurrent installer runs) ────────────────────────────
+# Running two installers at the same time (e.g. two cron-triggered updates,
+# or a user running install while an update is in progress) can corrupt the
+# build, git state, or database. We use a lockfile to serialize access.
+KINBOT_LOCKFILE=""
+
+acquire_lock() {
+  local lock_dir="${TMPDIR:-/tmp}"
+  KINBOT_LOCKFILE="$lock_dir/kinbot-installer.lock"
+
+  # Try to create the lockfile atomically
+  if ( set -o noclobber; echo "$$" > "$KINBOT_LOCKFILE" ) 2>/dev/null; then
+    # We got the lock — register cleanup
+    return 0
+  fi
+
+  # Lockfile exists — check if the holder is still alive
+  local holder_pid
+  holder_pid="$(cat "$KINBOT_LOCKFILE" 2>/dev/null || echo "")"
+
+  if [ -n "$holder_pid" ] && kill -0 "$holder_pid" 2>/dev/null; then
+    error "Another installer is already running (PID $holder_pid). Wait for it to finish or remove $KINBOT_LOCKFILE"
+  fi
+
+  # Stale lockfile — previous run crashed without cleanup
+  warn "Removing stale lockfile (previous PID $holder_pid is gone)"
+  rm -f "$KINBOT_LOCKFILE"
+
+  if ( set -o noclobber; echo "$$" > "$KINBOT_LOCKFILE" ) 2>/dev/null; then
+    return 0
+  fi
+
+  # Race condition: another process grabbed it between our rm and write
+  error "Another installer is already running. Wait for it to finish or remove $KINBOT_LOCKFILE"
+}
+
+release_lock() {
+  if [ -n "${KINBOT_LOCKFILE:-}" ] && [ -f "${KINBOT_LOCKFILE:-}" ]; then
+    # Only remove if we own it
+    local holder_pid
+    holder_pid="$(cat "$KINBOT_LOCKFILE" 2>/dev/null || echo "")"
+    if [ "$holder_pid" = "$$" ]; then
+      rm -f "$KINBOT_LOCKFILE"
+    fi
+  fi
+  KINBOT_LOCKFILE=""
 }
 
 # ─── OS detection ────────────────────────────────────────────────────────────
@@ -931,6 +981,8 @@ rollback() {
   echo -e "${RED}Please check the error above and try again.${NC}"
   echo -e "${DIM}If the problem persists, open an issue: https://github.com/$KINBOT_REPO/issues${NC}"
   echo ""
+
+  release_lock
 }
 
 # ─── Build ───────────────────────────────────────────────────────────────────
@@ -4667,7 +4719,9 @@ main() {
         ;;
       --uninstall|uninstall)
         trap - INT TERM
+        acquire_lock
         uninstall
+        release_lock
         exit 0
         ;;
       --start|start)
@@ -4780,12 +4834,16 @@ main() {
         ;;
       --reset|reset)
         trap - INT TERM
+        acquire_lock
         do_reset
+        release_lock
         exit 0
         ;;
       --update|update)
         trap - INT TERM
+        acquire_lock
         do_update
+        release_lock
         exit 0
         ;;
       --version|-v|version)
@@ -4803,7 +4861,9 @@ main() {
         ;;
       --docker|docker)
         trap - INT TERM
+        acquire_lock
         docker_install
+        release_lock
         exit 0
         ;;
       --quiet|-q)
@@ -4826,6 +4886,9 @@ main() {
     dry_run
     exit 0
   fi
+
+  # Prevent concurrent installer runs
+  acquire_lock
 
   # Enable rollback trap for actual install/update
   trap rollback EXIT
@@ -4864,6 +4927,7 @@ main() {
   trap - EXIT
   ROLLBACK_COMMIT=""
 
+  release_lock
   print_summary
 }
 
