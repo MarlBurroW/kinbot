@@ -984,3 +984,29 @@ Added Tailwind-style responsive utility classes with breakpoints: sm (640px), md
 1. Update component-showcase template to include new components (FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput)
 2. Consider `Combobox` (searchable select) and `TagInput` (multi-tag entry) components
 3. Add a multi-page template that demonstrates useHashRouter + Route + Link
+
+## 2026-03-04 (run 25) — Showcase Update + Multi-Page Routing Template
+
+**What:** Two focused improvements to templates.
+
+### 1. Component Showcase Updated
+- Added "Extra" category with 5 components from run 23: FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput
+- Each has a live interactive demo in the showcase
+- Updated import list and CATEGORIES array
+- Description updated to reflect 45 components across 8 categories
+
+### 2. New "Multi-Page App" Template
+- New template `multi-page` demonstrating `useHashRouter`, `Route`, and `Link` from `@kinbot/react`
+- Features: nav bar with active state styling, 3 pages (Home, About, Settings), 404 fallback
+- Settings page uses Card, Stack, Switch, Select, Button components
+- Shows browser back/forward support and query params
+
+**Files changed:**
+- `src/server/tools/mini-app-templates.ts` — +158 lines (showcase Extra section + new template)
+
+**Tests:** 1822 pass, 1 fail (pre-existing), 1 error (pre-existing). Build clean.
+
+**Next priorities:**
+1. Consider `Combobox` (searchable select) and `TagInput` (multi-tag entry) components
+2. Add TypeScript declarations for routing exports in kinbot-react.d.ts if not already complete
+3. Improve tool descriptions to document the routing primitives for Kins
