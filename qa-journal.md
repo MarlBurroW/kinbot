@@ -227,3 +227,51 @@
 - Area 3: Conversations (send messages, chat UI, scroll behavior)
 - Area 5: Provider settings (deeper testing of add/edit/delete/test connection)
 - Area 14: Account (profile, password, language)
+
+## 2026-03-04 20:40 UTC
+### Area tested: Conversations (Area 3)
+- **Pages visited:** / (home), /kin/dispatcher (Dispatcher conversation)
+- **Browser:** `openclaw` profile (headless Chromium), host target
+- **Login:** Existing session (qa@kinbot.local)
+
+#### Findings
+
+**Bug: Raw task prompt leaked as visible text (#46)**
+- When a sub-task fails, the entire raw task prompt (including HTML source, internal instructions, tool call JSON) is rendered as plain text in the conversation
+- Makes the conversation unreadable with walls of unformatted code
+- Also a security concern (internal prompts exposed)
+
+**Bug: Duplicate message content after Memorize tool calls (#47)**
+- Last assistant message shows the same response content twice with minor wording differences
+- Appears to be related to Memorize tool call results being rendered inline as message content
+
+**Enhancement: Unlabeled buttons in conversation header (#48)**
+- Multiple icon-only buttons in the nav bar and Kin header have no aria-label or tooltip
+- Impossible to know their function without clicking them
+
+**Bug: Model selector still shows non-chat models (#49)**
+- Regression of #29 (closed) - model dropdown still lists TTS, transcribe, realtime, audio, image, codex, search-api models
+- Users could accidentally select an incompatible model
+
+**Other observations (not filed):**
+- User avatar shows "??" for qa@kinbot.local (likely because no display name is configured - works as designed)
+- Model selector UI works well: provider grouping, search filter, nice layout
+- Message actions (Copy, Edit & resend, React, Read aloud, Regenerate) are well placed
+- Tool call panel on the right side works and shows timestamps
+- "Compacting conversation" indicator with memory extraction count is clean
+- Failed task cards with "Show error details" and "View task details" buttons are good
+- Auto-scroll toggle and Scroll to top are present
+- Formatting toolbar (Bold, Italic, Strikethrough, Code, Code block) present on input
+- Send button correctly disabled when input is empty
+- Date separators and time gap indicators ("48 min later") work nicely
+
+**Note:** Browser repeatedly timed out when interacting with the Dispatcher conversation page. The page is very heavy due to long conversation history + large raw text blocks. Could be a performance concern for long conversations.
+
+- **Bugs found:** 3 (issues #46, #47, #49)
+- **UX suggestions:** 1 (issue #48)
+- **All clear:** Model selector UI, message actions, tool call panel, compaction indicator, date separators, formatting toolbar, auto-scroll, empty state send button
+
+### Next run
+- Area 14: Account (profile, password, language settings)
+- Area 3 continued: Test actually sending a message, editing a message, using reactions (was blocked by browser timeouts on Dispatcher page - try with Dev Kin which has less history)
+- Area 15: Quick chat / Ephemeral sessions

@@ -796,11 +796,9 @@ The `HookRegistry` already exists and is used internally. Plugins register hooks
 - [ ] Channel registration from plugins
 - [ ] UI for managing plugin-provided providers/channels
 
-### Phase 4: Distribution & Polish
+### Phase 4: Community Registry & Scaffolding
 
-- [ ] Plugin install from git URL (UI)
-- [ ] Plugin update mechanism
-- [ ] Community registry index
+- [ ] Community registry index (JSON index on GitHub, browsable from UI)
 - [ ] Plugin template / scaffolding CLI (`bunx create-kinbot-plugin`)
 
 ---
