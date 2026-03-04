@@ -949,3 +949,38 @@ Added Tailwind-style responsive utility classes with breakpoints: sm (640px), md
 1. Add `useHashRouter` hook for multi-page navigation within mini-apps
 2. Update component-showcase template to include new components
 3. Consider `Combobox` (searchable select) and `TagInput` (multi-tag entry) components
+
+## 2026-03-04 (run 24) — useHashRouter Hook + Route & Link Components
+
+**What:** Added hash-based routing primitives for multi-page mini-apps.
+
+### New Exports (kinbot-react.js)
+
+1. **`useHashRouter(defaultPath?)`** — Hash-based router hook
+   - Returns `{ path, params, navigate, back }`
+   - Parses `#/page?key=val` into path + params object
+   - Reactive on `hashchange` events (browser back/forward works)
+   - `navigate(path, params?)` to change route
+   - `back()` for browser history back
+
+2. **`Route`** — Declarative route matching component
+   - `<Route path="/settings" current={path}>...</Route>`
+   - `fallback` prop for catch-all/404 routes
+   - Simple exact-match routing
+
+3. **`Link`** — Hash navigation anchor component
+   - `<Link to="/settings" params={{tab:"general"}}>Settings</Link>`
+   - `active` prop adds `.link-active` class for styling active nav items
+   - Standard `<a>` tag with `href="#/path"`
+
+### Files changed
+- `src/server/mini-app-sdk/kinbot-react.js` — +92 lines (3 exports)
+- `src/server/mini-app-sdk/kinbot-react.d.ts` — +35 lines (type definitions)
+- `src/server/tools/mini-app-tools.ts` — +3 lines (docs for router, Route, Link)
+
+**Tests:** 1793 pass, 1 fail (pre-existing), 1 error (pre-existing). Build clean.
+
+**Next priorities:**
+1. Update component-showcase template to include new components (FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput)
+2. Consider `Combobox` (searchable select) and `TagInput` (multi-tag entry) components
+3. Add a multi-page template that demonstrates useHashRouter + Route + Link
