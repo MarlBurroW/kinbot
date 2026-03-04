@@ -1,5 +1,33 @@
 # Mini-Apps SDK Journal
 
+## 2026-03-04 (run 23) — Responsive Layout Template
+
+**What:** Added a new "responsive" template that showcases mobile-first responsive design patterns.
+
+### Template Features
+- **Portfolio/profile page** with hero section, stats grid, skills, and projects
+- **Responsive CSS utilities** in action: `grid-cols-2 md:grid-cols-4`, `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`
+- **`useBreakpoint()` hook** demo: live breakpoint indicator pill, conditional tab labels (shorter on xs)
+- **Hero section**: centered on mobile, flexbox side-by-side on md+
+- **Stats grid**: 2 columns on mobile, 4 on desktop
+- **Skills grid**: 1 column on mobile, 2 on md+
+- **Projects grid**: 1→2→3 columns across breakpoints
+- **Components used**: Card, Stat, Badge, Tabs, SparkLine, ProgressBar, Tag, Alert, Stack, Grid, Divider
+- **Animations**: fade-in-up with staggered delays on stat cards
+
+### Files changed
+- `src/server/tools/mini-app-templates.ts` — +160 lines (new template)
+- `src/server/tools/mini-app-tools.ts` — added "responsive" to available templates list
+
+**Tests:** 1729 pass, 1 fail (pre-existing: module resolution race in Bun test runner), 1 error (pre-existing). Build clean.
+
+**Note:** The 1 fail + 1 error are a Bun test runner issue: `markInvitationUsed` export not found between tests due to module loading order, but the test passes individually. Not a code bug.
+
+**Next priorities:**
+1. Fix the pre-existing test runner issue (investigate mock.module ordering)
+2. Add a `useResponsiveColumns` hook for auto-calculating grid columns
+3. Consider adding CSS container queries support for component-level responsiveness
+
 ## 2026-03-04 (run 21) — TypeScript Type Definitions
 
 **What:** Added comprehensive `.d.ts` type definition files for all three SDK modules, served as downloadable references via the SDK routes.
