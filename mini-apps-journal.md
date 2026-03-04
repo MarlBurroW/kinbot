@@ -737,3 +737,37 @@ dashboard, todo-list, form, data-viewer, kanban, chat, settings, wizard, api-exp
 2. TypeScript type definitions (.d.ts) for SDK autocomplete
 3. Responsive breakpoint CSS utilities
 4. `useLocalStorage` hook (persistent state outside KinBot storage)
+
+## 2026-03-04 (run 20) — Form Template Upgrade (useForm + useAsync)
+
+**What:** Rewrote the `form` template to showcase `useForm` + `useAsync` together with a real backend.
+
+### Changes
+- **Backend `_server.js`** added: `POST /submit` (server-side validation + duplicate email check), `GET /submissions` (history)
+- **Two tabs**: "New Submission" (form) and "History" (table of past submissions with Badge, Stat)
+- **`useAsync`** wraps the backend submission call, providing `loading`/`error` states
+- **Server-side validation errors** displayed alongside client errors (e.g., duplicate email detected server-side)
+- **Form disables all fields** during submission (`disabled={submitting}`)
+- **Button shows loading state** with `loading` prop during async submission
+- **Email field** clears server error on edit (hybrid client+server validation UX)
+- **History tab** uses `useApi` for auto-fetching, shows Table with columns: #, Name, Email, Category (Badge), Priority (Badge with variant), Date
+- **EmptyState** when no submissions yet
+
+### Hooks Demonstrated
+useKinBot, useForm, useAsync, useApi, toast
+
+### Components Demonstrated
+Card, Input, Select, Textarea, Checkbox, Switch, RadioGroup, DatePicker, Button, Alert, Divider, Stack, Badge, Table, Tabs, Spinner, EmptyState, Stat
+
+### Why
+Previous form template only did synchronous client-side submission (console.log). Real apps need async backend calls with loading states, server validation, and error handling. This is the #1 pattern Kins will need.
+
+**Files changed:**
+- `src/server/tools/mini-app-templates.ts` — form template rewritten (+189/-80 lines)
+
+**Tests:** 1625 pass, 0 fail. Build clean (pre-commit OOM'd as usual, CI verified).
+
+**Next priorities:**
+1. TypeScript type definitions (.d.ts) for SDK autocomplete
+2. Responsive breakpoint CSS utilities
+3. `useLocalStorage` hook (persistent state outside KinBot storage)
