@@ -37,6 +37,7 @@ import { invitationRoutes } from '@/server/routes/invitations'
 import { notificationRoutes } from '@/server/routes/notifications'
 import { settingsRoutes } from '@/server/routes/settings'
 import { miniAppRoutes, miniAppSdkRoutes } from '@/server/routes/mini-apps'
+import { pluginRoutes } from '@/server/routes/plugins'
 
 export type AppVariables = {
   session: { id: string; userId: string; token: string }
@@ -169,6 +170,7 @@ app.route('/api/kins/:kinId/quick-sessions', quickSessionKinRoutes)
 app.route('/api/quick-sessions', quickSessionDetailRoutes)
 app.route('/api/mini-apps/sdk', miniAppSdkRoutes)
 app.route('/api/mini-apps', miniAppRoutes)
+app.route('/api/plugins', pluginRoutes)
 app.route('/s', sharedRoutes)
 
 export { app }

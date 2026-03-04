@@ -232,6 +232,13 @@
       "when": 1772565046070,
       "tag": "0032_breezy_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1772628164083,
+      "tag": "0033_equal_wonder_man",
+      "breakpoints": true
     }
   ]
 }

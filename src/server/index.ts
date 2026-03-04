@@ -21,6 +21,7 @@ import { SignalAdapter } from '@/server/channels/signal'
 import { MatrixAdapter } from '@/server/channels/matrix'
 import { restoreActiveChannels } from '@/server/services/channels'
 import { ensureUserContactsExist } from '@/server/services/contacts'
+import { pluginManager } from '@/server/services/plugins'
 
 const log = createLogger('server')
 
@@ -37,6 +38,10 @@ log.info('Virtual tables initialized')
 // Register native tools
 log.info('Registering native tools...')
 registerAllTools()
+
+// Scan and load plugins
+log.info('Scanning for plugins...')
+await pluginManager.scan()
 
 // Start the queue worker
 log.info('Starting queue worker...')

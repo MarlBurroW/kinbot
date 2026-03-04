@@ -31,6 +31,7 @@ import { WebhooksSettings } from '@/client/pages/settings/WebhooksSettings'
 import { ChannelsSettings } from '@/client/pages/settings/ChannelsSettings'
 import { UsersSettings } from '@/client/pages/settings/UsersSettings'
 import { NotificationPreferences } from '@/client/components/notifications/NotificationPreferences'
+import { PluginsSettings } from '@/client/pages/settings/PluginsSettings'
 import {
   Bell,
   Brain,
@@ -76,6 +77,7 @@ const sectionGroups: SectionGroup[] = [
   {
     groupKey: 'settings.groups.extensions',
     items: [
+      { id: 'plugins', icon: Plug, labelKey: 'settings.plugins.title' },
       { id: 'mcp', icon: Puzzle, labelKey: 'settings.mcp.title' },
       { id: 'vault', icon: Lock, labelKey: 'settings.vault.title' },
       { id: 'memories', icon: Brain, labelKey: 'settings.memories.title' },
@@ -115,6 +117,7 @@ const sectionComponents: Record<string, React.FC> = {
   files: FileStorageSettings,
   webhooks: WebhooksSettings,
   channels: ChannelsSettings,
+  plugins: PluginsSettings,
   notifications: NotificationPreferences,
 }
 
