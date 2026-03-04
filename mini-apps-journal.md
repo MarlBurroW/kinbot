@@ -633,3 +633,34 @@ useKinBot, useStorage, useTheme, useKin, useUser, useForm, useMediaQuery, useDeb
 2. `useInfiniteScroll` hook (paginated data loading)
 3. `useWebSocket` hook (if backend WebSocket support is added)
 4. Consider TypeScript type definitions (.d.ts) for SDK autocomplete
+
+## 2026-03-04 (run 17) — API Explorer Template
+
+**What:** Added new `api-explorer` template that demonstrates all 4 data-fetching hooks in a tabbed interface.
+
+### Template Structure
+- **4 tabs**, each showcasing a different hook:
+  1. **Backend API** (`useApi`) — fetches `/status` and `/items` from `_server.js`, shows server stats and item list with refetch
+  2. **External Fetch** (`useFetch`) — URL input field to fetch any external API via `KinBot.http()` proxy
+  3. **Mutations** (`useAsync`) — POST JSON payload to `/echo` endpoint, manual trigger with loading/error states
+  4. **Real-time** (`useEventStream`) — SSE stream from `_server.js` with start/stop toggle and event log
+
+### Backend (`_server.js`)
+- `GET /status` — server uptime, memory, timestamp
+- `GET /items` — mock item list with categories and scores
+- `POST /echo` — echoes back posted JSON with headers
+- `GET /events/tick` — SSE stream emitting ticks every 2s (max 50)
+
+### Why
+No existing template used the data-fetching hooks (useFetch, useApi, useAsync, useEventStream) added in run 16. This template serves as both a learning reference for Kins and a functional starting point for API-driven mini-apps.
+
+**Files changed:**
+- `src/server/tools/mini-app-templates.ts` — +290 lines (new template + backend)
+
+**Tests:** 1582 pass, 0 fail. Build clean (pre-commit OOM'd as usual, CI verified).
+
+**Next priorities:**
+1. `useInfiniteScroll` hook (paginated data loading)
+2. Form template update to showcase `useForm` + `useAsync` together
+3. Consider TypeScript type definitions (.d.ts) for SDK autocomplete
+4. Responsive breakpoint CSS utilities
