@@ -186,3 +186,44 @@
 - Area 3: Conversations (send messages, chat UI, scroll behavior) - requires entering Kin page
 - Area 13: MCP Servers (add, configure, remove) - testable from Settings
 - Area 7: Memory (browse, search, delete) - testable from Settings
+
+## 2026-03-04 16:40 UTC
+### Area tested: MCP Servers (Area 13) + Plugins (Area 6b) + Settings sweep
+- **Pages visited:** Settings > MCP Servers, Settings > Plugins, Settings > Vault, Settings > Memories, Settings > Files, Settings > Search, Settings > Users, Settings > Notifications
+- **Browser:** `openclaw` profile (headless Chromium), host target
+- **Login:** Existing session
+
+#### MCP Servers (Area 13)
+- **Bugs found:** 0
+- **UX suggestions:** 0
+- **All clear:**
+  - Clean empty state with clear description and CTA button
+  - "What is this?" expandable section with detailed MCP documentation (4 bullet points)
+  - "Add MCP server" form: Name (required), Command (required), Arguments (optional, one per line), Environment variables (optional)
+  - Button correctly disabled until Name + Command are filled
+  - Env variables: KEY/value inputs, value masked as password with show/hide toggle, delete button per row, "Add variable" adds rows
+  - Creation shows "MCP server added" toast, server appears immediately in list
+  - Server card shows: name, status (Active), command, env var keys (values hidden)
+  - Edit button opens "Edit MCP server" dialog with all fields pre-populated
+  - Env var value correctly masked in edit form
+  - Delete has proper confirmation dialog: "This will permanently remove this MCP server and disconnect it from all Kins"
+  - Delete shows "MCP server deleted" toast, returns to empty state
+  - Full CRUD cycle works end-to-end
+
+#### Plugins (Area 6b) - BUG FOUND
+- **Bugs found:** 1
+  - **#43 (bug):** Clicking "Plugins" in Settings crashes the entire app with error boundary: "Cannot read properties of undefined (reading 'length')". 100% reproducible. Critical - crashes entire React app.
+- **UX suggestions:** 0
+
+#### Settings sweep (other pages)
+- **Vault:** Works. Filter tabs (All, Favorites, Secret, Credential, Card, Note, Identity), "Manage types" button, clean empty state
+- **Memories:** Works. Model configuration (extraction + embedding models), re-embed button, search with category/Kin filters, 5 memories displayed with edit/delete buttons
+- **Files:** Works. Clean empty state with upload CTA
+- **Search:** Works. Shows existing Brave Search provider, default provider dropdown
+- **Users:** Works. Shows user info (Nicolas VARROT), invitation section
+- **Notifications:** Works. 8 notification types with toggles, external delivery section
+
+### Next run
+- Area 3: Conversations (send messages, chat UI, scroll behavior)
+- Area 5: Provider settings (deeper testing of add/edit/delete/test connection)
+- Area 14: Account (profile, password, language)
