@@ -139,11 +139,27 @@ function buildContextBlock(): string {
     timeZone: 'UTC',
     hour12: false,
   })
+
+  // Lightweight system info
+  const os = require('os')
+  const uptimeSec = os.uptime()
+  const days = Math.floor(uptimeSec / 86400)
+  const hours = Math.floor((uptimeSec % 86400) / 3600)
+  const uptimeStr = days > 0 ? `${days}d ${hours}h` : `${hours}h`
+  const totalMem = os.totalmem()
+  const freeMem = os.freemem()
+  const usedMem = ((totalMem - freeMem) / (1024 ** 3)).toFixed(1)
+  const totalMemGb = (totalMem / (1024 ** 3)).toFixed(1)
+  const platform = os.platform()
+  const release = os.release()
+  const arch = os.arch()
+
   return (
     `## Context\n\n` +
     `Current date: ${readable}\n` +
     `Current time: ${time} UTC\n` +
     `ISO timestamp: ${iso}\n` +
+    `System: ${platform} ${release} (${arch}) | Uptime: ${uptimeStr} | RAM: ${usedMem}/${totalMemGb} GB\n` +
     `Platform: KinBot`
   )
 }
