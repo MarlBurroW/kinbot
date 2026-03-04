@@ -182,7 +182,7 @@ export const createMiniAppTool: ToolRegistration = {
         description: z.string().optional().describe('Short description shown in the app list'),
         icon: z.string().optional().describe('Single emoji for the app icon (e.g. "📊", "🎮", "📝")'),
         html: z.string().optional().describe('Full HTML content for index.html. Do NOT include a <link> to kinbot-sdk.css — it is injected automatically. Either html or template is required.'),
-        template: z.string().optional().describe('Use a built-in template instead of providing html. Available templates: "dashboard", "todo-list", "form", "data-viewer", "kanban". Use get_mini_app_templates to see all templates with descriptions.'),
+        template: z.string().optional().describe('Use a built-in template instead of providing html. Available templates: "dashboard", "todo-list", "form", "data-viewer", "kanban", "responsive". Use get_mini_app_templates to see all templates with descriptions.'),
       }),
       execute: async ({ name, slug, description, icon, html, template }) => {
         log.debug({ kinId: ctx.kinId, name, slug }, 'create_mini_app invoked')

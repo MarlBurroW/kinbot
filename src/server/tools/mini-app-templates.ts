@@ -2319,6 +2319,175 @@ export default {
 </html>`,
     },
   },
+  {
+    id: 'responsive',
+    name: 'Responsive Layout',
+    description: 'A responsive profile/portfolio page demonstrating mobile-first design with responsive CSS utilities (sm:/md:/lg: prefixes), useBreakpoint() hook, Grid, Card, Tabs, and adaptive layouts.',
+    icon: '📱',
+    tags: ['responsive', 'layout', 'mobile', 'breakpoints', 'grid', 'portfolio'],
+    suggestedSlug: 'responsive-demo',
+    files: {
+      'app.json': REACT_APP_JSON,
+      'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responsive Layout</title>
+  <style>
+    body { padding: 1rem; }
+    .hero { text-align: center; padding: 2rem 1rem; }
+    .hero-avatar { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; background: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white; }
+    .breakpoint-pill { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--color-primary); color: white; }
+    @media (min-width: 768px) { .hero { text-align: left; display: flex; align-items: center; gap: 1.5rem; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/jsx">
+    import { useState } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { useKinBot, useBreakpoint } from '@kinbot/react'
+    import {
+      Card, Stat, Badge, Tabs, Spinner, Stack, Grid, ProgressBar,
+      List, Tag, Alert, Divider, SparkLine
+    } from '@kinbot/components'
+
+    const skills = [
+      { name: 'React', level: 92 },
+      { name: 'TypeScript', level: 88 },
+      { name: 'Node.js', level: 85 },
+      { name: 'Python', level: 72 },
+      { name: 'CSS/Design', level: 80 },
+      { name: 'DevOps', level: 65 },
+    ]
+
+    const projects = [
+      { name: 'E-Commerce Platform', desc: 'Full-stack shop with payments', tags: ['React', 'Node.js'], progress: 95 },
+      { name: 'Analytics Dashboard', desc: 'Real-time metrics visualization', tags: ['TypeScript', 'D3'], progress: 78 },
+      { name: 'Mobile App', desc: 'Cross-platform fitness tracker', tags: ['React Native'], progress: 45 },
+      { name: 'API Gateway', desc: 'Microservices orchestration', tags: ['Go', 'Docker'], progress: 60 },
+      { name: 'Design System', desc: 'Component library & docs', tags: ['CSS', 'Storybook'], progress: 88 },
+      { name: 'ML Pipeline', desc: 'Data processing & inference', tags: ['Python', 'PyTorch'], progress: 32 },
+    ]
+
+    const activity = [12, 18, 8, 24, 15, 22, 30, 28, 19, 35, 42, 38]
+
+    function App() {
+      const { ready } = useKinBot()
+      const bp = useBreakpoint()
+      const [tab, setTab] = useState('skills')
+
+      if (!ready) return <Stack align="center" style={{ padding: '2rem' }}><Spinner /></Stack>
+
+      return (
+        <div>
+          {/* Breakpoint indicator */}
+          <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <span className="breakpoint-pill">
+              {bp.toUpperCase()} {bp === 'xs' ? '< 640px' : bp === 'sm' ? '\\u2265 640px' : bp === 'md' ? '\\u2265 768px' : bp === 'lg' ? '\\u2265 1024px' : '\\u2265 1280px'}
+            </span>
+          </div>
+
+          {/* Hero — centers on mobile, side-by-side on md+ */}
+          <div className="hero">
+            <div className="hero-avatar">JD</div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Jane Developer</h2>
+              <p style={{ color: 'var(--color-muted-foreground)', margin: '0.25rem 0' }}>Full-Stack Engineer</p>
+              <Stack direction="row" gap="0.5rem" style={{ justifyContent: bp === 'xs' || bp === 'sm' ? 'center' : 'flex-start', flexWrap: 'wrap' }}>
+                <Badge variant="primary">Open to work</Badge>
+                <Badge variant="outline">Remote</Badge>
+                <Badge variant="outline">5+ years</Badge>
+              </Stack>
+            </div>
+          </div>
+
+          <Divider style={{ margin: '1rem 0' }} />
+
+          {/* Stats grid — 2 cols on mobile, 4 on md+ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: '1.5rem' }}>
+            {[
+              { label: 'Projects', value: '24', trend: '\\u2191 3', trendUp: true },
+              { label: 'Commits', value: '1.2k', trend: '\\u2191 89', trendUp: true },
+              { label: 'Stars', value: '847', trend: '\\u2191 12%', trendUp: true },
+              { label: 'Followers', value: '312', trend: '\\u2191 8', trendUp: true },
+            ].map((s, i) => (
+              <Card key={i} hover className={"animate-fade-in-up delay-" + (i + 1)}>
+                <Card.Content><Stat value={s.value} label={s.label} trend={s.trend} trendUp={s.trendUp} /></Card.Content>
+              </Card>
+            ))}
+          </div>
+
+          {/* Activity sparkline */}
+          <Card style={{ marginBottom: '1.5rem' }} className="animate-fade-in">
+            <Card.Header>
+              <Card.Title>Activity (12 months)</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <SparkLine data={activity} height={40} color="var(--color-primary)" showArea />
+            </Card.Content>
+          </Card>
+
+          {/* Tabbed content */}
+          <Tabs
+            tabs={[
+              { id: 'skills', label: bp === 'xs' ? 'Skills' : '\\ud83d\\udcaa Skills' },
+              { id: 'projects', label: bp === 'xs' ? 'Projects' : '\\ud83d\\udcc1 Projects' },
+            ]}
+            active={tab}
+            onChange={setTab}
+            style={{ marginBottom: '1rem' }}
+          />
+
+          {tab === 'skills' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
+              {skills.map((s) => (
+                <Card key={s.name}>
+                  <Card.Content>
+                    <Stack direction="row" align="center" justify="space-between" style={{ marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 600 }}>{s.name}</span>
+                      <Badge variant={s.level >= 85 ? 'success' : s.level >= 70 ? 'warning' : 'outline'}>{s.level}%</Badge>
+                    </Stack>
+                    <ProgressBar value={s.level} height={6} />
+                  </Card.Content>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {tab === 'projects' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-fade-in">
+              {projects.map((p) => (
+                <Card key={p.name} hover>
+                  <Card.Header>
+                    <Card.Title>{p.name}</Card.Title>
+                    <Card.Description>{p.desc}</Card.Description>
+                  </Card.Header>
+                  <Card.Content>
+                    <ProgressBar value={p.progress} height={6} showLabel style={{ marginBottom: '0.75rem' }} />
+                    <Stack direction="row" gap="0.5rem" style={{ flexWrap: 'wrap' }}>
+                      {p.tags.map((t) => <Tag key={t}>{t}</Tag>)}
+                    </Stack>
+                  </Card.Content>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <Alert variant="info" style={{ marginTop: '1.5rem' }}>
+            Resize the panel to see responsive breakpoints in action. The layout adapts using CSS utility classes like <code>grid-cols-1 sm:grid-cols-2 lg:grid-cols-3</code> and the <code>useBreakpoint()</code> hook.
+          </Alert>
+        </div>
+      )
+    }
+
+    createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>`,
+    },
+  },
 ]
 
 export function getTemplateById(id: string): MiniAppTemplate | undefined {
