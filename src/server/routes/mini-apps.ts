@@ -970,6 +970,22 @@ miniAppSdkRoutes.get('/kinbot-components.js', async (c) => {
   })
 })
 
+// Serve TypeScript type definitions for SDK autocomplete / documentation
+for (const dtsFile of ['kinbot-sdk.d.ts', 'kinbot-react.d.ts', 'kinbot-components.d.ts']) {
+  miniAppSdkRoutes.get(`/${dtsFile}`, async (c) => {
+    const dtsPath = join(import.meta.dir, `../mini-app-sdk/${dtsFile}`)
+    if (!existsSync(dtsPath)) {
+      return new Response('// Type definitions not found', {
+        headers: { 'Content-Type': 'application/typescript', 'Cache-Control': 'public, max-age=3600' },
+      })
+    }
+    const content = await Bun.file(dtsPath).text()
+    return new Response(content, {
+      headers: { 'Content-Type': 'application/typescript', 'Cache-Control': 'public, max-age=3600' },
+    })
+  })
+}
+
 miniAppSdkRoutes.get('/kinbot-sdk.css', async (c) => {
   // Serve the SDK CSS file
   const cssPath = join(import.meta.dir, '../mini-app-sdk/kinbot-sdk.css')

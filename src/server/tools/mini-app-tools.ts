@@ -145,6 +145,7 @@ export const createMiniAppTool: ToolRegistration = {
         '.select, .checkbox, .switch, .radio, .progress, .alert, .avatar, .kbd, .spinner. ' +
         'Responsive breakpoints: sm: (≥640px), md: (≥768px), lg: (≥1024px). ' +
         'Theme (light/dark) and palette are automatically synced. ' +
+        '**TypeScript Definitions:** Available at `/api/mini-apps/sdk/kinbot-sdk.d.ts`, `/api/mini-apps/sdk/kinbot-react.d.ts`, `/api/mini-apps/sdk/kinbot-components.d.ts` for full API type documentation. ' +
         'For additional files, use write_mini_app_file after creation. Relative paths resolve to the app\'s static directory. ' +
         '**Backend API (_server.js):** Create via write_mini_app_file. Must export default function receiving ctx, returning a Hono app. ' +
         'Example: `export default function(ctx) { const app = new ctx.Hono(); app.get("/hello", (c) => c.json({ message: "Hello!" })); return app; }`. ' +
