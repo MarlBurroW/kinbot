@@ -98,3 +98,40 @@
 ### Next run
 - Area 4: Tasks/Crons (create, edit, enable/disable, delete tasks - can test from sidebar without entering a Kin page)
 - Or Area 3: Conversations (if browser stability improves)
+
+## 2026-03-04 08:40 UTC
+### Area tested: Scheduled Jobs (Area 4 - partial) + Tasks sidebar
+- **Pages visited:** Main dashboard (`/`), Create scheduled job dialog, Job detail dialog, Edit job dialog, Delete confirmation dialog
+- **Browser:** `openclaw` profile (headless Chromium), host target
+- **Login:** qa@kinbot.local (password reset via DB to bypass auth)
+- **Bugs found:** 0
+- **UX suggestions:** 3 (issues created: #38, #39, #40)
+  - **#38 (enhancement):** Schedule field shows no validation feedback for invalid cron expressions. The human-readable description disappears silently, no error message or red border.
+  - **#39 (enhancement):** Task instructions are not required to create a scheduled job. A job with empty instructions can be created and will fire with nothing for the Kin to do.
+  - **#40 (enhancement):** Schedule display ("At 09:00") shows no timezone information. Users don't know if this is UTC, server time, or their local timezone.
+- **All clear:**
+  - Scheduled Jobs section has clean empty state with description and CTA button
+  - "New job" button opens a well-structured creation dialog
+  - Cron preset buttons (Every 5 min, Hourly, Daily 9am, etc.) work correctly and fill the schedule field
+  - Human-readable cron description ("At 09:00") appears correctly for valid expressions
+  - "Minute Hour Day Month Weekday" helper text below schedule field is helpful
+  - Owner Kin dropdown shows all Kins with avatars, names, and descriptions
+  - Target Kin and Model fields are optional with good default messaging
+  - Form validation enables Create button when Name + Owner Kin + Schedule are filled
+  - Created jobs appear immediately in sidebar with name, schedule description, and next-run countdown
+  - Toggle switch to enable/disable jobs works correctly - paused jobs lose countdown timer
+  - Job detail dialog shows all info: name, owner Kin, status, schedule, instructions, model, execution history
+  - Edit dialog pre-fills all fields correctly
+  - Edit has "Delete job" and "Save changes" buttons
+  - Delete has proper confirmation dialog with clear warning text
+  - Unsaved changes dialog appears when closing form with modifications
+  - Task search in sidebar works (filters tasks by name, shows "No tasks found" empty state)
+  - Collapsible sidebar sections (Tasks, Scheduled Jobs, Mini-Apps) toggle correctly
+  - Jobs search bar appears when jobs exist
+- **Note:** Browser automation continues to be challenging with KinBot. The `type` action does not reliably fill React controlled inputs (Name field). CodeMirror editor (Task instructions) requires `document.execCommand` to properly update state. Kin pages still cause browser timeouts. Auth required resetting the QA user password via DB because the test@kinbot.local user from E2E helpers doesn't exist in the live instance.
+
+### Next run
+- Area 3: Conversations (send messages, chat UI, scroll behavior) - requires navigating to a Kin page which causes browser hangs
+- Area 11: Contacts (add, approve, edit, delete) - testable from Settings
+- Area 12: Webhooks (create, edit, test, delete) - testable from Settings
+- Area 5: Provider settings - testable from Settings

@@ -174,6 +174,9 @@ export function CronDetailModal({
                 <p className="text-xs font-medium text-muted-foreground">{t('cron.detail.schedule')}</p>
                 <p className="text-sm">
                   {cronToHuman(cron.schedule, i18n.language) ?? cron.schedule}
+                  {cronToHuman(cron.schedule, i18n.language) && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">({t('cron.create.serverTime')})</span>
+                  )}
                 </p>
                 <div className="flex items-center gap-2">
                   <Clock className="size-3.5 text-muted-foreground shrink-0" />

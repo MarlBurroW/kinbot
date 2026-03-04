@@ -384,7 +384,9 @@
       "scheduleTip": "Expression cron standard (5 champs). Utilisez les préréglages ou écrivez la vôtre. Les heures sont dans le fuseau du serveur.",
       "taskDescriptionTip": "Instructions détaillées pour le Kin. Soyez précis sur ce qu'il doit faire, vérifier ou produire à chaque exécution.",
       "targetKinTip": "Délègue optionnellement l'exécution à un autre Kin. Utile quand le Kin propriétaire dispatche le travail à un spécialiste.",
-      "modelTip": "Remplace le modèle par défaut du Kin pour cette tâche. Utile pour des modèles moins chers sur les tâches routinières."
+      "modelTip": "Remplace le modèle par défaut du Kin pour cette tâche. Utile pour des modèles moins chers sur les tâches routinières.",
+      "scheduleInvalid": "Expression cron invalide. Format : minute heure jour mois jour_semaine",
+      "serverTime": "heure serveur"
     },
     "edit": {
       "title": "Modifier la tâche planifiée",

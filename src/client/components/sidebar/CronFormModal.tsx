@@ -172,6 +172,7 @@ export function CronFormModal({
 
   const selectedKin = kins.find((k) => k.id === kinId)
   const scheduleHuman = useMemo(() => cronToHuman(schedule, i18n.language), [schedule, i18n.language])
+  const scheduleInvalid = useMemo(() => schedule.trim().length > 0 && !scheduleHuman, [schedule, scheduleHuman])
 
   return (
     <>
@@ -234,7 +235,7 @@ export function CronFormModal({
                 value={schedule}
                 onChange={(e) => { setSchedule(e.target.value); markDirty() }}
                 placeholder={t('cron.create.schedulePlaceholder')}
-                className="font-mono"
+                className={cn('font-mono', scheduleInvalid && 'border-destructive focus-visible:ring-destructive/30')}
                 required
               />
               <p className="text-[11px] text-muted-foreground">{t('cron.create.scheduleHelp')}</p>
@@ -255,9 +256,14 @@ export function CronFormModal({
                   </button>
                 ))}
               </div>
+              {scheduleInvalid && (
+                <p className="text-[11px] text-destructive">
+                  {t('cron.create.scheduleInvalid')}
+                </p>
+              )}
               {scheduleHuman && (
                 <p className="text-[11px] text-primary/80 italic">
-                  {scheduleHuman}
+                  {scheduleHuman} ({t('cron.create.serverTime')})
                 </p>
               )}
             </div>
@@ -317,7 +323,7 @@ export function CronFormModal({
 
             <Button
               type="submit"
-              disabled={isSubmitting || !name || !schedule || !taskDescription || (!isEdit && !kinId)}
+              disabled={isSubmitting || !name || !schedule || scheduleInvalid || !taskDescription || (!isEdit && !kinId)}
               className="ml-auto btn-shine"
               size="sm"
             >
