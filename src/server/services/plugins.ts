@@ -9,7 +9,11 @@ import { toolRegistry } from '@/server/tools/index'
 import { hookRegistry } from '@/server/hooks/index'
 import type { ToolRegistration } from '@/server/tools/types'
 import type { HookName, HookHandler } from '@/server/hooks/types'
-import type { PluginManifest, PluginConfigField, PluginSummary } from '@/shared/types/plugin'
+import type { PluginManifest, PluginConfigField, PluginSummary, PluginProviderMeta, PluginChannelMeta } from '@/shared/types/plugin'
+import type { ProviderDefinition } from '@/server/providers/types'
+import type { ChannelAdapter } from '@/server/channels/adapter'
+import { registerPluginProvider, unregisterPluginProvider } from '@/server/providers/index'
+import { channelAdapters } from '@/server/channels/index'
 
 const log = createLogger('plugins')
 
@@ -46,8 +50,18 @@ interface PluginContext {
   manifest: PluginManifest
 }
 
+interface PluginProviderRegistration {
+  definition: ProviderDefinition
+  displayName: string
+  capabilities: string[]
+  noApiKey?: boolean
+  apiKeyUrl?: string
+}
+
 interface PluginExports {
   tools?: Record<string, ToolRegistration>
+  providers?: Record<string, PluginProviderRegistration>
+  channels?: Record<string, ChannelAdapter>
   hooks?: Partial<Record<HookName, HookHandler>>
   activate?(): Promise<void>
   deactivate?(): Promise<void>
@@ -60,6 +74,8 @@ interface LoadedPlugin {
   enabled: boolean
   registeredTools: string[]
   registeredHooks: Array<{ name: HookName; handler: HookHandler }>
+  registeredProviders: PluginProviderMeta[]
+  registeredChannels: PluginChannelMeta[]
 }
 
 // ─── Manifest validation ─────────────────────────────────────────────────────
@@ -175,6 +191,8 @@ class PluginManager {
             enabled: false,
             registeredTools: [],
             registeredHooks: [],
+            registeredProviders: [],
+            registeredChannels: [],
           })
           continue
         }
@@ -195,6 +213,8 @@ class PluginManager {
           enabled: state?.enabled ?? false,
           registeredTools: [],
           registeredHooks: [],
+            registeredProviders: [],
+            registeredChannels: [],
         })
 
         log.info({ plugin: manifest.name, version: manifest.version, enabled: state?.enabled ?? false }, 'Plugin discovered')
@@ -212,6 +232,8 @@ class PluginManager {
           enabled: false,
           registeredTools: [],
           registeredHooks: [],
+            registeredProviders: [],
+            registeredChannels: [],
         })
       }
     }
@@ -281,6 +303,43 @@ class PluginManager {
         }
       }
 
+      // Register providers
+      if (exports.providers) {
+        for (const [providerType, reg] of Object.entries(exports.providers)) {
+          const prefixedType = `plugin_${name}_${providerType}`
+          try {
+            registerPluginProvider(prefixedType, reg.definition, {
+              capabilities: reg.capabilities as any,
+              displayName: reg.displayName,
+              noApiKey: reg.noApiKey,
+              apiKeyUrl: reg.apiKeyUrl,
+            })
+            plugin.registeredProviders.push({
+              type: prefixedType,
+              displayName: reg.displayName,
+              capabilities: reg.capabilities,
+            })
+          } catch (err) {
+            log.warn({ plugin: name, provider: providerType, err }, 'Failed to register plugin provider')
+          }
+        }
+      }
+
+      // Register channels
+      if (exports.channels) {
+        for (const [channelName, adapter] of Object.entries(exports.channels)) {
+          try {
+            channelAdapters.registerPlugin(adapter)
+            plugin.registeredChannels.push({
+              platform: adapter.platform,
+              displayName: channelName,
+            })
+          } catch (err) {
+            log.warn({ plugin: name, channel: channelName, err }, 'Failed to register plugin channel')
+          }
+        }
+      }
+
       // Call activate
       if (exports.activate) {
         await exports.activate()
@@ -288,7 +347,13 @@ class PluginManager {
 
       plugin.enabled = true
       plugin.error = undefined
-      log.info({ plugin: name, tools: plugin.registeredTools.length, hooks: plugin.registeredHooks.length }, 'Plugin activated')
+      log.info({
+        plugin: name,
+        tools: plugin.registeredTools.length,
+        hooks: plugin.registeredHooks.length,
+        providers: plugin.registeredProviders.length,
+        channels: plugin.registeredChannels.length,
+      }, 'Plugin activated')
     } catch (err) {
       plugin.error = err instanceof Error ? err.message : 'Activation failed'
       plugin.enabled = false
@@ -319,6 +384,18 @@ class PluginManager {
     // Note: toolRegistry doesn't support unregister yet, but tools from disabled plugins
     // won't be resolved because they're defaultDisabled and not in enabledOptInTools
     plugin.registeredTools = []
+
+    // Unregister providers
+    for (const prov of plugin.registeredProviders) {
+      unregisterPluginProvider(prov.type)
+    }
+    plugin.registeredProviders = []
+
+    // Unregister channels
+    for (const ch of plugin.registeredChannels) {
+      channelAdapters.unregisterPlugin(ch.platform)
+    }
+    plugin.registeredChannels = []
 
     plugin.exports = null
     plugin.enabled = false
@@ -540,6 +617,10 @@ class PluginManager {
       error: p.error,
       toolCount: p.registeredTools.length,
       hookCount: p.registeredHooks.length,
+      providerCount: p.registeredProviders.length,
+      channelCount: p.registeredChannels.length,
+      providers: p.registeredProviders,
+      channels: p.registeredChannels,
       configSchema: p.manifest.config ?? {},
     }))
   }

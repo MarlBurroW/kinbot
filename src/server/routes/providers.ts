@@ -8,7 +8,9 @@ import {
   getCapabilitiesForType,
   testProviderConnection,
   listModelsForProvider,
+  getPluginProviderMeta,
 } from '@/server/providers/index'
+import { PROVIDER_META } from '@/shared/provider-metadata'
 import { createLogger } from '@/server/logger'
 import { sseManager } from '@/server/sse/index'
 
@@ -55,6 +57,30 @@ providerRoutes.get('/capabilities', async (c) => {
       search: available.has('search'),
     },
   })
+})
+
+// GET /api/providers/types — list all available provider types (built-in + plugin)
+providerRoutes.get('/types', async (c) => {
+  const builtinTypes = Object.entries(PROVIDER_META).map(([type, meta]) => ({
+    type,
+    displayName: meta.displayName,
+    capabilities: [...meta.capabilities],
+    noApiKey: (meta as any).noApiKey ?? false,
+    apiKeyUrl: (meta as any).apiKeyUrl,
+    source: 'builtin' as const,
+  }))
+
+  const pluginMeta = getPluginProviderMeta()
+  const pluginTypes = Object.entries(pluginMeta).map(([type, meta]) => ({
+    type,
+    displayName: meta.displayName,
+    capabilities: [...meta.capabilities],
+    noApiKey: meta.noApiKey ?? false,
+    apiKeyUrl: meta.apiKeyUrl,
+    source: 'plugin' as const,
+  }))
+
+  return c.json({ types: [...builtinTypes, ...pluginTypes] })
 })
 
 // POST /api/providers — create a new provider
