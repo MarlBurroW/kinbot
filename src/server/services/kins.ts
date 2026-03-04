@@ -41,6 +41,7 @@ const log = createLogger('services:kins')
 
 export interface CreateKinInput {
   name: string
+  slug?: string
   role: string
   character: string
   expertise: string
@@ -99,13 +100,14 @@ export async function createKin(input: CreateKinInput): Promise<KinRecord> {
   const id = uuid()
   const workspacePath = `${config.workspace.baseDir}/${id}`
 
-  // Generate unique slug from name
+  // Generate unique slug from name (or use provided slug)
   const existingSlugs = new Set(
     (await db.select({ slug: kins.slug }).from(kins).all())
       .map((k) => k.slug)
       .filter((s): s is string => s != null),
   )
-  const slug = ensureUniqueSlug(generateSlug(input.name) || 'kin', existingSlugs)
+  const baseSlug = input.slug?.trim() ? generateSlug(input.slug) || generateSlug(input.name) || 'kin' : generateSlug(input.name) || 'kin'
+  const slug = ensureUniqueSlug(baseSlug, existingSlugs)
 
   // Create workspace directory
   mkdirSync(workspacePath, { recursive: true })

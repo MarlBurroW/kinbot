@@ -415,8 +415,9 @@ kinRoutes.get('/:id', async (c) => {
 kinRoutes.post('/', async (c) => {
   const user = c.get('user') as { id: string }
   const body = await c.req.json()
-  const { name, role, character, expertise, model, providerId, mcpServerIds } = body as {
+  const { name, slug, role, character, expertise, model, providerId, mcpServerIds } = body as {
     name: string
+    slug?: string
     role: string
     character: string
     expertise: string
@@ -427,6 +428,7 @@ kinRoutes.post('/', async (c) => {
 
   const newKin = await createKin({
     name,
+    slug,
     role,
     character,
     expertise,

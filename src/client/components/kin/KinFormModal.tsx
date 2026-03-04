@@ -69,6 +69,7 @@ interface KinFormModalProps {
   // Mode create
   onCreateKin?: (data: {
     name: string
+    slug?: string
     role: string
     character: string
     expertise: string
@@ -410,7 +411,7 @@ export function KinFormModal({
         await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig })
         if (avatarFile) await onUploadAvatar(kin.id, avatarFile)
       } else if (onCreateKin) {
-        const created = await onCreateKin({ name, role, character, expertise, model, providerId })
+        const created = await onCreateKin({ name, slug: slug || undefined, role, character, expertise, model, providerId })
         if (avatarFile) await onUploadAvatar(created.id, avatarFile)
         // If tool config was set by wizard, update it after creation
         if (toolConfig && onUpdateKin) {
@@ -785,18 +786,18 @@ export function KinFormModal({
                                   <p className="text-xs text-muted-foreground">{t('kin.create.providerHint')}</p>
                                 </div>
                               )}
-                              {isEdit && (
-                                <div className="space-y-2">
-                                  <Label htmlFor="kinFormSlug">{t('kin.edit.slug')}</Label>
-                                  <Input
-                                    id="kinFormSlug"
-                                    value={slug}
-                                    onChange={(e) => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); markDirty() }}
-                                    placeholder={t('kin.create.slugPlaceholder')}
-                                  />
-                                  <p className="text-xs text-muted-foreground">{t('kin.edit.slugHelp')}</p>
-                                </div>
-                              )}
+                              <div className="space-y-2">
+                                <Label htmlFor="kinFormSlug">{t('kin.edit.slug')}</Label>
+                                <Input
+                                  id="kinFormSlug"
+                                  value={slug}
+                                  onChange={(e) => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); markDirty() }}
+                                  placeholder={t('kin.create.slugPlaceholder')}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  {isEdit ? t('kin.edit.slugHelp') : t('kin.create.slugHelpCreate', { defaultValue: 'Optional. Auto-generated from the name if left empty.' })}
+                                </p>
+                              </div>
                             </div>
                           </div>
 

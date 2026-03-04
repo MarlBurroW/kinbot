@@ -41,6 +41,7 @@ export interface GeneratedKinConfig {
 
 interface CreateKinData {
   name: string
+  slug?: string
   role: string
   character: string
   expertise: string
