@@ -44,7 +44,7 @@ KinBot is different. You create **Kins** — AI agents with:
 Persistent memory (vector + full-text) · Session compacting · Sub-agents · Inter-Kin communication · Continuous sessions that never reset
 
 ### 🔧 Automation & Extensibility
-Cron jobs · Webhooks · HTTP requests · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · Mini Apps · Contacts · Notifications · Human-in-the-loop prompts · 23 AI providers (incl. Ollama) · Multi-provider auto-detection
+Cron jobs · Webhooks · HTTP requests · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · Mini Apps · **Plugin system** · Contacts · Notifications · Human-in-the-loop prompts · 23 AI providers (incl. Ollama) · Multi-provider auto-detection
 
 ### 🔒 Security & Privacy
 AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted · Your data never leaves your server
@@ -80,6 +80,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 
 #### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools; Kins can manage their own MCP connections
+- **Plugin system** — extend KinBot with community or custom plugins; plugins can register tools, hooks, AI providers, and channels; managed via the UI with per-plugin configuration, encrypted secret storage, and enable/disable toggles; plugins live in the `plugins/` directory and declare capabilities via a `manifest.json`
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
 - **Mini Apps** — Kins can build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar; auto-injected design system + JavaScript SDK with theme sync, toasts, inter-app navigation (`openApp`), dialogs (`confirm`/`prompt`), window title & badge control, persistent key-value storage (`get`/`set`/`delete`/`list`/`clear`), starter templates, parent-child event communication, and an App Gallery to browse and clone community apps
 - **Contacts** — manage contacts that Kins can reference and interact with
@@ -140,6 +141,7 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 | MCP tool servers | ✅ | ⚠️ | ❌ | ❌ |
 | Custom tools (agent-created) | ✅ | ❌ | ❌ | ❌ |
 | Mini Apps (agent-built UIs) | ✅ | ❌ | ❌ | ❌ |
+| Plugin system | ✅ | ⚠️ | ❌ | ⚠️ |
 | Encrypted secrets vault | ✅ | ❌ | ❌ | ❌ |
 | Zero-infra (SQLite only) | ✅ | ❌ | ⚠️ | ❌ |
 | Multi-provider (23+) | ✅ | ✅ | ✅ | ✅ |
@@ -342,6 +344,7 @@ src/
     types.ts
     constants.ts
 data/               # Created at runtime — SQLite DB, uploads, workspaces
+plugins/            # Community & custom plugins (each with manifest.json + main entry)
 docker/             # Dockerfile + docker-compose.yml
 site/               # GitHub Pages landing site
 ```
