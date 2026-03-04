@@ -122,11 +122,13 @@
     },
     "memory": {
       "title": "Memory",
-      "subtitle": "Configure how your Kins remember and search information",
+      "subtitle": "Choose how your Kins remember things from past conversations",
       "extractionModel": "Extraction model",
-      "extractionModelHint": "LLM used to extract long-term memories. Leave empty to use each Kin's own model.",
+      "extractionModelHint": "Reads conversations and picks out what's worth remembering. A fast, affordable model works great here. Leave empty to let each Kin use its own model.",
+      "extractionModelTip": "This model scans your conversations after they happen and decides which facts, preferences, and decisions should be saved as long-term memories. It doesn't need to be a powerful model, a small and fast one does the job well.",
       "embeddingModel": "Embedding model",
-      "embeddingModelHint": "Model used to generate semantic embeddings for memory search",
+      "embeddingModelHint": "Turns memories into searchable data so your Kins can find relevant info later. A small, cheap model is perfect for this.",
+      "embeddingModelTip": "This model converts text into numbers (vectors) that allow your Kins to search their memories by meaning, not just keywords. For example, a memory about \"loving pasta\" would match a question about \"favorite foods\". A smaller model works fine here.",
       "embeddingModelPlaceholder": "Select an embedding model"
     },
     "searchProviders": {
@@ -841,12 +843,12 @@
       "modelConfigDescription": "Models used for memory extraction and semantic search.",
       "extractionModel": "Extraction Model",
       "extractionModelPlaceholder": "Use each Kin's own model (default)",
-      "extractionModelHint": "LLM used to extract long-term memories during compacting. Leave empty to use each Kin's own model.",
-      "extractionModelTip": "The LLM used to extract key facts from conversations for long-term memory. If unset, each Kin uses its own model.",
+      "extractionModelHint": "Reads your conversations and picks out what's worth remembering. A fast, affordable model works great here.",
+      "extractionModelTip": "This model scans conversations and decides which facts, preferences, and decisions should be saved as long-term memories. A small, fast model does the job well. If unset, each Kin uses its own chat model.",
       "embeddingModel": "Embedding Model",
       "embeddingModelPlaceholder": "Select an embedding model",
-      "embeddingModelHint": "Model used to generate semantic embeddings for memory search.",
-      "embeddingModelTip": "Converts text into vectors for semantic memory search. Changing this requires re-embedding all existing memories.",
+      "embeddingModelHint": "Turns memories into searchable data so your Kins can find relevant info by meaning, not just keywords.",
+      "embeddingModelTip": "Converts text into numbers (vectors) so your Kins can search memories by meaning. For example, a memory about \"loving pasta\" matches a question about \"favorite foods\". Changing this model requires re-processing all existing memories.",
       "embeddingModelWarning": "Warning: changing the embedding model requires regenerating all existing memories.",
       "reembed": "Re-embed all memories",
       "reembedDescription": "Regenerate all memory embeddings using the current embedding model. Use this after changing the embedding model.",
@@ -892,10 +894,10 @@
       "emptyDescription": "Memories help your Kins remember important information across conversations. Add one manually or let your Kins create them automatically.",
       "noResults": "No memories match your filters",
       "help": {
-        "content": "Memories let your Kins retain important information across conversations. Configure the models used for extraction and search, and manage all memories from here.",
-        "bullet1": "The extraction model handles converting conversations into long-term memories during compacting",
-        "bullet2": "The embedding model converts text into vectors for semantic memory search. Changing it requires re-embedding all memories",
-        "bullet3": "Memories are searched semantically: the Kin finds relevant info even if the exact words differ",
+        "content": "Memories let your Kins remember important things from past conversations. Set up the models that handle remembering and searching, and manage all memories here.",
+        "bullet1": "The extraction model reads past conversations and saves the important bits as long-term memories",
+        "bullet2": "The embedding model makes memories searchable by meaning, so your Kin finds relevant info even if the exact words differ",
+        "bullet3": "You don't need expensive models here. Small, fast models handle extraction and embedding just fine",
         "bullet4": "If no extraction model is set, each Kin uses its own chat model for memory extraction"
       }
     },

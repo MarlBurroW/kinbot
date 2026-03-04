@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { Brain, Sparkles } from 'lucide-react'
+import { InfoTip } from '@/client/components/common/InfoTip'
 import { api } from '@/client/lib/api'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { useModels } from '@/client/hooks/useModels'
@@ -66,6 +67,7 @@ export function StepMemory({ onComplete, onBack }: StepMemoryProps) {
         <Label className="flex items-center gap-1.5">
           <Sparkles className="size-3.5 text-muted-foreground" />
           {t('onboarding.memory.extractionModel')}
+          <InfoTip content={t('onboarding.memory.extractionModelTip')} />
         </Label>
         <ModelPicker
           models={llmModels}
@@ -84,6 +86,7 @@ export function StepMemory({ onComplete, onBack }: StepMemoryProps) {
         <Label className="flex items-center gap-1.5">
           <Brain className="size-3.5 text-muted-foreground" />
           {t('onboarding.memory.embeddingModel')}
+          <InfoTip content={t('onboarding.memory.embeddingModelTip')} />
         </Label>
         <ModelPicker
           models={embeddingModels}
