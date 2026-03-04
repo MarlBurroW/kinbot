@@ -33,6 +33,7 @@ import {
 } from '@/server/services/image-generation'
 import { getHubKinId, setHubKinId } from '@/server/services/app-settings'
 import { createLogger } from '@/server/logger'
+import { deleteChannel } from '@/server/services/channels'
 import type { KinToolConfig } from '@/shared/types'
 
 const log = createLogger('services:kins')
@@ -289,6 +290,16 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   await db.delete(contactNotes).where(eq(contactNotes.kinId, kinId))
   await db.delete(customTools).where(eq(customTools.kinId, kinId))
   await db.delete(webhooks).where(eq(webhooks.kinId, kinId))
+  // Delete channels with full cleanup (stop adapters, delete vault secrets)
+  for (const channelId of kinChannelIds) {
+    try {
+      await deleteChannel(channelId)
+    } catch (err) {
+      log.warn({ channelId, kinId, err }, 'Failed to delete channel during kin cascade delete')
+      // Fallback: raw delete if deleteChannel fails
+      await db.delete(channels).where(eq(channels.id, channelId))
+    }
+  }
   await db.delete(fileStorage).where(eq(fileStorage.kinId, kinId))
   await db.update(fileStorage).set({ createdByKinId: null }).where(eq(fileStorage.createdByKinId, kinId))
   await db.update(vaultSecrets).set({ createdByKinId: null }).where(eq(vaultSecrets.createdByKinId, kinId))
@@ -327,9 +338,7 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   for (const webhookId of kinWebhookIds) {
     sseManager.broadcast({ type: 'webhook:deleted', kinId, data: { webhookId, kinId } })
   }
-  for (const channelId of kinChannelIds) {
-    sseManager.broadcast({ type: 'channel:deleted', kinId, data: { channelId, kinId } })
-  }
+  // Note: channel:deleted SSE events are already emitted by deleteChannel() above
   for (const memoryId of kinMemoryIds) {
     sseManager.broadcast({ type: 'memory:deleted', kinId, data: { memoryId, kinId } })
   }
