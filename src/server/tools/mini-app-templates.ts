@@ -1307,6 +1307,296 @@ const TEMPLATES: MiniAppTemplate[] = [
     },
   },
   {
+    id: 'api-explorer',
+    name: 'API Explorer',
+    description: 'An interactive API explorer demonstrating all data-fetching hooks: useFetch for external APIs, useApi for backend calls, useAsync for mutations, and useEventStream for real-time updates. Includes a live request builder and response viewer.',
+    icon: '🔌',
+    tags: ['api', 'fetch', 'backend', 'hooks', 'useFetch', 'useApi', 'useAsync', 'useEventStream', 'data'],
+    suggestedSlug: 'api-explorer',
+    files: {
+      'app.json': REACT_APP_JSON,
+      '_server.js': `// Backend API for the API Explorer demo
+export default {
+  // GET /api/mini-apps/:id/api/status — server status
+  'GET /status': async (req) => {
+    return Response.json({
+      status: 'online',
+      uptime: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+      memoryMB: Math.round(process.memoryUsage?.().heapUsed / 1024 / 1024) || 0,
+    })
+  },
+
+  // GET /api/mini-apps/:id/api/items — list items
+  'GET /items': async (req) => {
+    const items = [
+      { id: 1, name: 'Alpha', category: 'core', score: 92 },
+      { id: 2, name: 'Beta', category: 'plugin', score: 78 },
+      { id: 3, name: 'Gamma', category: 'core', score: 85 },
+      { id: 4, name: 'Delta', category: 'plugin', score: 64 },
+      { id: 5, name: 'Epsilon', category: 'core', score: 97 },
+    ]
+    return Response.json({ items, total: items.length })
+  },
+
+  // POST /api/mini-apps/:id/api/echo — echo back posted data
+  'POST /echo': async (req) => {
+    const body = await req.json().catch(() => ({}))
+    return Response.json({
+      received: body,
+      echoedAt: new Date().toISOString(),
+      headers: Object.fromEntries([...req.headers.entries()].filter(([k]) => !k.startsWith('x-') && k !== 'cookie')),
+    })
+  },
+
+  // SSE /api/mini-apps/:id/api/events/tick — real-time tick stream
+  'GET /events/tick': async (req) => {
+    let count = 0
+    const stream = new ReadableStream({
+      start(controller) {
+        const iv = setInterval(() => {
+          count++
+          const data = JSON.stringify({ count, ts: Date.now() })
+          controller.enqueue(\`event: tick\\ndata: \${data}\\n\\n\`)
+          if (count >= 50) { clearInterval(iv); controller.close() }
+        }, 2000)
+        req.signal?.addEventListener('abort', () => { clearInterval(iv); controller.close() })
+      },
+    })
+    return new Response(stream, {
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+    })
+  },
+}
+`,
+      'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Explorer</title>
+  <style>
+    body { padding: 1.5rem; max-width: 800px; margin: 0 auto; }
+    pre.response { background: var(--color-muted); border-radius: var(--radius-md);
+      padding: 1rem; font-size: 0.8rem; overflow-x: auto; max-height: 300px;
+      color: var(--color-foreground); white-space: pre-wrap; word-break: break-word; }
+    .section { margin-bottom: 2rem; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle; }
+    .status-dot.online { background: var(--color-success, #22c55e); }
+    .status-dot.offline { background: var(--color-destructive, #ef4444); }
+    .event-log { max-height: 200px; overflow-y: auto; font-size: 0.8rem; }
+    .event-item { padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--color-border); }
+    .event-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/jsx">
+    import { useState, useCallback } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { useKinBot, useApi, useFetch, useAsync, useEventStream, toast } from '@kinbot/react'
+    import { Card, Tabs, Badge, Button, Input, Textarea, Stack, Spinner, Divider, Alert, Stat, Select } from '@kinbot/components'
+
+    // ── Tab 1: Backend API (useApi) ──
+    function BackendTab() {
+      const status = useApi('/status')
+      const items = useApi('/items')
+
+      return (
+        <Stack gap="1.5rem">
+          <Card title="Server Status" subtitle="useApi('/status') — auto-fetches on mount">
+            {status.loading ? <Spinner /> : status.error ? (
+              <Alert variant="destructive">{status.error.message}</Alert>
+            ) : status.data && (
+              <Stack direction="row" gap="1rem" style={{ flexWrap: 'wrap' }}>
+                <Stat label="Status" value={<><span className={"status-dot " + status.data.status} />{status.data.status}</>} />
+                <Stat label="Uptime" value={status.data.uptime + 's'} />
+                <Stat label="Memory" value={status.data.memoryMB + ' MB'} />
+              </Stack>
+            )}
+            <div style={{ marginTop: '0.75rem' }}>
+              <Button size="sm" variant="outline" onClick={() => status.refetch()}>Refresh</Button>
+            </div>
+          </Card>
+
+          <Card title="Items List" subtitle="useApi('/items')">
+            {items.loading ? <Spinner /> : items.error ? (
+              <Alert variant="destructive">{items.error.message}</Alert>
+            ) : items.data && (
+              <>
+                <Badge variant="outline">{items.data.total} items</Badge>
+                <div style={{ marginTop: '0.75rem' }}>
+                  {items.data.items.map(item => (
+                    <div key={item.id} className="event-item">
+                      <Stack direction="row" justify="space-between" align="center">
+                        <span><strong>{item.name}</strong> <Badge size="sm">{item.category}</Badge></span>
+                        <span style={{ color: 'var(--color-muted-foreground)' }}>Score: {item.score}</span>
+                      </Stack>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </Card>
+        </Stack>
+      )
+    }
+
+    // ── Tab 2: External Fetch (useFetch) ──
+    function FetchTab() {
+      const [url, setUrl] = useState('https://httpbin.org/json')
+      const [fetchUrl, setFetchUrl] = useState(url)
+      const result = useFetch(fetchUrl)
+
+      return (
+        <Stack gap="1.5rem">
+          <Card title="External API" subtitle="useFetch(url) — proxied through KinBot.http()">
+            <Stack direction="row" gap="0.5rem" align="end">
+              <div style={{ flex: 1 }}>
+                <Input label="URL" value={url} onChange={e => setUrl(e.target.value)}
+                  placeholder="https://api.example.com/data" />
+              </div>
+              <Button onClick={() => setFetchUrl(url)}>Fetch</Button>
+            </Stack>
+          </Card>
+
+          <Card title="Response" subtitle={result.loading ? 'Loading...' : result.error ? 'Error' : \`Status: \${result.status || 'OK'}\`}>
+            {result.loading ? <Spinner /> : result.error ? (
+              <Alert variant="destructive">{result.error.message}</Alert>
+            ) : (
+              <pre className="response">{JSON.stringify(result.data, null, 2)}</pre>
+            )}
+          </Card>
+        </Stack>
+      )
+    }
+
+    // ── Tab 3: Mutations (useAsync) ──
+    function MutationTab() {
+      const [payload, setPayload] = useState(JSON.stringify({ message: 'Hello!', n: 42 }, null, 2))
+      const echo = useAsync(async (body) => {
+        const res = await window.KinBot.api('/echo', { method: 'POST', body })
+        return res
+      })
+
+      const handleSend = useCallback(() => {
+        try {
+          const parsed = JSON.parse(payload)
+          echo.run(parsed)
+        } catch (e) {
+          toast('Invalid JSON', 'error')
+        }
+      }, [payload])
+
+      return (
+        <Stack gap="1.5rem">
+          <Card title="POST Echo" subtitle="useAsync(fn) — manual trigger, tracks loading/error">
+            <Textarea label="JSON Payload" value={payload} onChange={e => setPayload(e.target.value)}
+              rows={5} style={{ fontFamily: 'monospace', fontSize: '0.8rem' }} />
+            <div style={{ marginTop: '0.75rem' }}>
+              <Stack direction="row" gap="0.5rem">
+                <Button onClick={handleSend} disabled={echo.loading}>
+                  {echo.loading ? 'Sending...' : 'Send POST'}
+                </Button>
+                {echo.data && <Button variant="outline" onClick={echo.reset}>Clear</Button>}
+              </Stack>
+            </div>
+          </Card>
+
+          {echo.error && <Alert variant="destructive">{echo.error.message}</Alert>}
+          {echo.data && (
+            <Card title="Echo Response">
+              <pre className="response">{JSON.stringify(echo.data, null, 2)}</pre>
+            </Card>
+          )}
+        </Stack>
+      )
+    }
+
+    // ── Tab 4: Real-time (useEventStream) ──
+    function StreamTab() {
+      const [listening, setListening] = useState(false)
+      const stream = useEventStream(listening ? 'tick' : null)
+
+      return (
+        <Stack gap="1.5rem">
+          <Card title="Server-Sent Events" subtitle="useEventStream('tick') — real-time updates from _server.js">
+            <Stack direction="row" gap="0.5rem" align="center">
+              <Button onClick={() => setListening(!listening)} variant={listening ? 'destructive' : 'default'}>
+                {listening ? 'Stop Listening' : 'Start Stream'}
+              </Button>
+              {stream.connected && <Badge variant="outline">Connected</Badge>}
+              {stream.messages.length > 0 && (
+                <Button size="sm" variant="outline" onClick={stream.clear}>Clear</Button>
+              )}
+            </Stack>
+          </Card>
+
+          {stream.messages.length > 0 && (
+            <Card title={\`Events (\${stream.messages.length})\`}>
+              <div className="event-log">
+                {stream.messages.slice(-20).reverse().map((msg, i) => (
+                  <div key={i} className="event-item">
+                    <Stack direction="row" justify="space-between">
+                      <span>#{msg.data.count}</span>
+                      <span style={{ color: 'var(--color-muted-foreground)', fontSize: '0.75rem' }}>
+                        {new Date(msg.data.ts).toLocaleTimeString()}
+                      </span>
+                    </Stack>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </Stack>
+      )
+    }
+
+    // ── Main App ──
+    function App() {
+      const { ready } = useKinBot()
+      if (!ready) return <Stack align="center" style={{ padding: '3rem' }}><Spinner size="lg" /></Stack>
+
+      const tabs = [
+        { id: 'backend', label: 'Backend API', icon: '🗄️' },
+        { id: 'fetch', label: 'External Fetch', icon: '🌐' },
+        { id: 'mutation', label: 'Mutations', icon: '📤' },
+        { id: 'stream', label: 'Real-time', icon: '⚡' },
+      ]
+
+      const panels = {
+        backend: <BackendTab />,
+        fetch: <FetchTab />,
+        mutation: <MutationTab />,
+        stream: <StreamTab />,
+      }
+
+      return (
+        <div>
+          <Stack direction="row" align="center" gap="0.75rem" style={{ marginBottom: '1.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🔌</span>
+            <div>
+              <h2 style={{ margin: 0 }}>API Explorer</h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-muted-foreground)' }}>
+                Data-fetching hooks demo: useApi, useFetch, useAsync, useEventStream
+              </p>
+            </div>
+          </Stack>
+          <Tabs tabs={tabs} defaultTab="backend">
+            {(activeTab) => panels[activeTab]}
+          </Tabs>
+        </div>
+      )
+    }
+
+    createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>`,
+    },
+  },
+  {
     id: 'component-showcase',
     name: 'Component Showcase',
     description: 'An interactive storybook that demos all 40 @kinbot/components with live examples. Browse by category: Layout, Forms, Data Display, Feedback, Navigation, Overlays, and Charts.',
