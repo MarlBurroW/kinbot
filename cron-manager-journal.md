@@ -1,59 +1,51 @@
 # KinBot Cron Manager Journal
 
-## 2026-03-04 07:00 UTC
+## 2026-03-04 21:06 UTC
 ### Audit summary
-- **Active KinBot crons:** 16 (+ 4 non-KinBot: PinchChat, bot-chronicles, reddit-token-refresh, woodbrass-reply-check)
-- **Healthy:** kinbot-memory-research, kinbot-community, kinbot-add-tests, kinbot-github-maintenance, kinbot-i18n-audit, kinbot-sse-reactivity, kinbot-ci-watchdog, kinbot-release, kinbot-mini-apps, kinbot-e2e-tests, kinbot-improve-cli, kinbot-consistency-guardian, kinbot-improve-site, kinbot-promo, PinchChat, bot-chronicles, reddit-token-refresh, woodbrass-reply-check
-- **Issues found:**
-  1. **kinbot-qa-explorer** — 1 timeout at 600s. Browser-based QA testing is inherently slow (successful runs take 500-570s). The 600s timeout is too tight.
-  2. **kinbot-qol-features** — disabled, still has 3 consecutive timeouts at 300s. This cron has a ~50% timeout rate historically. Overlaps heavily with kinbot-improve-ux (also disabled). Both should stay disabled.
+- **Active KinBot crons:** 16
+- **Non-KinBot crons:** 5 (PinchChat, woodbrass-reply-check, reddit-token-refresh, bot-chronicles, HN Show HN one-shot)
 
-### Actions taken
-1. **Increased kinbot-qa-explorer timeout**: 600s → 900s. Browser automation runs consistently take 500-570s when they succeed, leaving almost no margin at 600s. 900s gives comfortable headroom.
+### Healthy (productive, well-tuned)
+- **kinbot-mini-apps** (2h, Opus) — consistently shipping components, hooks, templates. Very productive.
+- **kinbot-memory-research** (3h, Opus) — shipped hybrid search, LLM re-ranking, multi-query retrieval, adaptive K. Great R&D cron.
+- **kinbot-add-tests** (2h, Opus) — steadily adding test files. Occasional timeouts (600s) and "AI overloaded" but recovers.
+- **kinbot-release** (3x/day, Opus) — clean workflow, skips when nothing to release. Well-behaved.
+- **kinbot-ci-watchdog** (3h, Opus) — mostly "CI green ✅" in 8s. Efficient. 3h interval is appropriate.
+- **kinbot-promo** (4x/day, Opus) — Reddit API failures are frequent but falls back to Twitter. Always produces at least 1 action per run.
+- **kinbot-qa-explorer** (4h, Opus) — creating useful issues via browser testing. 900s timeout appropriate for browser work.
+- **kinbot-e2e-tests** (6h, Opus) — focused on fixing/adding Playwright tests. Good interval.
+- **kinbot-improve-cli** (6h, Opus) — steady installer improvements.
+- **kinbot-github-maintenance** (4h, Opus) — README, CI, repo hygiene. Productive.
 
-### Observations
-- **woodbrass-reply-check**: Fixed last audit (model dot vs hyphen). Now running perfectly on Gemini Flash, completing in ~600ms. Very efficient.
-- **kinbot-qol-features + kinbot-improve-ux**: Both disabled. These overlap significantly (both add frontend QoL features). If re-enabled, merge into one with 600s timeout. Propose keeping just one.
-- **Git activity is healthy**: 30 recent commits from multiple crons (mini-apps, tests, memory, i18n, e2e, installer, community issues). No git conflicts observed.
-- **kinbot-qa-explorer doing great work**: When it runs successfully, it finds real bugs and creates proper GitHub issues (#22-#31 in recent runs). Worth keeping despite occasional timeouts.
-- **Cost observation**: 16 active KinBot crons on Opus 4.6. Many run every 2h. That's ~100+ Opus runs/day. The productive ones (community, tests, mini-apps, sse-reactivity) produce real commits. The watchdog/release crons are lightweight (8-140s). Good cost/value ratio overall.
+### Issues found & actions taken
+
+1. **kinbot-community** (was 2h → changed to **6h**)
+   - **Problem:** ~80% of runs return "Nothing to do" in 10-15s. Only 2 template issues exist as "good first issue". Running every 2h on Opus is pure waste.
+   - **Action:** Changed interval from 2h to 6h. Still responsive enough for real community activity.
+
+2. **kinbot-i18n-audit** (was 2h → changed to **12h**)
+   - **Problem:** Repeatedly reports "i18n is in excellent shape" across many consecutive runs. The i18n work is essentially done.
+   - **Action:** Changed interval from 2h to 12h. Will still catch regressions from new features.
+
+3. **kinbot-sse-reactivity** (was 2h → changed to **12h**)
+   - **Problem:** SSE coverage has been confirmed comprehensive and complete across multiple runs. Multiple timeouts at 300s despite having nothing new to find. Keeps re-auditing completed work.
+   - **Action:** Changed interval from 2h to 12h. Sufficient to catch new SSE gaps from other crons' code changes.
+
+### No run history available
+- kinbot-consistency-guardian, kinbot-improve-site, kinbot-improve-cli, kinbot-e2e-tests, kinbot-github-maintenance — no run history returned (possibly purged or too old). They appear healthy based on their state (no consecutive errors, recent lastRunAt).
+
+### Cost analysis
+All KinBot crons run on Opus 4.6. The biggest token wasters were the three crons above running every 2h with nothing to do. Estimated savings from today's changes: ~18 Opus runs/day eliminated (6 community + 6 i18n + 6 SSE reduced to 4+2+2).
 
 ### Proposals (for Nicolas to decide)
-1. **Merge kinbot-qol-features + kinbot-improve-ux**: If re-enabling either, merge them into a single cron. They have near-identical scope.
-2. **Consider Sonnet 4.6 for lightweight crons**: kinbot-ci-watchdog (8s runs, just checks CI), kinbot-release (checks if there's anything to release, often "nothing to do"), and kinbot-github-maintenance could potentially use a cheaper model. These are mostly git/gh commands with simple logic.
+1. **Model downgrade candidates:**
+   - `kinbot-ci-watchdog` — 90% of runs are "CI green" in 8s. Could use Gemini Flash instead of Opus. Only needs Opus when actually fixing CI.
+   - `kinbot-community` — when there are no issues/PRs, the "nothing to do" check is trivial. Could use Flash for the check and only escalate to Opus if work is found. (Harder to implement with current cron system.)
+
+2. **Potential new cron:**
+   - **kinbot-plugin-system** — no cron covers the plugin/tool system (`src/server/tools/`). Could improve built-in tools, add new ones, improve tool descriptions for better Kin usage.
 
 ### Next audit focus
-- Monitor kinbot-qa-explorer after timeout increase (should eliminate the timeout issue)
-- Check if any crons are producing duplicate/conflicting commits
-- Review kinbot-promo effectiveness (4x/day on Opus is expensive for social media posting)
-
-## 2026-03-02 07:00 UTC
-### Audit summary
-- **Active KinBot crons:** 17 (+ 3 non-KinBot: PinchChat, bot-chronicles, reddit-token-refresh, woodbrass-reply-check)
-- **Healthy:** kinbot-memory-research, kinbot-community, kinbot-add-tests, kinbot-kin-context, kinbot-github-maintenance, kinbot-channel-files, kinbot-i18n-audit, kinbot-sse-reactivity, kinbot-ci-watchdog, kinbot-release, kinbot-mini-apps, kinbot-e2e-tests, kinbot-frontend-perf, kinbot-consistency-guardian, PinchChat, bot-chronicles, reddit-token-refresh
-- **Issues found:**
-  1. **woodbrass-reply-check** — model `anthropic/claude-sonnet-4-6` (hyphen) not allowed. Should be `anthropic/claude-sonnet-4.6` (dot). 2 consecutive errors.
-  2. **kinbot-improve-site** — 3 consecutive timeouts at 300s. The site is very mature now (60+ successful runs with major improvements). Runs are getting complex as the cron reads more existing code.
-  3. **kinbot-improve-cli** — 1 timeout at 300s. Installer is now 3500+ lines, runs naturally take longer to read and modify.
-  4. **kinbot-qol-features** — disabled, but was timing out consistently (3 consecutive) at 300s before being disabled. Many runs also timed out throughout its history (~50% timeout rate).
-
-### Actions taken
-1. **Fixed woodbrass-reply-check model**: changed `anthropic/claude-sonnet-4-6` → `anthropic/claude-sonnet-4.6`
-2. **Increased kinbot-improve-site timeout**: 300s → 600s (site cron does heavy reads + builds)
-3. **Increased kinbot-improve-cli timeout**: 300s → 600s (installer is 3500+ lines, shellcheck runs take time)
-
-### Observations
-- **kinbot-qol-features** (disabled): had a ~50% timeout rate at 300s with 1h frequency. If re-enabled, needs 600s timeout.
-- **kinbot-improve-site** has done incredible work (60+ improvements: FAQ, comparison table, providers grid, SEO, code splitting, accessibility, etc.). The site is reaching maturity. Consider slowing its frequency from every 3h to every 6h or 12h.
-- **Coordination risk**: kinbot-improve-site, kinbot-add-tests, kinbot-channel-files, kinbot-sse-reactivity, kinbot-qol-features, kinbot-frontend-perf, kinbot-mini-apps all edit `src/` files. With many running hourly, git conflicts are likely. The CI watchdog helps catch breakage but doesn't prevent conflicts.
-- **Cost observation**: 17 active KinBot crons on Opus 4.6, many running every 1-3h. That's potentially 100+ Opus runs/day. The memory-research and e2e-tests crons use 600s timeouts and can run long.
-
-### Proposals (for Nicolas to decide)
-1. **Slow down kinbot-improve-site**: 3h → 6-12h. The site is very polished now. Diminishing returns.
-2. **Consider Sonnet 4.6 for simpler crons**: kinbot-ci-watchdog (just checks CI status), reddit-token-refresh (already on Gemini Flash), kinbot-release (mostly git operations) could use a cheaper model.
-3. **Merge consideration**: kinbot-improve-ux + kinbot-qol-features overlap significantly. Both are disabled. If re-enabling, merge into one.
-
-### Next audit focus
-- Check for git conflicts between overlapping crons
-- Review kinbot-e2e-tests run duration (last run was 1200s = 20 minutes, within 600s timeout somehow?)
-- Monitor woodbrass-reply-check after model fix
+- Check actual token usage per cron if possible
+- Monitor whether the 3 adjusted crons still catch real work at their new intervals
+- Review kinbot-promo Reddit failures pattern (is the token refresh cron working?)
