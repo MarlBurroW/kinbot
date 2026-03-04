@@ -1,11 +1,68 @@
 import { Hono } from 'hono'
 import { pluginManager } from '@/server/services/plugins'
+import { pluginRegistry } from '@/server/services/pluginRegistry'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
+import { readFile } from 'fs/promises'
+import { resolve } from 'path'
 
 const log = createLogger('routes:plugins')
 
 export const pluginRoutes = new Hono<{ Variables: AppVariables }>()
+
+// ─── Registry routes ─────────────────────────────────────────────────────────
+
+// GET /api/plugins/registry — fetch the plugin registry
+pluginRoutes.get('/registry', async (c) => {
+  try {
+    const refresh = c.req.query('refresh') === 'true'
+    const plugins = await pluginRegistry.getRegistry(refresh)
+    const tags = await pluginRegistry.getTags()
+    return c.json({ plugins, tags })
+  } catch (err) {
+    log.error({ err }, 'Failed to fetch registry')
+    return c.json({ error: { code: 'REGISTRY_FETCH_FAILED', message: 'Failed to fetch plugin registry' } }, 500)
+  }
+})
+
+// GET /api/plugins/registry/search — search/filter the registry
+pluginRoutes.get('/registry/search', async (c) => {
+  try {
+    const q = c.req.query('q')
+    const tag = c.req.query('tag')
+    const plugins = await pluginRegistry.search(q, tag)
+    return c.json({ plugins })
+  } catch (err) {
+    log.error({ err }, 'Failed to search registry')
+    return c.json({ error: { code: 'REGISTRY_SEARCH_FAILED', message: 'Failed to search registry' } }, 500)
+  }
+})
+
+// GET /api/plugins/registry/readme — fetch a plugin's README
+pluginRoutes.get('/registry/readme', async (c) => {
+  try {
+    const repo = c.req.query('repo')
+    if (!repo) return c.json({ error: { code: 'MISSING_REPO', message: 'repo query param required' } }, 400)
+    const readme = await pluginRegistry.fetchReadme(repo)
+    return c.json({ readme })
+  } catch (err) {
+    return c.json({ error: { code: 'README_FETCH_FAILED', message: 'Failed to fetch README' } }, 500)
+  }
+})
+
+// GET /api/plugins/version — get KinBot version for compatibility checks
+pluginRoutes.get('/version', async (c) => {
+  try {
+    const pkgPath = resolve(process.cwd(), 'package.json')
+    const raw = await readFile(pkgPath, 'utf-8')
+    const pkg = JSON.parse(raw)
+    return c.json({ version: pkg.version })
+  } catch {
+    return c.json({ version: '0.0.0' })
+  }
+})
+
+// ─── Plugin management routes ────────────────────────────────────────────────
 
 // GET /api/plugins — list all plugins
 pluginRoutes.get('/', async (c) => {

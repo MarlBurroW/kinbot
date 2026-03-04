@@ -51,6 +51,24 @@ export interface PluginInstallMeta {
   installedAt?: string // ISO date
 }
 
+// ─── Registry Types ──────────────────────────────────────────────────────────
+
+export interface RegistryPlugin {
+  name: string
+  description: string
+  author: string
+  version: string
+  repo: string
+  tags: string[]
+  downloads: number
+  rating: number
+  compatible_versions: string
+  icon?: string
+  homepage?: string
+  license?: string
+  readme_url?: string
+}
+
 export interface PluginSummary {
   name: string
   version: string

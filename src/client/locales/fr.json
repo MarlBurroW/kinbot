@@ -1227,6 +1227,34 @@
       "update": "Mettre à jour",
       "updateSuccess": "Plugin mis à jour avec succès",
       "sourceLocal": "Local"
+    },
+    "marketplace": {
+      "title": "Explorer les plugins",
+      "description": "Découvrez et installez des plugins communautaires depuis le registre.",
+      "refresh": "Actualiser",
+      "searchPlaceholder": "Rechercher des plugins...",
+      "allTags": "Tous",
+      "installed": "Installé",
+      "installBtn": "Installer",
+      "installing": "Installation...",
+      "installSuccess": "Plugin \"{name}\" installé avec succès",
+      "uninstall": "Désinstaller",
+      "uninstallSuccess": "Plugin désinstallé",
+      "incompatible": "Nécessite KinBot {range} (vous avez {version})",
+      "incompatibleWarning": "Avertissement de compatibilité",
+      "incompatibleDetail": "Ce plugin nécessite KinBot {range}, mais vous utilisez la version {version}. Il pourrait ne pas fonctionner correctement.",
+      "author": "Auteur",
+      "license": "Licence",
+      "rating": "Note",
+      "downloads": "Téléchargements",
+      "compatibility": "Compatibilité",
+      "homepage": "Site web",
+      "repository": "Dépôt",
+      "noReadme": "Aucun README disponible pour ce plugin.",
+      "empty": {
+        "title": "Aucun plugin trouvé",
+        "description": "Aucun plugin ne correspond à vos critères de recherche. Essayez d'ajuster vos filtres."
+      }
     }
   },
   "notifications": {
