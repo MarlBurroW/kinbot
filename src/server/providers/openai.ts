@@ -23,14 +23,18 @@ const NON_CHAT_PATTERNS = [
   '-tts',           // text-to-speech (gpt-4o-mini-tts, etc.)
   '-transcribe',    // speech-to-text (gpt-4o-transcribe, etc.)
   '-realtime',      // realtime audio (gpt-4o-realtime-preview, etc.)
+  '-audio',         // audio models (gpt-4o-audio-preview, etc.)
   '-search-api',    // search API models
-  'gpt-audio',      // audio models
+  'gpt-audio',      // audio models (gpt-audio-*)
   'gpt-realtime',   // realtime models
   '-instruct',      // completion-only (gpt-3.5-turbo-instruct)
   '-codex',         // codex models (code completion, not chat)
   'deep-research',  // deep research models
   'chatgpt-image',  // image generation (chatgpt-image-latest)
 ]
+
+/** Matches dated snapshot suffixes like -0613, -0125-preview, -2024-11-20 */
+const DATED_SNAPSHOT_RE = /-(20\d{2}[/-]\d{2}([/-]\d{2})?|\d{4}(-preview)?)$/
 
 function classifyModel(id: string): OpenAIClassification | null {
   if (id.startsWith('ft:')) return null
@@ -41,6 +45,8 @@ function classifyModel(id: string): OpenAIClassification | null {
   if (id.startsWith('gpt-image')) return { capability: 'image', supportsImageInput: true }
   // Exclude non-chat models before the broad gpt-/o* catch-all
   if (NON_CHAT_PATTERNS.some((p) => id.includes(p))) return null
+  // Exclude dated snapshot variants (e.g. gpt-4-0613, gpt-4o-2024-11-20)
+  if (DATED_SNAPSHOT_RE.test(id)) return null
   if (
     id.startsWith('gpt-') ||
     id.startsWith('chatgpt-') ||

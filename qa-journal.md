@@ -31,3 +31,38 @@
 ### Next run
 - Area 2: Kin management (need to login as Nicolas or create a proper test user through onboarding)
 - Note: To test authenticated pages, either need Nicolas's password or a way to create users through the onboarding flow
+
+## 2026-03-04 00:40 UTC
+### Area tested: Kin Management (Create, Edit, Delete)
+- **Pages visited:** Main dashboard (`/`), New Kin dialog, Edit Kin dialog (General, Tools, Memory tabs), Delete confirmation dialog, Kin chat view (`/kin/test-qa-kin`)
+- **Browser:** `openclaw` profile (headless Chromium), logged in as existing user
+- **Login:** Credentials from `e2e/helpers/auth.ts` (test@kinbot.local)
+- **Bugs found:** 1 (issue created: #30)
+  - **#30 (bug):** Import button in "New Kin" dialog does nothing when clicked. No file picker, no UI change, no error. Either the feature is broken or unimplemented without any user feedback.
+- **UX suggestions:** 2 (issues created: #29, #31)
+  - **#29 (enhancement):** Model selector shows ALL models from providers including non-chat models (audio, realtime, transcribe, TTS, image-only). The list is enormous and overwhelming. Should filter to chat-compatible models only.
+  - **#31 (enhancement):** Slug field is only available in Edit mode, not during Kin creation. Minor QoL improvement to allow setting it upfront.
+- **All clear:**
+  - Create flow works well: "Describe your Kin" dialog with Generate/Create manually/Import options
+  - Generate button correctly disabled until text is entered
+  - Manual creation form has proper required field validation (Name, Role, Model all required, Create button disabled until filled)
+  - Avatar auto-generates initials from name (e.g. "TE" for "Test QA Kin")
+  - Model selector has provider filter buttons (All, Claude, OpenAI) that work correctly
+  - Token count updates in real-time for Character and Expertise sections
+  - Default Character and Expertise templates are helpful
+  - Edit dialog has all creation fields plus Slug, and full Tools/Memory tabs
+  - Tools tab shows all native tool categories with toggle switches and count (e.g. "Search 1/1", "Web Browse 3/3")
+  - Tool categories are expandable to show individual tools
+  - Opt-in tools (Kin Management, System, Database) are correctly off by default
+  - Memory tab in edit shows search, category filter, empty state, and "Add memory" button
+  - Add memory form has Content, Category dropdown (default: Fact), Subject (optional)
+  - Memory save button correctly disabled until content is filled
+  - Delete flow has proper confirmation dialog ("Are you sure? This will permanently delete...")
+  - Delete works correctly, Kin removed from sidebar immediately
+  - Chat view loads properly when selecting a Kin, with conversation starters and rich text editor
+  - Kin card ordering in sidebar can be changed (drag handles present)
+  - Slug auto-generated from name correctly (e.g. "test-qa-kin")
+
+### Next run
+- Area 3: Conversations (send messages, check chat UI, scroll behavior, empty states)
+- Or Area 4: Tasks/Crons (create, edit, enable/disable, delete tasks)

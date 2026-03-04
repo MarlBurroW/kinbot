@@ -598,3 +598,38 @@ useKinBot, useStorage, useTheme, useKin, useUser, useForm, useMediaQuery, useDeb
 3. Component showcase template could demo useShortcut, useApps
 4. Consider `useClipboard` hook (wraps KinBot.clipboard with reactive state)
 5. Consider `useNotification` hook (wraps KinBot.notification with permission state)
+
+## 2026-03-04 (run 16) — Data Fetching & Async Hooks
+
+**What:** Added 4 new React hooks to `@kinbot/react` SDK focused on data fetching and async operations — the most common boilerplate in mini-apps.
+
+### New Hooks (22 total)
+1. **`useFetch(url, options?)`** → `{ data, loading, error, refetch, status }` — fetch external data via `KinBot.http()` proxy with auto-fetch on mount, cancel on unmount, conditional fetching (pass null to skip), and manual refetch. Options: method, body, headers, json (default true), enabled.
+2. **`useApi(path, options?)`** → `{ data, loading, error, refetch }` — fetch from mini-app backend (`_server.js`) via `KinBot.api()`. Same ergonomics as useFetch but for backend API calls. Supports GET/POST/PUT/DELETE.
+3. **`useAsync(asyncFn)`** → `{ run, data, loading, error, reset }` — wrap any async function with loading/error states. Unlike useFetch/useApi, doesn't auto-execute; call `run(...args)` manually. Perfect for mutations (POST, DELETE, form submissions).
+4. **`useEventStream(eventName?, callback?)`** → `{ messages, connected, clear }` — subscribe to real-time SSE events from backend. Auto-connects on mount, disconnects on unmount. With callback: no accumulation. Without: messages accumulate as `[{event, data, ts}]`.
+
+### Why These Hooks
+Every mini-app that calls an API needs loading/error states. Previously Kins had to manually write useState/useEffect patterns for each API call. These hooks eliminate that boilerplate:
+- `useFetch` for external APIs (weather, stocks, etc.)
+- `useApi` for the app's own backend
+- `useAsync` for user-triggered mutations
+- `useEventStream` for real-time updates
+
+### Tool Docs Updated
+Updated `mini-app-tools.ts` with full documentation of all 4 new hooks.
+
+**Files changed:**
+- `src/server/mini-app-sdk/kinbot-react.js` — +200 lines (4 hooks)
+- `src/server/tools/mini-app-tools.ts` — updated hook documentation
+
+**Tests:** 1547 pass, 0 fail. Build clean (pre-commit OOM'd as usual, CI verified).
+
+**Hook inventory (22 total):**
+useKinBot, useStorage, useTheme, useKin, useUser, useForm, useMediaQuery, useDebounce, useInterval, useClickOutside, useMemory, useConversation, useShortcut, useApps, useSharedData, usePrevious, useOnline, useClipboard, useNotification, useDownload, **useFetch**, **useApi**, **useAsync**, **useEventStream**
+
+**Next priorities:**
+1. Template that demos useFetch + useApi (e.g., weather dashboard or API explorer template)
+2. `useInfiniteScroll` hook (paginated data loading)
+3. `useWebSocket` hook (if backend WebSocket support is added)
+4. Consider TypeScript type definitions (.d.ts) for SDK autocomplete

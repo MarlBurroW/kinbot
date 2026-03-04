@@ -263,6 +263,18 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     log.error({ kinId, err }, 'Memory consolidation error')
   }
 
+  // Recalibrate importance scores based on retrieval patterns
+  let memoriesRecalibrated = 0
+  try {
+    const { recalibrateImportance } = await import('@/server/services/memory')
+    memoriesRecalibrated = await recalibrateImportance(kinId)
+    if (memoriesRecalibrated > 0) {
+      log.info({ kinId, memoriesRecalibrated }, 'Memory importance recalibrated')
+    }
+  } catch (err) {
+    log.error({ kinId, err }, 'Memory importance recalibration error')
+  }
+
   // Persist a system message so the compaction trace survives page refresh
   // role='system' is skipped by buildMessageHistory → won't pollute LLM context
   const compactingMessageId = uuid()

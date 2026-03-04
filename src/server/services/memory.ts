@@ -685,3 +685,73 @@ export async function reembedAllMemories(
   log.info({ total, success, failed, kinId: kinId ?? 'all' }, 'Re-embedding complete')
   return { total, success, failed }
 }
+
+// ─── Importance Recalibration ────────────────────────────────────────────────
+
+/**
+ * Recalibrate importance scores for memories based on retrieval patterns.
+ *
+ * For memories older than 7 days with retrieval data, gently nudge importance:
+ * - Frequently retrieved memories get a bump (the system finds them useful)
+ * - Never-retrieved old memories get a slight decrease (likely less relevant)
+ *
+ * Adjustments are small (±0.5 per run, clamped to [1, 10]) to avoid overcorrection.
+ * Returns the number of memories adjusted.
+ */
+export async function recalibrateImportance(kinId: string): Promise<number> {
+  const MIN_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+  const now = Date.now()
+
+  const allMems = sqlite.query<
+    { id: string; importance: number; retrieval_count: number; created_at: number; last_retrieved_at: number | null },
+    [string]
+  >(
+    `SELECT id, importance, retrieval_count, created_at, last_retrieved_at
+     FROM memories
+     WHERE kin_id = ? AND importance IS NOT NULL`,
+  ).all(kinId)
+
+  let adjusted = 0
+
+  for (const mem of allMems) {
+    const ageMs = now - mem.created_at
+    if (ageMs < MIN_AGE_MS) continue // Too young for recalibration
+
+    const ageDays = ageMs / (24 * 60 * 60 * 1000)
+    // Expected retrievals: rough heuristic — ~0.1 per day for average memory
+    const expectedRetrievals = ageDays * 0.1
+    const ratio = expectedRetrievals > 0 ? mem.retrieval_count / expectedRetrievals : 0
+
+    let delta = 0
+    if (ratio >= 2.0) {
+      // Retrieved much more than expected — bump up
+      delta = 0.5
+    } else if (ratio >= 1.0) {
+      // Retrieved at expected rate — small bump
+      delta = 0.2
+    } else if (mem.retrieval_count === 0 && ageDays > 30) {
+      // Never retrieved in 30+ days — slight decrease
+      delta = -0.3
+    } else if (ratio < 0.3 && ageDays > 14) {
+      // Retrieved much less than expected — slight decrease
+      delta = -0.2
+    } else {
+      continue // No adjustment needed
+    }
+
+    const newImportance = Math.max(1, Math.min(10, Math.round((mem.importance + delta) * 10) / 10))
+    if (newImportance === mem.importance) continue
+
+    sqlite.run(
+      `UPDATE memories SET importance = ?, updated_at = ? WHERE id = ?`,
+      [newImportance, now, mem.id],
+    )
+    adjusted++
+  }
+
+  if (adjusted > 0) {
+    log.info({ kinId, adjusted, total: allMems.length }, 'Importance recalibration complete')
+  }
+
+  return adjusted
+}
