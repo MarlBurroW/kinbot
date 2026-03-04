@@ -44,7 +44,7 @@ KinBot is different. You create **Kins** — AI agents with:
 Persistent memory (vector + full-text) · Session compacting · Sub-agents · Inter-Kin communication · Continuous sessions that never reset
 
 ### 🔧 Automation & Extensibility
-Cron jobs · Webhooks · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · Mini Apps · Contacts · Notifications · Human-in-the-loop prompts · 23 AI providers (incl. Ollama) · Multi-provider auto-detection
+Cron jobs · Webhooks · HTTP requests · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · Mini Apps · Contacts · Notifications · Human-in-the-loop prompts · 23 AI providers (incl. Ollama) · Multi-provider auto-detection
 
 ### 🔒 Security & Privacy
 AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted · Your data never leaves your server
@@ -95,7 +95,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 - **Responsive UI** — mobile-friendly settings, contextual info tips, suggestion chips in empty chat states
 - **System info** — version, uptime, and stats visible in settings
 
-#### Built-in Tools (90+)
+#### Built-in Tools (100+)
 
 Kins have access to a rich set of native tools out of the box, no configuration needed:
 
@@ -109,7 +109,7 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 
 **Multi-Agent** — `spawn_self`, `spawn_kin`, `send_message`, `reply`, `list_kins`, `report_to_parent`, `request_input`, task management
 
-**Automation** — `create_cron`, `update_cron`, `delete_cron`, `list_crons`, `wake_me_in`, `cancel_wakeup`, webhooks (CRUD)
+**Automation** — `create_cron`, `update_cron`, `delete_cron`, `list_crons`, `trigger_cron`, `wake_me_in`, `cancel_wakeup`, webhooks (CRUD)
 
 **Mini Apps** — create, update, delete, read/write files, snapshots, rollback, persistent key-value storage, browse & clone from the App Gallery
 
@@ -119,7 +119,9 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 
 **Files & Images** — `store_file`, `get_stored_file`, `search_stored_files`, `generate_image`, `list_image_models`
 
-**System** — `run_shell`, `execute_sql`, `get_platform_logs`, `prompt_human`, `notify`, user management, MCP server management
+**System** — `run_shell`, `execute_sql`, `get_platform_logs`, `get_system_info`, `prompt_human`, `notify`, user management, MCP server management
+
+**HTTP** — `http_request` (make HTTP requests to external APIs with full method/header/body control)
 
 **Human-in-the-Loop** — `prompt_human` (ask user for approval before sensitive actions), `notify` (push notifications)
 
