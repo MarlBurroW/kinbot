@@ -882,23 +882,10 @@ install_or_update() {
       success "Already up to date ($new_version)"
     else
       success "Updated: $old_version → $new_version"
-      # Show what changed
+      # Show what changed (categorized by type)
       if [ -n "$ROLLBACK_COMMIT" ]; then
-        local changes
-        changes="$(git -C "$KINBOT_DIR" log --oneline "${ROLLBACK_COMMIT}..HEAD" 2>/dev/null | head -10)"
-        if [ -n "$changes" ]; then
-          echo ""
-          echo -e "  ${DIM}Recent changes:${NC}"
-          echo "$changes" | while IFS= read -r line; do
-            echo -e "  ${DIM}  $line${NC}"
-          done
-          local total
-          total="$(git -C "$KINBOT_DIR" rev-list "${ROLLBACK_COMMIT}..HEAD" --count 2>/dev/null || echo "0")"
-          if [ "$total" -gt 10 ] 2>/dev/null; then
-            echo -e "  ${DIM}  ... and $((total - 10)) more${NC}"
-          fi
-          echo ""
-        fi
+        echo ""
+        show_categorized_commits "${ROLLBACK_COMMIT}..HEAD" 5 || true
       fi
     fi
     IS_UPDATE=true
@@ -1989,6 +1976,57 @@ uninstall() {
 }
 
 # ─── Version info ─────────────────────────────────────────────────────────────
+# ─── Categorized commit display ──────────────────────────────────────────────
+# Displays commits grouped by conventional commit type (feat, fix, etc.)
+# Usage: show_categorized_commits "commit_range" [max_per_category]
+# Example: show_categorized_commits "HEAD..origin/main" 10
+show_categorized_commits() {
+  local range="$1"
+  local max_per_cat="${2:-0}"  # 0 = no limit
+
+  local commits
+  commits="$(git -C "$KINBOT_DIR" log --oneline "$range" 2>/dev/null)"
+  [ -z "$commits" ] && return 1
+
+  # Extract categories
+  local feats fixes installer docs refactor other
+  feats="$(echo "$commits" | grep -iE '^\w+ feat' || true)"
+  fixes="$(echo "$commits" | grep -iE '^\w+ fix' || true)"
+  installer="$(echo "$commits" | grep -iE '^\w+ installer' || true)"
+  docs="$(echo "$commits" | grep -iE '^\w+ (docs?|readme)' || true)"
+  refactor="$(echo "$commits" | grep -iE '^\w+ (refactor|chore|ci|build|perf|test)' || true)"
+  other="$(echo "$commits" | grep -viE '^\w+ (feat|fix|installer|docs?|readme|refactor|chore|ci|build|perf|test)' || true)"
+
+  _show_cat_section() {
+    local title="$1" icon="$2" lines="$3"
+    [ -z "$lines" ] && return
+    local count shown=0
+    count="$(echo "$lines" | wc -l)"
+    echo -e "  ${icon} ${BOLD}${title}${NC} ${DIM}(${count})${NC}"
+    while IFS= read -r line; do
+      if [ "$max_per_cat" -gt 0 ] 2>/dev/null && [ "$shown" -ge "$max_per_cat" ] 2>/dev/null; then
+        local remaining=$((count - max_per_cat))
+        echo -e "    ${DIM}  ... and $remaining more${NC}"
+        break
+      fi
+      local hash="${line%% *}"
+      local msg="${line#"$hash" }"
+      echo -e "    ${DIM}•${NC} $msg"
+      shown=$((shown + 1))
+    done <<< "$lines"
+    echo ""
+  }
+
+  _show_cat_section "Features" "✨" "$feats"
+  _show_cat_section "Bug Fixes" "🐛" "$fixes"
+  _show_cat_section "Installer" "📦" "$installer"
+  _show_cat_section "Documentation" "📝" "$docs"
+  _show_cat_section "Maintenance" "🔧" "$refactor"
+  _show_cat_section "Other" "📋" "$other"
+
+  return 0
+}
+
 get_installed_version() {
   if [ -d "$KINBOT_DIR/.git" ]; then
     git -C "$KINBOT_DIR" describe --tags 2>/dev/null || \
@@ -2117,47 +2155,12 @@ show_changelog() {
   echo -e "  ${CYAN}Changes:${NC}    $behind commit(s) on ${branch}"
   echo ""
 
-  # Categorize commits by conventional commit prefix
-  local commits
-  commits="$(git -C "$KINBOT_DIR" log --oneline "HEAD..origin/$branch" 2>/dev/null)"
-
-  if [ -z "$commits" ]; then
+  # Show categorized changelog
+  if ! show_categorized_commits "HEAD..origin/$branch"; then
     echo -e "  ${DIM}No commits to show.${NC}"
     echo ""
     exit 0
   fi
-
-  # Extract categories
-  local feats fixes installer docs refactor other
-  feats="$(echo "$commits" | grep -iE '^\w+ feat' || true)"
-  fixes="$(echo "$commits" | grep -iE '^\w+ fix' || true)"
-  installer="$(echo "$commits" | grep -iE '^\w+ installer' || true)"
-  docs="$(echo "$commits" | grep -iE '^\w+ (docs?|readme)' || true)"
-  refactor="$(echo "$commits" | grep -iE '^\w+ (refactor|chore|ci|build|perf|test)' || true)"
-  # "other" = anything not matching the above
-  other="$(echo "$commits" | grep -viE '^\w+ (feat|fix|installer|docs?|readme|refactor|chore|ci|build|perf|test)' || true)"
-
-  _show_section() {
-    local title="$1" icon="$2" lines="$3"
-    [ -z "$lines" ] && return
-    local count
-    count="$(echo "$lines" | wc -l)"
-    echo -e "  ${icon} ${BOLD}${title}${NC} ${DIM}(${count})${NC}"
-    echo "$lines" | while IFS= read -r line; do
-      # Strip the commit hash prefix for cleaner output
-      local hash="${line%% *}"
-      local msg="${line#"$hash" }"
-      echo -e "    ${DIM}•${NC} $msg"
-    done
-    echo ""
-  }
-
-  _show_section "Features" "✨" "$feats"
-  _show_section "Bug Fixes" "🐛" "$fixes"
-  _show_section "Installer" "📦" "$installer"
-  _show_section "Documentation" "📝" "$docs"
-  _show_section "Maintenance" "🔧" "$refactor"
-  _show_section "Other" "📋" "$other"
 
   # Show tags in the range (version milestones)
   local tags_in_range
@@ -4138,19 +4141,8 @@ do_update() {
   echo -e "  ${CYAN}Changes:${NC}  $behind commit(s)"
   echo ""
 
-  # Show recent commits
-  local changes
-  changes="$(git -C "$KINBOT_DIR" log --oneline "HEAD..origin/$branch" 2>/dev/null | head -15)"
-  if [ -n "$changes" ]; then
-    echo -e "  ${DIM}What's new:${NC}"
-    echo "$changes" | while IFS= read -r line; do
-      echo -e "  ${DIM}  $line${NC}"
-    done
-    if [ "$behind" -gt 15 ] 2>/dev/null; then
-      echo -e "  ${DIM}  ... and $((behind - 15)) more${NC}"
-    fi
-    echo ""
-  fi
+  # Show categorized changelog
+  show_categorized_commits "HEAD..origin/$branch" 5 || true
 
   # Confirm
   if [ "$KINBOT_YES" != true ] && [ "${KINBOT_NO_PROMPT:-}" != "true" ] && [ "${CI:-}" != "true" ]; then
