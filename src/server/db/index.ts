@@ -106,6 +106,31 @@ export function initVirtualTables() {
   // Note: sqlite-vec extension must be loaded. This may fail if the extension
   // is not available — we'll handle that gracefully in later phases.
   try {
+    // Detect dimension mismatch: if the vec table exists with a different dimension,
+    // we need to drop and recreate it (data will be re-populated from memory embeddings).
+    let needsRecreate = false
+    try {
+      const info = sqlite.query<{ type: string }, []>(
+        `SELECT type FROM vec_info('memories_vec') WHERE key = 'dimensions'`
+      ).get()
+      if (info) {
+        const existingDim = parseInt(info.type, 10)
+        if (!isNaN(existingDim) && existingDim !== config.memory.embeddingDimension) {
+          log.info(
+            { from: existingDim, to: config.memory.embeddingDimension },
+            'Embedding dimension changed — recreating vector index (re-embedding required)',
+          )
+          needsRecreate = true
+        }
+      }
+    } catch {
+      // Table doesn't exist yet or vec_info not available — will be created below
+    }
+
+    if (needsRecreate) {
+      sqlite.run(`DROP TABLE IF EXISTS memories_vec`)
+    }
+
     sqlite.run(`
       CREATE VIRTUAL TABLE IF NOT EXISTS memories_vec USING vec0(
         memory_id text PRIMARY KEY,

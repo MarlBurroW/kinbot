@@ -94,7 +94,7 @@ describe('config', () => {
       expect(config.memory.maxRelevantMemories).toBe(10)
       expect(config.memory.similarityThreshold).toBe(0.7)
       expect(config.memory.embeddingModel).toBe('text-embedding-3-small')
-      expect(config.memory.embeddingDimension).toBe(1536)
+      expect(config.memory.embeddingDimension).toBe(768)
     })
 
     it('queue defaults', () => {
