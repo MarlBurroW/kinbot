@@ -1,6 +1,6 @@
 import type { ProviderDefinition, ProviderConfig, ProviderModel } from '@/server/providers/types'
 import type { ProviderCapability } from '@/shared/types'
-import { PROVIDER_META, type ProviderType } from '@/shared/provider-metadata'
+import { PROVIDER_META, type ProviderType, type ProviderMeta } from '@/shared/provider-metadata'
 import { createLogger } from '@/server/logger'
 import { anthropicProvider } from '@/server/providers/anthropic'
 import { anthropicOAuthProvider } from '@/server/providers/anthropic-oauth'
@@ -28,7 +28,7 @@ import { perplexityProvider } from '@/server/providers/perplexity'
 
 const log = createLogger('providers')
 
-const registry: Record<string, ProviderDefinition> = {
+const builtinRegistry: Record<string, ProviderDefinition> = {
   anthropic: anthropicProvider,
   'anthropic-oauth': anthropicOAuthProvider,
   openai: openaiProvider,
@@ -54,8 +54,31 @@ const registry: Record<string, ProviderDefinition> = {
   perplexity: perplexityProvider,
 }
 
+// Dynamic registry for plugin-provided providers
+const pluginRegistry: Record<string, ProviderDefinition> = {}
+const pluginProviderMeta: Record<string, ProviderMeta> = {}
+
+export function registerPluginProvider(type: string, definition: ProviderDefinition, meta: ProviderMeta): void {
+  if (builtinRegistry[type]) {
+    throw new Error(`Cannot override built-in provider "${type}"`)
+  }
+  pluginRegistry[type] = definition
+  pluginProviderMeta[type] = meta
+  log.info({ type, displayName: meta.displayName }, 'Plugin provider registered')
+}
+
+export function unregisterPluginProvider(type: string): void {
+  delete pluginRegistry[type]
+  delete pluginProviderMeta[type]
+  log.info({ type }, 'Plugin provider unregistered')
+}
+
+export function getPluginProviderMeta(): Record<string, ProviderMeta> {
+  return { ...pluginProviderMeta }
+}
+
 export function getProviderDefinition(type: string): ProviderDefinition | undefined {
-  return registry[type]
+  return builtinRegistry[type] || pluginRegistry[type]
 }
 
 export function getCapabilitiesForType(type: string): ProviderCapability[] {
@@ -73,7 +96,7 @@ export async function testProviderConnection(
     return { valid: true, capabilities }
   }
 
-  const definition = registry[type]
+  const definition = builtinRegistry[type] || pluginRegistry[type]
   if (!definition) {
     log.error({ type }, 'Unknown provider type')
     return { valid: false, capabilities: [], error: `Unknown provider type: ${type}` }
@@ -81,9 +104,10 @@ export async function testProviderConnection(
 
   const result = await definition.testConnection(config)
   log.info({ type, valid: result.valid, error: result.error }, 'Provider connection tested')
+  const capabilities = PROVIDER_META[type as ProviderType]?.capabilities ?? pluginProviderMeta[type]?.capabilities ?? []
   return {
     valid: result.valid,
-    capabilities: result.valid ? [...(PROVIDER_META[type as ProviderType]?.capabilities ?? [])] : [],
+    capabilities: result.valid ? [...capabilities] : [],
     error: result.error,
   }
 }
@@ -92,7 +116,7 @@ export async function listModelsForProvider(
   type: string,
   config: ProviderConfig,
 ): Promise<ProviderModel[]> {
-  const definition = registry[type]
+  const definition = builtinRegistry[type] || pluginRegistry[type]
   if (!definition) {
     log.error({ type }, 'Cannot list models for unknown provider type')
     return []

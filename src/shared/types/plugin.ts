@@ -31,6 +31,17 @@ export interface PluginManifest {
   config?: Record<string, PluginConfigField>
 }
 
+export interface PluginProviderMeta {
+  type: string
+  displayName: string
+  capabilities: string[]
+}
+
+export interface PluginChannelMeta {
+  platform: string
+  displayName: string
+}
+
 export interface PluginSummary {
   name: string
   version: string
@@ -44,5 +55,9 @@ export interface PluginSummary {
   error?: string
   toolCount: number
   hookCount: number
+  providerCount: number
+  channelCount: number
+  providers: PluginProviderMeta[]
+  channels: PluginChannelMeta[]
   configSchema: Record<string, PluginConfigField>
 }

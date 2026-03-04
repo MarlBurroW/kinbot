@@ -40,6 +40,8 @@ import {
   Wrench,
   Anchor,
   ExternalLink,
+  Cpu,
+  Radio,
 } from 'lucide-react'
 import type { PluginSummary, PluginConfigField } from '@/shared/types/plugin'
 
@@ -185,6 +187,18 @@ export function PluginsSettings() {
                       <span className="flex items-center gap-1">
                         <Anchor className="size-3" />
                         {plugin.hookCount} {t('settings.plugins.hooks')}
+                      </span>
+                    )}
+                    {plugin.providerCount > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Cpu className="size-3" />
+                        {plugin.providerCount} {t('settings.plugins.providers')}
+                      </span>
+                    )}
+                    {plugin.channelCount > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Radio className="size-3" />
+                        {plugin.channelCount} {t('settings.plugins.channels')}
                       </span>
                     )}
                     {plugin.permissions.length > 0 && (

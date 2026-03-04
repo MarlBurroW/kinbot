@@ -1199,6 +1199,8 @@
       "by": "by",
       "tools": "tools",
       "hooks": "hooks",
+      "providers": "providers",
+      "channels": "channels",
       "permissions": "permissions",
       "viewPermissions": "View permissions",
       "configure": "Configure",

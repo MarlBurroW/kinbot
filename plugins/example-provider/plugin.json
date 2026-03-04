@@ -1,0 +1,26 @@
+{
+  "name": "example-provider",
+  "version": "1.0.0",
+  "description": "Example plugin demonstrating custom provider registration",
+  "author": "KinBot",
+  "license": "MIT",
+  "main": "index.ts",
+  "permissions": [
+    "http:api.example.com"
+  ],
+  "config": {
+    "apiKey": {
+      "type": "string",
+      "label": "API Key",
+      "description": "API key for the example provider",
+      "required": true,
+      "secret": true
+    },
+    "baseUrl": {
+      "type": "string",
+      "label": "Base URL",
+      "description": "Custom API endpoint (optional)",
+      "placeholder": "https://api.example.com/v1"
+    }
+  }
+}
