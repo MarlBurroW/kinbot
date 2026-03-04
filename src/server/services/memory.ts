@@ -217,11 +217,29 @@ function temporalDecayWeight(updatedAt: Date | null, category: string): number {
 // ─── Multi-Query Generation ──────────────────────────────────────────────────
 
 /**
+ * Get distinct non-null subjects for a given kin, used to ground query expansion.
+ */
+async function getDistinctSubjects(kinId: string): Promise<string[]> {
+  try {
+    const rows = sqlite
+      .query<{ subject: string }, [string]>(
+        `SELECT DISTINCT subject FROM memories WHERE kin_id = ? AND subject IS NOT NULL AND subject != '' ORDER BY subject`,
+      )
+      .all(kinId)
+    return rows.map((r) => r.subject)
+  } catch {
+    return []
+  }
+}
+
+/**
  * Generate alternative query formulations to improve recall.
  * Uses a fast/cheap LLM to create 2-3 variations of the original query,
  * capturing different perspectives and phrasings.
+ * When known subjects are provided, the LLM can generate more targeted
+ * entity-specific queries instead of abstract rephrasing.
  */
-async function generateQueryVariations(query: string): Promise<string[]> {
+async function generateQueryVariations(query: string, knownSubjects?: string[]): Promise<string[]> {
   const multiQueryModel = config.memory.multiQueryModel
   if (!multiQueryModel) return [query]
 
@@ -230,14 +248,19 @@ async function generateQueryVariations(query: string): Promise<string[]> {
     const model = await resolveLLMModel(multiQueryModel, null)
     if (!model) return [query]
 
+    const subjectHint = knownSubjects && knownSubjects.length > 0
+      ? `\nKnown subjects in memory: ${knownSubjects.join(', ')}\nUse these to generate targeted queries about specific entities when relevant.`
+      : ''
+
     const result = await generateText({
       model,
       messages: [{
         role: 'user',
         content:
           `Generate 3 alternative search queries for retrieving relevant memories based on this message. ` +
-          `Each query should capture a different angle or keyword emphasis.\n\n` +
-          `Original: "${query}"\n\n` +
+          `Each query should target a DIFFERENT aspect, entity, or sub-topic to maximize recall. ` +
+          `Use specific nouns and keywords rather than abstract rephrasing.\n\n` +
+          `Original: "${query}"\n${subjectHint}\n` +
           `Return ONLY a JSON array of 3 strings, no explanation. Example: ["query1", "query2", "query3"]`,
       }],
     })
@@ -364,7 +387,7 @@ export async function searchMemories(
 
   // Generate query variations if multi-query is enabled
   const queries = config.memory.multiQueryModel
-    ? await generateQueryVariations(query)
+    ? await generateQueryVariations(query, await getDistinctSubjects(kinId))
     : [query]
 
   if (queries.length > 1) {
