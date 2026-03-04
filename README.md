@@ -80,7 +80,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 
 #### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools; Kins can manage their own MCP connections
-- **Plugin system** — extend KinBot with community or custom plugins; plugins can register tools, hooks, AI providers, and channels; managed via the UI with per-plugin configuration, encrypted secret storage, and enable/disable toggles; plugins live in the `plugins/` directory and declare capabilities via a `manifest.json`
+- **Plugin system** — extend KinBot with community or custom plugins; plugins can register tools, hooks, AI providers, and channels; install from Git repos or npm packages; hot reload during development; community registry with a built-in marketplace UI for discovering and installing plugins; managed via the UI with per-plugin configuration, encrypted secret storage, and enable/disable toggles
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
 - **Mini Apps** — Kins can build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar; auto-injected design system + JavaScript SDK with theme sync, toasts, inter-app navigation (`openApp`), dialogs (`confirm`/`prompt`), window title & badge control, persistent key-value storage (`get`/`set`/`delete`/`list`/`clear`), starter templates, parent-child event communication, and an App Gallery to browse and clone community apps
 - **Contacts** — manage contacts that Kins can reference and interact with
