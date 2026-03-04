@@ -228,17 +228,85 @@ const MEMORY_CATEGORY_META: Record<string, { order: number; label: string }> = {
 }
 
 /**
- * Build the memories block, grouping memories by category for easier scanning.
- * Falls back to a flat list if there are very few memories (≤3).
+ * Format a memory line for subject-grouped display (category as inline tag).
+ */
+function formatMemoryLineCompact(m: Memory): string {
+  const parts: string[] = []
+  if (m.importance != null && m.importance >= 7) {
+    parts.push('★')
+  }
+  parts.push(`[${m.category}]`)
+  parts.push(m.content)
+  const relTime = formatRelativeTime(m.updatedAt)
+  if (relTime) {
+    parts.push(`— ${relTime}`)
+  }
+  return `- ${parts.join(' ')}`
+}
+
+/**
+ * Build the memories block using the most effective grouping strategy:
+ * - If most memories have subjects, group by subject (more natural for the LLM)
+ * - Otherwise, fall back to category-based grouping
+ * - For ≤3 memories, use a flat list
+ *
+ * Subject grouping mirrors how humans organize knowledge: "what do I know
+ * about X?" is more natural than "what facts vs preferences do I have?"
  */
 function buildMemoriesBlock(memories: Memory[]): string {
+  const header = `## Memories\n\nRelevant information from your past interactions (★ = high importance):`
+
   if (memories.length <= 3) {
-    // Few memories — flat list is fine
     const memoryLines = memories.map(formatMemoryLine).join('\n')
-    return `## Memories\n\nRelevant information from your past interactions (★ = high importance):\n\n${memoryLines}`
+    return `${header}\n\n${memoryLines}`
   }
 
-  // Group by category
+  // Decide grouping strategy: subject-first if ≥60% of memories have subjects
+  const withSubject = memories.filter((m) => m.subject)
+  const useSubjectGrouping = withSubject.length >= memories.length * 0.6
+
+  if (useSubjectGrouping) {
+    return buildSubjectGroupedMemories(header, memories)
+  }
+  return buildCategoryGroupedMemories(header, memories)
+}
+
+/**
+ * Group memories by subject, with unsubject memories in a "General" group.
+ * Within each subject group, memories are ordered by importance (desc).
+ */
+function buildSubjectGroupedMemories(header: string, memories: Memory[]): string {
+  const groups = new Map<string, Memory[]>()
+  for (const m of memories) {
+    const key = m.subject ?? '_general'
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(m)
+  }
+
+  // Sort groups: largest first (most relevant subjects bubble up), _general last
+  const sortedKeys = [...groups.keys()].sort((a, b) => {
+    if (a === '_general') return 1
+    if (b === '_general') return -1
+    return groups.get(b)!.length - groups.get(a)!.length
+  })
+
+  const sections: string[] = []
+  for (const key of sortedKeys) {
+    const label = key === '_general' ? 'General' : key
+    const mems = groups.get(key)!
+    // Sort by importance descending within group
+    mems.sort((a, b) => (b.importance ?? 5) - (a.importance ?? 5))
+    const lines = mems.map(formatMemoryLineCompact).join('\n')
+    sections.push(`### ${label}\n${lines}`)
+  }
+
+  return `${header}\n\n${sections.join('\n\n')}`
+}
+
+/**
+ * Group memories by category (original approach).
+ */
+function buildCategoryGroupedMemories(header: string, memories: Memory[]): string {
   const groups = new Map<string, Memory[]>()
   for (const m of memories) {
     const key = m.category
@@ -246,7 +314,6 @@ function buildMemoriesBlock(memories: Memory[]): string {
     groups.get(key)!.push(m)
   }
 
-  // Sort groups by defined order (unknown categories last)
   const sortedCategories = [...groups.keys()].sort((a, b) => {
     const orderA = MEMORY_CATEGORY_META[a]?.order ?? 99
     const orderB = MEMORY_CATEGORY_META[b]?.order ?? 99
@@ -260,7 +327,7 @@ function buildMemoriesBlock(memories: Memory[]): string {
     sections.push(`### ${label}\n${lines}`)
   }
 
-  return `## Memories\n\nRelevant information from your past interactions (★ = high importance):\n\n${sections.join('\n\n')}`
+  return `${header}\n\n${sections.join('\n\n')}`
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
