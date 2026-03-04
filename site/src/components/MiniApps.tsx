@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { highlight } from 'sugar-high'
 import {
   Blocks,
   Code2,
@@ -165,6 +166,18 @@ function ExamplePill({
   )
 }
 
+function CodeBlock({ code }: { code: string }) {
+  const html = useMemo(() => highlight(code), [code])
+  return (
+    <pre
+      className="sh p-4 text-xs leading-relaxed overflow-x-auto"
+      style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)' }}
+    >
+      <code dangerouslySetInnerHTML={{ __html: html }} />
+    </pre>
+  )
+}
+
 /* ── Main section ───────────────────────────────────────────────────────── */
 
 export function MiniApps() {
@@ -249,15 +262,7 @@ export function MiniApps() {
               React + SDK
             </span>
           </div>
-          <pre
-            className="p-4 text-xs leading-relaxed overflow-x-auto"
-            style={{
-              color: 'var(--color-foreground)',
-              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-            }}
-          >
-            <code>{codeSnippet}</code>
-          </pre>
+          <CodeBlock code={codeSnippet} />
         </div>
 
         {/* How it works */}

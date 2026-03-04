@@ -322,3 +322,16 @@ noscript ~ * .scroll-reveal,
   }
 
 }
+
+/* ── sugar-high syntax highlighting ─────────────────────────────────────── */
+.sh {
+  --sh-class: #e879f9;
+  --sh-identifier: #e2e8f0;
+  --sh-sign: #94a3b8;
+  --sh-property: #67e8f9;
+  --sh-entity: #f9a8d4;
+  --sh-jsxliterals: #c4b5fd;
+  --sh-string: #86efac;
+  --sh-keyword: #f472b6;
+  --sh-comment: #64748b;
+}
