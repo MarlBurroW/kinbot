@@ -401,6 +401,23 @@ async function extractMemories(
     `- Use "update" to ENRICH an existing memory with significant new details\n` +
     `- Do NOT update if the existing memory is already accurate and complete\n` +
     `- Be honest with importance scores — most memories should be 3-7\n\n` +
+    `**Durability test — before adding ANY memory, ask yourself:**\n` +
+    `Will this still be true/relevant in 3 months? If not, skip it.\n\n` +
+    `**DO NOT extract:**\n` +
+    `- One-time events or situations (car broke down, had a party, weather today)\n` +
+    `- Temporary states (will be ready by Friday, feeling sick today)\n` +
+    `- Reasons/explanations for decisions (extract the decision, not the reasoning)\n` +
+    `- Specific orders, meals, or purchases (unless it reveals a lasting preference)\n` +
+    `- Trivial details about objects (toy names, specific gift items)\n` +
+    `- General knowledge or widely known facts\n\n` +
+    `**DO extract:**\n` +
+    `- Identity facts (name, age, family, job, location)\n` +
+    `- Lasting preferences (tools, foods, styles)\n` +
+    `- Life changes (moving, new job, relationship changes)\n` +
+    `- Possessions that define the person (car model, pets)\n` +
+    `- Recurring habits (weekly restaurant, morning routine)\n` +
+    `- Skills and interests being actively pursued\n` +
+    `- Important relationships (family members, close contacts)\n\n` +
     `## Existing memories (indexed)\n\n${existingMemoriesSummary}\n\n` +
     `## Exchanges to analyze\n\n${formattedMessages}\n\n` +
     `Return a JSON array. If nothing new to remember or update, return [].`
