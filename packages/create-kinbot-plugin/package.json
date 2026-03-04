@@ -1,0 +1,15 @@
+{
+  "name": "create-kinbot-plugin",
+  "version": "1.0.0",
+  "description": "Scaffold a new KinBot plugin with best-practice boilerplate.",
+  "license": "AGPL-3.0",
+  "author": "KinBot Team",
+  "bin": {
+    "create-kinbot-plugin": "./index.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
+  "devDependencies": {}
+}

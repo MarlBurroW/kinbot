@@ -58,3 +58,11 @@ This directory contains the community plugin registry index for KinBot.
 | `icon` | ❌ | Emoji or icon |
 | `homepage` | ❌ | Project homepage URL |
 | `license` | ❌ | SPDX license identifier |
+
+## Validation
+
+A JSON Schema is provided in `registry.schema.json`. Validate your changes with:
+
+```bash
+npx ajv validate -s registry/registry.schema.json -d registry/registry.json
+```

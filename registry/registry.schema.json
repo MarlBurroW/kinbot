@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/MarlBurroW/kinbot-plugins/main/registry.schema.json",
+  "title": "KinBot Plugin Registry",
+  "description": "Schema for the KinBot community plugin registry index.",
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/RegistryPlugin"
+  },
+  "definitions": {
+    "RegistryPlugin": {
+      "type": "object",
+      "required": ["name", "description", "author", "version", "repo", "tags", "downloads", "rating", "compatible_versions"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Unique plugin identifier (lowercase, hyphens allowed)."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short one-line description of the plugin."
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Author name or organization."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+",
+          "description": "Current version (semver)."
+        },
+        "repo": {
+          "type": "string",
+          "format": "uri",
+          "description": "Git repository URL for installation."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Categorization tags."
+        },
+        "downloads": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Approximate download count."
+        },
+        "rating": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Average user rating (0-5)."
+        },
+        "compatible_versions": {
+          "type": "string",
+          "description": "Semver range of compatible KinBot versions (e.g. '>=0.10.0')."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Emoji or icon identifier."
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri",
+          "description": "Homepage or documentation URL."
+        },
+        "license": {
+          "type": "string",
+          "description": "SPDX license identifier."
+        },
+        "readme_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Direct URL to the raw README.md."
+        }
+      }
+    }
+  }
+}
