@@ -2436,6 +2436,67 @@ check_status() {
       warn "HTTP not responding on localhost:${KINBOT_PORT}"
       has_issues=true
     fi
+
+    # Check PUBLIC_URL reachability (important for webhooks)
+    local public_url="${PUBLIC_URL:-$KINBOT_PUBLIC_URL}"
+    if [ -n "$public_url" ] && [ "$public_url" != "http://localhost:${KINBOT_PORT}" ]; then
+      # Extract host from URL to check if it's a local/private IP (skip those)
+      local url_host
+      url_host="$(echo "$public_url" | sed -E 's|^https?://||; s|[:/].*||')"
+
+      local is_local=false
+      case "$url_host" in
+        localhost|127.*|10.*|192.168.*) is_local=true ;;
+        172.*)
+          # Check 172.16.0.0/12 range
+          local second_octet
+          second_octet="$(echo "$url_host" | cut -d. -f2)"
+          [ -n "$second_octet" ] && [ "$second_octet" -ge 16 ] 2>/dev/null && [ "$second_octet" -le 31 ] 2>/dev/null && is_local=true
+          ;;
+      esac
+
+      if [ "$is_local" = false ]; then
+        # Public URL with a real hostname, test reachability
+        local public_code
+        public_code="$(curl -s -o /dev/null -w '%{http_code}' "$public_url" --max-time 8 2>/dev/null || echo "000")"
+        if [ "$public_code" != "000" ]; then
+          success "Public URL reachable: $public_url (status $public_code)"
+
+          # Check TLS if HTTPS
+          if [[ "$public_url" =~ ^https:// ]]; then
+            # Verify certificate validity and expiry
+            local cert_expiry cert_days_left
+            cert_expiry="$(echo | openssl s_client -servername "$url_host" -connect "$url_host:443" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | sed 's/notAfter=//')"
+            if [ -n "$cert_expiry" ]; then
+              local expiry_epoch now_epoch
+              expiry_epoch="$(date -d "$cert_expiry" +%s 2>/dev/null || date -jf '%b %d %T %Y %Z' "$cert_expiry" +%s 2>/dev/null || echo "")"
+              now_epoch="$(date +%s)"
+              if [ -n "$expiry_epoch" ]; then
+                cert_days_left=$(( (expiry_epoch - now_epoch) / 86400 ))
+                if [ "$cert_days_left" -lt 0 ] 2>/dev/null; then
+                  warn "TLS certificate EXPIRED ($cert_expiry)"
+                  has_issues=true
+                elif [ "$cert_days_left" -lt 7 ] 2>/dev/null; then
+                  warn "TLS certificate expires in ${cert_days_left} day(s) ($cert_expiry)"
+                  has_issues=true
+                elif [ "$cert_days_left" -lt 30 ] 2>/dev/null; then
+                  warn "TLS certificate expires in ${cert_days_left} days"
+                else
+                  success "TLS certificate valid (${cert_days_left} days remaining)"
+                fi
+              fi
+            fi
+          fi
+        else
+          warn "Public URL not reachable: $public_url"
+          info "Check your reverse proxy, DNS, and firewall settings"
+          info "Webhooks from AI providers may not work until this is fixed"
+          has_issues=true
+        fi
+      else
+        info "Public URL is local ($public_url), skipping external reachability check"
+      fi
+    fi
   fi
 
   # Check process resources (uptime, memory, disk, logs)
@@ -2986,6 +3047,54 @@ do_doctor() {
     local api_code
     api_code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${port}/api/health" --max-time 3 2>/dev/null || echo "000")"
     echo "- API health: $api_code"
+  fi
+
+  # Public URL reachability & TLS
+  local public_url=""
+  if [ -f "$env_file" ]; then
+    # shellcheck disable=SC1090
+    public_url="$( ( . "$env_file" 2>/dev/null; echo "${PUBLIC_URL:-}" ) )"
+  fi
+  if [ -n "$public_url" ]; then
+    echo "- Public URL: $public_url"
+    local url_host
+    url_host="$(echo "$public_url" | sed -E 's|^https?://||; s|[:/].*||')"
+
+    local is_local=false
+    case "$url_host" in
+      localhost|127.*|10.*|192.168.*) is_local=true ;;
+      172.*)
+        local so
+        so="$(echo "$url_host" | cut -d. -f2)"
+        [ -n "$so" ] && [ "$so" -ge 16 ] 2>/dev/null && [ "$so" -le 31 ] 2>/dev/null && is_local=true
+        ;;
+    esac
+
+    if [ "$is_local" = false ] && command -v curl &>/dev/null; then
+      local public_code
+      public_code="$(curl -s -o /dev/null -w '%{http_code}' "$public_url" --max-time 8 2>/dev/null || echo "000")"
+      echo "- Public URL reachable: $([ "$public_code" != "000" ] && echo "yes (status $public_code)" || echo "NO")"
+
+      if [[ "$public_url" =~ ^https:// ]] && command -v openssl &>/dev/null; then
+        local cert_expiry
+        cert_expiry="$(echo | openssl s_client -servername "$url_host" -connect "$url_host:443" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | sed 's/notAfter=//')"
+        if [ -n "$cert_expiry" ]; then
+          local expiry_epoch now_epoch
+          expiry_epoch="$(date -d "$cert_expiry" +%s 2>/dev/null || date -jf '%b %d %T %Y %Z' "$cert_expiry" +%s 2>/dev/null || echo "")"
+          now_epoch="$(date +%s)"
+          if [ -n "$expiry_epoch" ]; then
+            local days_left=$(( (expiry_epoch - now_epoch) / 86400 ))
+            echo "- TLS certificate: expires in ${days_left} days ($cert_expiry)"
+          else
+            echo "- TLS certificate: $cert_expiry (could not parse date)"
+          fi
+        else
+          echo "- TLS certificate: could not retrieve"
+        fi
+      fi
+    elif [ "$is_local" = true ]; then
+      echo "- Public URL: local address (external reachability not tested)"
+    fi
   fi
 
   echo ""
@@ -4677,6 +4786,68 @@ do_test() {
     fi
   else
     test_warn "curl not available, cannot test HTTP"
+  fi
+
+  # ── 7. Public URL & TLS ──
+  local public_url=""
+  if [ -f "$env_file" ]; then
+    # shellcheck disable=SC1090
+    public_url="$( ( . "$env_file" 2>/dev/null; echo "${PUBLIC_URL:-}" ) )"
+  fi
+  if [ -n "$public_url" ] && [ "$public_url" != "http://localhost:${port}" ]; then
+    local url_host
+    url_host="$(echo "$public_url" | sed -E 's|^https?://||; s|[:/].*||')"
+
+    # Skip local/private IPs
+    local is_local=false
+    case "$url_host" in
+      localhost|127.*|10.*|192.168.*) is_local=true ;;
+      172.*)
+        local second_octet
+        second_octet="$(echo "$url_host" | cut -d. -f2)"
+        [ -n "$second_octet" ] && [ "$second_octet" -ge 16 ] 2>/dev/null && [ "$second_octet" -le 31 ] 2>/dev/null && is_local=true
+        ;;
+    esac
+
+    if [ "$is_local" = false ]; then
+      header "Public URL & TLS"
+      if command -v curl &>/dev/null; then
+        local public_code
+        public_code="$(curl -s -o /dev/null -w '%{http_code}' "$public_url" --max-time 8 2>/dev/null || echo "000")"
+        if [ "$public_code" != "000" ]; then
+          test_pass "Public URL reachable: $public_url (status $public_code)"
+        else
+          test_fail "Public URL not reachable: $public_url (webhooks will fail)"
+        fi
+
+        # TLS certificate check
+        if [[ "$public_url" =~ ^https:// ]] && command -v openssl &>/dev/null; then
+          local cert_expiry
+          cert_expiry="$(echo | openssl s_client -servername "$url_host" -connect "$url_host:443" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | sed 's/notAfter=//')"
+          if [ -n "$cert_expiry" ]; then
+            local expiry_epoch now_epoch
+            expiry_epoch="$(date -d "$cert_expiry" +%s 2>/dev/null || date -jf '%b %d %T %Y %Z' "$cert_expiry" +%s 2>/dev/null || echo "")"
+            now_epoch="$(date +%s)"
+            if [ -n "$expiry_epoch" ]; then
+              local cert_days_left=$(( (expiry_epoch - now_epoch) / 86400 ))
+              if [ "$cert_days_left" -lt 0 ] 2>/dev/null; then
+                test_fail "TLS certificate EXPIRED"
+              elif [ "$cert_days_left" -lt 7 ] 2>/dev/null; then
+                test_warn "TLS certificate expires in ${cert_days_left} day(s)"
+              elif [ "$cert_days_left" -lt 30 ] 2>/dev/null; then
+                test_warn "TLS certificate expires in ${cert_days_left} days"
+              else
+                test_pass "TLS certificate valid (${cert_days_left} days remaining)"
+              fi
+            else
+              test_warn "Could not parse TLS certificate expiry date"
+            fi
+          else
+            test_warn "Could not retrieve TLS certificate from $url_host"
+          fi
+        fi
+      fi
+    fi
   fi
 
   # ── Summary ──
