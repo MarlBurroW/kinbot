@@ -349,3 +349,42 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T 
  * @returns 'xs' (<640px) | 'sm' (≥640px) | 'md' (≥768px) | 'lg' (≥1024px) | 'xl' (≥1280px)
  */
 export function useBreakpoint(): 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
+/**
+ * Hash-based router for multi-page mini-apps.
+ * Routes via URL hash: #/page?key=val
+ * @param defaultPath - fallback when hash is empty (default: '/')
+ */
+export function useHashRouter(defaultPath?: string): {
+  /** Current path (e.g. '/settings') */
+  path: string;
+  /** Parsed query parameters from hash */
+  params: Record<string, string>;
+  /** Navigate to a new path with optional params */
+  navigate: (path: string, params?: Record<string, string>) => void;
+  /** Go back in browser history */
+  back: () => void;
+};
+
+/**
+ * Declarative route component. Renders children when path matches current.
+ */
+export function Route(props: {
+  path?: string;
+  current: string;
+  fallback?: boolean;
+  children: React.ReactNode;
+}): React.ReactNode;
+
+/**
+ * Anchor component for hash-based navigation.
+ */
+export function Link(props: {
+  to: string;
+  params?: Record<string, string>;
+  children: React.ReactNode;
+  active?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  [key: string]: any;
+}): React.ReactElement;

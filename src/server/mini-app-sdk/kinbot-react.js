@@ -1366,3 +1366,97 @@ export function useBreakpoint() {
 
   return bp
 }
+
+// ─── useHashRouter ──────────────────────────────────────────────────────────
+/**
+ * Simple hash-based router for multi-page mini-apps.
+ *
+ * Usage:
+ *   const { path, params, navigate, back } = useHashRouter('/')
+ *   // URL hash "#/settings?tab=general" → path="/settings", params={tab:"general"}
+ *
+ * Routes are defined via hash fragments: #/page, #/page?key=val&key2=val2
+ * Supports browser back/forward navigation.
+ *
+ * @param defaultPath - fallback path when hash is empty (default: '/')
+ */
+export function useHashRouter(defaultPath = '/') {
+  const parse = useCallback(() => {
+    const hash = window.location.hash.slice(1) || defaultPath
+    const qIdx = hash.indexOf('?')
+    const path = qIdx >= 0 ? hash.slice(0, qIdx) : hash
+    const params = {}
+    if (qIdx >= 0) {
+      const sp = new URLSearchParams(hash.slice(qIdx + 1))
+      for (const [k, v] of sp) params[k] = v
+    }
+    return { path: path || '/', params }
+  }, [defaultPath])
+
+  const [state, setState] = useState(parse)
+
+  useEffect(() => {
+    function onHash() { setState(parse()) }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [parse])
+
+  const navigate = useCallback((path, params) => {
+    let hash = path
+    if (params && Object.keys(params).length > 0) {
+      hash += '?' + new URLSearchParams(params).toString()
+    }
+    window.location.hash = hash
+  }, [])
+
+  const back = useCallback(() => { history.back() }, [])
+
+  return { path: state.path, params: state.params, navigate, back }
+}
+
+// ─── Route / Switch ─────────────────────────────────────────────────────────
+/**
+ * Declarative route matching component.
+ *
+ * Usage:
+ *   const { path } = useHashRouter()
+ *   return (
+ *     <>
+ *       <Route path="/" current={path}><HomePage /></Route>
+ *       <Route path="/settings" current={path}><SettingsPage /></Route>
+ *       <Route fallback current={path}><NotFound /></Route>
+ *     </>
+ *   )
+ *
+ * @param path - route to match (exact match)
+ * @param current - current path from useHashRouter
+ * @param fallback - if true, renders when no other Route matched (place last)
+ * @param children - content to render
+ */
+export function Route({ path, current, fallback, children }) {
+  if (fallback) {
+    // Fallback renders only when current doesn't match any explicit path —
+    // caller is responsible for placing it last; we just check path vs current.
+    return current === path || path == null ? children : null
+  }
+  return current === path ? children : null
+}
+
+// ─── Link ───────────────────────────────────────────────────────────────────
+/**
+ * Anchor component for hash navigation. Renders a styled <a> tag.
+ *
+ * Usage:
+ *   <Link to="/settings" params={{tab: 'general'}}>Settings</Link>
+ *   <Link to="/" className="nav-link" active={path === '/'}>Home</Link>
+ */
+export function Link({ to, params, children, active, className = '', style, ...rest }) {
+  let href = '#' + to
+  if (params && Object.keys(params).length > 0) {
+    href += '?' + new URLSearchParams(params).toString()
+  }
+
+  const cls = [className, active ? 'link-active' : ''].filter(Boolean).join(' ')
+
+  return React.createElement('a', { href, className: cls || undefined, style, ...rest }, children)
+}

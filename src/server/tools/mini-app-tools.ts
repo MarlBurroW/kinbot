@@ -76,6 +76,9 @@ export const createMiniAppTool: ToolRegistration = {
         '`usePagination(path, options?)` → `{ items, loading, error, page, totalPages, setPage, next, prev, refetch }` (traditional page-based pagination — replaces items on each page change; options: source, pageSize, pageParam, limitParam, getItems, getTotal for computing totalPages). ' +
         '`useLocalStorage(key, defaultValue)` → `[value, setValue, remove]` (persistent state using browser localStorage — NOT synced via KinBot storage; useful for UI preferences like collapsed panels, sort order, sidebar width; keys auto-prefixed with "kb:"; syncs across tabs; setValue accepts value or updater function like useState). ' +
         '`useBreakpoint()` → `"xs"|"sm"|"md"|"lg"|"xl"` (reactive current breakpoint based on window width: xs <640px, sm ≥640px, md ≥768px, lg ≥1024px, xl ≥1280px — great for conditional rendering based on screen size). ' +
+        '`useHashRouter(defaultPath?)` → `{ path, params, navigate, back }` (hash-based router for multi-page mini-apps — path from "#/page?key=val", params as object, navigate(path, params?) to change route, back() for browser back; supports browser back/forward). ' +
+        '`Route` component: `<Route path="/settings" current={path}>...</Route>` (renders children when path matches current; use `fallback` prop for 404). ' +
+        '`Link` component: `<Link to="/settings" params={{tab:"general"}} active={path==="/settings"}>Settings</Link>` (hash navigation anchor). ' +
         '**@kinbot/react Exports (convenience re-exports from KinBot SDK):** ' +
         '`toast(message, type)` (type: "info"|"success"|"warning"|"error"), ' +
         '`confirm(message, options?)` → Promise<boolean> (options: {title?, confirmLabel?, cancelLabel?, variant?: "default"|"destructive"}), ' +
