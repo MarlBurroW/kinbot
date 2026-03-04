@@ -1080,6 +1080,65 @@ body {
 .dark .theme-orb { opacity: 0.35; }
 
 /* ═══════════════════════════════════════════════════════
+   SOFT CONTRAST MODE
+   Applied via data-contrast="soft" on <html>.
+   Reduces contrast for comfortable extended viewing.
+   Works with all palettes and both light/dark themes.
+   ═══════════════════════════════════════════════════════ */
+
+/* Light soft: warmer/greyer backgrounds, reduced text darkness */
+[data-contrast="soft"] {
+  --color-background: oklch(0.945 0.006 310);
+  --color-foreground: oklch(0.22 0.02 300);
+  --color-card: oklch(0.955 0.006 310 / 0.80);
+  --color-card-foreground: oklch(0.22 0.02 300);
+  --color-popover: oklch(0.955 0.005 310 / 0.92);
+  --color-popover-foreground: oklch(0.22 0.02 300);
+  --color-secondary: oklch(0.92 0.02 320);
+  --color-muted: oklch(0.92 0.015 310);
+  --color-muted-foreground: oklch(0.44 0.03 300);
+  --color-border: oklch(0.88 0.015 310);
+  --color-input: oklch(0.88 0.015 310);
+  --color-sidebar: oklch(0.935 0.012 312 / 0.75);
+  --color-sidebar-border: oklch(0.88 0.015 310);
+  --color-glass-bg: oklch(0.96 0.005 310 / 0.55);
+  --color-glass-strong-bg: oklch(0.96 0.005 310 / 0.78);
+  --color-surface-header-bg: oklch(0.955 0.005 310 / 0.65);
+  --shadow-xs: 0 1px 2px oklch(0.30 0.05 300 / 0.02);
+  --shadow-sm: 0 1px 3px oklch(0.30 0.05 300 / 0.04);
+  --shadow-md: 0 4px 14px oklch(0.30 0.05 300 / 0.05), 0 1px 3px oklch(0.30 0.05 300 / 0.02);
+  --shadow-lg: 0 8px 28px oklch(0.30 0.05 300 / 0.07), 0 2px 6px oklch(0.30 0.05 300 / 0.03);
+  --shadow-xl: 0 16px 48px oklch(0.30 0.05 300 / 0.10), 0 4px 12px oklch(0.30 0.05 300 / 0.05);
+}
+
+/* Dark soft: lighter dark backgrounds (dimmed, not pitch black) */
+.dark[data-contrast="soft"] {
+  --color-background: oklch(0.18 0.025 295);
+  --color-foreground: oklch(0.86 0.012 310);
+  --color-card: oklch(0.21 0.03 298 / 0.65);
+  --color-card-foreground: oklch(0.86 0.012 310);
+  --color-popover: oklch(0.21 0.03 298 / 0.88);
+  --color-popover-foreground: oklch(0.86 0.012 310);
+  --color-secondary: oklch(0.25 0.035 305);
+  --color-secondary-foreground: oklch(0.80 0.015 310);
+  --color-muted: oklch(0.25 0.025 300);
+  --color-muted-foreground: oklch(0.58 0.025 310);
+  --color-border: oklch(0.30 0.035 300);
+  --color-input: oklch(0.30 0.035 300);
+  --color-sidebar: oklch(0.15 0.025 295 / 0.75);
+  --color-sidebar-border: oklch(0.30 0.035 300);
+  --color-bubble-kin: oklch(0.23 0.035 305 / 0.75);
+  --color-glass-bg: oklch(0.20 0.03 298 / 0.40);
+  --color-glass-strong-bg: oklch(0.20 0.03 298 / 0.68);
+  --color-surface-header-bg: oklch(0.18 0.025 295 / 0.65);
+  --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.10);
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.14);
+  --shadow-md: 0 4px 14px oklch(0 0 0 / 0.18), 0 1px 3px oklch(0 0 0 / 0.10);
+  --shadow-lg: 0 8px 28px oklch(0 0 0 / 0.24), 0 2px 6px oklch(0 0 0 / 0.12);
+  --shadow-xl: 0 16px 48px oklch(0 0 0 / 0.30), 0 4px 12px oklch(0 0 0 / 0.16);
+}
+
+/* ═══════════════════════════════════════════════════════
    PALETTE OVERRIDES
    Applied via data-palette="X" on <html>.
    Aurora is the default (defined in @theme), no override needed.

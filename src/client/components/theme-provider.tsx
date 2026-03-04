@@ -3,7 +3,10 @@ import { ThemeProvider as NextThemesProvider, useTheme } from 'next-themes'
 import type { PaletteId } from '@/shared/types'
 
 const STORAGE_KEY = 'kinbot-palette'
+const CONTRAST_STORAGE_KEY = 'kinbot-contrast'
 const DEFAULT_PALETTE: PaletteId = 'aurora'
+
+export type ContrastMode = 'normal' | 'soft'
 
 export interface PaletteInfo {
   id: PaletteId
@@ -67,12 +70,16 @@ interface PaletteContextValue {
   palette: PaletteId
   setPalette: (p: PaletteId) => void
   palettes: PaletteInfo[]
+  contrastMode: ContrastMode
+  setContrastMode: (mode: ContrastMode) => void
 }
 
 const PaletteContext = createContext<PaletteContextValue>({
   palette: DEFAULT_PALETTE,
   setPalette: () => {},
   palettes: PALETTES,
+  contrastMode: 'normal',
+  setContrastMode: () => {},
 })
 
 export function usePalette() {
@@ -88,6 +95,12 @@ function PaletteProvider({ children }: { children: React.ReactNode }) {
     return stored && PALETTES.some(p => p.id === stored) ? stored : DEFAULT_PALETTE
   })
 
+  const [contrastMode, setContrastModeState] = useState<ContrastMode>(() => {
+    if (typeof window === 'undefined') return 'normal'
+    const stored = localStorage.getItem(CONTRAST_STORAGE_KEY) as ContrastMode | null
+    return stored === 'soft' ? 'soft' : 'normal'
+  })
+
   const setPalette = useCallback((p: PaletteId) => {
     setPaletteState(p)
     localStorage.setItem(STORAGE_KEY, p)
@@ -100,15 +113,29 @@ function PaletteProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Sync attribute on mount
+  const setContrastMode = useCallback((mode: ContrastMode) => {
+    setContrastModeState(mode)
+    localStorage.setItem(CONTRAST_STORAGE_KEY, mode)
+    const html = document.documentElement
+    if (mode === 'soft') {
+      html.setAttribute('data-contrast', 'soft')
+    } else {
+      html.removeAttribute('data-contrast')
+    }
+  }, [])
+
+  // Sync attributes on mount
   useEffect(() => {
     if (palette !== DEFAULT_PALETTE) {
       document.documentElement.setAttribute('data-palette', palette)
     }
-  }, [palette])
+    if (contrastMode === 'soft') {
+      document.documentElement.setAttribute('data-contrast', 'soft')
+    }
+  }, [palette, contrastMode])
 
   return (
-    <PaletteContext.Provider value={{ palette, setPalette, palettes: PALETTES }}>
+    <PaletteContext.Provider value={{ palette, setPalette, palettes: PALETTES, contrastMode, setContrastMode }}>
       {children}
     </PaletteContext.Provider>
   )

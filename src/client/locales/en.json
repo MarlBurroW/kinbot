@@ -1436,7 +1436,8 @@
     "neon": "Neon",
     "neonDesc": "Cyan → Magenta → Yellow",
     "lavender": "Lavender",
-    "lavenderDesc": "Violet → Periwinkle → Mauve"
+    "lavenderDesc": "Violet → Periwinkle → Mauve",
+    "reduceContrast": "Reduce contrast"
   },
   "vault": {
     "types": {

@@ -5,13 +5,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/client/components/ui/dropdown-menu'
-import { Sun, Moon, Monitor } from 'lucide-react'
+import { Sun, Moon, Monitor, Contrast } from 'lucide-react'
+import { usePalette } from '@/client/components/theme-provider'
 
 export function ThemeToggle() {
   const { t } = useTranslation()
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const { contrastMode, setContrastMode } = usePalette()
 
   return (
     <DropdownMenu>
@@ -36,6 +39,14 @@ export function ThemeToggle() {
         <DropdownMenuItem onClick={() => setTheme('system')} className={theme === 'system' ? 'bg-accent' : ''}>
           <Monitor className="size-4" />
           {t('onboarding.preferences.themeModeSystem')}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => setContrastMode(contrastMode === 'soft' ? 'normal' : 'soft')}
+          className={contrastMode === 'soft' ? 'bg-accent' : ''}
+        >
+          <Contrast className="size-4" />
+          {t('theme.reduceContrast', 'Reduce contrast')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
