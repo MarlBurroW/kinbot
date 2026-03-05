@@ -93,6 +93,7 @@ const Tools = lazy(() => import('./components/Tools').then(m => ({ default: m.To
 const Memory = lazy(() => import('./components/Memory').then(m => ({ default: m.Memory })))
 const MiniApps = lazy(() => import('./components/MiniApps').then(m => ({ default: m.MiniApps })))
 const UseCases = lazy(() => import('./components/UseCases').then(m => ({ default: m.UseCases })))
+const Plugins = lazy(() => import('./components/Plugins').then(m => ({ default: m.Plugins })))
 const Privacy = lazy(() => import('./components/Privacy').then(m => ({ default: m.Privacy })))
 // const Screenshots = lazy(() => import('./components/Screenshots').then(m => ({ default: m.Screenshots })))
 const Comparison = lazy(() => import('./components/Comparison').then(m => ({ default: m.Comparison })))
@@ -181,6 +182,12 @@ export default function App() {
         <Suspense fallback={<SectionFallback />}>
           <ScrollReveal>
             <UseCases />
+          </ScrollReveal>
+        </Suspense>
+        <SectionDivider variant="glow" />
+        <Suspense fallback={<SectionFallback />}>
+          <ScrollReveal>
+            <Plugins />
           </ScrollReveal>
         </Suspense>
         <SectionDivider variant="fade" />
