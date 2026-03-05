@@ -475,3 +475,51 @@
 - Area 15: Quick chat / Ephemeral sessions
 - Area 4: Tasks/Crons (create, edit, enable/disable, delete)
 - Area 3: Conversations (start, send messages, chat UI)
+
+## 2026-03-05 16:40 UTC
+### Area tested: Quick Chat / Ephemeral Sessions (Area 15)
+- **Pages visited:** Code review of QuickChatPanel.tsx, useQuickChat.ts, useQuickSession.ts, quick-sessions.ts (routes), quick-session-cleanup.ts
+- **Note:** Browser unavailable (sandbox disabled, no host tab), testing done via thorough code review
+
+#### Bugs found
+
+**Bug: Quick session memory saved without embedding - Issue #69**
+- When closing with "Save as memory", route uses raw db.insert() instead of createMemory() service
+- Memories have no embedding vector, won't appear in semantic search
+- Critical: defeats the purpose of the "save as memory" feature
+
+**Bug: Expired quick sessions closed silently without SSE notification - Issue #70**
+- Cleanup service closes expired sessions in DB but doesn't emit SSE events
+- Client panel stays open, user gets 409 errors when trying to send messages
+- No visual feedback that the session expired
+
+#### UX suggestions
+
+**Enhancement: Model picker in quick chat changes Kin model globally - Issue #71**
+- Changing model in quick chat affects main conversation too
+- Should be session-scoped or removed from quick chat
+
+**Enhancement: No quick session history/review - Issue #72**
+- Closed sessions are inaccessible from UI despite being in DB for 7 days
+- Users can't review past quick conversations
+
+#### Other observations (no issues filed)
+- SSE event handling is well-implemented with proper kinId+sessionId filtering
+- Optimistic message updates work correctly
+- Stop streaming functionality is properly wired
+- File upload in quick chat reuses the main chat infrastructure (good)
+- Sheet panel is 500px wide, responsive down to sm breakpoint
+- Mobile: quick chat accessible via overflow menu (acceptable)
+- Auto-scroll on new messages works
+- Close dialog with save-as-memory checkbox is a nice touch
+- Cleanup service handles both expiry and retention deletion correctly
+- No E2E tests exist for quick chat
+
+- **Bugs found:** 2 (issues #69, #70)
+- **UX suggestions:** 2 (issues #71, #72)
+- **All clear:** SSE streaming, message sending, file upload, stop streaming, session creation/closing flow, mobile menu access, auto-scroll, close dialog UX
+
+### Next run
+- Area 4: Tasks/Crons (create, edit, enable/disable, delete)
+- Area 3: Conversations (start, send messages, chat UI)
+- Area 11: Contacts

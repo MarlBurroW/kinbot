@@ -1220,3 +1220,36 @@ Card, Stack, Button, Input, Combobox, TagInput, DataGrid, Modal, Badge, Stat, Di
 1. Add a multi-page template demonstrating routing (dashboard with settings/about pages)
 2. Consider `TreeView` or `Kanban` component
 3. Update component-showcase to include routing demo section
+
+## 2026-03-05 (run 33) — Kanban Component
+
+**What:** Added a full-featured `Kanban` drag-and-drop board component to the component library.
+
+### Component: `Kanban`
+- **Drag & drop** — HTML5 drag API with visual drop indicators (dashed outline on target column, position marker between cards)
+- **Card CRUD** — Add cards inline (input appears in column), delete via × button, double-click to edit title
+- **Column CRUD** — Optional add/delete columns (allowAddColumns, allowDeleteColumns props)
+- **Card properties** — title, description, tags (rendered as pills), avatar (small image), priority (high/medium/low colored dot)
+- **Custom rendering** — renderCard prop for fully custom card UI
+- **Callbacks** — onChange(columns) after any mutation, onCardClick(card, colId) for card interactions
+- **Configurable** — allowAddCards, allowAddColumns, allowDeleteCards, allowDeleteColumns, allowEditCards, cardPlaceholder, columnPlaceholder, minCardWidth, maxCardWidth
+- **Theme integration** — All styling via CSS variables (--color-*, --radius-*, --shadow-*)
+- **Accessible** — ARIA labels on board, cards, and delete buttons
+
+### Kanban template refactored
+- Replaced ~130 lines of inline drag-and-drop logic with a simple `<Kanban>` component usage
+- Now uses useStorage for persistence, shows priority colors, and supports full CRUD
+- Much cleaner and more maintainable
+
+### Files changed
+- `src/server/mini-app-sdk/kinbot-components.js` — +290 lines (Kanban component)
+- `src/server/mini-app-sdk/kinbot-components.d.ts` — +30 lines (TypeScript definitions)
+- `src/server/tools/mini-app-tools.ts` — added Kanban to import list + documentation
+- `src/server/tools/mini-app-templates.ts` — refactored kanban template to use component, added to component-showcase (49 components)
+
+**Tests:** 1992 pass, 0 fail. Build clean.
+
+**Next priorities:**
+1. Consider `TreeView` component (hierarchical data)
+2. Add `Sortable` or `DragList` for vertical reordering within lists
+3. SDK API expansion (KinBot.kin, KinBot.user, KinBot.memory.search)

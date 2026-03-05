@@ -1,4 +1,4 @@
-name: Deploy Landing Site
+name: Deploy Sites
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'site/**'
+      - 'docs-site/**'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +18,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: Build and deploy landing site
+    name: Build and deploy sites
     runs-on: ubuntu-latest
 
     steps:
@@ -29,6 +30,11 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Cache Bun dependencies
         uses: actions/cache@v5
         with:
@@ -37,18 +43,33 @@ jobs:
           restore-keys: |
             bun-site-${{ runner.os }}-
 
-      - name: Install dependencies
-        run: cd site && bun install --frozen-lockfile
+      - name: Cache npm dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-docs-${{ runner.os }}-${{ hashFiles('docs-site/package-lock.json') }}
+          restore-keys: |
+            npm-docs-${{ runner.os }}-
 
-      - name: Build
-        run: cd site && bun run build
+      - name: Build landing site
+        run: cd site && bun install --frozen-lockfile && bun run build
+
+      - name: Build docs site
+        run: cd docs-site && npm install && npm run build
+
+      - name: Merge outputs
+        run: |
+          mkdir -p merged
+          cp -r site/dist/* merged/
+          mkdir -p merged/docs
+          cp -r docs-site/dist/* merged/docs/
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: site/dist
+          folder: merged
           clean-exclude: |
             e2e-report
             showcase
-          commit-message: 'chore: update landing site'
+          commit-message: 'chore: update sites'
