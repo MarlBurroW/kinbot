@@ -130,28 +130,36 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 
 ## 🔍 How does KinBot compare?
 
-| Feature | KinBot | Open WebUI | LobeChat | AnythingLLM |
-|---|:---:|:---:|:---:|:---:|
-| Persistent agent identity | ✅ | ❌ | ⚠️ | ❌ |
-| Long-term memory | ✅ | ❌ | ❌ | ⚠️ |
-| Multi-agent collaboration | ✅ | ❌ | ❌ | ❌ |
-| Sub-agent delegation | ✅ | ❌ | ❌ | ❌ |
-| Cron jobs & webhooks | ✅ | ❌ | ❌ | ❌ |
-| Chat integrations (6 platforms) | ✅ | ❌ | ❌ | ⚠️ |
-| MCP tool servers | ✅ | ⚠️ | ❌ | ❌ |
-| Custom tools (agent-created) | ✅ | ❌ | ❌ | ❌ |
-| Mini Apps (agent-built UIs) | ✅ | ❌ | ❌ | ❌ |
-| Plugin system | ✅ | ⚠️ | ❌ | ⚠️ |
-| Encrypted secrets vault | ✅ | ❌ | ❌ | ❌ |
-| Zero-infra (SQLite only) | ✅ | ❌ | ⚠️ | ❌ |
-| Multi-provider (23+) | ✅ | ✅ | ✅ | ✅ |
-| Multi-user with roles | ✅ | ✅ | ⚠️ | ✅ |
-| RAG / document embedding | ❌ | ✅ | ⚠️ | ✅ |
-| Free & open source | ✅ | ✅ | ✅ | ✅ |
+| Feature | KinBot | ChatGPT | Open WebUI | LobeChat | AnythingLLM | OpenClaw | CrewAI |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Self-hosted / your data | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Persistent agent identity | ✅ | ⚠️ | ❌ | ⚠️ | ⚠️ | ⚠️ | ❌ |
+| Long-term memory | ✅ | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ❌ |
+| Session compacting | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ❌ |
+| Multi-agent collaboration | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Sub-agent delegation | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ✅ |
+| Cron jobs / autonomy | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Encrypted secrets vault | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| MCP tool servers | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Multi-provider (23+) | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
+| Webhooks | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Chat integrations (6 platforms) | ✅ | ❌ | ❌ | ❌ | ⚠️ | ✅ | ❌ |
+| Custom tools (agent-created) | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ⚠️ |
+| Mini Apps (agent-built UIs) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Plugin system (hot-reload) | ✅ | ❌ | ⚠️ | ✅ | ⚠️ | ⚠️ | ❌ |
+| RAG / document embedding | ❌ | ⚠️ | ✅ | ⚠️ | ✅ | ❌ | ⚠️ |
+| Multi-user with roles | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ | ❌ |
+| Web UI | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Zero-infra (no Postgres/Redis) | ✅ | ❌ | ❌ | ⚠️ | ❌ | ✅ | ✅ |
+| Free & open source | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ✅ Full support · ⚠️ Partial · ❌ Not available · *Based on default capabilities as of March 2026*
 
-**vs orchestration frameworks (CrewAI, AutoGPT):** These are task pipelines where agents execute a workflow and disappear. No persistence, no memory between runs. KinBot agents live permanently, accumulate knowledge, and work autonomously on schedules. Contractors vs. a team.
+**vs ChatGPT:** Great for quick questions, but ephemeral sessions, cloud-only, no self-hosting.
+
+**vs OpenClaw:** Powerful single-agent personal assistant, CLI-first. KinBot is multi-agent, multi-user, web UI, with inter-agent collaboration.
+
+**vs CrewAI / AutoGPT:** Task orchestration frameworks where agents execute a workflow and disappear. No persistence, no memory between runs. KinBot agents live permanently, accumulate knowledge, and work autonomously on schedules. Contractors vs. a team.
 
 👉 [Full comparison with positioning details](https://marlburrow.github.io/kinbot/#comparison)
 
