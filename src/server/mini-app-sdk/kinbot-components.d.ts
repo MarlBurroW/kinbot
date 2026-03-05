@@ -778,3 +778,37 @@ export interface DateRangePickerProps {
   style?: React.CSSProperties;
 }
 export function DateRangePicker(props: DateRangePickerProps): React.ReactElement;
+
+// ── Kanban ───────────────────────────────────────────────────────────────────
+export interface KanbanCard {
+  id: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+  avatar?: string;
+  priority?: 'high' | 'medium' | 'low';
+}
+export interface KanbanColumn {
+  id: string;
+  title: string;
+  color?: string;
+  cards: KanbanCard[];
+}
+export interface KanbanProps {
+  columns: KanbanColumn[];
+  onChange?: (columns: KanbanColumn[]) => void;
+  onCardClick?: (card: KanbanCard, columnId: string) => void;
+  renderCard?: (card: KanbanCard, columnId: string) => React.ReactElement;
+  allowAddCards?: boolean;
+  allowAddColumns?: boolean;
+  allowDeleteCards?: boolean;
+  allowDeleteColumns?: boolean;
+  allowEditCards?: boolean;
+  cardPlaceholder?: string;
+  columnPlaceholder?: string;
+  maxCardWidth?: number;
+  minCardWidth?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}
+export function Kanban(props: KanbanProps): React.ReactElement;

@@ -6,7 +6,7 @@
  * All components use CSS variables from kinbot-sdk.css for automatic theme support.
  *
  * Usage in mini-apps:
- *   import { Card, Button, Input, Badge, Alert, Tabs, Modal, Spinner, Accordion, DropdownMenu, DataGrid, Panel, RadioGroup, Slider, DatePicker, Stepper, StepperContent, FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Combobox, TagInput } from '@kinbot/components'
+ *   import { Card, Button, Input, Badge, Alert, Tabs, Modal, Spinner, Accordion, DropdownMenu, DataGrid, Panel, RadioGroup, Slider, DatePicker, Stepper, StepperContent, FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Combobox, TagInput, Kanban } from '@kinbot/components'
  */
 
 import React, { useState, useEffect, useRef, useCallback, useId, createContext, useContext } from 'react'
@@ -5149,5 +5149,415 @@ export function DateRangePicker({
     error && React.createElement('p', {
       style: { fontSize: '0.75rem', color: 'var(--color-destructive, #ef4444)' },
     }, error),
+  )
+}
+
+// ─── Kanban ───────────────────────────────────────────────────────────────────
+
+const _kbId = () => Math.random().toString(36).slice(2, 10)
+
+/**
+ * A drag-and-drop Kanban board with columns and cards.
+ *
+ * @param {Object} props
+ * @param {Array} props.columns - Array of { id, title, color?, cards: [{ id, title, description?, tags?, avatar?, priority? }] }
+ * @param {Function} props.onChange - Called with updated columns array after any change
+ * @param {Function} [props.onCardClick] - Called with (card, columnId) when a card is clicked
+ * @param {Function} [props.renderCard] - Custom card renderer (card, columnId) => ReactElement
+ * @param {boolean} [props.allowAddCards=true] - Show "Add card" button per column
+ * @param {boolean} [props.allowAddColumns=false] - Show "Add column" button
+ * @param {boolean} [props.allowDeleteCards=true] - Show delete button on cards
+ * @param {boolean} [props.allowDeleteColumns=false] - Show delete button on columns
+ * @param {boolean} [props.allowEditCards=true] - Double-click to edit card title
+ * @param {string} [props.cardPlaceholder='New card...'] - Placeholder for new card input
+ * @param {string} [props.columnPlaceholder='New column...'] - Placeholder for new column input
+ * @param {number} [props.maxCardWidth=300] - Max column width in px
+ * @param {number} [props.minCardWidth=200] - Min column width in px
+ */
+export function Kanban({
+  columns = [],
+  onChange,
+  onCardClick,
+  renderCard,
+  allowAddCards = true,
+  allowAddColumns = false,
+  allowDeleteCards = true,
+  allowDeleteColumns = false,
+  allowEditCards = true,
+  cardPlaceholder = 'New card...',
+  columnPlaceholder = 'New column...',
+  maxCardWidth = 300,
+  minCardWidth = 200,
+  className,
+  style,
+}) {
+  const dragRef = useRef(null)
+  const [dragOverCol, setDragOverCol] = useState(null)
+  const [dragOverIdx, setDragOverIdx] = useState(null)
+  const [editingCard, setEditingCard] = useState(null)
+  const [editValue, setEditValue] = useState('')
+  const [addingCol, setAddingCol] = useState(false)
+  const [newColTitle, setNewColTitle] = useState('')
+  const [addingCard, setAddingCard] = useState(null) // columnId or null
+  const [newCardTitle, setNewCardTitle] = useState('')
+
+  const emit = useCallback((cols) => { onChange && onChange(cols) }, [onChange])
+
+  // ── Drag handlers ──
+  const onDragStart = useCallback((e, cardId, colId, cardIdx) => {
+    dragRef.current = { cardId, fromCol: colId, fromIdx: cardIdx }
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', cardId)
+    requestAnimationFrame(() => {
+      e.target.style.opacity = '0.35'
+    })
+  }, [])
+
+  const onDragEnd = useCallback((e) => {
+    e.target.style.opacity = '1'
+    dragRef.current = null
+    setDragOverCol(null)
+    setDragOverIdx(null)
+  }, [])
+
+  const onDragOver = useCallback((e, colId, cardIdx) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverCol(colId)
+    setDragOverIdx(cardIdx != null ? cardIdx : -1)
+  }, [])
+
+  const onDragLeave = useCallback((e, colId) => {
+    // Only clear if leaving the column entirely
+    const related = e.relatedTarget
+    if (related && e.currentTarget.contains(related)) return
+    if (dragOverCol === colId) {
+      setDragOverCol(null)
+      setDragOverIdx(null)
+    }
+  }, [dragOverCol])
+
+  const onDrop = useCallback((e, toColId, toIdx) => {
+    e.preventDefault()
+    setDragOverCol(null)
+    setDragOverIdx(null)
+    if (!dragRef.current) return
+    const { cardId, fromCol } = dragRef.current
+    const newCols = columns.map(c => ({ ...c, cards: [...c.cards] }))
+    const srcCol = newCols.find(c => c.id === fromCol)
+    const dstCol = newCols.find(c => c.id === toColId)
+    if (!srcCol || !dstCol) return
+    const srcIdx = srcCol.cards.findIndex(c => c.id === cardId)
+    if (srcIdx === -1) return
+    const [card] = srcCol.cards.splice(srcIdx, 1)
+    const insertAt = toIdx != null && toIdx >= 0 ? toIdx : dstCol.cards.length
+    dstCol.cards.splice(insertAt, 0, card)
+    emit(newCols)
+  }, [columns, emit])
+
+  // ── Card CRUD ──
+  const addCard = useCallback((colId) => {
+    if (!newCardTitle.trim()) return
+    const newCols = columns.map(c =>
+      c.id === colId
+        ? { ...c, cards: [...c.cards, { id: _kbId(), title: newCardTitle.trim() }] }
+        : c
+    )
+    setNewCardTitle('')
+    setAddingCard(null)
+    emit(newCols)
+  }, [columns, newCardTitle, emit])
+
+  const deleteCard = useCallback((colId, cardId) => {
+    const newCols = columns.map(c =>
+      c.id === colId ? { ...c, cards: c.cards.filter(card => card.id !== cardId) } : c
+    )
+    emit(newCols)
+  }, [columns, emit])
+
+  const saveEdit = useCallback(() => {
+    if (!editingCard || !editValue.trim()) { setEditingCard(null); return }
+    const newCols = columns.map(c => ({
+      ...c,
+      cards: c.cards.map(card =>
+        card.id === editingCard ? { ...card, title: editValue.trim() } : card
+      ),
+    }))
+    setEditingCard(null)
+    emit(newCols)
+  }, [columns, editingCard, editValue, emit])
+
+  // ── Column CRUD ──
+  const addColumn = useCallback(() => {
+    if (!newColTitle.trim()) return
+    const newCols = [...columns, { id: _kbId(), title: newColTitle.trim(), cards: [] }]
+    setNewColTitle('')
+    setAddingCol(false)
+    emit(newCols)
+  }, [columns, newColTitle, emit])
+
+  const deleteColumn = useCallback((colId) => {
+    emit(columns.filter(c => c.id !== colId))
+  }, [columns, emit])
+
+  // ── Priority colors ──
+  const priorityColors = {
+    high: 'var(--color-destructive, #ef4444)',
+    medium: 'var(--color-warning, #f59e0b)',
+    low: 'var(--color-success, #22c55e)',
+  }
+
+  // ── Styles ──
+  const boardStyle = {
+    display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+    overflowX: 'auto', padding: '0.25rem', minHeight: 200,
+    ...style,
+  }
+  const colStyle = (colId) => ({
+    flex: `0 0 auto`, width: 'auto',
+    minWidth: minCardWidth, maxWidth: maxCardWidth,
+    background: 'var(--color-surface-secondary, #f8f9fa)',
+    borderRadius: 'var(--radius-lg, 12px)',
+    padding: '0.625rem',
+    transition: 'outline 0.15s',
+    outline: dragOverCol === colId ? '2px dashed var(--color-primary)' : '2px solid transparent',
+    outlineOffset: '-2px',
+  })
+  const headerStyle = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: '0.5rem', padding: '0 0.125rem',
+  }
+  const titleStyle = (color) => ({
+    fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase',
+    letterSpacing: '0.05em', color: color || 'var(--color-muted-foreground)',
+  })
+  const countStyle = {
+    fontSize: '0.65rem', padding: '0.1rem 0.4rem',
+    borderRadius: 'var(--radius-full, 9999px)',
+    background: 'var(--color-muted, #e5e7eb)',
+    color: 'var(--color-muted-foreground)',
+    marginLeft: '0.5rem',
+  }
+  const cardStyle = (isDragOver) => ({
+    padding: '0.625rem 0.75rem',
+    borderRadius: 'var(--radius-md, 8px)',
+    background: 'var(--color-surface, #fff)',
+    border: '1px solid var(--color-border, #e5e7eb)',
+    cursor: 'grab', fontSize: '0.85rem',
+    transition: 'box-shadow 0.15s, transform 0.1s',
+    boxShadow: isDragOver ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
+  })
+  const cardTitleStyle = { fontWeight: 500, color: 'var(--color-text-primary)', lineHeight: 1.3 }
+  const cardDescStyle = { fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem', lineHeight: 1.4 }
+  const tagStyle = {
+    fontSize: '0.6rem', padding: '0.05rem 0.35rem',
+    borderRadius: 'var(--radius-full, 9999px)',
+    background: 'var(--color-secondary, #f1f5f9)',
+    color: 'var(--color-secondary-foreground, #475569)',
+  }
+  const addBtnStyle = {
+    width: '100%', marginTop: '0.375rem', padding: '0.375rem',
+    border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-md, 8px)',
+    background: 'transparent', color: 'var(--color-muted-foreground)',
+    fontSize: '0.8rem', cursor: 'pointer', transition: 'background 0.15s',
+  }
+  const deleteBtnStyle = {
+    background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem 0.25rem',
+    fontSize: '0.75rem', color: 'var(--color-muted-foreground)', opacity: 0.5,
+    borderRadius: 'var(--radius-sm)', transition: 'opacity 0.15s',
+  }
+  const inputStyle = {
+    width: '100%', padding: '0.375rem 0.5rem', fontSize: '0.8rem',
+    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md, 8px)',
+    background: 'var(--color-surface)', color: 'var(--color-text-primary)',
+    outline: 'none', boxSizing: 'border-box',
+  }
+
+  // ── Render card ──
+  const renderCardEl = (card, colId, idx) => {
+    if (renderCard) return renderCard(card, colId)
+
+    const isEditing = editingCard === card.id
+
+    return React.createElement('div', {
+      key: card.id,
+      draggable: !isEditing,
+      onDragStart: (e) => onDragStart(e, card.id, colId, idx),
+      onDragEnd,
+      onDragOver: (e) => onDragOver(e, colId, idx),
+      onClick: () => !isEditing && onCardClick && onCardClick(card, colId),
+      onDoubleClick: () => {
+        if (allowEditCards && !isEditing) {
+          setEditingCard(card.id)
+          setEditValue(card.title)
+        }
+      },
+      style: {
+        ...cardStyle(dragOverCol === colId && dragOverIdx === idx),
+        ...(onCardClick ? { cursor: isEditing ? 'text' : 'pointer' } : {}),
+      },
+      'aria-label': card.title,
+    },
+      // Priority indicator
+      card.priority && React.createElement('div', {
+        style: {
+          width: 6, height: 6, borderRadius: '50%',
+          background: priorityColors[card.priority] || 'var(--color-muted)',
+          display: 'inline-block', marginRight: '0.375rem', verticalAlign: 'middle',
+        },
+      }),
+
+      // Title (editable or static)
+      isEditing
+        ? React.createElement('input', {
+            value: editValue,
+            onChange: (e) => setEditValue(e.target.value),
+            onBlur: saveEdit,
+            onKeyDown: (e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingCard(null) },
+            autoFocus: true,
+            style: { ...inputStyle, marginBottom: 0, padding: '0.125rem 0.25rem', fontSize: '0.85rem' },
+          })
+        : React.createElement('span', { style: cardTitleStyle }, card.title),
+
+      // Description
+      card.description && !isEditing && React.createElement('div', { style: cardDescStyle }, card.description),
+
+      // Tags + delete row
+      (!isEditing && (card.tags?.length || allowDeleteCards)) && React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', flexWrap: 'wrap' },
+      },
+        ...(card.tags || []).map(tag =>
+          React.createElement('span', { key: tag, style: tagStyle }, tag)
+        ),
+        allowDeleteCards && React.createElement('button', {
+          style: { ...deleteBtnStyle, marginLeft: 'auto' },
+          onClick: (e) => { e.stopPropagation(); deleteCard(colId, card.id) },
+          onMouseEnter: (e) => { e.target.style.opacity = '1'; e.target.style.color = 'var(--color-destructive, #ef4444)' },
+          onMouseLeave: (e) => { e.target.style.opacity = '0.5'; e.target.style.color = 'var(--color-muted-foreground)' },
+          'aria-label': `Delete ${card.title}`,
+        }, '×'),
+      ),
+
+      // Avatar
+      card.avatar && !isEditing && React.createElement('img', {
+        src: card.avatar,
+        alt: '',
+        style: {
+          width: 20, height: 20, borderRadius: '50%', marginTop: '0.375rem',
+          border: '1px solid var(--color-border)',
+        },
+      }),
+    )
+  }
+
+  // ── Render column ──
+  const renderColumn = (col) => React.createElement('div', {
+    key: col.id,
+    style: colStyle(col.id),
+    onDragOver: (e) => onDragOver(e, col.id, col.cards.length),
+    onDragLeave: (e) => onDragLeave(e, col.id),
+    onDrop: (e) => onDrop(e, col.id, dragOverIdx),
+  },
+    // Header
+    React.createElement('div', { style: headerStyle },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
+        React.createElement('span', { style: titleStyle(col.color) }, col.title),
+        React.createElement('span', { style: countStyle }, col.cards.length),
+      ),
+      allowDeleteColumns && React.createElement('button', {
+        style: deleteBtnStyle,
+        onClick: () => deleteColumn(col.id),
+        onMouseEnter: (e) => { e.target.style.opacity = '1' },
+        onMouseLeave: (e) => { e.target.style.opacity = '0.5' },
+        'aria-label': `Delete column ${col.title}`,
+      }, '×'),
+    ),
+
+    // Cards
+    React.createElement('div', {
+      style: { display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 40 },
+    },
+      ...col.cards.map((card, idx) => renderCardEl(card, col.id, idx)),
+    ),
+
+    // Drop indicator at bottom
+    dragOverCol === col.id && dragOverIdx === col.cards.length && React.createElement('div', {
+      style: {
+        height: 2, background: 'var(--color-primary)', borderRadius: 1,
+        margin: '0.25rem 0',
+      },
+    }),
+
+    // Add card
+    allowAddCards && (addingCard === col.id
+      ? React.createElement('div', { style: { marginTop: '0.375rem' } },
+          React.createElement('input', {
+            value: newCardTitle,
+            onChange: (e) => setNewCardTitle(e.target.value),
+            onKeyDown: (e) => { if (e.key === 'Enter') addCard(col.id); if (e.key === 'Escape') setAddingCard(null) },
+            placeholder: cardPlaceholder,
+            autoFocus: true,
+            style: inputStyle,
+          }),
+          React.createElement('div', { style: { display: 'flex', gap: '0.25rem', marginTop: '0.25rem' } },
+            React.createElement('button', {
+              onClick: () => addCard(col.id),
+              style: { ...addBtnStyle, borderStyle: 'solid', background: 'var(--color-primary)', color: '#fff', flex: 1 },
+            }, 'Add'),
+            React.createElement('button', {
+              onClick: () => { setAddingCard(null); setNewCardTitle('') },
+              style: { ...addBtnStyle, flex: 0, width: 'auto', padding: '0.375rem 0.75rem' },
+            }, '×'),
+          ),
+        )
+      : React.createElement('button', {
+          style: addBtnStyle,
+          onClick: () => { setAddingCard(col.id); setNewCardTitle('') },
+          onMouseEnter: (e) => { e.target.style.background = 'var(--color-surface-hover, #f1f5f9)' },
+          onMouseLeave: (e) => { e.target.style.background = 'transparent' },
+        }, '+ Add card')
+    ),
+  )
+
+  // ── Board ──
+  return React.createElement('div', {
+    className, style: boardStyle, role: 'region', 'aria-label': 'Kanban board',
+  },
+    ...columns.map(renderColumn),
+
+    // Add column
+    allowAddColumns && (addingCol
+      ? React.createElement('div', {
+          style: { minWidth: minCardWidth, maxWidth: maxCardWidth, padding: '0.625rem' },
+        },
+          React.createElement('input', {
+            value: newColTitle,
+            onChange: (e) => setNewColTitle(e.target.value),
+            onKeyDown: (e) => { if (e.key === 'Enter') addColumn(); if (e.key === 'Escape') setAddingCol(false) },
+            placeholder: columnPlaceholder,
+            autoFocus: true,
+            style: inputStyle,
+          }),
+          React.createElement('div', { style: { display: 'flex', gap: '0.25rem', marginTop: '0.25rem' } },
+            React.createElement('button', {
+              onClick: addColumn,
+              style: { ...addBtnStyle, borderStyle: 'solid', background: 'var(--color-primary)', color: '#fff', flex: 1 },
+            }, 'Add'),
+            React.createElement('button', {
+              onClick: () => { setAddingCol(false); setNewColTitle('') },
+              style: { ...addBtnStyle, flex: 0, width: 'auto', padding: '0.375rem 0.75rem' },
+            }, '×'),
+          ),
+        )
+      : React.createElement('button', {
+          style: {
+            ...addBtnStyle, minWidth: minCardWidth, minHeight: 80,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          },
+          onClick: () => { setAddingCol(true); setNewColTitle('') },
+          onMouseEnter: (e) => { e.target.style.background = 'var(--color-surface-hover, #f1f5f9)' },
+          onMouseLeave: (e) => { e.target.style.background = 'transparent' },
+        }, '+ Add column')
+    ),
   )
 }

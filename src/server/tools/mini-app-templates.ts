@@ -713,7 +713,7 @@ export default {
   {
     id: 'kanban',
     name: 'Kanban Board',
-    description: 'A drag-and-drop kanban board with columns and cards. Uses storage for persistence. Great for project management or task tracking.',
+    description: 'A drag-and-drop kanban board using the Kanban component. Uses storage for persistence. Great for project management or task tracking.',
     icon: '📋',
     tags: ['kanban', 'drag-drop', 'project-management', 'storage'],
     suggestedSlug: 'kanban',
@@ -728,146 +728,49 @@ export default {
   <style>
     body { padding: 1rem; overflow-x: auto; }
     h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
-    .board { display: flex; gap: 1rem; min-height: 400px; align-items: flex-start; }
-    .column { min-width: 220px; max-width: 280px; flex: 1; border-radius: var(--radius-lg); padding: 0.75rem; }
-    .column-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 0.75rem; padding: 0 0.25rem;
-    }
-    .column-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted-foreground); }
-    .column-count { font-size: 0.7rem; padding: 0.125rem 0.5rem; border-radius: var(--radius-full); background: var(--color-muted); color: var(--color-muted-foreground); }
-    .card-list { min-height: 60px; display: flex; flex-direction: column; gap: 0.5rem; }
-    .card-list.drag-over { outline: 2px dashed var(--color-primary); outline-offset: -2px; border-radius: var(--radius-md); }
-    .kanban-card {
-      padding: 0.75rem; border-radius: var(--radius-md); cursor: grab; font-size: 0.85rem;
-      transition: box-shadow 0.15s, transform 0.15s;
-    }
-    .kanban-card:active { cursor: grabbing; }
-    .kanban-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-    .kanban-card.dragging { opacity: 0.4; }
-    .card-title { font-weight: 500; margin-bottom: 0.25rem; }
-    .card-tags { display: flex; gap: 0.25rem; margin-top: 0.375rem; }
-    .card-tag { font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: var(--radius-full); background: var(--color-secondary); color: var(--color-secondary-foreground); }
-    .add-card-btn { width: 100%; margin-top: 0.25rem; border-style: dashed; color: var(--color-muted-foreground); }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/jsx">
-    import { useRef } from 'react'
+    import { useState } from 'react'
     import { createRoot } from 'react-dom/client'
-    import { useKinBot, useStorage, prompt } from '@kinbot/react'
+    import { useKinBot, useStorage } from '@kinbot/react'
+    import { Kanban, Spinner } from '@kinbot/components'
 
-    const DEFAULT_BOARD = {
-      columns: [
-        { id: 'todo', title: 'To Do', cards: [
-          { id: '1', title: 'Design landing page', tags: ['design'] },
-          { id: '2', title: 'Write API docs', tags: ['docs'] },
-        ]},
-        { id: 'progress', title: 'In Progress', cards: [
-          { id: '3', title: 'Implement auth flow', tags: ['backend', 'priority'] },
-        ]},
-        { id: 'done', title: 'Done', cards: [
-          { id: '4', title: 'Set up CI/CD', tags: ['devops'] },
-        ]},
-      ],
-    }
+    const DEFAULT_COLUMNS = [
+      { id: 'todo', title: 'To Do', cards: [
+        { id: '1', title: 'Design landing page', tags: ['design'], priority: 'medium' },
+        { id: '2', title: 'Write API docs', tags: ['docs'], priority: 'low' },
+      ]},
+      { id: 'progress', title: 'In Progress', cards: [
+        { id: '3', title: 'Implement auth flow', tags: ['backend'], priority: 'high' },
+      ]},
+      { id: 'review', title: 'Review', cards: [] },
+      { id: 'done', title: 'Done', cards: [
+        { id: '4', title: 'Set up CI/CD', tags: ['devops'] },
+      ]},
+    ]
 
     function App() {
       const { ready } = useKinBot()
-      if (!ready) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-muted-foreground)' }}>Loading...</div>
-      return <KanbanBoard />
-    }
+      const [columns, setColumns, loading] = useStorage('kanban-columns', DEFAULT_COLUMNS)
 
-    function KanbanBoard() {
-      const [board, setBoard, loading] = useStorage('board', DEFAULT_BOARD)
-      const dragRef = useRef(null)
-
-      if (loading) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-muted-foreground)' }}>Loading...</div>
-
-      const moveCard = (cardId, fromColId, toColId) => {
-        if (fromColId === toColId) return
-        setBoard(prev => {
-          const cols = prev.columns.map(c => ({ ...c, cards: [...c.cards] }))
-          const fromCol = cols.find(c => c.id === fromColId)
-          const toCol = cols.find(c => c.id === toColId)
-          if (!fromCol || !toCol) return prev
-          const idx = fromCol.cards.findIndex(c => c.id === cardId)
-          if (idx === -1) return prev
-          const [card] = fromCol.cards.splice(idx, 1)
-          toCol.cards.push(card)
-          return { ...prev, columns: cols }
-        })
-      }
-
-      const addCard = async (colId) => {
-        const title = await prompt('Card title:', { title: 'New Card' })
-        if (!title) return
-        setBoard(prev => ({
-          ...prev,
-          columns: prev.columns.map(c =>
-            c.id === colId ? { ...c, cards: [...c.cards, { id: String(Date.now()), title, tags: [] }] } : c
-          ),
-        }))
-      }
-
-      const handleDragStart = (e, cardId, colId) => {
-        dragRef.current = { cardId, fromCol: colId }
-        e.currentTarget.classList.add('dragging')
-        e.dataTransfer.effectAllowed = 'move'
-      }
-
-      const handleDragEnd = (e) => {
-        e.currentTarget.classList.remove('dragging')
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'))
-      }
-
-      const handleDragOver = (e) => {
-        e.preventDefault()
-        e.currentTarget.classList.add('drag-over')
-      }
-
-      const handleDragLeave = (e) => e.currentTarget.classList.remove('drag-over')
-
-      const handleDrop = (e, toColId) => {
-        e.preventDefault()
-        e.currentTarget.classList.remove('drag-over')
-        if (!dragRef.current) return
-        moveCard(dragRef.current.cardId, dragRef.current.fromCol, toColId)
-        dragRef.current = null
-      }
+      if (!ready || loading) return <div style={{ padding: '2rem', textAlign: 'center' }}><Spinner /></div>
 
       return (
         <div>
           <h2 className="gradient-primary-text">Kanban Board</h2>
-          <div className="board">
-            {board.columns.map(col => (
-              <div key={col.id} className="column glass-strong animate-fade-in-up">
-                <div className="column-header">
-                  <span className="column-title">{col.title}</span>
-                  <span className="column-count">{col.cards.length}</span>
-                </div>
-                <div className="card-list"
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={e => handleDrop(e, col.id)}>
-                  {col.cards.map(card => (
-                    <div key={card.id} className="kanban-card surface-card" draggable
-                      onDragStart={e => handleDragStart(e, card.id, col.id)}
-                      onDragEnd={handleDragEnd}>
-                      <div className="card-title">{card.title}</div>
-                      {card.tags.length > 0 && (
-                        <div className="card-tags">
-                          {card.tags.map(t => <span key={t} className="card-tag">{t}</span>)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <button className="btn btn-ghost btn-sm add-card-btn" onClick={() => addCard(col.id)}>+ Add card</button>
-              </div>
-            ))}
-          </div>
+          <Kanban
+            columns={columns}
+            onChange={setColumns}
+            allowAddCards
+            allowAddColumns
+            allowDeleteCards
+            allowDeleteColumns
+            allowEditCards
+            onCardClick={(card) => KinBot.toast(card.title)}
+          />
         </div>
       )
     }
@@ -1708,7 +1611,7 @@ export default {
   {
     id: 'component-showcase',
     name: 'Component Showcase',
-    description: 'An interactive storybook that demos all 48 @kinbot/components with live examples. Browse by category: Layout, Forms, Data Display, Feedback, Navigation, Overlays, Charts, and Extra.',
+    description: 'An interactive storybook that demos all 49 @kinbot/components with live examples. Browse by category: Layout, Forms, Data Display, Feedback, Navigation, Overlays, Charts, and Extra.',
     icon: '🧩',
     tags: ['components', 'storybook', 'demo', 'reference', 'ui'],
     suggestedSlug: 'component-showcase',
@@ -1773,7 +1676,7 @@ export default {
       BarChart, LineChart, PieChart, SparkLine,
       Stepper, StepperContent,
       FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput,
-      Combobox, TagInput, ColorPicker, MarkdownEditor, Calendar, DateRangePicker
+      Combobox, TagInput, ColorPicker, MarkdownEditor, Calendar, DateRangePicker, Kanban
     } from '@kinbot/components'
 
     const CATEGORIES = [
@@ -1784,7 +1687,7 @@ export default {
       { id: 'nav', label: 'Navigation', items: ['Tabs','Breadcrumbs','Pagination','DropdownMenu','Stepper'] },
       { id: 'overlays', label: 'Overlays', items: ['Modal','Drawer','Popover'] },
       { id: 'charts', label: 'Charts', items: ['BarChart','LineChart','PieChart','SparkLine'] },
-      { id: 'extra', label: 'Extra', items: ['FileUpload','CodeBlock','Timeline','AvatarGroup','NumberInput','Calendar','DateRangePicker'] },
+      { id: 'extra', label: 'Extra', items: ['FileUpload','CodeBlock','Timeline','AvatarGroup','NumberInput','Calendar','DateRangePicker','Kanban'] },
     ]
 
     // ─── Demo sections ───
@@ -2111,6 +2014,27 @@ export default {
             ]}
           />
         </div>
+        <div style={{ marginTop: '1.5rem' }}>
+          <div className="demo-label">Kanban (drag & drop board)</div>
+          <Kanban
+            columns={[
+              { id: 'todo', title: 'To Do', cards: [
+                { id: '1', title: 'Design mockups', tags: ['design'], priority: 'high' },
+                { id: '2', title: 'Write tests', tags: ['dev'] },
+              ]},
+              { id: 'doing', title: 'In Progress', cards: [
+                { id: '3', title: 'Build API', tags: ['backend'], priority: 'medium' },
+              ]},
+              { id: 'done', title: 'Done', cards: [
+                { id: '4', title: 'Setup CI', tags: ['devops'] },
+              ]},
+            ]}
+            onChange={cols => KinBot.toast('Board updated: ' + cols.map(c => c.title + '(' + c.cards.length + ')').join(', '))}
+            allowAddCards
+            allowEditCards
+            allowDeleteCards
+          />
+        </div>
       </>
     }
 
@@ -2122,7 +2046,7 @@ export default {
       nav: { title: 'Navigation', desc: 'Tabs, breadcrumbs, pagination, dropdown menus, stepper', render: NavDemo },
       overlays: { title: 'Overlays', desc: 'Modal, Drawer, Popover', render: OverlaysDemo },
       charts: { title: 'Charts', desc: 'Bar, Line, Pie, SparkLine', render: ChartsDemo },
-      extra: { title: 'Extra', desc: 'FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Calendar, DateRangePicker', render: ExtraDemo },
+      extra: { title: 'Extra', desc: 'FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Calendar, DateRangePicker, Kanban', render: ExtraDemo },
     }
 
     function App() {
