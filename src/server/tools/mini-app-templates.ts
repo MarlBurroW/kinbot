@@ -2664,6 +2664,209 @@ export default {
 </html>`,
     },
   },
+  {
+    id: 'contact-manager',
+    name: 'Contact Manager',
+    description: 'A CRUD contact manager demonstrating Combobox, TagInput, Form, DataGrid, Modal, and backend persistence. Showcases advanced form components with search, filtering, and inline editing.',
+    icon: '👥',
+    tags: ['form', 'crud', 'combobox', 'taginput', 'datagrid', 'modal', 'backend', 'components'],
+    suggestedSlug: 'contacts',
+    files: {
+      'app.json': REACT_APP_JSON,
+      '_server.js': `// Backend: in-memory contact store with CRUD
+const contacts = [
+  { id: 1, name: 'Alice Martin', email: 'alice@example.com', company: 'Acme Corp', role: 'Engineering', tags: ['vip', 'partner'], createdAt: '2026-01-15T10:00:00Z' },
+  { id: 2, name: 'Bob Chen', email: 'bob@example.com', company: 'StartupXYZ', role: 'Design', tags: ['lead'], createdAt: '2026-02-01T14:30:00Z' },
+  { id: 3, name: 'Claire Dubois', email: 'claire@example.com', company: 'Acme Corp', role: 'Marketing', tags: ['vip'], createdAt: '2026-02-10T09:15:00Z' },
+]
+let nextId = 4
+
+export default {
+  async fetch(req) {
+    const url = new URL(req.url)
+
+    if (req.method === 'GET' && url.pathname === '/contacts') {
+      const q = (url.searchParams.get('q') || '').toLowerCase()
+      const role = url.searchParams.get('role') || ''
+      let results = [...contacts]
+      if (q) results = results.filter(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.company.toLowerCase().includes(q))
+      if (role) results = results.filter(c => c.role === role)
+      return Response.json({ items: results.sort((a, b) => b.id - a.id), total: results.length })
+    }
+
+    if (req.method === 'POST' && url.pathname === '/contacts') {
+      const body = await req.json()
+      const errors = {}
+      if (!body.name?.trim()) errors.name = 'Name is required'
+      if (!body.email?.trim()) errors.email = 'Email is required'
+      else if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(body.email)) errors.email = 'Invalid email'
+      else if (contacts.some(c => c.email === body.email && c.id !== body.id)) errors.email = 'Email already exists'
+      if (!body.role) errors.role = 'Role is required'
+      if (Object.keys(errors).length > 0) return Response.json({ ok: false, errors }, { status: 422 })
+
+      if (body.id) {
+        const idx = contacts.findIndex(c => c.id === body.id)
+        if (idx === -1) return Response.json({ error: 'Not found' }, { status: 404 })
+        contacts[idx] = { ...contacts[idx], ...body }
+        return Response.json({ ok: true, contact: contacts[idx] })
+      }
+      const contact = { id: nextId++, ...body, tags: body.tags || [], createdAt: new Date().toISOString() }
+      contacts.push(contact)
+      return Response.json({ ok: true, contact })
+    }
+
+    if (req.method === 'DELETE' && url.pathname.startsWith('/contacts/')) {
+      const id = parseInt(url.pathname.split('/')[2])
+      const idx = contacts.findIndex(c => c.id === id)
+      if (idx === -1) return Response.json({ error: 'Not found' }, { status: 404 })
+      contacts.splice(idx, 1)
+      return Response.json({ ok: true })
+    }
+
+    return Response.json({ error: 'Not found' }, { status: 404 })
+  }
+}`,
+      'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Manager</title>
+  <style>
+    body { padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+    .toolbar { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
+    .toolbar > * { flex: 1; min-width: 150px; }
+    .toolbar .btn-add { flex: 0 0 auto; min-width: auto; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/jsx">
+    import { useState, useCallback } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { useKinBot, useForm, useApi, toast } from '@kinbot/react'
+    import {
+      Card, Stack, Button, Input, Combobox, TagInput, DataGrid, Modal,
+      Badge, Stat, Divider, Spinner, EmptyState, Alert
+    } from '@kinbot/components'
+
+    const ROLES = [
+      { value: 'Engineering', label: 'Engineering', icon: '⚙️' },
+      { value: 'Design', label: 'Design', icon: '🎨' },
+      { value: 'Marketing', label: 'Marketing', icon: '📢' },
+      { value: 'Sales', label: 'Sales', icon: '💼' },
+      { value: 'Support', label: 'Support', icon: '🎧' },
+      { value: 'Management', label: 'Management', icon: '👔' },
+    ]
+    const TAG_SUGGESTIONS = ['vip', 'partner', 'lead', 'prospect', 'churned', 'internal', 'vendor']
+
+    function ContactForm({ initial, onSave, onCancel }) {
+      const { values, errors, setValue, setErrors, handleSubmit, submitting } = useForm({
+        initialValues: initial || { name: '', email: '', company: '', role: '', tags: [] },
+      })
+      const [serverErrors, setServerErrors] = useState({})
+
+      const save = useCallback(async (vals) => {
+        setServerErrors({})
+        const res = await KinBot.api('/contacts', { method: 'POST', body: JSON.stringify(vals), headers: { 'Content-Type': 'application/json' } })
+        const data = await res.json()
+        if (!data.ok) { setServerErrors(data.errors || {}); throw new Error('Validation failed') }
+        toast.success(initial?.id ? 'Contact updated' : 'Contact created')
+        onSave()
+      }, [initial, onSave])
+
+      const allErrors = { ...errors }
+      Object.entries(serverErrors).forEach(([k, v]) => { if (!allErrors[k]) allErrors[k] = v })
+
+      return (
+        <Stack gap="1rem">
+          <div className="form-row">
+            <Input label="Name" value={values.name} onChange={e => setValue('name', e.target.value)} error={allErrors.name} required />
+            <Input label="Email" type="email" value={values.email} onChange={e => setValue('email', e.target.value)} error={allErrors.email} required />
+          </div>
+          <div className="form-row">
+            <Input label="Company" value={values.company} onChange={e => setValue('company', e.target.value)} />
+            <Combobox label="Role" options={ROLES} value={values.role} onChange={v => setValue('role', v)} placeholder="Select role..." error={allErrors.role} clearable />
+          </div>
+          <TagInput label="Tags" value={values.tags || []} onChange={v => setValue('tags', v)} suggestions={TAG_SUGGESTIONS} placeholder="Add tags..." variant="primary" />
+          <Stack direction="row" gap="0.75rem" justify="flex-end">
+            {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
+            <Button onClick={() => handleSubmit(save)} disabled={submitting}>
+              {submitting ? <Spinner size={16} /> : (initial?.id ? 'Update' : 'Create')}
+            </Button>
+          </Stack>
+        </Stack>
+      )
+    }
+
+    function App() {
+      const { ready } = useKinBot()
+      if (!ready) return <Stack align="center" style={{ padding: '2rem' }}><Spinner /></Stack>
+      return <ContactApp />
+    }
+
+    function ContactApp() {
+      const [search, setSearch] = useState('')
+      const [roleFilter, setRoleFilter] = useState('')
+      const [modalOpen, setModalOpen] = useState(false)
+      const [editing, setEditing] = useState(null)
+      const { data, loading, refetch } = useApi('/contacts?q=' + encodeURIComponent(search) + (roleFilter ? '&role=' + roleFilter : ''))
+
+      const columns = [
+        { key: 'name', header: 'Name', sortable: true },
+        { key: 'email', header: 'Email', sortable: true },
+        { key: 'company', header: 'Company', sortable: true },
+        { key: 'role', header: 'Role', render: (v) => <Badge variant="secondary">{v}</Badge> },
+        { key: 'tags', header: 'Tags', render: (v) => (
+          <Stack direction="row" gap="0.25rem" wrap>{(v || []).map(t => <Badge key={t} variant="outline">{t}</Badge>)}</Stack>
+        )},
+        { key: 'id', header: '', render: (_, row) => (
+          <Stack direction="row" gap="0.5rem">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditing(row); setModalOpen(true) }}>Edit</Button>
+            <Button variant="ghost" size="sm" onClick={async (e) => {
+              e.stopPropagation()
+              if (await KinBot.confirm('Delete ' + row.name + '?')) {
+                await KinBot.api('/contacts/' + row.id, { method: 'DELETE' })
+                toast.success('Deleted')
+                refetch()
+              }
+            }}>🗑️</Button>
+          </Stack>
+        )},
+      ]
+
+      return (
+        <div className="animate-fade-in-up">
+          <Stack direction="row" align="center" justify="space-between" style={{ marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0 }}>👥 Contacts</h2>
+            <Stat value={data?.total ?? '—'} label="total" />
+          </Stack>
+
+          <div className="toolbar">
+            <Input placeholder="Search name, email, company..." value={search} onChange={e => setSearch(e.target.value)} />
+            <Combobox options={[{ value: '', label: 'All roles' }, ...ROLES]} value={roleFilter} onChange={v => setRoleFilter(v || '')} placeholder="Filter role..." clearable />
+            <Button className="btn-add" onClick={() => { setEditing(null); setModalOpen(true) }}>+ New</Button>
+          </div>
+
+          {loading ? <Stack align="center" style={{ padding: '2rem' }}><Spinner /></Stack> :
+           !data?.items?.length ? <EmptyState icon="👥" title="No contacts" description={search || roleFilter ? 'Try different filters' : 'Add your first contact'} action={!search && !roleFilter ? { label: 'Add Contact', onClick: () => { setEditing(null); setModalOpen(true) } } : undefined} /> :
+           <Card><DataGrid columns={columns} data={data.items} pageSize={10} /></Card>}
+
+          <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing?.id ? 'Edit Contact' : 'New Contact'}>
+            <ContactForm initial={editing} onSave={() => { setModalOpen(false); refetch() }} onCancel={() => setModalOpen(false)} />
+          </Modal>
+        </div>
+      )
+    }
+
+    createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>`,
+    },
+  },
 ]
 
 export function getTemplateById(id: string): MiniAppTemplate | undefined {
