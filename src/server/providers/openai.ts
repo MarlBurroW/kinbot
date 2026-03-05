@@ -24,7 +24,7 @@ const NON_CHAT_PATTERNS = [
   '-transcribe',    // speech-to-text (gpt-4o-transcribe, etc.)
   '-realtime',      // realtime audio (gpt-4o-realtime-preview, etc.)
   '-audio',         // audio models (gpt-4o-audio-preview, etc.)
-  '-search-api',    // search API models
+  '-search',        // search models (search-api, search-preview, etc.)
   'gpt-audio',      // audio models (gpt-audio-*)
   'gpt-realtime',   // realtime models
   '-instruct',      // completion-only (gpt-3.5-turbo-instruct)
