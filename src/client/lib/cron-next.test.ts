@@ -49,7 +49,8 @@ describe('formatCountdown', () => {
   })
 
   it('returns minutes for < 1 hour', () => {
-    const date = new Date(Date.now() + 15 * 60_000)
+    // Add 30s buffer to avoid off-by-one from test execution time
+    const date = new Date(Date.now() + 15 * 60_000 + 30_000)
     expect(formatCountdown(date)).toBe('15m')
   })
 

@@ -28,6 +28,8 @@ mock.module('@/server/db/index', () => ({
       }),
     }),
   },
+  sqlite: {},
+  initVirtualTables: () => {},
 }))
 
 // ─── Import after mocking ────────────────────────────────────────────────────

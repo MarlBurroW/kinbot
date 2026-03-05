@@ -54,33 +54,30 @@ mock.module('@/server/db/index', () => {
       insert: (...args: unknown[]) => mockDbInsert(...args),
       update: (...args: unknown[]) => mockDbUpdate(...args),
     },
+    sqlite: {},
+    initVirtualTables: () => {},
   }
 })
 
-// Include all commonly-used schema exports to prevent mock leak breaking sibling test files
+// Include ALL schema exports to prevent mock leak breaking sibling test files
 mock.module('@/server/db/schema', () => ({
-  userProfiles: { role: 'role', userId: 'user_id' },
-  providers: { id: 'id' },
   user: { id: 'id' },
-  kins: { id: 'id', toolConfig: 'toolConfig' },
-  files: { id: 'id' },
-  messages: { id: 'id' },
-  memories: { id: 'id' },
-  contacts: { id: 'id' },
   session: { id: 'id' },
   account: { id: 'id' },
+  verification: { id: 'id' },
+  userProfiles: { role: 'role', userId: 'user_id' },
+  providers: { id: 'id' },
+  kins: { id: 'id', toolConfig: 'toolConfig' },
+  mcpServers: { id: 'id' },
+  kinMcpServers: { id: 'id' },
+  messages: { id: 'id' },
   compactingSnapshots: { id: 'id' },
-  humanPrompts: { id: 'id' },
-  messageReactions: { id: 'id' },
-  channels: { id: 'id' },
-  channelUserMappings: { id: 'id' },
-  invitations: { id: 'id' },
+  memories: { id: 'id' },
+  contacts: { id: 'id' },
   contactIdentifiers: { id: 'id' },
   contactPlatformIds: { id: 'id' },
   contactNotes: { id: 'id' },
   customTools: { id: 'id' },
-  mcpServers: { id: 'id' },
-  kinMcpServers: { id: 'id' },
   quickSessions: { id: 'id' },
   tasks: { id: 'id' },
   crons: { id: 'id' },
@@ -90,8 +87,24 @@ mock.module('@/server/db/schema', () => ({
   vaultTypes: { id: 'id' },
   vaultAttachments: { id: 'id' },
   queueItems: { id: 'id' },
-  verification: { id: 'id' },
+  files: { id: 'id' },
+  humanPrompts: { id: 'id' },
+  channels: { id: 'id' },
+  channelUserMappings: { id: 'id' },
+  channelMessageLinks: { id: 'id' },
+  invitations: { id: 'id' },
   notifications: { id: 'id' },
+  notificationPreferences: { id: 'id' },
+  notificationChannels: { id: 'id' },
+  scheduledWakeups: { id: 'id' },
+  messageReactions: { id: 'id' },
+  appSettings: { id: 'id' },
+  miniApps: { id: 'id' },
+  miniAppStorage: { id: 'id' },
+  miniAppSnapshots: { id: 'id' },
+  fileStorage: { id: 'id' },
+  pluginStates: { id: 'id' },
+  pluginStorage: { id: 'id' },
 }))
 
 // Stub all commonly-used drizzle-orm operators to prevent mock leak
@@ -130,6 +143,10 @@ mock.module('@/server/services/contacts', () => ({
 mock.module('@/server/services/invitations', () => ({
   validateInvitation: (...args: unknown[]) => mockValidateInvitation(...args),
   markInvitationUsed: (...args: unknown[]) => mockMarkInvitationUsed(...args),
+  createInvitation: () => ({}),
+  buildInvitationUrl: () => '',
+  listInvitations: () => [],
+  revokeInvitation: () => ({ success: true }),
 }))
 
 // ─── Import after mocking ───────────────────────────────────────────────────

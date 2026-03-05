@@ -42,6 +42,10 @@ const mockCreateInvitation = mock(() =>
 mock.module('@/server/services/invitations', () => ({
   createInvitation: mockCreateInvitation,
   buildInvitationUrl: (token: string) => `https://kinbot.local/invite/${token}`,
+  validateInvitation: () => ({ valid: true }),
+  markInvitationUsed: () => true,
+  listInvitations: () => [],
+  revokeInvitation: () => ({ success: true }),
 }))
 
 mock.module('@/server/logger', () => ({
