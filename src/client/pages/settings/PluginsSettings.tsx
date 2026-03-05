@@ -300,7 +300,7 @@ export function PluginsSettings() {
                     {(plugin.permissions?.length ?? 0) > 0 && (
                       <span className="flex items-center gap-1">
                         <Shield className="size-3" />
-                        {plugin.permissions.length} {t('settings.plugins.permissions')}
+                        {plugin.permissions?.length ?? 0} {t('settings.plugins.permissions')}
                       </span>
                     )}
                   </div>
@@ -314,7 +314,7 @@ export function PluginsSettings() {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-1">
                         <div className="flex flex-wrap gap-1">
-                          {plugin.permissions.map((p) => (
+                          {(plugin.permissions ?? []).map((p) => (
                             <Badge key={p} variant="secondary" className="text-xs font-mono">
                               {p}
                             </Badge>

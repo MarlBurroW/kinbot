@@ -111,12 +111,13 @@ export function PluginMarketplace() {
         api.get<PluginSummary[]>('/plugins'),
         api.get<{ version: string }>('/plugins/version'),
       ])
-      setRegistryPlugins(registryRes.plugins)
-      setTags(registryRes.tags)
-      setInstalledPlugins(installed)
-      setKinbotVersion(versionRes.version)
+      setRegistryPlugins(registryRes?.plugins ?? [])
+      setTags(registryRes?.tags ?? [])
+      setInstalledPlugins(installed ?? [])
+      setKinbotVersion(versionRes?.version ?? '0.0.0')
     } catch (err) {
-      toast.error(getErrorMessage(err))
+      // Silently handle - registry may not be available
+      console.warn('Failed to load plugin registry:', err)
     } finally {
       setIsLoading(false)
     }
@@ -126,9 +127,10 @@ export function PluginMarketplace() {
     setStoreLoading(true)
     try {
       const res = await api.get<{ plugins: StorePlugin[] }>('/plugins/store')
-      setStorePlugins(res.plugins)
+      setStorePlugins(res?.plugins ?? [])
     } catch (err) {
-      toast.error(getErrorMessage(err))
+      // Silently handle - store/registry may not be available
+      console.warn('Failed to load plugin store:', err)
     } finally {
       setStoreLoading(false)
     }
