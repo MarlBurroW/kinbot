@@ -1190,3 +1190,33 @@ Card, Stack, Button, Input, Combobox, TagInput, DataGrid, Modal, Badge, Stat, Di
 1. Consider `DateRangePicker` as a compound component (Calendar + input fields)
 2. Add `RichTextEditor` component
 3. Update component-showcase to include routing demo section
+
+## 2026-03-05 (run 32) — DateRangePicker Component
+
+**What:** Added a compound `DateRangePicker` component that combines two date display fields with a Calendar popover in range mode.
+
+### Component: `DateRangePicker`
+- **Dual input display** — Shows formatted start/end dates (or placeholder text) in a styled row
+- **Calendar popover** — Opens Calendar in `range` mode on click, with outside-click and Escape to close
+- **Presets** — Optional `presets` prop for quick-select buttons (e.g. "Last 7 days", "This month") shown above the calendar
+- **Clear button** — × icon to reset both dates
+- **Auto-close** — Automatically closes popover when both start and end dates are selected
+- **Range summary** — Footer showing formatted date range and day count
+- **Locale support** — Passes `locale` and `weekStart` through to Calendar
+- **Date constraints** — `min` and `max` passed through to Calendar
+- **Props:** value {start?,end?}, onChange, label, error, placeholder {start?,end?}, min, max, locale, weekStart, disabled, presets [{label,start,end}], separator, className, style
+- Full theme integration via CSS variables
+- Accessible: ARIA labels, keyboard dismissible (Escape)
+
+### Files changed
+- `src/server/mini-app-sdk/kinbot-components.js` — +230 lines (DateRangePicker)
+- `src/server/mini-app-sdk/kinbot-components.d.ts` — +18 lines (TypeScript definitions)
+- `src/server/tools/mini-app-tools.ts` — added DateRangePicker to import list + documentation
+- `src/server/tools/mini-app-templates.ts` — added DateRangePicker with presets demo to component-showcase (Extra category)
+
+**Tests:** 1957 pass, 0 fail. Build clean.
+
+**Next priorities:**
+1. Add a multi-page template demonstrating routing (dashboard with settings/about pages)
+2. Consider `TreeView` or `Kanban` component
+3. Update component-showcase to include routing demo section
