@@ -1262,7 +1262,16 @@
       "empty": {
         "title": "Aucun plugin trouvé",
         "description": "Aucun plugin ne correspond à vos critères de recherche. Essayez d'ajuster vos filtres."
-      }
+      },
+      "communityTab": "Communauté",
+      "storeTab": "Store",
+      "storeDescription": "Plugins inclus dans le dépôt KinBot, vérifiés et maintenus par l'équipe.",
+      "storeEmpty": {
+        "title": "Aucun plugin",
+        "description": "Aucun plugin curé n'est disponible pour le moment."
+      },
+      "curated": "Vérifié",
+      "permissions": "Permissions"
     }
   },
   "notifications": {

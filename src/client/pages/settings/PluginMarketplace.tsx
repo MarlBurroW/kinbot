@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
 import { Input } from '@/client/components/ui/input'
 import { Badge } from '@/client/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/client/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -31,8 +32,23 @@ import {
   User,
   Shield,
   BookOpen,
+  Store,
 } from 'lucide-react'
 import type { RegistryPlugin, PluginSummary } from '@/shared/types/plugin'
+
+interface StorePlugin {
+  name: string
+  version: string
+  description: string
+  author: string
+  license?: string
+  icon?: string
+  tags: string[]
+  dirName: string
+  installed: boolean
+  config?: Record<string, unknown>
+  permissions?: string[]
+}
 
 // Simple semver satisfies check (handles >=X.Y.Z)
 function semverSatisfies(version: string, range: string): boolean {
@@ -71,9 +87,20 @@ export function PluginMarketplace() {
   const [detailPlugin, setDetailPlugin] = useState<RegistryPlugin | null>(null)
   const [readme, setReadme] = useState<string | null>(null)
   const [readmeLoading, setReadmeLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('community')
+
+  // Store state
+  const [storePlugins, setStorePlugins] = useState<StorePlugin[]>([])
+  const [storeLoading, setStoreLoading] = useState(true)
+  const [storeSearchQuery, setStoreSearchQuery] = useState('')
+  const [installingStorePlugin, setInstallingStorePlugin] = useState<string | null>(null)
+  const [storeDetailPlugin, setStoreDetailPlugin] = useState<StorePlugin | null>(null)
+  const [storeReadme, setStoreReadme] = useState<string | null>(null)
+  const [storeReadmeLoading, setStoreReadmeLoading] = useState(false)
 
   useEffect(() => {
     loadData()
+    loadStoreData()
   }, [])
 
   const loadData = async () => {
@@ -92,6 +119,18 @@ export function PluginMarketplace() {
       toast.error(getErrorMessage(err))
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadStoreData = async () => {
+    setStoreLoading(true)
+    try {
+      const res = await api.get<{ plugins: StorePlugin[] }>('/plugins/store')
+      setStorePlugins(res.plugins)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setStoreLoading(false)
     }
   }
 
@@ -159,10 +198,49 @@ export function PluginMarketplace() {
     }
   }
 
+  const handleStoreInstall = async (plugin: StorePlugin) => {
+    setInstallingStorePlugin(plugin.dirName)
+    try {
+      const result = await api.post<{ success: boolean; name: string }>(`/plugins/store/${plugin.dirName}/install`)
+      toast.success(t('settings.marketplace.installSuccess', { name: result.name }))
+      await loadStoreData()
+      const installed = await api.get<PluginSummary[]>('/plugins')
+      setInstalledPlugins(installed)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setInstallingStorePlugin(null)
+    }
+  }
+
+  const openStoreDetail = async (plugin: StorePlugin) => {
+    setStoreDetailPlugin(plugin)
+    setStoreReadme(null)
+    setStoreReadmeLoading(true)
+    try {
+      const res = await api.get<StorePlugin & { readme: string | null }>(`/plugins/store/${plugin.dirName}`)
+      setStoreReadme(res.readme)
+    } catch {
+      setStoreReadme(null)
+    } finally {
+      setStoreReadmeLoading(false)
+    }
+  }
+
+  const filteredStorePlugins = useMemo(() => {
+    if (!storeSearchQuery) return storePlugins
+    const q = storeSearchQuery.toLowerCase()
+    return storePlugins.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.description.toLowerCase().includes(q) ||
+      p.author.toLowerCase().includes(q)
+    )
+  }, [storePlugins, storeSearchQuery])
+
   const isCompatible = (plugin: RegistryPlugin) =>
     semverSatisfies(kinbotVersion, plugin.compatible_versions)
 
-  if (isLoading) return <SettingsListSkeleton />
+  if (isLoading && storeLoading) return <SettingsListSkeleton />
 
   return (
     <div className="space-y-6">
@@ -172,12 +250,142 @@ export function PluginMarketplace() {
           <h3 className="text-lg font-semibold">{t('settings.marketplace.title')}</h3>
           <p className="text-sm text-muted-foreground">{t('settings.marketplace.description')}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadData}>
+        <Button variant="outline" size="sm" onClick={() => { loadData(); loadStoreData() }}>
           <RefreshCw className="size-4 mr-2" />
           {t('settings.marketplace.refresh')}
         </Button>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="community" className="gap-2">
+            <ShoppingBag className="size-4" />
+            {t('settings.marketplace.communityTab')}
+          </TabsTrigger>
+          <TabsTrigger value="store" className="gap-2">
+            <Store className="size-4" />
+            {t('settings.marketplace.storeTab')}
+            {storePlugins.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-xs">{storePlugins.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="store" className="space-y-4 mt-4">
+          {storeLoading ? (
+            <SettingsListSkeleton />
+          ) : (
+            <>
+              {/* Store search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('settings.marketplace.searchPlaceholder')}
+                  value={storeSearchQuery}
+                  onChange={(e) => setStoreSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {t('settings.marketplace.storeDescription')}
+              </p>
+
+              {filteredStorePlugins.length === 0 ? (
+                <EmptyState
+                  icon={Store}
+                  title={t('settings.marketplace.storeEmpty.title')}
+                  description={t('settings.marketplace.storeEmpty.description')}
+                />
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredStorePlugins.map(plugin => (
+                    <div
+                      key={plugin.dirName}
+                      className="rounded-lg border p-4 surface-card hover:border-primary/50 transition-colors cursor-pointer"
+                      onClick={() => openStoreDetail(plugin)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {plugin.icon && <span className="text-xl">{plugin.icon}</span>}
+                          <div className="min-w-0">
+                            <h4 className="font-medium truncate">{plugin.name}</h4>
+                            <p className="text-xs text-muted-foreground">
+                              <User className="size-3 inline mr-1" />
+                              {plugin.author}
+                            </p>
+                          </div>
+                        </div>
+                        {plugin.installed && (
+                          <Badge variant="default" className="shrink-0 gap-1">
+                            <Check className="size-3" />
+                            {t('settings.marketplace.installed')}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        {plugin.description}
+                      </p>
+
+                      <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Shield className="size-3" />
+                          {t('settings.marketplace.curated')}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          v{plugin.version}
+                        </Badge>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {plugin.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                        {plugin.installed ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-destructive hover:text-destructive"
+                            onClick={() => handleUninstall(plugin.name)}
+                          >
+                            {t('settings.marketplace.uninstall')}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleStoreInstall(plugin)}
+                            disabled={installingStorePlugin === plugin.dirName}
+                          >
+                            {installingStorePlugin === plugin.dirName ? (
+                              <>
+                                <Loader2 className="size-4 mr-2 animate-spin" />
+                                {t('settings.marketplace.installing')}
+                              </>
+                            ) : (
+                              <>
+                                <Download className="size-4 mr-2" />
+                                {t('settings.marketplace.installBtn')}
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="community" className="space-y-4 mt-4">
       {/* Search & filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -319,7 +527,10 @@ export function PluginMarketplace() {
         </div>
       )}
 
-      {/* Detail modal */}
+        </TabsContent>
+      </Tabs>
+
+      {/* Community detail modal */}
       <Dialog open={!!detailPlugin} onOpenChange={(open) => !open && setDetailPlugin(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
           {detailPlugin && (
@@ -463,6 +674,115 @@ export function PluginMarketplace() {
                     disabled={installingPlugin === detailPlugin.name}
                   >
                     {installingPlugin === detailPlugin.name ? (
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="size-4 mr-2" />
+                    )}
+                    {t('settings.marketplace.installBtn')}
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Store detail modal */}
+      <Dialog open={!!storeDetailPlugin} onOpenChange={(open) => !open && setStoreDetailPlugin(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          {storeDetailPlugin && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {storeDetailPlugin.icon && <span className="text-2xl">{storeDetailPlugin.icon}</span>}
+                  {storeDetailPlugin.name}
+                  <Badge variant="outline">v{storeDetailPlugin.version}</Badge>
+                  {storeDetailPlugin.installed && (
+                    <Badge variant="default" className="gap-1">
+                      <Check className="size-3" />
+                      {t('settings.marketplace.installed')}
+                    </Badge>
+                  )}
+                </DialogTitle>
+                <DialogDescription>{storeDetailPlugin.description}</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="size-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{t('settings.marketplace.author')}:</span>
+                    <span>{storeDetailPlugin.author}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="size-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{t('settings.marketplace.license')}:</span>
+                    <span>{storeDetailPlugin.license ?? 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="outline" className="gap-1">
+                    <Shield className="size-3" />
+                    {t('settings.marketplace.curated')}
+                  </Badge>
+                  {storeDetailPlugin.tags.map(tag => (
+                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                  ))}
+                </div>
+
+                {storeDetailPlugin.permissions && storeDetailPlugin.permissions.length > 0 && (
+                  <div className="rounded-md border p-3 text-sm">
+                    <h4 className="font-medium mb-1">{t('settings.marketplace.permissions')}</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {storeDetailPlugin.permissions.map(perm => (
+                        <Badge key={perm} variant="outline" className="text-xs font-mono">{perm}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {storeReadmeLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : storeReadme ? (
+                  <div className="rounded-md border p-4 bg-muted/30">
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <BookOpen className="size-4" />
+                      README
+                    </h4>
+                    <pre className="text-sm whitespace-pre-wrap font-sans text-muted-foreground">
+                      {storeReadme}
+                    </pre>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    {t('settings.marketplace.noReadme')}
+                  </p>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setStoreDetailPlugin(null)}>
+                  {t('common.close')}
+                </Button>
+                {storeDetailPlugin.installed ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      handleUninstall(storeDetailPlugin.name)
+                      setStoreDetailPlugin(null)
+                    }}
+                  >
+                    {t('settings.marketplace.uninstall')}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleStoreInstall(storeDetailPlugin)}
+                    disabled={installingStorePlugin === storeDetailPlugin.dirName}
+                  >
+                    {installingStorePlugin === storeDetailPlugin.dirName ? (
                       <Loader2 className="size-4 mr-2 animate-spin" />
                     ) : (
                       <Download className="size-4 mr-2" />

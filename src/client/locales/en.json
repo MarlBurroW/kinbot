@@ -1262,7 +1262,16 @@
       "empty": {
         "title": "No plugins found",
         "description": "No plugins match your search criteria. Try adjusting your filters."
-      }
+      },
+      "communityTab": "Community",
+      "storeTab": "Store",
+      "storeDescription": "Curated plugins included in the KinBot repository. These are reviewed and maintained by the KinBot team.",
+      "storeEmpty": {
+        "title": "No store plugins",
+        "description": "No curated plugins are available in the store yet."
+      },
+      "curated": "Curated",
+      "permissions": "Permissions"
     }
   },
   "notifications": {
