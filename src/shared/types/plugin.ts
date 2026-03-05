@@ -42,7 +42,7 @@ export interface PluginChannelMeta {
   displayName: string
 }
 
-export type PluginInstallSource = 'local' | 'git' | 'npm'
+export type PluginInstallSource = 'local' | 'git' | 'npm' | 'store'
 
 export interface PluginInstallMeta {
   url?: string        // git URL

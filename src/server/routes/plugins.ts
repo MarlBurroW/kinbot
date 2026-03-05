@@ -3,8 +3,8 @@ import { pluginManager } from '@/server/services/plugins'
 import { pluginRegistry } from '@/server/services/pluginRegistry'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
-import { readFile } from 'fs/promises'
-import { resolve } from 'path'
+import { readFile, readdir, access } from 'fs/promises'
+import { resolve, join } from 'path'
 
 const log = createLogger('routes:plugins')
 
@@ -59,6 +59,89 @@ pluginRoutes.get('/version', async (c) => {
     return c.json({ version: pkg.version })
   } catch {
     return c.json({ version: '0.0.0' })
+  }
+})
+
+// ─── Store routes ────────────────────────────────────────────────────────────
+
+// GET /api/plugins/store — list available store plugins
+pluginRoutes.get('/store', async (c) => {
+  try {
+    const storeDir = resolve(process.cwd(), 'store')
+    let entries: string[]
+    try {
+      entries = await readdir(storeDir)
+    } catch {
+      return c.json({ plugins: [] })
+    }
+
+    const installedPlugins = pluginManager.listPlugins()
+    const installedNames = new Set(installedPlugins.map(p => p.name))
+
+    const plugins = []
+    for (const entry of entries) {
+      if (entry.startsWith('.') || entry === 'README.md') continue
+      try {
+        const manifestPath = join(storeDir, entry, 'plugin.json')
+        await access(manifestPath)
+        const raw = await readFile(manifestPath, 'utf-8')
+        const manifest = JSON.parse(raw)
+        plugins.push({
+          ...manifest,
+          dirName: entry,
+          installed: installedNames.has(manifest.name),
+        })
+      } catch {
+        // Skip invalid entries
+      }
+    }
+
+    return c.json({ plugins })
+  } catch (err) {
+    log.error({ err }, 'Failed to list store plugins')
+    return c.json({ error: { code: 'STORE_LIST_FAILED', message: 'Failed to list store plugins' } }, 500)
+  }
+})
+
+// GET /api/plugins/store/:name — get store plugin details + README
+pluginRoutes.get('/store/:name', async (c) => {
+  const { name } = c.req.param()
+  try {
+    const pluginDir = resolve(process.cwd(), 'store', name)
+    const manifestPath = join(pluginDir, 'plugin.json')
+    const raw = await readFile(manifestPath, 'utf-8')
+    const manifest = JSON.parse(raw)
+
+    let readme: string | null = null
+    try {
+      readme = await readFile(join(pluginDir, 'README.md'), 'utf-8')
+    } catch {
+      // No README
+    }
+
+    const installedPlugins = pluginManager.listPlugins()
+    const installed = installedPlugins.some(p => p.name === manifest.name)
+
+    return c.json({ ...manifest, dirName: name, installed, readme })
+  } catch {
+    return c.json({ error: { code: 'STORE_PLUGIN_NOT_FOUND', message: `Store plugin "${name}" not found` } }, 404)
+  }
+})
+
+// POST /api/plugins/store/:name/install — install a store plugin
+pluginRoutes.post('/store/:name/install', async (c) => {
+  const { name } = c.req.param()
+  try {
+    const result = await pluginManager.installFromStore(name)
+    return c.json({ success: true, name: result.name })
+  } catch (err) {
+    log.error({ plugin: name, err }, 'Failed to install store plugin')
+    return c.json({
+      error: {
+        code: 'STORE_INSTALL_FAILED',
+        message: err instanceof Error ? err.message : 'Failed to install store plugin',
+      },
+    }, 400)
   }
 })
 

@@ -875,6 +875,95 @@ class PluginManager {
     }
   }
 
+  /** Install a plugin from the in-repo store/ directory */
+  async installFromStore(storeName: string): Promise<{ name: string }> {
+    const storeDir = resolve(process.cwd(), 'store', storeName)
+
+    // Verify the store plugin exists
+    let raw: string
+    try {
+      raw = await readFile(join(storeDir, 'plugin.json'), 'utf-8')
+    } catch {
+      throw new Error(`Store plugin "${storeName}" not found`)
+    }
+
+    const data = JSON.parse(raw)
+    const validation = validateManifest(data)
+    if (!validation.valid) {
+      throw new Error(`Invalid manifest: ${validation.errors.join('; ')}`)
+    }
+
+    const manifest = data as PluginManifest
+
+    // Check if already installed
+    if (this.plugins.has(manifest.name)) {
+      throw new Error(`Plugin "${manifest.name}" is already installed`)
+    }
+
+    await mkdir(this.pluginsDir, { recursive: true })
+    const targetDir = join(this.pluginsDir, manifest.name)
+
+    // Copy store plugin to plugins directory
+    const cpProc = Bun.spawn(['cp', '-r', storeDir, targetDir], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+    const exitCode = await cpProc.exited
+    if (exitCode !== 0) {
+      const stderr = await new Response(cpProc.stderr).text()
+      throw new Error(`Failed to copy store plugin: ${stderr.trim()}`)
+    }
+
+    // Save install source in DB
+    const now = new Date()
+    const installMeta: PluginInstallMeta = {
+      version: manifest.version,
+      installedAt: now.toISOString(),
+    }
+
+    const existing = await this.getState(manifest.name)
+    if (existing) {
+      await db.update(pluginStates).set({
+        enabled: true,
+        installSource: 'store',
+        installMeta: JSON.stringify(installMeta),
+        updatedAt: now,
+      }).where(eq(pluginStates.name, manifest.name))
+    } else {
+      await db.insert(pluginStates).values({
+        name: manifest.name,
+        enabled: true,
+        installSource: 'store',
+        installMeta: JSON.stringify(installMeta),
+        createdAt: now,
+        updatedAt: now,
+      })
+    }
+
+    // Register and activate
+    this.plugins.set(manifest.name, {
+      manifest,
+      exports: null,
+      enabled: false,
+      registeredTools: [],
+      registeredHooks: [],
+      registeredProviders: [],
+      registeredChannels: [],
+      installSource: 'store',
+      installMeta,
+    })
+
+    await this.activatePlugin(manifest.name)
+
+    sseManager.broadcast({
+      type: 'plugin:installed',
+      data: { name: manifest.name, source: 'store' },
+    })
+
+    log.info({ plugin: manifest.name, storeName }, 'Plugin installed from store')
+    return { name: manifest.name }
+  }
+
   /** Uninstall a plugin: deactivate, remove files, clean DB */
   async uninstallPlugin(name: string): Promise<void> {
     const plugin = this.plugins.get(name)
