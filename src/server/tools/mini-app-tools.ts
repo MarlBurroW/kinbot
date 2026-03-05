@@ -96,7 +96,7 @@ export const createMiniAppTool: ToolRegistration = {
         '`download` (trigger file download: `download(filename, content, mimeType?)`). ' +
         '**@kinbot/components — React Component Library:** Add `"@kinbot/components": "/api/mini-apps/sdk/kinbot-components.js"` to app.json dependencies. ' +
         'Import: `import { Card, Button, Input, Select, Textarea, Checkbox, Switch, Badge, Tag, Stat, Avatar, Tooltip, ProgressBar, ' +
-        'Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Stack, Divider, ButtonGroup, Grid, Breadcrumbs, Popover, Form, DataGrid, Accordion, DropdownMenu, Panel, RadioGroup, Slider, DatePicker, BarChart, LineChart, PieChart, SparkLine, Stepper, StepperContent, FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Combobox, TagInput, ColorPicker, Router, Route, Link, NavLink, Navigate, useHashRouter } from "@kinbot/components"`. ' +
+        'Alert, Spinner, Skeleton, EmptyState, Tabs, Table, List, Pagination, Modal, Drawer, Stack, Divider, ButtonGroup, Grid, Breadcrumbs, Popover, Form, DataGrid, Accordion, DropdownMenu, Panel, RadioGroup, Slider, DatePicker, BarChart, LineChart, PieChart, SparkLine, Stepper, StepperContent, FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Combobox, TagInput, ColorPicker, MarkdownEditor, Router, Route, Link, NavLink, Navigate, useHashRouter } from "@kinbot/components"`. ' +
         'All components auto-adapt to light/dark theme. Key components: ' +
         '`Card` (+ Card.Header, Card.Title, Card.Description, Card.Content, Card.Footer), ' +
         '`Button` (variant: primary|secondary|destructive|ghost|shine, size: sm|md|lg|icon), ' +
@@ -140,6 +140,7 @@ export const createMiniAppTool: ToolRegistration = {
         '`Combobox` (searchable select dropdown: options [{value, label, icon?, description?, disabled?}], value, onChange, placeholder, clearable, label, error — keyboard nav + filtering), ' +
         '`TagInput` (multi-tag entry: value string[], onChange, suggestions string[], placeholder, maxTags, validate fn, variant default|primary, size sm|md — Enter/comma to add, Backspace to remove), ' +
         '`ColorPicker` (full color picker with saturation/brightness area, hue slider, hex input: value hex string, onChange(hex), label, error, swatches hex[], disabled, size sm|md|lg). ' +
+        '`MarkdownEditor` (markdown editor with toolbar, live preview, split view: value string, onChange(string), label, error, placeholder, minHeight, maxHeight, showPreview, showToolbar, disabled; built-in toolbar for bold/italic/headings/lists/code/links/images; Ctrl+B/I/E/K shortcuts; write/split/preview modes; word/char count; basic markdown rendering in preview). ' +
         '**Routing (hash-based):** `Router` wraps your app, `Route` declares paths (supports :params), `Link`/`NavLink` for navigation, `Navigate` for redirects, `useHashRouter()` hook returns {path, params, query, navigate}. ' +
         'Example: `<Router><Route path="/" element={<Home/>}/><Route path="/users/:id" element={<UserDetail/>}/><Route path="*" element={<NotFound/>}/></Router>`. ' +
         'NavLink adds "active" class when path matches (exact prop for exact match). ' +

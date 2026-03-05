@@ -1773,12 +1773,12 @@ export default {
       BarChart, LineChart, PieChart, SparkLine,
       Stepper, StepperContent,
       FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput,
-      Combobox, TagInput, ColorPicker
+      Combobox, TagInput, ColorPicker, MarkdownEditor
     } from '@kinbot/components'
 
     const CATEGORIES = [
       { id: 'layout', label: 'Layout', items: ['Stack','Divider','Card','Grid','Panel'] },
-      { id: 'forms', label: 'Forms', items: ['Button','ButtonGroup','Input','Textarea','Select','Checkbox','Switch','RadioGroup','Slider','DatePicker','Combobox','TagInput','ColorPicker','Form'] },
+      { id: 'forms', label: 'Forms', items: ['Button','ButtonGroup','Input','Textarea','Select','Checkbox','Switch','RadioGroup','Slider','DatePicker','Combobox','TagInput','ColorPicker','MarkdownEditor','Form'] },
       { id: 'data', label: 'Data Display', items: ['Badge','Tag','Stat','Avatar','Tooltip','ProgressBar','Table','List','DataGrid','Accordion'] },
       { id: 'feedback', label: 'Feedback', items: ['Alert','Spinner','Skeleton','EmptyState'] },
       { id: 'nav', label: 'Navigation', items: ['Tabs','Breadcrumbs','Pagination','DropdownMenu','Stepper'] },
@@ -1884,6 +1884,10 @@ export default {
           <ColorPicker label="Brand Color" value="#3b82f6"
             swatches={['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#000000','#ffffff']}
             onChange={hex => console.log('Color:', hex)} />
+        </div>
+        <div className="demo-section">
+          <div className="demo-label">MarkdownEditor</div>
+          <MarkdownEditor label="Notes" value="# Hello\\n\\nWrite some **markdown** here." placeholder="Start writing..." minHeight={150} onChange={v => console.log(v)} />
         </div>
       </>
     }

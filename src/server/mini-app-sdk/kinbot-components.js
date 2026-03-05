@@ -4300,3 +4300,290 @@ export function ColorPicker({ value = '#3b82f6', onChange, label, error, swatche
     }, error),
   )
 }
+
+// ── MarkdownEditor ──────────────────────────────────────────────────────────
+
+const MD_TOOLBAR = [
+  { key: 'bold', icon: 'B', title: 'Bold (Ctrl+B)', wrap: ['**', '**'], shortcut: 'b' },
+  { key: 'italic', icon: 'I', title: 'Italic (Ctrl+I)', wrap: ['*', '*'], shortcut: 'i' },
+  { key: 'strikethrough', icon: 'S̶', title: 'Strikethrough', wrap: ['~~', '~~'] },
+  { key: 'sep1', sep: true },
+  { key: 'h1', icon: 'H1', title: 'Heading 1', prefix: '# ' },
+  { key: 'h2', icon: 'H2', title: 'Heading 2', prefix: '## ' },
+  { key: 'h3', icon: 'H3', title: 'Heading 3', prefix: '### ' },
+  { key: 'sep2', sep: true },
+  { key: 'ul', icon: '•', title: 'Bullet list', prefix: '- ' },
+  { key: 'ol', icon: '1.', title: 'Numbered list', prefix: '1. ' },
+  { key: 'task', icon: '☑', title: 'Task list', prefix: '- [ ] ' },
+  { key: 'sep3', sep: true },
+  { key: 'code', icon: '`', title: 'Inline code (Ctrl+E)', wrap: ['`', '`'], shortcut: 'e' },
+  { key: 'codeblock', icon: '```', title: 'Code block', wrap: ['```\n', '\n```'] },
+  { key: 'quote', icon: '❝', title: 'Blockquote', prefix: '> ' },
+  { key: 'sep4', sep: true },
+  { key: 'link', icon: '🔗', title: 'Link (Ctrl+K)', template: '[text](url)', shortcut: 'k' },
+  { key: 'image', icon: '🖼', title: 'Image', template: '![alt](url)' },
+  { key: 'hr', icon: '—', title: 'Horizontal rule', insert: '\n---\n' },
+]
+
+function applyMarkdown(textarea, action) {
+  const { selectionStart: s, selectionEnd: e, value } = textarea
+  const selected = value.slice(s, e)
+  let replacement, cursorPos
+
+  if (action.wrap) {
+    const [before, after] = action.wrap
+    replacement = before + (selected || 'text') + after
+    cursorPos = selected ? s + replacement.length : s + before.length
+  } else if (action.prefix) {
+    const lineStart = value.lastIndexOf('\n', s - 1) + 1
+    replacement = null // special: insert prefix at line start
+    const before = value.slice(0, lineStart) + action.prefix + value.slice(lineStart)
+    textarea.value = before
+    textarea.selectionStart = textarea.selectionEnd = s + action.prefix.length
+    return before
+  } else if (action.template) {
+    replacement = action.template
+    cursorPos = s + replacement.length
+  } else if (action.insert) {
+    replacement = action.insert
+    cursorPos = s + replacement.length
+  }
+
+  if (replacement != null) {
+    const result = value.slice(0, s) + replacement + value.slice(e)
+    textarea.value = result
+    textarea.selectionStart = textarea.selectionEnd = cursorPos
+    return result
+  }
+  return value
+}
+
+// Simple markdown→HTML renderer (basic subset, no dependencies)
+function renderMarkdown(md) {
+  if (!md) return ''
+  let html = md
+    // Escape HTML
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Code blocks (before other processing)
+    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre style="background:var(--color-surface-secondary,#f3f4f6);padding:12px;border-radius:var(--radius-sm,6px);overflow-x:auto;font-size:0.85rem"><code>${code.trim()}</code></pre>`)
+    // Headings
+    .replace(/^### (.+)$/gm, '<h3 style="margin:0.8em 0 0.3em;font-size:1.1rem">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 style="margin:0.8em 0 0.3em;font-size:1.25rem">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 style="margin:0.8em 0 0.3em;font-size:1.5rem">$1</h1>')
+    // Horizontal rule
+    .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--color-border,#e5e7eb);margin:1em 0">')
+    // Bold, italic, strikethrough, inline code
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/~~(.+?)~~/g, '<s>$1</s>')
+    .replace(/`([^`]+)`/g, '<code style="background:var(--color-surface-secondary,#f3f4f6);padding:2px 5px;border-radius:3px;font-size:0.9em">$1</code>')
+    // Images and links
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:var(--radius-sm,6px)">')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--color-primary,#3b82f6)">$1</a>')
+    // Task lists
+    .replace(/^- \[x\] (.+)$/gm, '<div style="display:flex;gap:6px;align-items:center;padding:2px 0"><input type="checkbox" checked disabled>$1</div>')
+    .replace(/^- \[ \] (.+)$/gm, '<div style="display:flex;gap:6px;align-items:center;padding:2px 0"><input type="checkbox" disabled>$1</div>')
+    // Unordered lists
+    .replace(/^- (.+)$/gm, '<li style="margin-left:1.2em;list-style:disc">$1</li>')
+    // Ordered lists
+    .replace(/^\d+\. (.+)$/gm, '<li style="margin-left:1.2em;list-style:decimal">$1</li>')
+    // Blockquotes
+    .replace(/^&gt; (.+)$/gm, '<blockquote style="border-left:3px solid var(--color-primary,#3b82f6);margin:0.5em 0;padding:4px 12px;color:var(--color-text-secondary,#6b7280)">$1</blockquote>')
+    // Paragraphs (double newline)
+    .replace(/\n\n/g, '<br><br>')
+    // Single newlines
+    .replace(/\n/g, '<br>')
+  return html
+}
+
+export function MarkdownEditor({
+  value = '',
+  onChange,
+  label,
+  error,
+  placeholder = 'Write markdown...',
+  minHeight = 200,
+  maxHeight = 600,
+  showPreview = true,
+  showToolbar = true,
+  disabled = false,
+  className = '',
+  style,
+  ...rest
+}) {
+  const { useState, useRef, useCallback, useId } = React
+  const [mode, setMode] = useState('write') // 'write' | 'preview' | 'split'
+  const textareaRef = useRef(null)
+  const id = useId()
+
+  const handleToolbar = useCallback((action) => {
+    const ta = textareaRef.current
+    if (!ta || disabled) return
+    const newVal = applyMarkdown(ta, action)
+    onChange?.(newVal)
+    ta.focus()
+  }, [onChange, disabled])
+
+  const handleKeyDown = useCallback((e) => {
+    if (!e.ctrlKey && !e.metaKey) return
+    const action = MD_TOOLBAR.find(a => a.shortcut === e.key)
+    if (action) {
+      e.preventDefault()
+      handleToolbar(action)
+    }
+  }, [handleToolbar])
+
+  const borderColor = error ? 'var(--color-error, #ef4444)' : 'var(--color-border, #e0e0e0)'
+
+  const containerStyle = {
+    border: `1px solid ${borderColor}`,
+    borderRadius: 'var(--radius-md, 8px)',
+    overflow: 'hidden',
+    background: 'var(--color-surface, #fff)',
+    ...style,
+  }
+
+  const toolbarStyle = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 2,
+    padding: '6px 8px',
+    borderBottom: '1px solid var(--color-border, #e0e0e0)',
+    background: 'var(--color-surface-secondary, #f9fafb)',
+    alignItems: 'center',
+  }
+
+  const toolBtnStyle = (isActive) => ({
+    padding: '3px 7px',
+    border: 'none',
+    borderRadius: 'var(--radius-sm, 4px)',
+    background: isActive ? 'var(--color-primary, #3b82f6)' : 'transparent',
+    color: isActive ? '#fff' : 'var(--color-text-secondary, #6b7280)',
+    cursor: disabled ? 'default' : 'pointer',
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    lineHeight: 1.4,
+    minWidth: 28,
+    textAlign: 'center',
+    opacity: disabled ? 0.5 : 1,
+  })
+
+  const modeBtnStyle = (active) => ({
+    padding: '3px 10px',
+    border: 'none',
+    borderRadius: 'var(--radius-sm, 4px)',
+    background: active ? 'var(--color-primary, #3b82f6)' : 'transparent',
+    color: active ? '#fff' : 'var(--color-text-secondary, #6b7280)',
+    cursor: 'pointer',
+    fontSize: '0.75rem',
+    fontWeight: 500,
+  })
+
+  const showWrite = mode === 'write' || mode === 'split'
+  const showPrev = mode === 'preview' || mode === 'split'
+
+  return React.createElement('div', { className: `kb-markdown-editor ${className}`, ...rest },
+    // Label
+    label && React.createElement('label', {
+      htmlFor: id,
+      style: { display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem', color: 'var(--color-text, #1f2937)' },
+    }, label),
+    // Container
+    React.createElement('div', { style: containerStyle },
+      // Toolbar
+      showToolbar && React.createElement('div', { style: toolbarStyle },
+        // Format buttons
+        ...MD_TOOLBAR.map(action => {
+          if (action.sep) return React.createElement('div', {
+            key: action.key,
+            style: { width: 1, height: 18, background: 'var(--color-border, #ddd)', margin: '0 4px' },
+          })
+          return React.createElement('button', {
+            key: action.key,
+            type: 'button',
+            title: action.title,
+            disabled,
+            onClick: () => handleToolbar(action),
+            style: toolBtnStyle(false),
+            onMouseEnter: (e) => { if (!disabled) e.target.style.background = 'var(--color-surface-hover, #e5e7eb)' },
+            onMouseLeave: (e) => { e.target.style.background = 'transparent' },
+          }, action.icon)
+        }),
+        // Spacer
+        React.createElement('div', { style: { flex: 1 } }),
+        // Mode toggles
+        showPreview && React.createElement('div', { style: { display: 'flex', gap: 2, marginLeft: 8 } },
+          React.createElement('button', { type: 'button', onClick: () => setMode('write'), style: modeBtnStyle(mode === 'write') }, 'Write'),
+          React.createElement('button', { type: 'button', onClick: () => setMode('split'), style: modeBtnStyle(mode === 'split') }, 'Split'),
+          React.createElement('button', { type: 'button', onClick: () => setMode('preview'), style: modeBtnStyle(mode === 'preview') }, 'Preview'),
+        ),
+      ),
+      // Editor area
+      React.createElement('div', {
+        style: {
+          display: 'flex',
+          minHeight,
+          maxHeight,
+        },
+      },
+        // Textarea
+        showWrite && React.createElement('textarea', {
+          ref: textareaRef,
+          id,
+          value,
+          onChange: (e) => onChange?.(e.target.value),
+          onKeyDown: handleKeyDown,
+          placeholder,
+          disabled,
+          style: {
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            resize: 'vertical',
+            padding: 12,
+            fontFamily: 'monospace',
+            fontSize: '0.875rem',
+            lineHeight: 1.6,
+            color: 'var(--color-text, #1f2937)',
+            background: 'transparent',
+            minHeight,
+            maxHeight,
+            overflowY: 'auto',
+          },
+        }),
+        // Divider in split mode
+        mode === 'split' && React.createElement('div', {
+          style: { width: 1, background: 'var(--color-border, #e0e0e0)', flexShrink: 0 },
+        }),
+        // Preview
+        showPrev && React.createElement('div', {
+          style: {
+            flex: 1,
+            padding: 12,
+            overflowY: 'auto',
+            fontSize: '0.875rem',
+            lineHeight: 1.6,
+            color: 'var(--color-text, #1f2937)',
+            minHeight,
+            maxHeight,
+            ...(mode === 'preview' ? {} : { borderLeft: 'none' }),
+          },
+          dangerouslySetInnerHTML: { __html: renderMarkdown(value) || `<span style="color:var(--color-text-tertiary,#9ca3af)">Nothing to preview</span>` },
+        }),
+      ),
+    ),
+    // Word/char count
+    React.createElement('div', {
+      style: { display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 4, fontSize: '0.75rem', color: 'var(--color-text-tertiary, #9ca3af)' },
+    },
+      React.createElement('span', null, `${value.length} chars`),
+      React.createElement('span', null, `${value.trim() ? value.trim().split(/\s+/).length : 0} words`),
+    ),
+    // Error
+    error && React.createElement('div', {
+      className: 'kb-field-error',
+      style: { marginTop: 4, color: 'var(--color-error, #ef4444)', fontSize: '0.8rem' },
+    }, error),
+  )
+}

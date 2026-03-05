@@ -716,3 +716,20 @@ interface ColorPickerProps {
   style?: React.CSSProperties;
 }
 export function ColorPicker(props: ColorPickerProps): React.ReactElement;
+
+// ── MarkdownEditor ──────────────────────────────────────────────────────────
+export interface MarkdownEditorProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  label?: string;
+  error?: string;
+  placeholder?: string;
+  minHeight?: number;
+  maxHeight?: number;
+  showPreview?: boolean;
+  showToolbar?: boolean;
+  disabled?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+}
+export function MarkdownEditor(props: MarkdownEditorProps): React.ReactElement;
