@@ -881,3 +881,15 @@ export interface PluginLogger {
   error(obj: Record<string, any>, msg: string): void
 }
 ```
+
+---
+
+## Official Store Plugins
+
+The `store/` directory contains community plugins available for one-click install:
+
+| Plugin | Icon | Description |
+|--------|------|-------------|
+| `rss-reader` | 📰 | Fetch and summarize RSS/Atom feeds |
+| `pomodoro` | 🍅 | Pomodoro timer for focused work sessions |
+| `system-monitor` | 📊 | Monitor CPU, memory, disk, uptime, and processes |

@@ -1,0 +1,20 @@
+{
+  "name": "system-monitor",
+  "version": "1.0.0",
+  "description": "Monitor system resources: CPU, memory, disk, uptime, and processes. Let your Kin keep an eye on server health.",
+  "author": "KinBot Team",
+  "license": "MIT",
+  "main": "index.ts",
+  "icon": "📊",
+  "tags": ["system", "monitoring", "tools", "devops"],
+  "permissions": [],
+  "config": {
+    "topProcesses": {
+      "type": "select",
+      "label": "Top Processes Count",
+      "description": "Number of top processes to show by CPU/memory usage",
+      "options": ["5", "10", "15", "20"],
+      "default": "10"
+    }
+  }
+}
