@@ -27,6 +27,15 @@ mock.module('@/server/config', () => ({
       minDelaySeconds: 10,
       maxDelaySeconds: 2_592_000,
     },
+    upload: {
+      dir: '/tmp/test-uploads',
+      maxFileSizeMb: 50,
+      channelFileRetentionDays: 30,
+      channelFileCleanupIntervalMin: 60,
+    },
+    fileStorage: {
+      dir: '/tmp/test-storage',
+    },
   },
 }))
 
