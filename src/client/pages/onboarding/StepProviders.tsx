@@ -13,6 +13,7 @@ import { useProviders } from '@/client/hooks/useProviders'
 interface StepProvidersProps {
   onComplete: () => void
   onBack?: () => void
+  onQuickFinish?: () => void
 }
 
 const CAPABILITY_META = {
@@ -21,7 +22,7 @@ const CAPABILITY_META = {
   image: { icon: Image, required: false },
 } as const
 
-export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
+export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvidersProps) {
   const { t } = useTranslation()
   const { providers, refetch: fetchProviders } = useProviders()
   const [modalOpen, setModalOpen] = useState(false)
@@ -200,24 +201,46 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
             {t('onboarding.providers.cannotFinish')}
           </p>
         )}
-        <div className="flex gap-3">
-          {onBack && (
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-3">
+            {onBack && (
+              <Button
+                variant="outline"
+                onClick={onBack}
+                size="lg"
+              >
+                {t('common.back')}
+              </Button>
+            )}
             <Button
-              variant="outline"
-              onClick={onBack}
+              onClick={handleNext}
+              disabled={!canFinish}
+              className="btn-shine flex-1"
               size="lg"
             >
-              {t('common.back')}
+              {t('onboarding.providers.advancedSetup')}
             </Button>
+          </div>
+          {canFinish && onQuickFinish && (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">{t('common.or')}</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <Button
+                variant="outline"
+                onClick={onQuickFinish}
+                size="lg"
+                className="w-full"
+              >
+                {t('onboarding.providers.quickFinish')}
+              </Button>
+              <p className="text-center text-[11px] text-muted-foreground/70">
+                {t('onboarding.providers.quickFinishHint')}
+              </p>
+            </>
           )}
-          <Button
-            onClick={handleNext}
-            disabled={!canFinish}
-            className="btn-shine flex-1"
-            size="lg"
-          >
-            {t('common.next')}
-          </Button>
         </div>
       </div>
     </div>

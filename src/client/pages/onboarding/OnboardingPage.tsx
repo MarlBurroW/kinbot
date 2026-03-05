@@ -56,7 +56,11 @@ export function OnboardingPage({ onComplete, initialStep = 1 }: OnboardingPagePr
             <StepPreferences onComplete={() => setCurrentStep(3)} onBack={() => setCurrentStep(1)} />
           )}
           {currentStep === 3 && (
-            <StepProviders onComplete={() => setCurrentStep(4)} onBack={() => setCurrentStep(2)} />
+            <StepProviders
+              onComplete={() => setCurrentStep(4)}
+              onBack={() => setCurrentStep(2)}
+              onQuickFinish={onComplete}
+            />
           )}
           {currentStep === 4 && (
             <StepMemory onComplete={() => setCurrentStep(5)} onBack={() => setCurrentStep(3)} />

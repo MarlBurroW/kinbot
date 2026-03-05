@@ -123,7 +123,10 @@
       "localBadge": "Local",
       "getKey": "Get key",
       "noKeyNeeded": "No API key needed",
-      "guidanceFooter": "You can add more providers later in Settings. Pick one to get started!"
+      "guidanceFooter": "You can add more providers later in Settings. Pick one to get started!",
+      "advancedSetup": "Customize memory & search",
+      "quickFinish": "Quick finish with defaults",
+      "quickFinishHint": "Memory and search can be configured later in Settings"
     },
     "memory": {
       "title": "Memory",

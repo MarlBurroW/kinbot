@@ -123,7 +123,10 @@
       "localBadge": "Local",
       "getKey": "Obtenir",
       "noKeyNeeded": "Pas de clé API nécessaire",
-      "guidanceFooter": "Vous pourrez ajouter d'autres fournisseurs plus tard dans les Paramètres. Choisissez-en un pour démarrer !"
+      "guidanceFooter": "Vous pourrez ajouter d'autres fournisseurs plus tard dans les Paramètres. Choisissez-en un pour démarrer !",
+      "advancedSetup": "Configurer mémoire et recherche",
+      "quickFinish": "Terminer avec les paramètres par défaut",
+      "quickFinishHint": "La mémoire et la recherche sont configurables plus tard dans les Paramètres"
     },
     "memory": {
       "title": "Mémoire",
