@@ -54,10 +54,22 @@ meRoutes.patch('/', async (c) => {
   if (body.cronOrder !== undefined) updates.cronOrder = body.cronOrder
 
   if (Object.keys(updates).length > 0) {
+    // Use upsert to handle the case where the profile row doesn't exist yet
+    // (e.g. user created via auth but onboarding profile step was skipped)
     await db
-      .update(userProfiles)
-      .set(updates)
-      .where(eq(userProfiles.userId, sessionUser.id))
+      .insert(userProfiles)
+      .values({
+        userId: sessionUser.id,
+        firstName: body.firstName ?? '',
+        lastName: body.lastName ?? '',
+        pseudonym: body.pseudonym ?? '',
+        language: body.language ?? 'en',
+        ...updates,
+      })
+      .onConflictDoUpdate({
+        target: userProfiles.userId,
+        set: updates,
+      })
   }
 
   // Update name in Better Auth user table
