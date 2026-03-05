@@ -28,5 +28,21 @@
     "homepage": "https://github.com/MarlBurroW/kinbot-plugin-example-provider",
     "license": "MIT",
     "readme_url": "https://raw.githubusercontent.com/MarlBurroW/kinbot-plugin-example-provider/main/README.md"
+  },
+  {
+    "name": "rss-reader",
+    "description": "Fetch and summarize RSS/Atom feeds. Let your Kin stay up to date with news, blogs, and podcasts.",
+    "author": "KinBot Team",
+    "version": "1.0.0",
+    "repo": "https://github.com/MarlBurroW/kinbot",
+    "tags": ["rss", "news", "tools", "productivity"],
+    "downloads": 0,
+    "rating": 0,
+    "compatible_versions": ">=0.10.0",
+    "icon": "📰",
+    "homepage": "https://github.com/MarlBurroW/kinbot/tree/main/store/rss-reader",
+    "license": "MIT",
+    "readme_url": "https://raw.githubusercontent.com/MarlBurroW/kinbot/main/store/rss-reader/README.md",
+    "store": true
   }
 ]

@@ -1,0 +1,28 @@
+{
+  "name": "rss-reader",
+  "version": "1.0.0",
+  "description": "Fetch and summarize RSS/Atom feeds. Let your Kin stay up to date with news, blogs, and podcasts.",
+  "author": "KinBot Team",
+  "license": "MIT",
+  "main": "index.ts",
+  "icon": "📰",
+  "tags": ["rss", "news", "tools", "productivity"],
+  "permissions": [
+    "http:*"
+  ],
+  "config": {
+    "defaultFeeds": {
+      "type": "string",
+      "label": "Default Feed URLs",
+      "description": "Comma-separated list of RSS/Atom feed URLs to use when no URL is specified",
+      "placeholder": "https://hnrss.org/frontpage, https://feeds.arstechnica.com/arstechnica/index"
+    },
+    "maxItems": {
+      "type": "select",
+      "label": "Default Max Items",
+      "description": "Maximum number of items to return per feed",
+      "options": ["5", "10", "15", "20"],
+      "default": "10"
+    }
+  }
+}
