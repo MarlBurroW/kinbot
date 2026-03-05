@@ -340,6 +340,7 @@ async function hybridSearchSingleQuery(
   candidateLimit: number,
   scoreMap: Map<string, ScoreMapEntry>,
   K: number,
+  ftsBoost: number,
 ): Promise<void> {
   const [vecResults, ftsResults] = await Promise.all([
     searchByVector(kinId, query, candidateLimit),
@@ -359,7 +360,8 @@ async function hybridSearchSingleQuery(
   for (let i = 0; i < ftsResults.length; i++) {
     const r = ftsResults[i]!
     const existing = scoreMap.get(r.id)
-    const rrfScore = 1 / (K + i + 1)
+    // Apply FTS boost: gives keyword matches more influence in the fused score
+    const rrfScore = ftsBoost / (K + i + 1)
     if (existing) {
       existing.score += rrfScore
     } else {
@@ -382,7 +384,8 @@ export async function searchMemories(
   const useRerank = !!config.memory.rerankModel
   // When re-ranking, fetch more candidates to give the LLM a wider pool
   const fetchLimit = useRerank ? maxResults * 3 : maxResults
-  const K = 60 // RRF constant
+  const K = config.memory.rrfK
+  const ftsBoost = config.memory.ftsBoost
   const scoreMap = new Map<string, ScoreMapEntry>()
 
   // Generate query variations if multi-query is enabled
@@ -397,7 +400,7 @@ export async function searchMemories(
   // Run hybrid search for each query variation in parallel
   const candidateLimit = maxResults * 2
   await Promise.all(
-    queries.map((q) => hybridSearchSingleQuery(kinId, q, candidateLimit, scoreMap, K)),
+    queries.map((q) => hybridSearchSingleQuery(kinId, q, candidateLimit, scoreMap, K, ftsBoost)),
   )
 
   // Apply temporal decay, importance weighting, and retrieval frequency boost to fused scores
