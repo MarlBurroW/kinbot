@@ -251,6 +251,60 @@ export function Plugins() {
           </div>
         </div>
 
+        {/* Store showcase */}
+        <div className="mt-20">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-foreground)' }}>
+              Community <span className="gradient-text">Plugin Store</span>
+            </h3>
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+              Install plugins directly from the KinBot UI. Or build your own and submit a PR.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {([
+              { icon: '🔖', name: 'bookmarks', desc: 'Save, organize, and search bookmarks with tags. Your Kin remembers useful links so you don\'t have to.', tags: ['productivity', 'tools'] },
+              { icon: '🍅', name: 'pomodoro', desc: 'Pomodoro technique timer. Start focused work sessions with timed breaks to boost productivity.', tags: ['productivity', 'timer'] },
+              { icon: '📰', name: 'rss-reader', desc: 'Fetch and summarize RSS/Atom feeds. Let your Kin stay up to date with news, blogs, and podcasts.', tags: ['rss', 'news'] },
+              { icon: '📊', name: 'system-monitor', desc: 'Monitor system resources: CPU, memory, disk, uptime, and processes. Keep an eye on server health.', tags: ['monitoring', 'devops'] },
+            ] as const).map((plugin) => (
+              <div
+                key={plugin.name}
+                className="glass-strong rounded-xl p-5 group transition-all duration-300 hover:scale-[1.02]"
+                style={{
+                  border: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)',
+                }}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl" role="img" aria-label={plugin.name}>{plugin.icon}</span>
+                  <span className="font-semibold text-sm" style={{ color: 'var(--color-foreground)' }}>{plugin.name}</span>
+                </div>
+                <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {plugin.desc}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {plugin.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="text-[10px] px-2 py-0.5 rounded-full"
+                      style={{
+                        background: 'var(--color-secondary)',
+                        color: 'var(--color-muted-foreground)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-center mt-4 text-xs" style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}>
+            More plugins coming soon. Anyone can contribute via the <code className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'color-mix(in oklch, var(--color-muted-foreground) 10%, transparent)' }}>store/</code> directory.
+          </p>
+        </div>
+
         {/* CTA */}
         <div className="text-center mt-12">
           <p className="mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
