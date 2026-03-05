@@ -4120,23 +4120,70 @@ do_config() {
   fi
 
   # Read current values
-  local current_port current_url
+  local current_port current_url current_log_level current_encryption_key
   # shellcheck disable=SC1090
   . "$env_file" 2>/dev/null || true
   current_port="${PORT:-3000}"
   current_url="${PUBLIC_URL:-}"
-  # current_host not used currently but kept for future --config expansion
+  current_log_level="${LOG_LEVEL:-info}"
+  current_encryption_key="${ENCRYPTION_KEY:-}"
 
   echo -e "  ${DIM}Current config: $env_file${NC}"
   echo -e "  ${DIM}Edit values below. Press Enter to keep current value.${NC}"
   echo ""
 
+  # Core settings
+  echo -e "  ${BOLD}Core${NC}"
   local new_port new_url
   prompt_value new_port "Port" "$current_port"
   prompt_value new_url "Public URL" "$current_url"
 
+  # Logging
+  echo ""
+  echo -e "  ${BOLD}Logging${NC}"
+  local new_log_level
+  prompt_value new_log_level "Log level (debug/info/warn/error)" "$current_log_level"
+  # Validate log level
+  case "$new_log_level" in
+    debug|info|warn|error) ;;
+    *)
+      warn "Invalid log level '$new_log_level', falling back to '$current_log_level'"
+      new_log_level="$current_log_level"
+      ;;
+  esac
+
+  # Security
+  echo ""
+  echo -e "  ${BOLD}Security${NC}"
+  local new_encryption_key
+  if [ -n "$current_encryption_key" ]; then
+    local masked_key="${current_encryption_key:0:8}...${current_encryption_key: -4}"
+    echo -e "  ${DIM}Encryption key is set ($masked_key). Leave blank to keep it.${NC}"
+    prompt_value new_encryption_key "Encryption key" "$current_encryption_key"
+  else
+    echo -e "  ${DIM}No encryption key set. API keys are stored in plain text.${NC}"
+    local gen_key="y"
+    if [ "$KINBOT_YES" != true ] && [ "${KINBOT_NO_PROMPT:-}" != "true" ] && [ "${CI:-}" != "true" ]; then
+      echo -en "  ${CYAN}?${NC} ${BOLD}Generate an encryption key?${NC} ${DIM}[Y/n]${NC}: " >/dev/tty
+      read -r gen_key </dev/tty || gen_key="y"
+      [ -z "$gen_key" ] && gen_key="y"
+    fi
+    if [[ "$gen_key" =~ ^[Yy]$ ]]; then
+      new_encryption_key="$(openssl rand -hex 32 2>/dev/null || head -c 64 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+      success "Encryption key generated"
+    else
+      new_encryption_key=""
+    fi
+  fi
+
   # Check if anything changed
-  if [ "$new_port" = "$current_port" ] && [ "$new_url" = "$current_url" ]; then
+  local has_changes=false
+  [ "$new_port" != "$current_port" ] && has_changes=true
+  [ "$new_url" != "$current_url" ] && has_changes=true
+  [ "$new_log_level" != "$current_log_level" ] && has_changes=true
+  [ "$new_encryption_key" != "$current_encryption_key" ] && has_changes=true
+
+  if [ "$has_changes" = false ]; then
     echo ""
     info "No changes made."
     echo ""
@@ -4164,14 +4211,27 @@ do_config() {
   local tmp_env
   tmp_env="$(mktemp)"
 
+  # Track which keys we've written (to append missing ones at the end)
+  local wrote_log_level=false wrote_encryption_key=false
+
   # Update known keys, pass through everything else
   while IFS= read -r line; do
     case "$line" in
-      PORT=*)           echo "PORT=${new_port}" ;;
-      PUBLIC_URL=*)     echo "PUBLIC_URL=${new_url}" ;;
-      *)                echo "$line" ;;
+      PORT=*)             echo "PORT=${new_port}" ;;
+      PUBLIC_URL=*)       echo "PUBLIC_URL=${new_url}" ;;
+      LOG_LEVEL=*)        echo "LOG_LEVEL=${new_log_level}"; wrote_log_level=true ;;
+      ENCRYPTION_KEY=*)   echo "ENCRYPTION_KEY=${new_encryption_key}"; wrote_encryption_key=true ;;
+      *)                  echo "$line" ;;
     esac
   done < "$env_file" > "$tmp_env"
+
+  # Append keys that weren't already in the file
+  if [ "$wrote_log_level" = false ] && [ "$new_log_level" != "info" ]; then
+    echo "LOG_LEVEL=${new_log_level}" >> "$tmp_env"
+  fi
+  if [ "$wrote_encryption_key" = false ] && [ -n "$new_encryption_key" ]; then
+    echo "ENCRYPTION_KEY=${new_encryption_key}" >> "$tmp_env"
+  fi
 
   mv "$tmp_env" "$env_file"
   chmod 600 "$env_file"
@@ -4182,6 +4242,16 @@ do_config() {
   fi
   if [ "$new_url" != "$current_url" ]; then
     success "Public URL: $current_url → $new_url"
+  fi
+  if [ "$new_log_level" != "$current_log_level" ]; then
+    success "Log level: $current_log_level → $new_log_level"
+  fi
+  if [ "$new_encryption_key" != "$current_encryption_key" ]; then
+    if [ -z "$current_encryption_key" ] && [ -n "$new_encryption_key" ]; then
+      success "Encryption key: set (API keys will be encrypted at rest)"
+    elif [ -n "$new_encryption_key" ]; then
+      success "Encryption key: updated"
+    fi
   fi
   success "Config updated: $env_file"
 
