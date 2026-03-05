@@ -138,7 +138,7 @@ export function StepProviders({ onComplete, onBack }: StepProvidersProps) {
                     </div>
                     <p className="text-xs text-muted-foreground">{caps}</p>
                   </div>
-                  {meta.apiKeyUrl ? (
+                  {'apiKeyUrl' in meta && meta.apiKeyUrl ? (
                     <a
                       href={meta.apiKeyUrl}
                       target="_blank"
