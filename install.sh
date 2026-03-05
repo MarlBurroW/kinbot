@@ -2280,6 +2280,10 @@ show_help() {
   echo "  --changelog     Show what changed between installed and latest version"
   echo ""
 
+  echo -e "${BOLD}SHELL${NC}"
+  echo "  --completions [bash|zsh|fish]  Generate shell tab-completions"
+  echo ""
+
   echo -e "${BOLD}FLAGS${NC}"
   echo "  --yes, -y       Auto-confirm all prompts (accept defaults)"
   echo "  --quiet, -q     Suppress non-essential output (only errors + summary)"
@@ -2333,6 +2337,11 @@ show_help() {
   echo ""
   echo -e "  ${DIM}# Fix a broken install (keeps your data)${NC}"
   echo "  bash install.sh --reset"
+  echo ""
+  echo -e "  ${DIM}# Enable tab completion${NC}"
+  echo "  eval \"\$(bash install.sh --completions bash)\"   ${DIM}# bash${NC}"
+  echo "  eval \"\$(bash install.sh --completions zsh)\"    ${DIM}# zsh${NC}"
+  echo "  bash install.sh --completions fish > ~/.config/fish/completions/kinbot.fish"
   echo ""
 }
 
@@ -4922,6 +4931,141 @@ do_test() {
   exit "$( [ "$failed" -gt 0 ] && echo 1 || echo 0 )"
 }
 
+# ─── Shell completions ────────────────────────────────────────────────────────
+generate_completions() {
+  local shell="${1:-bash}"
+
+  case "$shell" in
+    bash)
+      cat << 'BASH_COMP'
+# KinBot bash completions
+# Add to ~/.bashrc:  eval "$(bash install.sh --completions bash)"
+# Or:                bash install.sh --completions bash > /etc/bash_completion.d/kinbot
+
+_kinbot_completions() {
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+  local commands="--help --update --docker --dry-run --reset --uninstall
+    --start --stop --restart --logs --status --test --doctor
+    --config --env --backup --restore --version --changelog
+    --completions --yes --quiet --no-color"
+
+  # Sub-options for specific commands
+  case "$prev" in
+    --logs|logs)
+      COMPREPLY=( $(compgen -W "--grep --since" -- "$cur") )
+      return
+      ;;
+    --completions|completions)
+      COMPREPLY=( $(compgen -W "bash zsh fish" -- "$cur") )
+      return
+      ;;
+    --backup|backup|--restore|restore)
+      COMPREPLY=( $(compgen -f -- "$cur") )
+      return
+      ;;
+    --grep)
+      return  # free-form pattern
+      ;;
+    --since)
+      COMPREPLY=( $(compgen -W "today yesterday '1 hour ago' '30 min ago'" -- "$cur") )
+      return
+      ;;
+  esac
+
+  COMPREPLY=( $(compgen -W "$commands" -- "$cur") )
+}
+
+# Support both "kinbot" (the generated script) and "install.sh"
+complete -F _kinbot_completions kinbot
+complete -F _kinbot_completions install.sh
+BASH_COMP
+      ;;
+
+    zsh)
+      cat << 'ZSH_COMP'
+# KinBot zsh completions
+# Add to ~/.zshrc:  eval "$(bash install.sh --completions zsh)"
+# Or save to a file in your $fpath
+
+_kinbot() {
+  local -a commands=(
+    '--help:Show help message'
+    '--update:Check for updates and apply'
+    '--docker:Docker Compose setup'
+    '--dry-run:Preview without making changes'
+    '--reset:Fix broken install, keep data'
+    '--uninstall:Remove KinBot'
+    '--start:Start the service'
+    '--stop:Stop the service'
+    '--restart:Restart the service'
+    '--logs:Show logs (follow or last N lines)'
+    '--status:Check installation health'
+    '--test:Run self-tests'
+    '--doctor:Generate diagnostic report'
+    '--config:Re-run configuration wizard'
+    '--env:Show or set env variables'
+    '--backup:Back up database and config'
+    '--restore:Restore from a backup'
+    '--version:Show installed version'
+    '--changelog:Show changes since installed version'
+    '--completions:Generate shell completions'
+    '--yes:Auto-confirm all prompts'
+    '--quiet:Suppress non-essential output'
+    '--no-color:Disable colored output'
+  )
+
+  _describe 'command' commands
+}
+
+compdef _kinbot kinbot
+compdef _kinbot install.sh
+ZSH_COMP
+      ;;
+
+    fish)
+      cat << 'FISH_COMP'
+# KinBot fish completions
+# Save to: ~/.config/fish/completions/kinbot.fish
+
+# Clear existing
+complete -c kinbot -e
+
+complete -c kinbot -l help -d 'Show help message'
+complete -c kinbot -l update -d 'Check for updates and apply'
+complete -c kinbot -l docker -d 'Docker Compose setup'
+complete -c kinbot -l dry-run -d 'Preview without making changes'
+complete -c kinbot -l reset -d 'Fix broken install, keep data'
+complete -c kinbot -l uninstall -d 'Remove KinBot'
+complete -c kinbot -l start -d 'Start the service'
+complete -c kinbot -l stop -d 'Stop the service'
+complete -c kinbot -l restart -d 'Restart the service'
+complete -c kinbot -l logs -d 'Show logs'
+complete -c kinbot -l status -d 'Check installation health'
+complete -c kinbot -l test -d 'Run self-tests'
+complete -c kinbot -l doctor -d 'Generate diagnostic report'
+complete -c kinbot -l config -d 'Re-run configuration wizard'
+complete -c kinbot -l env -d 'Show or set env variables'
+complete -c kinbot -l backup -d 'Back up database and config'
+complete -c kinbot -l restore -d 'Restore from a backup'
+complete -c kinbot -l version -d 'Show installed version'
+complete -c kinbot -l changelog -d 'Show changes'
+complete -c kinbot -l completions -d 'Generate shell completions'
+complete -c kinbot -l yes -d 'Auto-confirm all prompts'
+complete -c kinbot -l quiet -d 'Suppress non-essential output'
+complete -c kinbot -l no-color -d 'Disable colored output'
+FISH_COMP
+      ;;
+
+    *)
+      echo "Unknown shell: $shell" >&2
+      echo "Supported: bash, zsh, fish" >&2
+      exit 1
+      ;;
+  esac
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
   # Handle flags
@@ -5069,6 +5213,20 @@ main() {
       --changelog|changelog)
         trap - INT TERM
         show_changelog
+        exit 0
+        ;;
+      --completions|completions)
+        trap - INT TERM
+        # Find the shell argument after --completions
+        local comp_shell="bash"
+        local found_comp=false
+        for a in "$@"; do
+          if [ "$found_comp" = true ]; then
+            [[ "$a" != --* ]] && comp_shell="$a" && break
+          fi
+          [[ "$a" = "--completions" || "$a" = "completions" ]] && found_comp=true
+        done
+        generate_completions "$comp_shell"
         exit 0
         ;;
       --dry-run|dry-run)
