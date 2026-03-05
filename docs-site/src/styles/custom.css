@@ -1,0 +1,33 @@
+/* KinBot Docs - Custom Theme */
+
+:root {
+	--sl-color-accent-low: oklch(0.25 0.12 300);
+	--sl-color-accent: oklch(0.52 0.24 300);
+	--sl-color-accent-high: oklch(0.78 0.16 300);
+	--sl-color-white: oklch(0.96 0 0);
+	--sl-color-gray-1: oklch(0.88 0 0);
+	--sl-color-gray-2: oklch(0.78 0 0);
+	--sl-color-gray-3: oklch(0.58 0 0);
+	--sl-color-gray-4: oklch(0.38 0 0);
+	--sl-color-gray-5: oklch(0.24 0 0);
+	--sl-color-gray-6: oklch(0.16 0.02 300);
+	--sl-color-black: oklch(0.12 0.02 300);
+	--sl-font: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+}
+
+:root[data-theme='dark'] {
+	--sl-color-accent-low: oklch(0.22 0.14 300);
+	--sl-color-accent: oklch(0.62 0.26 340);
+	--sl-color-accent-high: oklch(0.82 0.14 340);
+	--sl-color-bg-nav: oklch(0.14 0.02 300);
+	--sl-color-bg-sidebar: oklch(0.14 0.02 300);
+	--sl-color-hairline-shade: oklch(0.2 0.04 300);
+}
+
+/* Subtle gradient on hero headings */
+.sl-markdown-content h1 {
+	background: linear-gradient(135deg, oklch(0.62 0.26 300), oklch(0.62 0.26 340));
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
