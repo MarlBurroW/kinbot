@@ -33,6 +33,9 @@ RUN sed -i '/"prepare":/d' package.json && \
     bun install --frozen-lockfile --production && \
     apt-get purge -y python3 make g++ && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
+# Install gosu for entrypoint privilege dropping
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
+
 # Copy built frontend
 COPY --from=build /app/dist ./dist
 
@@ -59,8 +62,11 @@ EXPOSE 3000
 
 VOLUME ["/app/data"]
 
-# Run as non-root user
-USER kinbot
+# Copy entrypoint script (handles permission fixing + privilege dropping)
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
