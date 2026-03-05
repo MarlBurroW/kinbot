@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   Puzzle,
   Blocks,
@@ -10,6 +11,7 @@ import {
   MessageSquare,
   Webhook,
 } from 'lucide-react'
+import { highlight } from 'sugar-high'
 import type { ComponentType, SVGProps } from 'react'
 
 type Icon = ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>
@@ -112,6 +114,15 @@ export default definePlugin({
   }]
 })`
 
+function HighlightedCode({ code }: { code: string }) {
+  const html = useMemo(() => highlight(code), [code])
+  return (
+    <pre className="p-4 text-sm font-mono overflow-x-auto leading-relaxed">
+      <code dangerouslySetInnerHTML={{ __html: html }} />
+    </pre>
+  )
+}
+
 export function Plugins() {
   return (
     <section id="plugins" className="py-24 relative overflow-hidden">
@@ -126,7 +137,7 @@ export function Plugins() {
         />
       </div>
 
-      <div className="container-section relative z-10">
+      <div className="px-6 max-w-5xl mx-auto relative z-10">
         {/* Section header */}
         <div className="text-center mb-16">
           <div
@@ -221,9 +232,7 @@ export function Plugins() {
               </div>
               <span className="text-xs ml-2 font-mono" style={{ color: 'var(--color-muted-foreground)' }}>plugin.json</span>
             </div>
-            <pre className="p-4 text-sm font-mono overflow-x-auto leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-              <code>{manifestExample}</code>
-            </pre>
+            <HighlightedCode code={manifestExample} />
           </div>
 
           <div className="glass-strong rounded-xl overflow-hidden">
@@ -238,9 +247,7 @@ export function Plugins() {
               </div>
               <span className="text-xs ml-2 font-mono" style={{ color: 'var(--color-muted-foreground)' }}>index.ts</span>
             </div>
-            <pre className="p-4 text-sm font-mono overflow-x-auto leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-              <code>{codeExample}</code>
-            </pre>
+            <HighlightedCode code={codeExample} />
           </div>
         </div>
 
