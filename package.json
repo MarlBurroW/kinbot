@@ -34,6 +34,7 @@
     "db:migrate": "drizzle-kit migrate",
     "test": "bun test",
     "test:e2e": "npx playwright test",
+    "store:validate": "bun scripts/validate-store-plugins.ts",
     "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },

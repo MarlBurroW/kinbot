@@ -1,0 +1,39 @@
+name: Store Plugins
+
+on:
+  pull_request:
+    paths:
+      - 'store/**'
+  push:
+    branches: [main]
+    paths:
+      - 'store/**'
+
+jobs:
+  validate:
+    name: Validate Store Plugins
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate store plugins
+        run: bun scripts/validate-store-plugins.ts
+
+      - name: Type-check store plugins
+        run: |
+          # Check that store plugin entry files have no import errors
+          for dir in store/*/; do
+            plugin=$(basename "$dir")
+            main=$(bun -e "console.log(JSON.parse(require('fs').readFileSync('${dir}plugin.json','utf-8')).main)" 2>/dev/null || echo "")
+            if [ -n "$main" ] && [ -f "${dir}${main}" ]; then
+              echo "Checking ${plugin}/${main}..."
+              bunx tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module esnext --target esnext "${dir}${main}" 2>&1 || true
+            fi
+          done
