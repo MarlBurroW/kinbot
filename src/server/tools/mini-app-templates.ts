@@ -1708,7 +1708,7 @@ export default {
   {
     id: 'component-showcase',
     name: 'Component Showcase',
-    description: 'An interactive storybook that demos all 45 @kinbot/components with live examples. Browse by category: Layout, Forms, Data Display, Feedback, Navigation, Overlays, Charts, and Extra.',
+    description: 'An interactive storybook that demos all 47 @kinbot/components with live examples. Browse by category: Layout, Forms, Data Display, Feedback, Navigation, Overlays, Charts, and Extra.',
     icon: '🧩',
     tags: ['components', 'storybook', 'demo', 'reference', 'ui'],
     suggestedSlug: 'component-showcase',
@@ -1772,12 +1772,13 @@ export default {
       DropdownMenu, Panel, RadioGroup, Slider, DatePicker,
       BarChart, LineChart, PieChart, SparkLine,
       Stepper, StepperContent,
-      FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput
+      FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput,
+      Combobox, TagInput
     } from '@kinbot/components'
 
     const CATEGORIES = [
       { id: 'layout', label: 'Layout', items: ['Stack','Divider','Card','Grid','Panel'] },
-      { id: 'forms', label: 'Forms', items: ['Button','ButtonGroup','Input','Textarea','Select','Checkbox','Switch','RadioGroup','Slider','DatePicker','Form'] },
+      { id: 'forms', label: 'Forms', items: ['Button','ButtonGroup','Input','Textarea','Select','Checkbox','Switch','RadioGroup','Slider','DatePicker','Combobox','TagInput','Form'] },
       { id: 'data', label: 'Data Display', items: ['Badge','Tag','Stat','Avatar','Tooltip','ProgressBar','Table','List','DataGrid','Accordion'] },
       { id: 'feedback', label: 'Feedback', items: ['Alert','Spinner','Skeleton','EmptyState'] },
       { id: 'nav', label: 'Navigation', items: ['Tabs','Breadcrumbs','Pagination','DropdownMenu','Stepper'] },
@@ -1858,6 +1859,25 @@ export default {
         </div>
         <div className="demo-box" style={{maxWidth:'220px'}}>
           <DatePicker label="Pick a date" />
+        </div>
+        <div className="demo-box" style={{maxWidth:'350px'}}>
+          <div className="demo-label">Combobox</div>
+          <Combobox label="Country" placeholder="Select a country..." clearable
+            options={[
+              {value:'fr',label:'France',icon:'🇫🇷',description:'Western Europe'},
+              {value:'us',label:'United States',icon:'🇺🇸',description:'North America'},
+              {value:'jp',label:'Japan',icon:'🇯🇵',description:'East Asia'},
+              {value:'br',label:'Brazil',icon:'🇧🇷',description:'South America'},
+              {value:'de',label:'Germany',icon:'🇩🇪',description:'Western Europe'},
+            ]}
+            onChange={v => KinBot.toast('Selected: ' + v)} />
+        </div>
+        <div className="demo-box" style={{maxWidth:'350px'}}>
+          <div className="demo-label">TagInput</div>
+          <TagInput label="Skills" placeholder="Add a skill..."
+            suggestions={['React','TypeScript','Python','Rust','Go','Tailwind','Docker','Kubernetes']}
+            maxTags={6} value={['React','TypeScript']}
+            onChange={tags => console.log('Tags:', tags)} />
         </div>
       </>
     }
@@ -2059,7 +2079,7 @@ export default {
 
     const SECTIONS = {
       layout: { title: 'Layout', desc: 'Stack, Divider, Card, Grid, Panel', render: LayoutDemo },
-      forms: { title: 'Forms', desc: 'Buttons, inputs, selects, toggles, sliders, date pickers', render: FormsDemo },
+      forms: { title: 'Forms', desc: 'Buttons, inputs, selects, toggles, sliders, date pickers, combobox, tag input', render: FormsDemo },
       data: { title: 'Data Display', desc: 'Badges, tags, stats, avatars, tables, lists, accordions', render: DataDemo },
       feedback: { title: 'Feedback', desc: 'Alerts, spinners, skeletons, empty states', render: FeedbackDemo },
       nav: { title: 'Navigation', desc: 'Tabs, breadcrumbs, pagination, dropdown menus, stepper', render: NavDemo },
