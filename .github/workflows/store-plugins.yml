@@ -1,13 +1,16 @@
 name: Store Plugins
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'store/**'
+      - 'scripts/validate-store-plugins.ts'
   push:
     branches: [main]
     paths:
       - 'store/**'
+      - 'scripts/validate-store-plugins.ts'
 
 jobs:
   validate:
