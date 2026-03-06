@@ -641,6 +641,84 @@ function trackRetrievals(memoryIds: string[]): void {
   }
 }
 
+// ─── Conversational Query Rewriting ──────────────────────────────────────────
+
+/**
+ * Determine if a user message is likely too short or ambiguous to produce
+ * good memory retrieval on its own. Uses character length and pattern matching.
+ */
+function needsContextualRewrite(message: string): boolean {
+  const threshold = config.memory.contextualRewriteThreshold
+  if (message.length > threshold) return false
+
+  // Always rewrite very short messages
+  if (message.length < 20) return true
+
+  // Check for follow-up patterns (pronouns, short answers, references)
+  const followUpPatterns = /^(yes|no|ok|oui|non|d'accord|yeah|yep|nope|sure|exactly|right|correct|why|how|what|when|where|who|it|this|that|these|those|he|she|they|him|her|them|and |but |so |also |the same|me too|agreed|perfect|thanks|merci|pareil|idem|voilà)\b/i
+  if (followUpPatterns.test(message.trim())) return true
+
+  // Check for very few words (< 5 words and < threshold chars)
+  const wordCount = message.trim().split(/\s+/).length
+  if (wordCount < 5) return true
+
+  return false
+}
+
+/**
+ * Rewrite a short/ambiguous user message into a standalone query for memory retrieval,
+ * incorporating recent conversation context.
+ *
+ * This prevents poor retrieval when users send follow-ups like "yes", "what about that?",
+ * or other messages that only make sense in conversational context.
+ *
+ * Returns the original message if rewriting is disabled, unnecessary, or fails.
+ */
+export async function rewriteQueryWithContext(
+  message: string,
+  recentMessages: Array<{ role: string; content: string }>,
+): Promise<string> {
+  const model = config.memory.contextualRewriteModel
+  if (!model || !needsContextualRewrite(message) || recentMessages.length === 0) {
+    return message
+  }
+
+  try {
+    const { resolveLLMModel } = await import('@/server/services/kin-engine')
+    const resolved = await resolveLLMModel(model, null)
+    if (!resolved) return message
+
+    // Build a compact conversation snippet (last 4 turns max)
+    const context = recentMessages
+      .slice(-4)
+      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 200)}`)
+      .join('\n')
+
+    const result = await generateText({
+      model: resolved,
+      messages: [{
+        role: 'user',
+        content:
+          `Rewrite the user's last message into a standalone search query for retrieving relevant memories. ` +
+          `The query should capture the full intent by incorporating context from the conversation.\n\n` +
+          `Conversation:\n${context}\n\nLast message: "${message}"\n\n` +
+          `Return ONLY the rewritten query, nothing else. Keep it concise (1-2 sentences max). ` +
+          `If the message is already self-contained, return it unchanged.`,
+      }],
+    })
+
+    const rewritten = result.text.trim().replace(/^["']|["']$/g, '')
+    if (rewritten.length > 0 && rewritten.length < 500) {
+      log.debug({ original: message, rewritten }, 'Query rewritten with conversation context')
+      return rewritten
+    }
+    return message
+  } catch (err) {
+    log.debug({ err }, 'Contextual query rewrite failed, using original')
+    return message
+  }
+}
+
 // ─── Convenience: retrieve relevant memories for prompt injection ────────────
 
 /**

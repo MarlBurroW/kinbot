@@ -24,7 +24,7 @@ import { hookRegistry } from '@/server/hooks/index'
 import { toolRegistry } from '@/server/tools/index'
 import { config } from '@/server/config'
 import { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK } from '@/server/providers/anthropic-oauth'
-import { getRelevantMemories } from '@/server/services/memory'
+import { getRelevantMemories, rewriteQueryWithContext } from '@/server/services/memory'
 import { maybeCompact } from '@/server/services/compacting'
 import { resolveMCPTools, getMCPToolsSummary } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
@@ -237,9 +237,28 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }))
 
     // Retrieve relevant memories via hybrid search (semantic + FTS5)
+    // If contextual rewriting is enabled, enrich short/ambiguous queries with conversation context
     let relevantMemories: Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null }> = []
     try {
-      relevantMemories = await getRelevantMemories(kinId, queueItem.content)
+      let memoryQuery = queueItem.content
+      if (config.memory.contextualRewriteModel) {
+        // Fetch last few messages for context (lightweight — only content + role, limit 6)
+        const recentMsgs = await db
+          .select({ role: messages.role, content: messages.content })
+          .from(messages)
+          .where(and(eq(messages.kinId, kinId), isNull(messages.taskId), isNull(messages.sessionId)))
+          .orderBy(desc(messages.createdAt))
+          .limit(6)
+          .all()
+        // Reverse to chronological, exclude the current message (already inserted above), filter nulls
+        const contextMsgs = recentMsgs
+          .reverse()
+          .slice(0, -1) // drop last (= current user message)
+          .filter((m) => m.content)
+          .map((m) => ({ role: m.role, content: m.content! }))
+        memoryQuery = await rewriteQueryWithContext(queueItem.content, contextMsgs)
+      }
+      relevantMemories = await getRelevantMemories(kinId, memoryQuery)
     } catch {
       // Memory retrieval failure is non-fatal — proceed without memories
     }

@@ -79,6 +79,8 @@ export const config = {
     rrfK: Number(process.env.MEMORY_RRF_K ?? 60),
     ftsBoost: Number(process.env.MEMORY_FTS_BOOST ?? 1.2),
     subjectBoost: Number(process.env.MEMORY_SUBJECT_BOOST ?? 1.3),
+    contextualRewriteModel: process.env.MEMORY_CONTEXTUAL_REWRITE_MODEL ?? undefined,
+    contextualRewriteThreshold: Number(process.env.MEMORY_CONTEXTUAL_REWRITE_THRESHOLD ?? 80),
   },
 
   queue: {
