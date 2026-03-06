@@ -12,6 +12,19 @@ const mockContacts = {
   addContactIdentifier: mock(() => {}),
   setContactNote: mock(() => ({ contactId: 'c-1', scope: 'private', content: 'test note' })),
   findContactByIdentifier: mock(() => null as any),
+  // Stubs for exports used by other modules (bun mock.module is global)
+  findContactByLinkedUserId: mock(() => null as any),
+  listContacts: mock(() => Promise.resolve([])),
+  getContact: mock(() => Promise.resolve(null as any)),
+  removeContactIdentifier: mock(() => false),
+  updateContactIdentifier: mock(() => null as any),
+  listContactIdentifiers: mock(() => []),
+  listContactsForPrompt: mock(() => Promise.resolve([])),
+  ensureUserContactsExist: mock(() => Promise.resolve()),
+  deleteContactNote: mock(() => {}),
+  deleteNotesByKin: mock(() => {}),
+  getVisibleNotes: mock(() => []),
+  updateContactNote: mock(() => null as any),
 }
 
 mock.module('@/server/services/contacts', () => mockContacts)

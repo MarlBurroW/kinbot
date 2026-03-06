@@ -13,7 +13,7 @@ interface RegistryCache {
   fetchedAt: number
 }
 
-class PluginRegistryService {
+export class PluginRegistryService {
   private cache: RegistryCache | null = null
   private registryUrl: string
 

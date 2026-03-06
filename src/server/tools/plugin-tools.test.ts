@@ -16,16 +16,23 @@ const mockPluginManager = {
   uninstallPlugin: mock(() => Promise.resolve()),
 }
 
+// Use require to get real exports, then override only what we need
+const realPlugins = require('@/server/services/plugins')
 mock.module('@/server/services/plugins', () => ({
+  ...realPlugins,
   pluginManager: mockPluginManager,
 }))
 
 const mockRegistry = {
   search: mock(() => Promise.resolve([] as any[])),
   getTags: mock(() => Promise.resolve([] as string[])),
+  getRegistry: mock(() => Promise.resolve([] as any[])),
+  fetchReadme: mock(() => Promise.resolve(null as string | null)),
 }
 
+const realPluginRegistry = require('@/server/services/pluginRegistry')
 mock.module('@/server/services/pluginRegistry', () => ({
+  ...realPluginRegistry,
   pluginRegistry: mockRegistry,
 }))
 

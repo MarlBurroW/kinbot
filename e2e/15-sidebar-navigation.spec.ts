@@ -52,7 +52,7 @@ test.describe.serial('Sidebar navigation & layout', () => {
     const sidebar = page.locator('[data-slot="sidebar"]')
 
     // Mini-Apps section title
-    const miniAppsToggle = sidebar.getByText('Mini-Apps')
+    const miniAppsToggle = sidebar.getByRole('button', { name: 'Mini-Apps' })
     await expect(miniAppsToggle).toBeVisible()
 
     // Click to collapse

@@ -1,5 +1,6 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
 import { Hono } from 'hono'
+import * as realContacts from '@/server/services/contacts'
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,7 @@ mock.module('@/server/logger', () => ({
 }))
 
 mock.module('@/server/services/contacts', () => ({
+  ...realContacts,
   createContact: (...args: unknown[]) => mockCreateContact(...args),
   findContactByLinkedUserId: (...args: unknown[]) => mockFindContactByLinkedUserId(...args),
 }))

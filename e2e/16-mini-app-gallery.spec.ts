@@ -321,7 +321,7 @@ test.describe.serial('Mini App Gallery', () => {
 
   test('should show Mini-Apps empty state in sidebar when no apps exist', async ({ page }) => {
     // Verify the sidebar shows the empty state for mini-apps
-    const miniAppsSection = page.getByText('Mini-Apps')
+    const miniAppsSection = page.getByRole('button', { name: 'Mini-Apps' })
     await expect(miniAppsSection).toBeVisible()
 
     // Check for the empty state text
