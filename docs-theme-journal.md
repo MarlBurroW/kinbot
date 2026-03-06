@@ -1,5 +1,39 @@
 # Docs Theme Journal
 
+## Run 9 — 2026-03-06
+
+### Done
+1. **Print stylesheet** — Clean print output:
+   - Hides orbs, back-to-top, announcement bar, sidebar, TOC, footer, search, theme toggle
+   - White background, black text, no gradient headings
+   - Inline link URLs after anchors for reference
+
+2. **Search highlight colors** — `mark` / Pagefind highlights:
+   - Purple-tinted highlight matching Aurora palette (dark + light modes)
+   - Subtle rounded background, preserves text color
+
+### Build
+- ✅ Clean build, 34 pages, 0 errors
+
+### Status
+Theme is essentially complete. 13 component overrides, ~840 lines of custom CSS.
+All major items from the task are done:
+- ✅ Custom CSS foundation (fonts, tokens, orbs, glass)
+- ✅ Header (glass, gradient accent, scroll progress, announcement bar)
+- ✅ Sidebar (glass, gradient active link, group headings)
+- ✅ Hero (gradient animated title, orb glow)
+- ✅ Page layout / backgrounds (3 orbs, gradient borders)
+- ✅ Code blocks (rose-pine theme, Aurora borders)
+- ✅ Cards / Asides / Badges (glass effect, colored accents)
+- ✅ Footer, Pagination, TOC, PageTitle, SiteTitle, MobileToC, MobileMenuFooter, TwoColumnContent, PageFrame
+- ✅ Back-to-top, print styles, search highlights, reduced motion, a11y focus
+
+### Remaining (nice-to-have)
+- Visual verification on deployed site
+- Custom 404 page with full Aurora styling
+- ContentPanel override if needed
+- Mobile responsive spot checks
+
 ## Run 8 — 2026-03-06
 
 ### Done
