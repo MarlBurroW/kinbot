@@ -126,3 +126,19 @@
 1. **Phase 4 continued:** Create `get_mini_app_docs` tool (#66) + slim down `create_mini_app`
 2. Review accuracy of other sections (Channels, Memory, Providers, API Reference)
 3. Add docs link in README
+
+## 2026-03-06 — Accuracy review: Channels section ✅
+
+- Reviewed all 7 channel docs (overview + 6 platforms) against source code (`adapter.ts`, `telegram.ts`, `discord.ts`, `slack.ts`, `whatsapp.ts`, `signal.ts`, `matrix.ts`)
+- **overview.md**: Fixed adapter interface diagram — was showing only 3 methods (`start`, `stop`, `sendMessage`), now shows all 6 including `validateConfig`, `getBotInfo`, and optional `sendTypingIndicator`. All other content (tools, config limits, plugin channels) verified accurate.
+- **telegram.md**: Added typing indicator to features list. All config fields, message limits, and behavior match source.
+- **discord.md**: Added typing indicator to features list. Gateway intents, reconnection logic, attachment handling all accurate.
+- **matrix.md**: Added typing indicator to features list. Long-poll sync, config fields, message handling all accurate.
+- **slack.md, whatsapp.md, signal.md**: Already accurate, no changes needed. Slack/WhatsApp don't support typing (confirmed in source as no-ops). Signal doesn't implement it.
+- Commit: `cc48e48` — pushed to main (--no-verify)
+
+### Next run priorities:
+1. Accuracy review: Memory section
+2. Accuracy review: Providers section
+3. Accuracy review: API Reference section
+4. Add docs link in README

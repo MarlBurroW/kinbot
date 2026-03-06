@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Check, Copy, Github, ArrowRight, Star, GitFork, Tag } from 'lucide-react'
 import { useGitHubData } from './GitHubDataProvider'
+import ElectricBorder from './ElectricBorder'
 import previewFallback from '/preview1.mp4'
 
 const PREVIEW_DARK = '/kinbot/showcase/preview-dark.mp4'
@@ -279,18 +280,20 @@ export function Hero() {
 
       {/* Video preview */}
       <div className="animate-levitate animate-fade-in-up mt-10 w-full max-w-6xl" style={{ animationDelay: '0.2s' }}>
-        <div className="glass-strong gradient-border rounded-2xl overflow-hidden shadow-xl">
-          <video
-            key={preview.src}
-            src={preview.src}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full block"
-            onError={preview.onError}
-          />
-        </div>
+        <ElectricBorder color="var(--color-primary)" speed={1.5} chaos={0.08} borderRadius={16}>
+          <div className="glass-strong rounded-2xl overflow-hidden shadow-xl">
+            <video
+              key={preview.src}
+              src={preview.src}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full block"
+              onError={preview.onError}
+            />
+          </div>
+        </ElectricBorder>
       </div>
 
       {/* CTA buttons */}
