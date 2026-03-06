@@ -279,17 +279,73 @@ h1.gradient-heading {
 	background: oklch(0.40 0.04 300 / 0.60);
 }
 
-/* ─── SUGAR-HIGH SYNTAX ───────────────────────────────── */
-.sh {
-	--sh-class: #e879f9;
-	--sh-identifier: #e2e8f0;
-	--sh-sign: #94a3b8;
-	--sh-property: #67e8f9;
-	--sh-entity: #f9a8d4;
-	--sh-jsxliterals: #c4b5fd;
-	--sh-string: #86efac;
-	--sh-keyword: #f472b6;
-	--sh-comment: #64748b;
+/* ─── EXPRESSIVE-CODE SYNTAX TOKENS (Aurora/sugar-high palette) ── */
+:root[data-theme='dark'] .expressive-code {
+	/* Keywords: pink */
+	--ec-tm-keyFg: #f472b6;
+	/* Strings: green */
+	--ec-tm-strFg: #86efac;
+	/* Comments: muted slate */
+	--ec-tm-cmtFg: #64748b;
+	/* Functions/entities: pink-peach */
+	--ec-tm-fnFg: #f9a8d4;
+	/* Types/classes: fuchsia */
+	--ec-tm-typFg: #e879f9;
+	/* Properties: cyan */
+	--ec-tm-propFg: #67e8f9;
+	/* Variables: light slate */
+	--ec-tm-varFg: #e2e8f0;
+	/* Constants/numbers: lavender */
+	--ec-tm-constFg: #c4b5fd;
+	/* Punctuation/signs: muted */
+	--ec-tm-punctFg: #94a3b8;
+	/* Tags: fuchsia */
+	--ec-tm-tagFg: #e879f9;
+	/* Attributes: cyan */
+	--ec-tm-attFg: #67e8f9;
+	/* Attribute values: green */
+	--ec-tm-attValFg: #86efac;
+}
+
+:root[data-theme='light'] .expressive-code {
+	--ec-tm-keyFg: #a21caf;
+	--ec-tm-strFg: #15803d;
+	--ec-tm-cmtFg: #94a3b8;
+	--ec-tm-fnFg: #be185d;
+	--ec-tm-typFg: #9333ea;
+	--ec-tm-propFg: #0891b2;
+	--ec-tm-varFg: #1e293b;
+	--ec-tm-constFg: #7c3aed;
+	--ec-tm-punctFg: #64748b;
+	--ec-tm-tagFg: #9333ea;
+	--ec-tm-attFg: #0891b2;
+	--ec-tm-attValFg: #15803d;
+}
+
+/* ─── CODE BLOCK TABS ─────────────────────────────────── */
+:root[data-theme='dark'] .expressive-code .frame {
+	--ec-frm-edActTabBg: oklch(0.09 0.025 298) !important;
+	--ec-frm-edActTabFg: oklch(0.92 0.015 310) !important;
+	--ec-frm-edActTabBrdBtmCol: oklch(0.60 0.22 300) !important;
+	--ec-frm-edTabBg: oklch(0.12 0.03 298) !important;
+	--ec-frm-edTabFg: oklch(0.62 0.03 310) !important;
+	--ec-frm-edTabBarBg: oklch(0.11 0.03 295) !important;
+	--ec-frm-edTabBarBrdBtmCol: oklch(0.24 0.04 300) !important;
+	--ec-frm-trmTtbBg: oklch(0.11 0.03 295) !important;
+	--ec-frm-trmTtbFg: oklch(0.78 0.02 310) !important;
+}
+
+:root[data-theme='light'] .expressive-code .frame {
+	--ec-frm-edActTabBg: oklch(0.97 0.008 310) !important;
+	--ec-frm-edActTabBrdBtmCol: oklch(0.52 0.24 300) !important;
+	--ec-frm-edTabBg: oklch(0.94 0.01 310) !important;
+	--ec-frm-edTabBarBg: oklch(0.96 0.008 310) !important;
+	--ec-frm-edTabBarBrdBtmCol: oklch(0.88 0.015 310) !important;
+}
+
+/* Tab pill shape */
+.expressive-code .frame .header .tab {
+	border-radius: 0.5rem 0.5rem 0 0 !important;
 }
 
 /* ─── CONTENT AREA TWEAKS ─────────────────────────────── */
@@ -430,4 +486,100 @@ starlight-toc a:hover,
 		transparent
 	) !important;
 	margin: 2rem 0 !important;
+}
+
+/* ─── THEME SELECT BUTTON ─────────────────────────────── */
+starlight-theme-select button {
+	border: 1px solid oklch(0.60 0.22 300 / 0.12) !important;
+	border-radius: 9999px !important;
+	padding: 0.375rem 0.625rem !important;
+	transition: border-color 0.2s, background 0.2s !important;
+}
+
+starlight-theme-select button:hover {
+	border-color: oklch(0.60 0.22 300 / 0.30) !important;
+	background: oklch(0.60 0.22 300 / 0.06) !important;
+}
+
+/* ─── SOCIAL ICONS ────────────────────────────────────── */
+.social-icons a {
+	transition: color 0.2s, transform 0.15s !important;
+}
+
+.social-icons a:hover {
+	color: var(--sl-color-accent) !important;
+	transform: scale(1.1);
+}
+
+/* ─── SEARCH BUTTON STYLING ───────────────────────────── */
+site-search button {
+	border: 1px solid oklch(0.60 0.22 300 / 0.12) !important;
+	border-radius: 9999px !important;
+	transition: border-color 0.2s !important;
+}
+
+site-search button:hover {
+	border-color: oklch(0.60 0.22 300 / 0.25) !important;
+}
+
+/* ─── MOBILE RESPONSIVE REFINEMENTS ───────────────────── */
+@media (max-width: 50rem) {
+	/* Tighter content padding on mobile */
+	.sl-markdown-content {
+		font-size: 0.9375rem;
+	}
+
+	/* Full-width code blocks on mobile */
+	.expressive-code {
+		margin-inline: -1rem !important;
+	}
+
+	.expressive-code pre {
+		border-radius: 0 !important;
+	}
+
+	/* Hero on mobile: center and tighten */
+	:global(.kb-hero-wrap .hero) {
+		padding: 2rem 0.5rem !important;
+	}
+
+	/* Mobile nav glass background */
+	nav.sidebar {
+		background: var(--sl-color-bg-sidebar) !important;
+	}
+}
+
+/* ─── RIGHT SIDEBAR (TOC) GLASS ───────────────────────── */
+@media (min-width: 72rem) {
+	.right-sidebar-panel {
+		border-inline-start: 1px solid oklch(0.60 0.22 300 / 0.08) !important;
+	}
+}
+
+/* ─── DEFINITION LISTS ────────────────────────────────── */
+.sl-markdown-content dt {
+	font-weight: 700;
+	color: var(--sl-color-white);
+	margin-top: 1rem;
+}
+
+.sl-markdown-content dd {
+	margin-inline-start: 1.5rem;
+	color: var(--sl-color-gray-2);
+}
+
+/* ─── STEPS (ordered list with gradient numbers) ──────── */
+.sl-steps > li::marker {
+	color: var(--sl-color-accent) !important;
+	font-weight: 700;
+}
+
+/* ─── REDUCED MOTION ──────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
 }

@@ -21,6 +21,7 @@ export default defineConfig({
 			components: {
 				Header: './src/components/Header.astro',
 				Head: './src/components/Head.astro',
+				SiteTitle: './src/components/SiteTitle.astro',
 				Sidebar: './src/components/Sidebar.astro',
 				Hero: './src/components/Hero.astro',
 				Footer: './src/components/Footer.astro',
