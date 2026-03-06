@@ -7,25 +7,28 @@ interface MiniAppsResponse {
   apps: MiniAppSummary[]
 }
 
-export function useMiniApps(kinId: string | null) {
+export function useMiniApps(kinId: string | null, mode: 'kin' | 'all' = 'kin') {
   const [apps, setApps] = useState<MiniAppSummary[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   const fetchApps = useCallback(async () => {
-    if (!kinId) {
+    if (mode === 'kin' && !kinId) {
       setApps([])
       return
     }
     setIsLoading(true)
     try {
-      const data = await api.get<MiniAppsResponse>(`/mini-apps?kinId=${kinId}`)
+      const endpoint = mode === 'all'
+        ? '/mini-apps/gallery/browse'
+        : `/mini-apps?kinId=${kinId}`
+      const data = await api.get<MiniAppsResponse>(endpoint)
       setApps(data.apps)
     } catch {
       // Silently fail
     } finally {
       setIsLoading(false)
     }
-  }, [kinId])
+  }, [kinId, mode])
 
   useEffect(() => {
     fetchApps()
@@ -39,17 +42,17 @@ export function useMiniApps(kinId: string | null) {
   // SSE: real-time mini-app updates
   useSSE({
     'miniapp:created': (data) => {
-      if (data.kinId !== kinId) return
+      if (mode === 'kin' && data.kinId !== kinId) return
       const app = data.app as MiniAppSummary
       setApps((prev) => [app, ...prev])
     },
     'miniapp:updated': (data) => {
-      if (data.kinId !== kinId) return
+      if (mode === 'kin' && data.kinId !== kinId) return
       const app = data.app as MiniAppSummary
       setApps((prev) => prev.map((a) => (a.id === app.id ? app : a)))
     },
     'miniapp:deleted': (data) => {
-      if (data.kinId !== kinId) return
+      if (mode === 'kin' && data.kinId !== kinId) return
       const appId = data.appId as string
       setApps((prev) => prev.filter((a) => a.id !== appId))
     },

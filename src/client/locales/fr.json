@@ -196,6 +196,7 @@
         "cancelled": "Annulée"
       },
       "emptyDescription": "Les tâches apparaîtront ici quand vos Kins travaillent",
+      "activeLabel": "En cours",
       "toast": {
         "completed": "Tâche terminée : {{title}}",
         "failed": "Tâche échouée : {{title}}",
@@ -227,6 +228,11 @@
       "emptyDescription": "Demandez à un Kin d'en créer une",
       "noKinSelected": "Sélectionnez un Kin",
       "noKinSelectedDescription": "Sélectionnez un Kin pour voir ses mini-apps"
+    },
+    "tabs": {
+      "tasks": "Tâches",
+      "jobs": "Jobs",
+      "apps": "Apps"
     },
     "account": "Mon compte",
     "settings": "Paramètres",

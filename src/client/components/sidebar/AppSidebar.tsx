@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Sidebar,
@@ -6,13 +6,21 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarSeparator,
+  SidebarGroup,
 } from '@/client/components/ui/sidebar'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/client/components/ui/tabs'
 import { KinList } from '@/client/components/sidebar/KinList'
 import { TaskList } from '@/client/components/sidebar/TaskList'
 import { CronList } from '@/client/components/sidebar/CronList'
 import { MiniAppList } from '@/client/components/sidebar/MiniAppList'
 import { SidebarFooterContent } from '@/client/components/sidebar/SidebarFooterContent'
 import { SystemHealthBar } from '@/client/components/sidebar/SystemHealthBar'
+import { useTasks } from '@/client/hooks/useTasks'
+import { cn } from '@/client/lib/utils'
+import { useTranslation } from 'react-i18next'
+import { ListTodo, CalendarClock, Blocks } from 'lucide-react'
+
+const TAB_STORAGE_KEY = 'sidebar.activeTab'
 
 interface KinSummary {
   id: string
@@ -45,7 +53,6 @@ export function AppSidebar({
   kins,
   llmModels,
   selectedKinSlug,
-  selectedKinId,
   unavailableKinIds,
   kinQueueState,
   onSelectKin,
@@ -56,11 +63,25 @@ export function AppSidebar({
   onOpenSettings,
 }: AppSidebarProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
+  const taskData = useTasks()
+  const activeCount = taskData.activeTasks.length
+  const hasAwaiting = taskData.activeTasks.some((t) => t.status === 'awaiting_human_input')
 
-  const miniAppKins = useMemo(
-    () => kins.map((k) => ({ id: k.id, name: k.name, avatarPath: k.avatarUrl })),
-    [kins],
-  )
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return localStorage.getItem(TAB_STORAGE_KEY) ?? 'tasks'
+    } catch {
+      return 'tasks'
+    }
+  })
+
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value)
+    try {
+      localStorage.setItem(TAB_STORAGE_KEY, value)
+    } catch { /* ignore */ }
+  }, [])
 
   const cronKins = useMemo(
     () => kins.map((k) => ({ id: k.id, name: k.name, role: k.role, avatarUrl: k.avatarUrl })),
@@ -88,8 +109,9 @@ export function AppSidebar({
 
       <SidebarSeparator />
 
-      {/* Main content */}
-      <SidebarContent>
+      {/* Main content — disable native SidebarContent scroll, we manage it per-section */}
+      <SidebarContent className="!overflow-hidden flex flex-col">
+        {/* KinList — own scroll via internal max-h */}
         <KinList
           kins={kins}
           llmModels={llmModels}
@@ -103,18 +125,47 @@ export function AppSidebar({
           onReorderKins={onReorderKins}
         />
 
-        <MiniAppList selectedKinId={selectedKinId} kins={miniAppKins} />
-
         <SidebarSeparator />
 
-        <TaskList llmModels={llmModels} />
+        {/* Tabbed section: Tasks / Jobs / Apps — takes remaining space */}
+        <SidebarGroup className="flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
+            <TabsList className="w-full shrink-0 mx-1 h-8">
+              <TabsTrigger value="tasks" className="gap-1.5 text-xs">
+                <ListTodo className="size-3.5" />
+                {t('sidebar.tabs.tasks')}
+                {activeCount > 0 && (
+                  <span className={cn(
+                    'ml-0.5 inline-flex items-center justify-center min-w-4 h-4 rounded-full bg-primary px-1 text-[9px] font-semibold text-primary-foreground leading-none',
+                    hasAwaiting && 'animate-pulse bg-warning text-warning-foreground',
+                  )}>
+                    {activeCount}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="jobs" className="gap-1.5 text-xs">
+                <CalendarClock className="size-3.5" />
+                {t('sidebar.tabs.jobs')}
+              </TabsTrigger>
+              <TabsTrigger value="apps" className="gap-1.5 text-xs">
+                <Blocks className="size-3.5" />
+                {t('sidebar.tabs.apps')}
+              </TabsTrigger>
+            </TabsList>
 
-        <SidebarSeparator />
+            <TabsContent value="tasks" className="flex-1 min-h-0 flex flex-col">
+              <TaskList llmModels={llmModels} taskData={taskData} />
+            </TabsContent>
 
-        <CronList
-          kins={cronKins}
-          llmModels={llmModels}
-        />
+            <TabsContent value="jobs" className="flex-1 min-h-0 flex flex-col">
+              <CronList kins={cronKins} llmModels={llmModels} />
+            </TabsContent>
+
+            <TabsContent value="apps" className="flex-1 min-h-0 overflow-y-auto">
+              <MiniAppList />
+            </TabsContent>
+          </Tabs>
+        </SidebarGroup>
       </SidebarContent>
 
       {/* Footer */}

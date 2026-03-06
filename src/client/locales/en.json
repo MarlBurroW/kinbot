@@ -196,6 +196,7 @@
         "cancelled": "Cancelled"
       },
       "emptyDescription": "Tasks will appear here when Kins are working",
+      "activeLabel": "Active",
       "toast": {
         "completed": "Task completed: {{title}}",
         "failed": "Task failed: {{title}}",
@@ -227,6 +228,11 @@
       "emptyDescription": "Ask a Kin to create one",
       "noKinSelected": "Select a Kin",
       "noKinSelectedDescription": "Select a Kin to see its mini-apps"
+    },
+    "tabs": {
+      "tasks": "Tasks",
+      "jobs": "Jobs",
+      "apps": "Apps"
     },
     "account": "My account",
     "settings": "Settings",

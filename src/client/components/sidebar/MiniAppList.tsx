@@ -1,32 +1,16 @@
-import { useState, useCallback, memo } from 'react'
+import { useCallback, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  SidebarGroup,
   SidebarGroupContent,
 } from '@/client/components/ui/sidebar'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { useMiniApps } from '@/client/hooks/useMiniApps'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
-import { MiniAppGallery } from '@/client/components/mini-app/MiniAppGallery'
 import { cn } from '@/client/lib/utils'
-import { ChevronRight, AppWindow, Loader2, Trash2, Store } from 'lucide-react'
+import { AppWindow, Loader2, Trash2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import type { MiniAppSummary } from '@/shared/types'
-
-const STORAGE_KEY = 'sidebar.miniApps.open'
-
-interface KinInfo {
-  id: string
-  name: string
-  avatarPath: string | null
-}
-
-interface MiniAppListProps {
-  selectedKinId: string | null
-  kins?: KinInfo[]
-}
 
 function MiniAppCard({
   app,
@@ -98,27 +82,10 @@ function MiniAppCard({
   )
 }
 
-export const MiniAppList = memo(function MiniAppList({ selectedKinId, kins = [] }: MiniAppListProps) {
+export const MiniAppList = memo(function MiniAppList() {
   const { t } = useTranslation()
-  const { apps, isLoading, deleteApp } = useMiniApps(selectedKinId)
+  const { apps, isLoading, deleteApp } = useMiniApps(null, 'all')
   const { activeAppId, badges, openApp, closePanel } = useMiniAppPanel()
-  const [galleryOpen, setGalleryOpen] = useState(false)
-
-  const [isOpen, setIsOpen] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      return stored === null ? true : stored === 'true'
-    } catch {
-      return true
-    }
-  })
-
-  const handleOpenChange = useCallback((open: boolean) => {
-    setIsOpen(open)
-    try {
-      localStorage.setItem(STORAGE_KEY, String(open))
-    } catch { /* ignore */ }
-  }, [])
 
   const handleDelete = useCallback(async (appId: string) => {
     if (appId === activeAppId) closePanel()
@@ -126,73 +93,32 @@ export const MiniAppList = memo(function MiniAppList({ selectedKinId, kins = [] 
   }, [activeAppId, closePanel, deleteApp])
 
   return (
-    <SidebarGroup>
-      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
-        <div className="flex items-center">
-          <CollapsibleTrigger className="flex flex-1 items-center gap-1.5 px-2 py-1.5 hover:bg-sidebar-accent/30 transition-colors rounded-md cursor-pointer">
-            <ChevronRight className={cn(
-              'size-3.5 shrink-0 text-muted-foreground transition-transform duration-200',
-              isOpen && 'rotate-90',
-            )} />
-            <span className="text-xs font-medium text-sidebar-foreground/70">
-              {t('sidebar.miniApps.title')}
-            </span>
-
-            {/* Count badge when collapsed */}
-            {!isOpen && apps.length > 0 && (
-              <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                {apps.length}
-              </span>
-            )}
-          </CollapsibleTrigger>
-          <button
-            type="button"
-            onClick={() => setGalleryOpen(true)}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent/30 hover:text-foreground transition-colors"
-            title={t('miniApps.gallery.title')}
-          >
-            <Store className="size-3.5" />
-          </button>
+    <SidebarGroupContent>
+      {isLoading ? (
+        <div className="flex justify-center py-4">
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
         </div>
-
-        <CollapsibleContent>
-          <SidebarGroupContent>
-            {isLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="size-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : apps.length === 0 ? (
-              <EmptyState
-                compact
-                icon={AppWindow}
-                title={selectedKinId ? t('sidebar.miniApps.empty') : t('sidebar.miniApps.noKinSelected', 'Select a Kin')}
-                description={selectedKinId ? t('sidebar.miniApps.emptyDescription') : t('sidebar.miniApps.noKinSelectedDescription', 'Select a Kin to see its mini-apps')}
-              />
-            ) : (
-              <div className="max-h-[25vh] overflow-y-auto">
-                <div className="space-y-1 px-1">
-                  {apps.map((app) => (
-                    <MiniAppCard
-                      key={app.id}
-                      app={app}
-                      isActive={app.id === activeAppId}
-                      badge={badges[app.id]}
-                      onClick={() => openApp(app.id)}
-                      onDelete={() => handleDelete(app.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </SidebarGroupContent>
-        </CollapsibleContent>
-      </Collapsible>
-      <MiniAppGallery
-        open={galleryOpen}
-        onOpenChange={setGalleryOpen}
-        currentKinId={selectedKinId}
-        kins={kins}
-      />
-    </SidebarGroup>
+      ) : apps.length === 0 ? (
+        <EmptyState
+          compact
+          icon={AppWindow}
+          title={t('sidebar.miniApps.empty')}
+          description={t('sidebar.miniApps.emptyDescription')}
+        />
+      ) : (
+        <div className="space-y-1 px-1">
+          {apps.map((app) => (
+            <MiniAppCard
+              key={app.id}
+              app={app}
+              isActive={app.id === activeAppId}
+              badge={badges[app.id]}
+              onClick={() => openApp(app.id)}
+              onDelete={() => handleDelete(app.id)}
+            />
+          ))}
+        </div>
+      )}
+    </SidebarGroupContent>
   )
 })

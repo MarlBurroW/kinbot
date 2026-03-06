@@ -136,10 +136,10 @@ export function useTasks() {
       const title = (data.title as string) ?? null
       const now = new Date().toISOString()
 
-      let wasKnown = false
+      let finishedTask: TaskSummary | null = null
 
       setActiveTasks((prev) => {
-        if (prev.some((t) => t.id === taskId)) wasKnown = true
+        finishedTask = prev.find((t) => t.id === taskId) ?? null
         return prev.filter((t) => t.id !== taskId)
       })
 
@@ -161,15 +161,17 @@ export function useTasks() {
       setHistoryTasks((prev) => {
         const exists = prev.some((t) => t.id === taskId)
         if (exists) {
-          wasKnown = true
           return prev.map((t) => (t.id === taskId ? { ...t, status, updatedAt: now } : t))
+        }
+        // Task was in activeTasks but not yet in history — prepend it
+        if (finishedTask) {
+          return [{ ...finishedTask, status, updatedAt: now }, ...prev]
         }
         return prev
       })
 
-      // If the task was never in our lists (resolved faster than fetchActiveTasks
-      // could return), refetch history so it appears in the sidebar
-      if (!wasKnown) {
+      // Task was never in any list — refetch history
+      if (!finishedTask) {
         offsetRef.current = 0
         fetchHistory(0, false)
       }

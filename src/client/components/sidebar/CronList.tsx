@@ -17,10 +17,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  SidebarGroup,
   SidebarGroupContent,
 } from '@/client/components/ui/sidebar'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
 import { Input } from '@/client/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Badge } from '@/client/components/ui/badge'
@@ -33,11 +31,9 @@ import { cn } from '@/client/lib/utils'
 import { formatRelativeTime } from '@/client/lib/time'
 import { cronToHuman } from '@/client/lib/cron-human'
 import { cronNextRun, formatCountdown } from '@/client/lib/cron-next'
-import { Plus, Clock, CheckCircle2, Loader2, ChevronRight, Search, GripVertical, Timer, FastForward } from 'lucide-react'
+import { Plus, Clock, CheckCircle2, Loader2, Search, GripVertical, Timer, FastForward } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import type { CronSummary } from '@/shared/types'
-
-const STORAGE_KEY = 'sidebar.crons.open'
 
 interface KinOption {
   id: string
@@ -203,23 +199,6 @@ export const CronList = memo(function CronList({ kins, llmModels }: CronListProp
   const [duplicateDefaults, setDuplicateDefaults] = useState<Partial<CronSummary> | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Collapsible state persisted in localStorage
-  const [isOpen, setIsOpen] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      return stored === null ? true : stored === 'true'
-    } catch {
-      return true
-    }
-  })
-
-  const handleOpenChange = useCallback((open: boolean) => {
-    setIsOpen(open)
-    try {
-      localStorage.setItem(STORAGE_KEY, String(open))
-    } catch { /* ignore */ }
-  }, [])
-
   // Filter by search query
   const filteredCrons = useMemo(() => {
     if (!searchQuery.trim()) return crons
@@ -237,13 +216,6 @@ export const CronList = memo(function CronList({ kins, llmModels }: CronListProp
   const regularCrons = useMemo(() => filteredCrons.filter((c) => !c.requiresApproval), [filteredCrons])
 
   const isEmpty = filteredCrons.length === 0 && !isLoading
-
-  // Summary counts for collapsed state
-  const activeCount = useMemo(
-    () => crons.filter((c) => c.isActive && !c.requiresApproval).length,
-    [crons],
-  )
-  const pendingApprovalCount = pendingCrons.length
 
   // Keep detailCron in sync with crons state (for live updates)
   const currentDetailCron = useMemo(
@@ -275,40 +247,14 @@ export const CronList = memo(function CronList({ kins, llmModels }: CronListProp
   const isDraggable = !searchQuery.trim()
 
   return (
-    <SidebarGroup>
-      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
-        <div className="flex items-center">
-          <CollapsibleTrigger className="flex flex-1 items-center gap-1.5 px-2 py-1.5 hover:bg-sidebar-accent/30 transition-colors rounded-md cursor-pointer">
-            <ChevronRight className={cn(
-              'size-3.5 shrink-0 text-muted-foreground transition-transform duration-200',
-              isOpen && 'rotate-90',
-            )} />
-            <span className="text-xs font-medium text-sidebar-foreground/70">
-              {t('sidebar.crons.title')}
-            </span>
-
-            {/* Summary badges — only shown when collapsed */}
-            {!isOpen && (
-              <div className="ml-auto flex items-center gap-1">
-                {activeCount > 0 && (
-                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                    {t('sidebar.crons.summary.active', { count: activeCount })}
-                  </span>
-                )}
-                {pendingApprovalCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning">
-                    {t('sidebar.crons.summary.pending', { count: pendingApprovalCount })}
-                  </span>
-                )}
-              </div>
-            )}
-          </CollapsibleTrigger>
-
-          {/* Create button — always visible */}
+    <>
+      {/* Header + search — stay fixed above scroll */}
+      <div className="shrink-0">
+        <div className="flex items-center justify-end px-1 pb-1">
           <Button
             variant="ghost"
             size="icon"
-            className="size-6 shrink-0 mr-1"
+            className="size-6 shrink-0"
             onClick={() => setShowCreateModal(true)}
             title={t('sidebar.crons.create')}
           >
@@ -316,87 +262,82 @@ export const CronList = memo(function CronList({ kins, llmModels }: CronListProp
           </Button>
         </div>
 
-        <CollapsibleContent>
-          <SidebarGroupContent>
-            {/* Search input */}
-            {crons.length > 0 && (
-              <div className="px-1 pb-2 pt-1">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('sidebar.crons.search')}
-                    className="h-8 pl-8 text-xs"
-                  />
-                </div>
-              </div>
-            )}
+        {crons.length > 0 && (
+          <div className="px-1 pb-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('sidebar.crons.search')}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
-            {isLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="size-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : isEmpty ? (
-              searchQuery ? (
-                <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-                  {t('sidebar.crons.noResults')}
-                </p>
-              ) : (
-                <EmptyState
-                  compact
-                  icon={Timer}
-                  title={t('sidebar.crons.empty')}
-                  description={t('sidebar.crons.emptyDescription')}
-                  actionLabel={t('sidebar.crons.create')}
-                  onAction={() => setShowCreateModal(true)}
+      <SidebarGroupContent className="flex-1 min-h-0 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : isEmpty ? (
+          searchQuery ? (
+            <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+              {t('sidebar.crons.noResults')}
+            </p>
+          ) : (
+            <EmptyState
+              compact
+              icon={Timer}
+              title={t('sidebar.crons.empty')}
+              description={t('sidebar.crons.emptyDescription')}
+              actionLabel={t('sidebar.crons.create')}
+              onAction={() => setShowCreateModal(true)}
+            />
+          )
+        ) : (
+          <div className="space-y-1 px-1">
+              {/* Pending approval — not sortable */}
+              {pendingCrons.map((cron) => (
+                <CronCard
+                  key={cron.id}
+                  cron={cron}
+                  onClick={() => setDetailCron(cron)}
+                  onApprove={() => approveCron(cron.id)}
                 />
-              )
-            ) : (
-              <div className="max-h-[25vh] overflow-y-auto">
-                <div className="space-y-1 px-1">
-                  {/* Pending approval — not sortable */}
-                  {pendingCrons.map((cron) => (
-                    <CronCard
-                      key={cron.id}
-                      cron={cron}
-                      onClick={() => setDetailCron(cron)}
-                      onApprove={() => approveCron(cron.id)}
-                    />
-                  ))}
-                  {pendingCrons.length > 0 && regularCrons.length > 0 && (
-                    <div className="my-2 h-px bg-border/50" />
-                  )}
-                  {/* Active + inactive — sortable by drag-and-drop (unless searching) */}
-                  {isDraggable ? (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                      <SortableContext items={regularCronIds} strategy={verticalListSortingStrategy}>
-                        {regularCrons.map((cron) => (
-                          <SortableCronCard
-                            key={cron.id}
-                            cron={cron}
-                            onClick={() => setDetailCron(cron)}
-                            onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
-                          />
-                        ))}
-                      </SortableContext>
-                    </DndContext>
-                  ) : (
-                    regularCrons.map((cron) => (
-                      <CronCard
+              ))}
+              {pendingCrons.length > 0 && regularCrons.length > 0 && (
+                <div className="my-2 h-px bg-border/50" />
+              )}
+              {/* Active + inactive — sortable by drag-and-drop (unless searching) */}
+              {isDraggable ? (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={regularCronIds} strategy={verticalListSortingStrategy}>
+                    {regularCrons.map((cron) => (
+                      <SortableCronCard
                         key={cron.id}
                         cron={cron}
                         onClick={() => setDetailCron(cron)}
                         onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
                       />
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </SidebarGroupContent>
-        </CollapsibleContent>
-      </Collapsible>
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                regularCrons.map((cron) => (
+                  <CronCard
+                    key={cron.id}
+                    cron={cron}
+                    onClick={() => setDetailCron(cron)}
+                    onToggleActive={(isActive) => updateCron(cron.id, { isActive })}
+                  />
+                ))
+              )}
+          </div>
+        )}
+      </SidebarGroupContent>
 
       {/* Create modal */}
       {showCreateModal && (
@@ -455,6 +396,6 @@ export const CronList = memo(function CronList({ kins, llmModels }: CronListProp
         />
         </Suspense>
       )}
-    </SidebarGroup>
+    </>
   )
 })
