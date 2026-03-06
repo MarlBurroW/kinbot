@@ -1260,8 +1260,6 @@
       "incompatibleDetail": "This plugin requires KinBot {range}, but you are running {version}. It may not work correctly.",
       "author": "Author",
       "license": "License",
-      "rating": "Rating",
-      "downloads": "Downloads",
       "compatibility": "Compatibility",
       "homepage": "Homepage",
       "repository": "Repository",

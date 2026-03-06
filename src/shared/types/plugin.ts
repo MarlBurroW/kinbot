@@ -60,8 +60,6 @@ export interface RegistryPlugin {
   version: string
   repo: string
   tags: string[]
-  downloads: number
-  rating: number
   compatible_versions: string
   icon?: string
   homepage?: string

@@ -96,10 +96,16 @@ export class PluginRegistryService {
     return Array.from(tagSet).sort()
   }
 
-  /** Fetch README from a plugin's repo */
-  async fetchReadme(repoUrl: string): Promise<string | null> {
+  /** Fetch README from a plugin's readme_url or repo */
+  async fetchReadme(repoUrl: string, readmeUrl?: string): Promise<string | null> {
     try {
-      // Convert github repo URL to raw README URL
+      // Prefer explicit readme_url if provided
+      if (readmeUrl) {
+        const res = await fetch(readmeUrl)
+        if (res.ok) return await res.text()
+      }
+
+      // Fallback: derive from github repo URL
       const match = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/)
       if (!match) return null
 

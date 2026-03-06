@@ -43,7 +43,8 @@ pluginRoutes.get('/registry/readme', async (c) => {
   try {
     const repo = c.req.query('repo')
     if (!repo) return c.json({ error: { code: 'MISSING_REPO', message: 'repo query param required' } }, 400)
-    const readme = await pluginRegistry.fetchReadme(repo)
+    const readmeUrl = c.req.query('readme_url')
+    const readme = await pluginRegistry.fetchReadme(repo, readmeUrl || undefined)
     return c.json({ readme })
   } catch (err) {
     return c.json({ error: { code: 'README_FETCH_FAILED', message: 'Failed to fetch README' } }, 500)
