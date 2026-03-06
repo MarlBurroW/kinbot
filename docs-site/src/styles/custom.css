@@ -68,7 +68,7 @@
 /* ─── BASE ────────────────────────────────────────────── */
 html {
 	scroll-behavior: smooth;
-	scroll-padding-top: calc(var(--sl-nav-height) + 1rem);
+	scroll-padding-top: calc(var(--sl-nav-height) + 2.5rem);
 }
 
 /* ─── BACKGROUND ORBS ─────────────────────────────────── */
@@ -664,6 +664,63 @@ starlight-menu-button button:hover {
 
 :root[data-theme='light'] ::selection {
 	background: oklch(0.52 0.24 300 / 0.20);
+}
+
+/* ─── LIGHT MODE SIDEBAR POLISH ───────────────────────── */
+:root[data-theme='light'] :global(nav.sidebar a[aria-current='page']) {
+	background: oklch(0.52 0.24 300 / 0.06) !important;
+}
+
+:root[data-theme='light'] :global(.sidebar-content .top-level > li > details > summary span) {
+	background: linear-gradient(
+		135deg,
+		oklch(0.42 0.24 300 / 0.9),
+		oklch(0.48 0.26 340 / 0.9)
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+:root[data-theme='light'] :global(.sidebar-content .top-level > li + li) {
+	border-top-color: oklch(0.52 0.24 300 / 0.08);
+}
+
+/* ─── CARD GRID ICON GLOW ─────────────────────────────── */
+.sl-markdown-content .card-grid .card .icon {
+	filter: drop-shadow(0 0 6px oklch(0.60 0.22 300 / 0.25));
+}
+
+/* ─── HERO ACTIONS: GLASS SECONDARY BUTTON REFINEMENT ── */
+.hero .actions .sl-link-button.sl-link-button--minimal {
+	backdrop-filter: blur(8px) saturate(160%) !important;
+	-webkit-backdrop-filter: blur(8px) saturate(160%) !important;
+}
+
+/* ─── SPLASH PAGE HERO ALIGNMENT ──────────────────────── */
+:global(.kb-hero-wrap .hero) {
+	text-align: center;
+}
+
+:global(.kb-hero-wrap .hero .actions) {
+	justify-content: center;
+}
+
+/* ─── HEADING ANCHOR LINKS ────────────────────────────── */
+.sl-markdown-content :is(h2, h3, h4, h5, h6) .anchor-link {
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	margin-inline-start: 0.375rem;
+	color: var(--sl-color-accent);
+}
+
+.sl-markdown-content :is(h2, h3, h4, h5, h6):hover .anchor-link {
+	opacity: 0.6;
+}
+
+/* ─── STARLIGHT TABS PANEL ────────────────────────────── */
+.starlight-tabs [role='tabpanel'] {
+	border-color: var(--kb-glass-border) !important;
 }
 
 /* ─── REDUCED MOTION ──────────────────────────────────── */

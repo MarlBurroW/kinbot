@@ -32,18 +32,27 @@ import Default from '@astrojs/starlight/components/Hero.astro';
 		z-index: -1;
 	}
 
-	/* Gradient title */
+	/* Gradient title with animated shift */
 	:global(.kb-hero-wrap .hero h1) {
 		background: linear-gradient(
 			135deg,
 			oklch(0.60 0.22 300) 0%,
-			oklch(0.66 0.24 340) 45%,
-			oklch(0.76 0.16 15) 100%
+			oklch(0.66 0.24 340) 30%,
+			oklch(0.76 0.16 15) 60%,
+			oklch(0.60 0.22 300) 100%
 		) !important;
+		background-size: 200% 200% !important;
+		animation: kb-gradient-shift 6s ease infinite !important;
 		-webkit-background-clip: text !important;
 		-webkit-text-fill-color: transparent !important;
 		background-clip: text !important;
 		font-weight: 800 !important;
+	}
+
+	@keyframes kb-gradient-shift {
+		0%   { background-position: 0% 50%; }
+		50%  { background-position: 100% 50%; }
+		100% { background-position: 0% 50%; }
 	}
 
 	/* Tagline */

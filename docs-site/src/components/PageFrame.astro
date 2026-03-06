@@ -8,6 +8,24 @@ import Default from '@astrojs/starlight/components/PageFrame.astro';
 	<slot />
 </Default>
 
+<!-- Back-to-top button with circular scroll progress -->
+<button class="kb-back-to-top" id="kb-btt" aria-label="Back to top" title="Back to top">
+	<svg class="kb-btt-ring" width="44" height="44" viewBox="0 0 44 44">
+		<circle cx="22" cy="22" r="19.5" fill="none" stroke="currentColor" stroke-width="2" opacity="0.15" />
+		<circle class="kb-btt-progress" cx="22" cy="22" r="19.5" fill="none" stroke="url(#btt-grad)" stroke-width="2.5" stroke-linecap="round"
+			stroke-dasharray="122.52" stroke-dashoffset="122.52" />
+		<defs>
+			<linearGradient id="btt-grad" x1="0" y1="0" x2="1" y2="1">
+				<stop offset="0%" stop-color="oklch(0.60 0.22 300)" />
+				<stop offset="100%" stop-color="oklch(0.66 0.24 340)" />
+			</linearGradient>
+		</defs>
+	</svg>
+	<svg class="kb-btt-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+		<path d="m18 15-6-6-6 6" />
+	</svg>
+</button>
+
 <style is:global>
 	/* Third orb — mid-page, right-center area */
 	.page::before {
@@ -44,3 +62,103 @@ import Default from '@astrojs/starlight/components/PageFrame.astro';
 		}
 	}
 </style>
+
+<style>
+	.kb-back-to-top {
+		position: fixed;
+		bottom: 1.5rem;
+		right: 1.5rem;
+		z-index: 40;
+		width: 44px;
+		height: 44px;
+		border: none;
+		background: none;
+		cursor: pointer;
+		opacity: 0;
+		pointer-events: none;
+		transform: translateY(12px);
+		transition: opacity 0.3s ease, transform 0.3s ease;
+	}
+
+	.kb-back-to-top.visible {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
+	}
+
+	.kb-back-to-top:hover {
+		transform: scale(1.1);
+	}
+
+	.kb-back-to-top:hover.visible {
+		transform: scale(1.1);
+	}
+
+	.kb-back-to-top:active {
+		transform: scale(0.95);
+	}
+
+	.kb-btt-ring {
+		position: absolute;
+		inset: 0;
+		transform: rotate(-90deg);
+		color: var(--sl-color-accent);
+	}
+
+	.kb-btt-progress {
+		transition: stroke-dashoffset 0.15s ease-out;
+	}
+
+	.kb-btt-arrow {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		color: var(--sl-color-accent);
+		transition: transform 0.2s ease;
+	}
+
+	.kb-back-to-top:hover .kb-btt-arrow {
+		transform: translate(-50%, calc(-50% - 2px));
+	}
+
+	/* Fill circle behind arrow */
+	.kb-back-to-top::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--sl-color-accent);
+		opacity: 0.1;
+		transition: opacity 0.2s ease;
+	}
+
+	.kb-back-to-top:hover::before {
+		opacity: 0.18;
+	}
+</style>
+
+<script>
+	const btn = document.getElementById('kb-btt');
+	const progress = btn?.querySelector('.kb-btt-progress') as SVGCircleElement | null;
+	const circumference = 2 * Math.PI * 19.5; // ~122.52
+
+	if (btn && progress) {
+		const update = () => {
+			const docH = document.documentElement.scrollHeight - window.innerHeight;
+			const pct = docH > 0 ? Math.min(window.scrollY / docH, 1) : 0;
+			progress.style.strokeDashoffset = String(circumference * (1 - pct));
+			btn.classList.toggle('visible', window.scrollY > 400);
+		};
+		window.addEventListener('scroll', update, { passive: true });
+		update();
+
+		btn.addEventListener('click', () => {
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		});
+	}
+</script>
