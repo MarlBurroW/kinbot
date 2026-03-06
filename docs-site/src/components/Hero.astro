@@ -1,0 +1,60 @@
+---
+import Default from '@astrojs/starlight/components/Hero.astro';
+---
+
+<div class="kb-hero-wrap">
+	<Default><slot /></Default>
+</div>
+
+<style>
+	.kb-hero-wrap {
+		position: relative;
+	}
+
+	/* Orb glow behind the hero */
+	.kb-hero-wrap::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 600px;
+		height: 400px;
+		border-radius: 50%;
+		background: radial-gradient(
+			ellipse at center,
+			oklch(0.60 0.22 300 / 0.10) 0%,
+			oklch(0.66 0.24 340 / 0.05) 40%,
+			transparent 70%
+		);
+		filter: blur(60px);
+		pointer-events: none;
+		z-index: -1;
+	}
+
+	/* Gradient title */
+	:global(.kb-hero-wrap .hero h1) {
+		background: linear-gradient(
+			135deg,
+			oklch(0.60 0.22 300) 0%,
+			oklch(0.66 0.24 340) 45%,
+			oklch(0.76 0.16 15) 100%
+		) !important;
+		-webkit-background-clip: text !important;
+		-webkit-text-fill-color: transparent !important;
+		background-clip: text !important;
+		font-weight: 800 !important;
+	}
+
+	/* Tagline */
+	:global(.kb-hero-wrap .hero .tagline) {
+		color: var(--sl-color-gray-2) !important;
+		font-size: clamp(1rem, 0.0625rem + 2vw, 1.25rem) !important;
+		max-width: 42ch;
+	}
+
+	/* Actions container: add spacing */
+	:global(.kb-hero-wrap .hero .actions) {
+		margin-top: 0.5rem;
+	}
+</style>

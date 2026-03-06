@@ -1,0 +1,80 @@
+---
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+---
+
+<Default><slot /></Default>
+
+<style>
+	/* ─── Sidebar glass styling ───────────────────────── */
+
+	/* Active link: gradient left border + subtle glow */
+	:global(nav.sidebar a[aria-current='page']) {
+		position: relative;
+		background: oklch(0.60 0.22 300 / 0.08) !important;
+		border-radius: 0.5rem !important;
+		padding-inline-start: 0.875rem !important;
+		margin-inline-start: -0.25rem;
+		transition: background 0.2s ease !important;
+	}
+
+	:global(nav.sidebar a[aria-current='page'])::before {
+		content: '';
+		position: absolute;
+		inset-block: 4px;
+		inset-inline-start: 0;
+		width: 3px;
+		border-radius: 2px;
+		background: linear-gradient(
+			180deg,
+			oklch(0.60 0.22 300),
+			oklch(0.66 0.24 340)
+		);
+	}
+
+	/* Hover effect on sidebar links */
+	:global(nav.sidebar a:not([aria-current='page']):hover) {
+		background: oklch(0.60 0.22 300 / 0.04) !important;
+		border-radius: 0.5rem;
+	}
+
+	/* Section group headings */
+	:global(.sidebar-content .top-level > li > details > summary) {
+		font-weight: 700 !important;
+		letter-spacing: -0.01em;
+		text-transform: none !important;
+		font-size: 0.8125rem !important;
+	}
+
+	:global(.sidebar-content .top-level > li > details > summary span) {
+		background: linear-gradient(
+			135deg,
+			oklch(0.60 0.22 300 / 0.9),
+			oklch(0.66 0.24 340 / 0.9)
+		);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	/* Sidebar separator between groups */
+	:global(.sidebar-content .top-level > li + li) {
+		border-top: 1px solid oklch(0.60 0.22 300 / 0.08);
+		padding-top: 0.5rem;
+		margin-top: 0.25rem;
+	}
+
+	/* Sidebar bottom fade */
+	:global(.sidebar-pane)::after {
+		content: '';
+		position: sticky;
+		bottom: 0;
+		display: block;
+		height: 2rem;
+		background: linear-gradient(
+			to top,
+			var(--sl-color-bg-sidebar, oklch(0.13 0.03 298 / 0.60)),
+			transparent
+		);
+		pointer-events: none;
+	}
+</style>

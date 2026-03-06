@@ -1,0 +1,43 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<div class="kb-footer-wrap">
+	<Default><slot /></Default>
+</div>
+
+<style>
+	.kb-footer-wrap {
+		border-top: 1px solid oklch(0.60 0.22 300 / 0.10);
+		margin-top: 2rem;
+		padding-top: 1rem;
+	}
+
+	:global(.kb-footer-wrap footer) {
+		padding-bottom: 2rem;
+	}
+
+	/* Style pagination links with glass */
+	:global(.kb-footer-wrap .pagination-links a) {
+		background: oklch(0.15 0.035 298 / 0.40) !important;
+		backdrop-filter: blur(8px) !important;
+		-webkit-backdrop-filter: blur(8px) !important;
+		border: 1px solid oklch(0.60 0.22 300 / 0.15) !important;
+		border-radius: 0.75rem !important;
+		transition: border-color 0.2s ease, transform 0.15s ease !important;
+	}
+
+	:global(.kb-footer-wrap .pagination-links a:hover) {
+		border-color: oklch(0.60 0.22 300 / 0.30) !important;
+		transform: translateY(-1px);
+	}
+
+	:root[data-theme='light'] .kb-footer-wrap {
+		border-top-color: oklch(0.52 0.24 300 / 0.10);
+	}
+
+	:root[data-theme='light'] :global(.kb-footer-wrap .pagination-links a) {
+		background: oklch(0.99 0.006 310 / 0.50) !important;
+		border-color: oklch(0.52 0.24 300 / 0.15) !important;
+	}
+</style>

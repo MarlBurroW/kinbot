@@ -117,22 +117,6 @@ header.header {
 	-webkit-backdrop-filter: blur(12px) saturate(160%);
 }
 
-/* Sidebar active link with gradient accent */
-nav.sidebar a[aria-current='page'],
-starlight-menu-button + nav a[aria-current='page'] {
-	background: var(--sl-color-accent-low) !important;
-	border-left: 3px solid transparent;
-	border-image: linear-gradient(180deg, var(--kb-gradient-start), var(--kb-gradient-mid)) 1;
-	padding-left: 0.75rem;
-}
-
-/* Sidebar section headers */
-.sidebar-content .top-level > li > details > summary,
-.sidebar-content .top-level > li > a {
-	font-weight: 700 !important;
-	letter-spacing: -0.01em;
-}
-
 /* ─── GRADIENT HEADINGS ───────────────────────────────── */
 .sl-markdown-content h1,
 .hero h1,
@@ -359,4 +343,91 @@ h1.gradient-heading {
 		backdrop-filter: blur(20px) saturate(200%) !important;
 		-webkit-backdrop-filter: blur(20px) saturate(200%) !important;
 	}
+}
+
+/* ─── TABLE OF CONTENTS ───────────────────────────────── */
+starlight-toc a[aria-current='true'],
+.right-sidebar a[aria-current='true'] {
+	color: var(--sl-color-accent) !important;
+	font-weight: 600;
+}
+
+starlight-toc a:hover,
+.right-sidebar a:hover {
+	color: var(--sl-color-accent-high) !important;
+}
+
+/* ─── CARD GRID (splash page) ─────────────────────────── */
+.sl-markdown-content .card-grid {
+	gap: 1rem;
+}
+
+.sl-markdown-content .card-grid .card {
+	background: var(--kb-glass-bg) !important;
+	backdrop-filter: blur(8px) saturate(160%) !important;
+	-webkit-backdrop-filter: blur(8px) saturate(160%) !important;
+	border: 1px solid var(--kb-glass-border) !important;
+	border-radius: 0.75rem !important;
+	padding: 1.25rem !important;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease !important;
+}
+
+.sl-markdown-content .card-grid .card:hover {
+	border-color: oklch(0.60 0.22 300 / 0.30) !important;
+	box-shadow: 0 4px 20px oklch(0.60 0.22 300 / 0.08) !important;
+	transform: translateY(-2px);
+}
+
+/* Card icon styling */
+.sl-markdown-content .card-grid .card .icon {
+	color: var(--sl-color-accent) !important;
+}
+
+/* Card title gradient */
+.sl-markdown-content .card-grid .card .title {
+	background: linear-gradient(
+		135deg,
+		var(--kb-gradient-start),
+		var(--kb-gradient-mid)
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	font-weight: 700;
+}
+
+/* ─── INLINE CODE ─────────────────────────────────────── */
+.sl-markdown-content :not(pre) > code {
+	background: oklch(0.60 0.22 300 / 0.08) !important;
+	border: 1px solid oklch(0.60 0.22 300 / 0.12) !important;
+	border-radius: 0.375rem !important;
+	padding: 0.15em 0.35em !important;
+	font-size: 0.875em;
+}
+
+:root[data-theme='light'] .sl-markdown-content :not(pre) > code {
+	background: oklch(0.52 0.24 300 / 0.06) !important;
+	border-color: oklch(0.52 0.24 300 / 0.10) !important;
+}
+
+/* ─── BLOCKQUOTE ──────────────────────────────────────── */
+.sl-markdown-content blockquote {
+	border-left: 3px solid oklch(0.60 0.22 300 / 0.40) !important;
+	background: var(--kb-glass-bg) !important;
+	border-radius: 0 0.5rem 0.5rem 0 !important;
+	padding: 0.75rem 1rem !important;
+}
+
+/* ─── HR ──────────────────────────────────────────────── */
+.sl-markdown-content hr {
+	border: none !important;
+	height: 1px !important;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		oklch(0.60 0.22 300 / 0.30),
+		oklch(0.66 0.24 340 / 0.20),
+		transparent
+	) !important;
+	margin: 2rem 0 !important;
 }
