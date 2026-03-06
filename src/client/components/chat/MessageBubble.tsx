@@ -447,9 +447,21 @@ function ReadingTime({ content }: { content: string }) {
 function ReactionPicker({ onSelect, isUser }: { onSelect: (emoji: string) => void; isUser: boolean }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block" ref={containerRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -787,7 +799,7 @@ export const MessageBubble = memo(function MessageBubble({
 
       <div
         className={cn(
-          'group/msg relative max-w-[75%] rounded-2xl px-4 py-2.5',
+          'group/msg relative max-w-[80%] rounded-2xl px-4 py-2.5',
           isUser
             ? cn('bg-primary text-primary-foreground', !isGrouped && 'rounded-tr-md')
             : isFromOtherKin

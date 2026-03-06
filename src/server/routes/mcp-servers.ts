@@ -13,12 +13,19 @@ const log = createLogger('routes:mcp-servers')
 export const mcpServerRoutes = new Hono<{ Variables: AppVariables }>()
 
 function serialize(server: typeof mcpServers.$inferSelect) {
+  // Never expose env var values to the frontend — only return keys with empty strings
+  const envParsed = server.env ? JSON.parse(server.env) as Record<string, string> : null
+  const maskedEnv = envParsed
+    ? Object.fromEntries(Object.keys(envParsed).map((k) => [k, '']))
+    : null
+
   return {
     id: server.id,
     name: server.name,
     command: server.command,
     args: server.args ? JSON.parse(server.args) : [],
-    env: server.env ? JSON.parse(server.env) : null,
+    env: maskedEnv,
+    hasEnv: envParsed !== null && Object.keys(envParsed).length > 0,
     status: server.status,
     createdByKinId: server.createdByKinId,
     createdAt: new Date(server.createdAt).getTime(),
@@ -43,7 +50,10 @@ mcpServerRoutes.post('/', async (c) => {
     createdByKinId?: string
   }>()
 
-  if (!body.name || !body.command) {
+  const trimmedName = body.name?.trim()
+  const trimmedCommand = body.command?.trim()
+
+  if (!trimmedName || !trimmedCommand) {
     return c.json(
       { error: { code: 'VALIDATION_ERROR', message: 'name and command are required' } },
       400,
@@ -55,8 +65,8 @@ mcpServerRoutes.post('/', async (c) => {
 
   await db.insert(mcpServers).values({
     id,
-    name: body.name,
-    command: body.command,
+    name: trimmedName,
+    command: trimmedCommand,
     args: body.args ? JSON.stringify(body.args) : null,
     env: body.env ? JSON.stringify(body.env) : null,
     status: body.status ?? 'active',
@@ -95,10 +105,38 @@ mcpServerRoutes.patch('/:id', async (c) => {
   }>()
 
   const updates: Partial<typeof mcpServers.$inferInsert> = { updatedAt: new Date() }
-  if (body.name !== undefined) updates.name = body.name
-  if (body.command !== undefined) updates.command = body.command
+
+  if (body.name !== undefined) {
+    const trimmed = body.name.trim()
+    if (!trimmed) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'name cannot be empty' } }, 400)
+    }
+    updates.name = trimmed
+  }
+
+  if (body.command !== undefined) {
+    const trimmed = body.command.trim()
+    if (!trimmed) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'command cannot be empty' } }, 400)
+    }
+    updates.command = trimmed
+  }
+
   if (body.args !== undefined) updates.args = JSON.stringify(body.args)
-  if (body.env !== undefined) updates.env = body.env ? JSON.stringify(body.env) : null
+
+  if (body.env !== undefined) {
+    if (!body.env) {
+      updates.env = null
+    } else {
+      // Merge: empty string values preserve existing secrets (since we don't send values to frontend)
+      const existingEnv = existing.env ? JSON.parse(existing.env) as Record<string, string> : {}
+      const merged: Record<string, string> = {}
+      for (const [k, v] of Object.entries(body.env)) {
+        merged[k] = v || existingEnv[k] || ''
+      }
+      updates.env = JSON.stringify(merged)
+    }
+  }
 
   await db.update(mcpServers).set(updates).where(eq(mcpServers.id, id))
 

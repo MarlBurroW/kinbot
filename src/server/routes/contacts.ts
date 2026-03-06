@@ -54,9 +54,18 @@ contactRoutes.post('/', async (c) => {
     identifiers?: Array<{ label: string; value: string }>
   }
 
-  if (!name || !type) {
+  const trimmedName = name?.trim()
+
+  if (!trimmedName || !type) {
     return c.json(
       { error: { code: 'INVALID_INPUT', message: 'Name and type are required' } },
+      400,
+    )
+  }
+
+  if (trimmedName.length > 200) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'Name must be 200 characters or less' } },
       400,
     )
   }
@@ -68,7 +77,7 @@ contactRoutes.post('/', async (c) => {
     )
   }
 
-  const contact = await createContact({ name, type, linkedUserId, linkedKinId, identifiers })
+  const contact = await createContact({ name: trimmedName, type, linkedUserId, linkedKinId, identifiers })
   log.info({ contactId: contact.id, name }, 'Contact created')
   return c.json({ contact }, 201)
 })
@@ -81,6 +90,17 @@ contactRoutes.patch('/:id', async (c) => {
     type?: 'human' | 'kin'
     linkedUserId?: string | null
     linkedKinId?: string | null
+  }
+
+  if (body.name !== undefined) {
+    const trimmed = body.name.trim()
+    if (!trimmed) {
+      return c.json({ error: { code: 'INVALID_INPUT', message: 'Name cannot be empty' } }, 400)
+    }
+    if (trimmed.length > 200) {
+      return c.json({ error: { code: 'INVALID_INPUT', message: 'Name must be 200 characters or less' } }, 400)
+    }
+    body.name = trimmed
   }
 
   const result = await updateContact(id, body)
