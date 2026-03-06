@@ -63,6 +63,7 @@ jobs:
           cp -r site/dist/* merged/
           mkdir -p merged/docs
           cp -r docs-site/dist/* merged/docs/
+          touch merged/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
