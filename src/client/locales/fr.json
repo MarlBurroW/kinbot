@@ -1350,7 +1350,8 @@
       "channels": "Canaux",
       "users": "Utilisateurs",
       "database": "Base de données",
-      "mini-apps": "Mini-Apps"
+      "mini-apps": "Mini-Apps",
+      "plugins": "Plugins"
     },
     "names": {
       "web_search": "Recherche web",

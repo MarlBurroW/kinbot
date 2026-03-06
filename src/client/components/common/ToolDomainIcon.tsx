@@ -45,6 +45,7 @@ const DOMAIN_ICONS: Record<ToolDomain, React.FC<LucideProps>> = {
   users: UserCog,
   database: Database,
   'mini-apps': AppWindow,
+  plugins: Puzzle,
 }
 
 interface ToolDomainIconProps extends LucideProps {

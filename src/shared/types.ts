@@ -425,3 +425,4 @@ export type ToolDomain =
   | 'users'
   | 'database'
   | 'mini-apps'
+  | 'plugins'

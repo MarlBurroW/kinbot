@@ -113,6 +113,7 @@ export const TOOL_DOMAIN_META: Record<ToolDomain, ToolDomainMeta> = {
   users:           { icon: 'UserCog',     bg: 'bg-chart-2/40',   text: 'text-chart-2',          border: 'border-chart-2/40',           labelKey: 'tools.domains.users' },
   database:        { icon: 'Database',    bg: 'bg-destructive/20', text: 'text-destructive',      border: 'border-destructive/20',       labelKey: 'tools.domains.database' },
   'mini-apps':     { icon: 'AppWindow',  bg: 'bg-chart-3/40',    text: 'text-chart-3',          border: 'border-chart-3/40',           labelKey: 'tools.domains.mini-apps' },
+  plugins:         { icon: 'Puzzle',      bg: 'bg-chart-4/40',   text: 'text-chart-4',          border: 'border-chart-4/40',           labelKey: 'tools.domains.plugins' },
 } as const
 
 /** Map tool names to their UI domain category */
@@ -220,6 +221,15 @@ export const TOOL_DOMAIN_MAP: Record<string, ToolDomain> = {
   read_mini_app_file: 'mini-apps',
   delete_mini_app_file: 'mini-apps',
   list_mini_app_files: 'mini-apps',
+  // Plugin management
+  list_installed_plugins: 'plugins',
+  browse_plugin_store: 'plugins',
+  install_plugin: 'plugins',
+  uninstall_plugin: 'plugins',
+  enable_plugin: 'plugins',
+  disable_plugin: 'plugins',
+  configure_plugin: 'plugins',
+  get_plugin_details: 'plugins',
 } as const
 
 // ---------------------------------------------------------------------------

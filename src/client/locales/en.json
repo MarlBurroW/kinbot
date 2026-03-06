@@ -1350,7 +1350,8 @@
       "channels": "Channels",
       "users": "Users",
       "database": "Database",
-      "mini-apps": "Mini-Apps"
+      "mini-apps": "Mini-Apps",
+      "plugins": "Plugins"
     },
     "names": {
       "web_search": "Web Search",

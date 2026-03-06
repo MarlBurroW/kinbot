@@ -136,6 +136,16 @@ import {
 import { getMiniAppTemplatesTool } from '@/server/tools/mini-app-templates'
 import { browseMiniAppsTool, cloneMiniAppTool } from '@/server/tools/mini-app-gallery'
 import { attachFileTool } from '@/server/tools/attach-file-tool'
+import {
+  listInstalledPluginsTool,
+  browsePluginStoreTool,
+  installPluginTool,
+  uninstallPluginTool,
+  enablePluginTool,
+  disablePluginTool,
+  configurePluginTool,
+  getPluginDetailsTool,
+} from '@/server/tools/plugin-tools'
 
 const log = createLogger('tools')
 
@@ -297,6 +307,16 @@ export function registerAllTools(): void {
   toolRegistry.register('get_mini_app_templates', getMiniAppTemplatesTool)
   toolRegistry.register('browse_mini_apps', browseMiniAppsTool)
   toolRegistry.register('clone_mini_app', cloneMiniAppTool)
+
+  // Plugin management tools (main only, opt-in)
+  toolRegistry.register('list_installed_plugins', listInstalledPluginsTool)
+  toolRegistry.register('browse_plugin_store', browsePluginStoreTool)
+  toolRegistry.register('install_plugin', installPluginTool)
+  toolRegistry.register('uninstall_plugin', uninstallPluginTool)
+  toolRegistry.register('enable_plugin', enablePluginTool)
+  toolRegistry.register('disable_plugin', disablePluginTool)
+  toolRegistry.register('configure_plugin', configurePluginTool)
+  toolRegistry.register('get_plugin_details', getPluginDetailsTool)
 
   log.info({ count: toolRegistry.registeredCount }, 'Native tools registered')
 }

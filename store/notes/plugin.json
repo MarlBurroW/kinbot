@@ -1,0 +1,20 @@
+{
+  "name": "notes",
+  "version": "1.0.0",
+  "description": "Quick note-taking for your Kin. Capture ideas, reminders, and snippets organized with tags and pinning.",
+  "author": "KinBot Team",
+  "license": "MIT",
+  "main": "index.ts",
+  "icon": "📝",
+  "tags": ["productivity", "tools", "notes", "writing", "organization"],
+  "permissions": [],
+  "config": {
+    "maxNotes": {
+      "type": "select",
+      "label": "Max Notes",
+      "description": "Maximum number of notes to store",
+      "options": ["50", "100", "250", "500", "1000"],
+      "default": "250"
+    }
+  }
+}
