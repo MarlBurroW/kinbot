@@ -1,0 +1,23 @@
+title: "[Idea] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share your idea for KinBot! Describe what you'd like to see and why it would be useful.
+  - type: textarea
+    attributes:
+      label: Description
+      description: What's your idea?
+      placeholder: I'd love to see...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Use case
+      description: How would you use this feature?
+      placeholder: This would help me...
+  - type: textarea
+    attributes:
+      label: Alternatives considered
+      description: Have you considered any workarounds or alternatives?

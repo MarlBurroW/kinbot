@@ -1,0 +1,17 @@
+title: "[Show & Tell] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share what you've built with KinBot! Kin configurations, plugins, mini apps, automations, creative use cases...
+  - type: textarea
+    attributes:
+      label: What did you build?
+      description: Tell us about your setup or creation.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: How it works
+      description: Any technical details, config snippets, or tips?

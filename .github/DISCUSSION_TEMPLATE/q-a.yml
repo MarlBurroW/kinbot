@@ -1,0 +1,17 @@
+title: "[Q&A] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask a question about KinBot! Check the [README](https://github.com/MarlBurroW/kinbot#readme) and [Troubleshooting](https://github.com/MarlBurroW/kinbot/blob/main/TROUBLESHOOTING.md) first.
+  - type: textarea
+    attributes:
+      label: Question
+      description: What do you need help with?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Context
+      description: Any relevant details (version, setup, what you've tried)?
