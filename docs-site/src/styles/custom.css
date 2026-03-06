@@ -691,6 +691,25 @@ starlight-menu-button button:hover {
 	filter: drop-shadow(0 0 6px oklch(0.60 0.22 300 / 0.25));
 }
 
+/* ─── NOT-FOUND / 404 ─────────────────────────────────── */
+.error-content h1 {
+	background: linear-gradient(
+		135deg,
+		var(--kb-gradient-start),
+		var(--kb-gradient-mid),
+		var(--kb-gradient-end)
+	) !important;
+	-webkit-background-clip: text !important;
+	-webkit-text-fill-color: transparent !important;
+	background-clip: text !important;
+	font-weight: 800;
+}
+
+/* ─── LINK HOVER GLOW ─────────────────────────────────── */
+.sl-markdown-content a:not(.sl-link-button):hover {
+	text-shadow: 0 0 12px oklch(0.60 0.22 300 / 0.15);
+}
+
 /* ─── HERO ACTIONS: GLASS SECONDARY BUTTON REFINEMENT ── */
 .hero .actions .sl-link-button.sl-link-button--minimal {
 	backdrop-filter: blur(8px) saturate(160%) !important;
@@ -721,6 +740,36 @@ starlight-menu-button button:hover {
 /* ─── STARLIGHT TABS PANEL ────────────────────────────── */
 .starlight-tabs [role='tabpanel'] {
 	border-color: var(--kb-glass-border) !important;
+}
+
+/* ─── EDIT LINK & LAST UPDATED ────────────────────────── */
+.sl-flex a[href*="edit/main"] {
+	color: var(--sl-color-gray-3) !important;
+	font-size: 0.8125rem;
+	padding: 0.375rem 0.75rem;
+	border: 1px solid var(--kb-glass-border);
+	border-radius: 9999px;
+	transition: color 0.2s, border-color 0.2s, background 0.2s !important;
+}
+
+.sl-flex a[href*="edit/main"]:hover {
+	color: var(--sl-color-accent) !important;
+	border-color: oklch(0.60 0.22 300 / 0.30) !important;
+	background: oklch(0.60 0.22 300 / 0.06);
+}
+
+/* Last updated text */
+.meta sl-icon + p,
+p:has(> time) {
+	color: var(--sl-color-gray-3);
+	font-size: 0.8125rem;
+}
+
+/* ─── FOOTER AREA (edit + last updated + pagination zone) ─ */
+footer.sl-markdown-content {
+	border-top: 1px solid oklch(0.60 0.22 300 / 0.06);
+	padding-top: 1rem;
+	margin-top: 2rem;
 }
 
 /* ─── REDUCED MOTION ──────────────────────────────────── */

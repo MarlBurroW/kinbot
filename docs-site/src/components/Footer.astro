@@ -1,45 +1,135 @@
 ---
 /**
- * Footer override — subtle copyright + back-to-site link.
+ * Footer override — Aurora-styled footer matching landing site aesthetic.
+ * Gradient divider + link columns + copyright.
  */
 import Default from '@astrojs/starlight/components/Footer.astro';
 ---
 
 <Default><slot /></Default>
-<div class="kb-site-footer">
-	<a href="/kinbot/" class="kb-back-link">
-		<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-		Back to KinBot site
-	</a>
-	<span class="kb-copyright">© {new Date().getFullYear()} KinBot</span>
-</div>
+<footer class="kb-site-footer">
+	<div class="kb-footer-divider" aria-hidden="true"></div>
+	<div class="kb-footer-content">
+		<div class="kb-footer-links">
+			<div class="kb-footer-col">
+				<p class="kb-footer-heading">Resources</p>
+				<ul>
+					<li><a href="/kinbot/">Landing Page</a></li>
+					<li><a href="https://github.com/MarlBurroW/kinbot" target="_blank" rel="noopener noreferrer">GitHub <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></li>
+					<li><a href="https://github.com/MarlBurroW/kinbot/releases" target="_blank" rel="noopener noreferrer">Releases <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></li>
+				</ul>
+			</div>
+			<div class="kb-footer-col">
+				<p class="kb-footer-heading">Community</p>
+				<ul>
+					<li><a href="https://github.com/MarlBurroW/kinbot/discussions" target="_blank" rel="noopener noreferrer">Discussions <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></li>
+					<li><a href="https://github.com/MarlBurroW/kinbot/issues/new" target="_blank" rel="noopener noreferrer">Report Issue <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></li>
+					<li><a href="https://github.com/MarlBurroW/kinbot/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="kb-footer-bottom">
+			<span class="kb-copyright">© {new Date().getFullYear()} KinBot. Built with <a href="https://starlight.astro.build" target="_blank" rel="noopener noreferrer">Starlight</a>.</span>
+		</div>
+	</div>
+</footer>
 
 <style>
 	.kb-site-footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 1rem 0 2rem;
-		font-size: 0.8125rem;
-		color: var(--sl-color-gray-3);
-		border-top: 1px solid oklch(0.60 0.22 300 / 0.06);
-		margin-top: 1rem;
+		margin-top: 2rem;
 	}
 
-	.kb-back-link {
+	.kb-footer-divider {
+		width: 100%;
+		max-width: 32rem;
+		height: 1px;
+		margin: 0 auto 1.5rem;
+		background: linear-gradient(
+			90deg,
+			transparent 0%,
+			oklch(0.60 0.22 300 / 0.25) 20%,
+			oklch(0.66 0.24 340 / 0.35) 50%,
+			oklch(0.76 0.16 15 / 0.25) 80%,
+			transparent 100%
+		);
+	}
+
+	.kb-footer-content {
+		padding: 0 0 2rem;
+	}
+
+	.kb-footer-links {
+		display: flex;
+		gap: 3rem;
+		justify-content: center;
+		margin-bottom: 1.5rem;
+	}
+
+	.kb-footer-col ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.kb-footer-heading {
+		font-size: 0.6875rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--sl-color-gray-3);
+		margin: 0 0 0.625rem;
+	}
+
+	.kb-footer-col li {
+		margin-bottom: 0.375rem;
+	}
+
+	.kb-footer-col a {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.375rem;
-		text-decoration: none;
+		gap: 0.25rem;
+		font-size: 0.8125rem;
 		color: var(--sl-color-gray-3);
+		text-decoration: none;
 		transition: color 0.2s ease;
 	}
 
-	.kb-back-link:hover {
+	.kb-footer-col a:hover {
 		color: var(--sl-color-accent);
 	}
 
+	.kb-footer-col a svg {
+		opacity: 0.5;
+	}
+
+	.kb-footer-bottom {
+		text-align: center;
+		padding-top: 1rem;
+		border-top: 1px solid oklch(0.60 0.22 300 / 0.06);
+	}
+
 	.kb-copyright {
+		font-size: 0.75rem;
+		color: var(--sl-color-gray-3);
 		opacity: 0.6;
+	}
+
+	.kb-copyright a {
+		color: var(--sl-color-gray-3);
+		text-decoration: none;
+		transition: color 0.2s ease;
+	}
+
+	.kb-copyright a:hover {
+		color: var(--sl-color-accent);
+	}
+
+	@media (max-width: 30rem) {
+		.kb-footer-links {
+			flex-direction: column;
+			gap: 1.5rem;
+			align-items: center;
+			text-align: center;
+		}
 	}
 </style>
