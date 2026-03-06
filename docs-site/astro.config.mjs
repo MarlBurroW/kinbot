@@ -8,6 +8,17 @@ export default defineConfig({
 	base: '/kinbot/docs',
 	integrations: [
 		starlight({
+			expressiveCode: {
+				themes: ['rose-pine', 'rose-pine-dawn'],
+				styleOverrides: {
+					borderRadius: '0.75rem',
+					codePaddingBlock: '1rem',
+					codePaddingInline: '1.25rem',
+					frames: {
+						editorTabBarBorderBottomColor: 'oklch(0.24 0.04 300)',
+					},
+				},
+			},
 			title: 'KinBot Docs',
 			logo: {
 				dark: './src/assets/logo-dark.svg',
@@ -29,6 +40,8 @@ export default defineConfig({
 				PageTitle: './src/components/PageTitle.astro',
 				TableOfContents: './src/components/TableOfContents.astro',
 				Pagination: './src/components/Pagination.astro',
+				MobileTableOfContents: './src/components/MobileTableOfContents.astro',
+				MobileMenuFooter: './src/components/MobileMenuFooter.astro',
 			},
 			sidebar: [
 				{

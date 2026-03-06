@@ -97,11 +97,11 @@ body::after {
 }
 
 :root[data-theme='light'] body::before {
-	background: radial-gradient(circle, oklch(0.52 0.24 300 / 0.05) 0%, transparent 70%);
+	background: radial-gradient(circle, oklch(0.52 0.24 300 / 0.06) 0%, transparent 70%);
 }
 
 :root[data-theme='light'] body::after {
-	background: radial-gradient(circle, oklch(0.62 0.26 340 / 0.04) 0%, transparent 70%);
+	background: radial-gradient(circle, oklch(0.62 0.26 340 / 0.05) 0%, transparent 70%);
 }
 
 /* ─── HEADER: GLASS EFFECT ────────────────────────────── */
@@ -202,24 +202,14 @@ h1.gradient-heading {
 	box-shadow: 0 4px 20px oklch(0.60 0.22 300 / 0.08) !important;
 }
 
-/* ─── CODE BLOCKS ─────────────────────────────────────── */
+/* ─── CODE BLOCKS (rose-pine handles colors, we just tweak borders) ── */
 :root[data-theme='dark'] .expressive-code {
-	--ec-codeBg: oklch(0.09 0.025 298) !important;
 	--ec-codeBrdCol: oklch(0.24 0.04 300) !important;
 	--ec-codeSelBg: oklch(0.30 0.08 300 / 0.40) !important;
-	--ec-frm-edActTabBg: oklch(0.09 0.025 298) !important;
-	--ec-frm-edTabBg: oklch(0.12 0.03 298) !important;
-	--ec-frm-edTabBarBg: oklch(0.11 0.03 295) !important;
-	--ec-frm-edTabBarBrdBtmCol: oklch(0.24 0.04 300) !important;
 }
 
 :root[data-theme='light'] .expressive-code {
-	--ec-codeBg: oklch(0.97 0.008 310) !important;
 	--ec-codeBrdCol: oklch(0.88 0.015 310) !important;
-}
-
-.expressive-code pre {
-	border-radius: 0.75rem !important;
 }
 
 /* ─── ASIDES (note, tip, caution, danger) ─────────────── */
@@ -318,70 +308,7 @@ h1.gradient-heading {
 	background: oklch(0.40 0.04 300 / 0.60);
 }
 
-/* ─── EXPRESSIVE-CODE SYNTAX TOKENS (Aurora/sugar-high palette) ── */
-:root[data-theme='dark'] .expressive-code {
-	/* Keywords: pink */
-	--ec-tm-keyFg: #f472b6;
-	/* Strings: green */
-	--ec-tm-strFg: #86efac;
-	/* Comments: muted slate */
-	--ec-tm-cmtFg: #64748b;
-	/* Functions/entities: pink-peach */
-	--ec-tm-fnFg: #f9a8d4;
-	/* Types/classes: fuchsia */
-	--ec-tm-typFg: #e879f9;
-	/* Properties: cyan */
-	--ec-tm-propFg: #67e8f9;
-	/* Variables: light slate */
-	--ec-tm-varFg: #e2e8f0;
-	/* Constants/numbers: lavender */
-	--ec-tm-constFg: #c4b5fd;
-	/* Punctuation/signs: muted */
-	--ec-tm-punctFg: #94a3b8;
-	/* Tags: fuchsia */
-	--ec-tm-tagFg: #e879f9;
-	/* Attributes: cyan */
-	--ec-tm-attFg: #67e8f9;
-	/* Attribute values: green */
-	--ec-tm-attValFg: #86efac;
-}
-
-:root[data-theme='light'] .expressive-code {
-	--ec-tm-keyFg: #a21caf;
-	--ec-tm-strFg: #15803d;
-	--ec-tm-cmtFg: #94a3b8;
-	--ec-tm-fnFg: #be185d;
-	--ec-tm-typFg: #9333ea;
-	--ec-tm-propFg: #0891b2;
-	--ec-tm-varFg: #1e293b;
-	--ec-tm-constFg: #7c3aed;
-	--ec-tm-punctFg: #64748b;
-	--ec-tm-tagFg: #9333ea;
-	--ec-tm-attFg: #0891b2;
-	--ec-tm-attValFg: #15803d;
-}
-
-/* ─── CODE BLOCK TABS ─────────────────────────────────── */
-:root[data-theme='dark'] .expressive-code .frame {
-	--ec-frm-edActTabBg: oklch(0.09 0.025 298) !important;
-	--ec-frm-edActTabFg: oklch(0.92 0.015 310) !important;
-	--ec-frm-edActTabBrdBtmCol: oklch(0.60 0.22 300) !important;
-	--ec-frm-edTabBg: oklch(0.12 0.03 298) !important;
-	--ec-frm-edTabFg: oklch(0.62 0.03 310) !important;
-	--ec-frm-edTabBarBg: oklch(0.11 0.03 295) !important;
-	--ec-frm-edTabBarBrdBtmCol: oklch(0.24 0.04 300) !important;
-	--ec-frm-trmTtbBg: oklch(0.11 0.03 295) !important;
-	--ec-frm-trmTtbFg: oklch(0.78 0.02 310) !important;
-}
-
-:root[data-theme='light'] .expressive-code .frame {
-	--ec-frm-edActTabBg: oklch(0.97 0.008 310) !important;
-	--ec-frm-edActTabBrdBtmCol: oklch(0.52 0.24 300) !important;
-	--ec-frm-edTabBg: oklch(0.94 0.01 310) !important;
-	--ec-frm-edTabBarBg: oklch(0.96 0.008 310) !important;
-	--ec-frm-edTabBarBrdBtmCol: oklch(0.88 0.015 310) !important;
-}
-
+/* ─── CODE BLOCK TABS (fine-tuning on top of rose-pine theme) ──── */
 /* Tab pill shape */
 .expressive-code .frame .header .tab {
 	border-radius: 0.5rem 0.5rem 0 0 !important;
@@ -618,6 +545,46 @@ site-search button:hover {
 
 .sl-markdown-content :is(h2, h3, h4):hover a {
 	opacity: 0.5;
+}
+
+/* ─── ASIDE ICON COLORS (match border) ────────────────── */
+.starlight-aside--note .starlight-aside__icon {
+	color: oklch(0.60 0.22 300) !important;
+}
+
+.starlight-aside--tip .starlight-aside__icon {
+	color: oklch(0.66 0.24 340) !important;
+}
+
+.starlight-aside--caution .starlight-aside__icon {
+	color: oklch(0.76 0.16 15) !important;
+}
+
+.starlight-aside--danger .starlight-aside__icon {
+	color: oklch(0.65 0.25 25) !important;
+}
+
+/* ─── ASIDE TITLE (bold + matching color) ─────────────── */
+.starlight-aside--note .starlight-aside__title {
+	color: oklch(0.60 0.22 300) !important;
+}
+
+.starlight-aside--tip .starlight-aside__title {
+	color: oklch(0.66 0.24 340) !important;
+}
+
+.starlight-aside--caution .starlight-aside__title {
+	color: oklch(0.76 0.16 15) !important;
+}
+
+.starlight-aside--danger .starlight-aside__title {
+	color: oklch(0.65 0.25 25) !important;
+}
+
+/* ─── PAGEFIND SEARCH INPUT ───────────────────────────── */
+.pagefind-ui__search-input:focus {
+	border-color: oklch(0.60 0.22 300 / 0.40) !important;
+	box-shadow: 0 0 0 3px oklch(0.60 0.22 300 / 0.10) !important;
 }
 
 /* ─── REDUCED MOTION ──────────────────────────────────── */

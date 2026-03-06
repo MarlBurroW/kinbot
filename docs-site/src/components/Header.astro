@@ -3,6 +3,7 @@ import Default from '@astrojs/starlight/components/Header.astro';
 ---
 
 <Default><slot /></Default>
+<div class="kb-scroll-progress" aria-hidden="true"></div>
 
 <style>
 	/* Gradient accent line at the very top of the page */
@@ -25,4 +26,36 @@ import Default from '@astrojs/starlight/components/Header.astro';
 		);
 		z-index: 10;
 	}
+
+	/* Scroll progress bar — sits at the bottom of the header */
+	.kb-scroll-progress {
+		position: fixed;
+		top: var(--sl-nav-height);
+		left: 0;
+		height: 2px;
+		width: 0%;
+		background: linear-gradient(
+			90deg,
+			oklch(0.60 0.22 300),
+			oklch(0.66 0.24 340)
+		);
+		z-index: 50;
+		pointer-events: none;
+		transition: opacity 0.3s ease;
+		opacity: 0;
+	}
 </style>
+
+<script>
+	const bar = document.querySelector('.kb-scroll-progress') as HTMLElement;
+	if (bar) {
+		const update = () => {
+			const docH = document.documentElement.scrollHeight - window.innerHeight;
+			const pct = docH > 0 ? Math.min(window.scrollY / docH, 1) : 0;
+			bar.style.width = `${pct * 100}%`;
+			bar.style.opacity = window.scrollY > 40 ? '1' : '0';
+		};
+		window.addEventListener('scroll', update, { passive: true });
+		update();
+	}
+</script>

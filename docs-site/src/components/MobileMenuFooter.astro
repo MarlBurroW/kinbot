@@ -1,0 +1,22 @@
+---
+/**
+ * MobileMenuFooter override — Aurora-styled mobile menu bottom section.
+ */
+import Default from '@astrojs/starlight/components/MobileMenuFooter.astro';
+---
+
+<div class="kb-mobile-footer">
+	<Default><slot /></Default>
+</div>
+
+<style>
+	.kb-mobile-footer {
+		border-top: 1px solid oklch(0.60 0.22 300 / 0.10);
+		padding-top: 0.75rem;
+		margin-top: 0.5rem;
+	}
+
+	:root[data-theme='light'] .kb-mobile-footer {
+		border-top-color: oklch(0.52 0.24 300 / 0.10);
+	}
+</style>
