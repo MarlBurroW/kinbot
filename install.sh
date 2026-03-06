@@ -215,6 +215,8 @@ run_with_spinner() {
   local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
   local frame_count=${#frames[@]}
   local i=0
+  local spin_start
+  spin_start="$(date +%s)"
   SPINNER_LOG="$(mktemp)"
 
   # Start the command in background, capturing output
@@ -222,9 +224,21 @@ run_with_spinner() {
   local cmd_pid=$!
   SPINNER_PID=$cmd_pid
 
-  # Animate spinner while command runs
+  # Animate spinner while command runs (show elapsed time after 3s)
   while kill -0 "$cmd_pid" 2>/dev/null; do
-    printf "\r  ${CYAN}%s${NC} %s" "${frames[$((i % frame_count))]}" "$label" >&2
+    local elapsed_str=""
+    local now_s
+    now_s="$(date +%s)"
+    local elapsed_s=$((now_s - spin_start))
+    if [ "$elapsed_s" -ge 3 ]; then
+      if [ "$elapsed_s" -lt 60 ]; then
+        elapsed_str=" ${DIM}(${elapsed_s}s)${NC}"
+      else
+        local em=$((elapsed_s / 60)) es=$((elapsed_s % 60))
+        elapsed_str=" ${DIM}(${em}m ${es}s)${NC}"
+      fi
+    fi
+    printf "\r  ${CYAN}%s${NC} %s%b" "${frames[$((i % frame_count))]}" "$label" "$elapsed_str" >&2
     i=$((i + 1))
     sleep 0.1
   done
@@ -234,13 +248,36 @@ run_with_spinner() {
   local exit_code=$?
   SPINNER_PID=""
 
+  # Compute final elapsed time
+  local final_elapsed=""
+  local end_s
+  end_s="$(date +%s)"
+  local total_s=$((end_s - spin_start))
+  if [ "$total_s" -ge 3 ]; then
+    if [ "$total_s" -lt 60 ]; then
+      final_elapsed=" ${DIM}(${total_s}s)${NC}"
+    else
+      local fm=$((total_s / 60)) fs=$((total_s % 60))
+      if [ "$fs" -gt 0 ]; then
+        final_elapsed=" ${DIM}(${fm}m ${fs}s)${NC}"
+      else
+        final_elapsed=" ${DIM}(${fm}m)${NC}"
+      fi
+    fi
+  fi
+
   # Clear spinner line
   printf "\r\033[K" >&2
 
   if [ $exit_code -eq 0 ]; then
-    success "$label"
+    if [ -n "$final_elapsed" ]; then
+      [ "$KINBOT_QUIET" = true ] && return
+      echo -e "${GREEN}✓${NC} ${label}${final_elapsed}" >&2
+    else
+      success "$label"
+    fi
   else
-    echo -e "${RED}✗${NC} $label" >&2
+    echo -e "${RED}✗${NC} ${label}${final_elapsed}" >&2
     echo "" >&2
     echo -e "${DIM}Command output:${NC}" >&2
     tail -20 "$SPINNER_LOG" >&2
