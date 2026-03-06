@@ -523,3 +523,67 @@
 - Area 4: Tasks/Crons (create, edit, enable/disable, delete)
 - Area 3: Conversations (start, send messages, chat UI)
 - Area 11: Contacts
+
+## 2026-03-06 08:40 UTC
+### Area tested: Conversations (Area 3)
+- **Pages visited:** Code review of ChatPanel.tsx, MessageBubble.tsx, MessageInput.tsx, ConversationHeader.tsx, ChatEmptyState.tsx, ConversationSearch.tsx, MarkdownContent.tsx, DateNavigator.tsx, DateSeparator.tsx, useChat.ts, useReactions.ts, useDraftMessage.ts, useInputHistory.ts, useExportConversation.ts, messages.ts (routes), reactions.ts (routes)
+- **Note:** Browser unavailable (sandbox disabled, host browser timed out), testing done via thorough code review
+
+#### Bugs found
+
+**Bug: ReactionPicker popover does not close on outside click - Issue #78**
+- Custom useState-based popover lacks click-outside handling
+- User must click the trigger button again to dismiss
+- Should use Radix Popover components already available in the app
+
+**Bug: Inconsistent max-width between assistant message bubbles - Issue #79**
+- Messages with tool calls: max-w-[80%]
+- Messages without tool calls: max-w-[75%]
+- Same Kin's messages have different widths depending on tool usage
+
+**Bug: ConversationSearch Escape handler conflicts with modal Escape - Issue #80**
+- Global window keydown listener fires even when modals are focused
+- Pressing Escape closes both search bar AND any open modal simultaneously
+- Should be scoped to the search input element
+
+#### UX suggestions
+
+**Enhancement: Search should include streaming message - Issue #81**
+- Search passes `messages` (persisted only) to ConversationSearch
+- Streaming message in `displayMessages` is not searchable
+
+**Enhancement: Persist message drafts across page reloads - Issue #82**
+- useDraftMessage uses module-level Map, lost on refresh
+- Should use localStorage with debounced saves
+
+**Enhancement: No server-side message length validation - Issue #83**
+- Client shows character counter (cosmetic only)
+- Server accepts arbitrarily long messages without limit
+- Potential for abuse and unnecessary token consumption
+
+#### Other observations (no issues filed)
+- Chat system is well-architected: SSE streaming with batched token updates (50ms), optimistic message sends, infinite scroll with position restoration
+- Keyboard shortcuts are comprehensive: Ctrl+F search, Escape refocus, Up/Down input history, Ctrl+1-9 kin switching
+- Message grouping (2-min window) works well for visual clarity
+- Date separators are sticky with backdrop blur, nice UX
+- DateNavigator with jump-to-date is a solid feature
+- ConversationStats and export (MD/JSON) are polished
+- File drag-and-drop works at both panel level and input level
+- Code blocks have copy, download, wrap toggle, line numbers, language detection
+- Markdown rendering lazily loads heavy plugins (rehype-highlight, remark-math, rehype-katex)
+- Mention autocomplete with @ trigger is well-implemented
+- Formatting toolbar (bold, italic, code) with keyboard shortcuts
+- Auto-scroll toggle with pin icon is clever
+- Reading time estimate for long messages
+- Context menu with copy, quote, edit/resend, read aloud, regenerate
+- MarkdownContent plain text shortcut regex has a minor false positive (`\d+\.` matches version numbers like "1.0") but no visual impact
+- No E2E tests found specifically for conversation search or reactions
+
+- **Bugs found:** 3 (issues #78, #79, #80)
+- **UX suggestions:** 3 (issues #81, #82, #83)
+- **All clear:** SSE streaming, message sending/receiving, optimistic updates, file upload/drag-drop, input history, mention autocomplete, formatting toolbar, markdown rendering, code blocks, date separators, infinite scroll, export, context menu, typing indicator, empty state, auto-scroll, keyboard shortcuts, model picker, context usage display, clear conversation, regenerate
+
+### Next run
+- Area 11: Contacts (add, approve, edit, delete)
+- Area 12: Webhooks (create, edit, test, delete)
+- Area 13: MCP servers (add, configure, remove)
