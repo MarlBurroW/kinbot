@@ -27,6 +27,10 @@ After installation, configure the plugin via **Settings → Plugins → Configur
 | `rss-reader` | 📰 | Fetch and summarize RSS/Atom feeds |
 | `pomodoro` | 🍅 | Pomodoro timer for focused work sessions |
 | `system-monitor` | 📊 | Monitor CPU, memory, disk, uptime, and processes |
+| `bookmarks` | 🔖 | Save and organize bookmarks |
+| `notes` | 📝 | Quick note-taking and retrieval |
+| `github-notifications` | 🔔 | Monitor GitHub notifications and activity |
+| `home-automation` | 🏠 | Control your smart home via Home Assistant |
 
 More plugins are added by the community regularly.
 
