@@ -25,6 +25,168 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.14.0] - 2026-03-06
+
+### Added
+- **Docs** — migrate Kins section (overview, system prompts, tools, memory)
+- **Docs** — add Channels section (overview + 6 platform guides)
+- **Docs** — add Memory, Providers, and API Reference sections
+- **Docs** — aurora theme with glass effects, gradient accents, background orbs, and component overrides
+- **Docs** — sidebar, hero, footer, pageframe overrides + glass cards, TOC, inline code, blockquotes
+- **Memory** — add `review_memories` tool for memory health auditing
+- **Store** — add calendar plugin with event management and scheduling
+- **Tools** — add `get_mini_app_docs` tool, slim down `create_mini_app` description (#66)
+- **E2E** — add chat message input spec (formatting toolbar, shortcuts, multiline)
+- **E2E** — add plugins settings and marketplace spec
+- **Tests** — add tests for webhook-tools, kin-management-tools, image-tools
+- **Community** — add FUNDING.yml, community section in README, update sitemap
+- **Installer** — add `--cron` command for automatic update scheduling
+- **GitHub** — enable Discussions with templates
+
+### Fixed
+- **Docs** — fix plugin docs accuracy: remove phantom APIs, correct REST routes, add password config type
+- **Docs** — fix theme contrast and dark/light modes
+- **Tests** — fix `mock.module` pollution causing 9 test file load errors
+- **Site** — add `.nojekyll` to fix `_astro` assets on GitHub Pages
+
+---
+
+## [0.13.0] - 2026-03-06
+
+### Added
+- **Plugins** — add password config field type for sensitive values
+- **Store** — add home-automation plugin for Home Assistant integration
+- **Store** — add github-notifications plugin
+- **Memory** — contextual query rewriting for short/ambiguous messages
+- **Memory** — enrich recall and `list_memories` tool output with importance and age
+- **Tools** — add plugin management tools for Kins (#68)
+- **UI** — add Run Now button to cron detail modal (#74)
+- **Docs** — migrate Plugins section (overview, developing, API, store)
+- **Docs** — migrate Mini-Apps section (8 pages)
+- **Tests** — add tests for contact-tools, prompt-builder helper functions
+- **Site** — add Tech Stack section showcasing core technologies
+- **CI** — add `workflow_dispatch` and trigger on validator changes for store-plugins
+
+### Fixed
+- **Cron** — handle silent fetch errors in cron history, allow clearing optional fields (#73, #76)
+- **UI** — remove model picker from quick chat to prevent global model changes (#71)
+- **Session** — fix quick session memory embedding, expired session SSE, gallery clone UX
+- **E2E** — handle both empty states in mini-app gallery test
+- **Tests** — fix 11 failing tests + 2 module errors caused by bun `mock.module` pollution
+
+---
+
+## [0.12.0] - 2026-03-05
+
+### Added
+- **Docs** — scaffold Starlight documentation site, migrate Getting Started content
+- **Store** — add bookmarks plugin, system-monitor plugin
+- **Mini Apps** — add Kanban drag-and-drop board, DateRangePicker, Calendar component
+- **Memory** — bump default embedding dimension from 768 to 1536
+- **Docs** — expand README comparison table with ChatGPT, OpenClaw, and CrewAI
+- **Tests** — add tests for settings routes, database-tools, inter-kin service, web-browse service
+- **Site** — add Plugin Store showcase with real community plugins
+- **Installer** — expand `--config` wizard with log level and encryption key
+
+### Fixed
+- **Plugins** — add defensive null checks for plugin data in Settings (#61, #62)
+
+### Changed
+- **CI** — update store-plugins checkout to v6, add `plugins/store` labels to labeler
+
+---
+
+## [0.11.1] - 2026-03-05
+
+### Added
+- **Mini Apps** — add MarkdownEditor, ColorPicker, Combobox & TagInput, hash-based routing components
+- **Memory** — subject-based score boosting for query-relevant memories
+- **Store** — add RSS reader plugin, pomodoro timer plugin
+- **UI** — Store tab in Plugin Marketplace (#57)
+- **Plugins** — add store install API endpoints (#56)
+- **Onboarding** — add quick finish option to skip memory & search steps (#35)
+- **CI** — add store plugin validation workflow and script (#60)
+- **Docs** — add store plugin contributing guide and scaffolding script (#53)
+- **Tests** — add tests for cron-tools, invitations, rate limiter, wakeup-tools, kinAvatarUrl
+- **E2E** — fix onboarding spec: update step 3 button text, reduce flakiness
+- **Installer** — add `--completions` for bash/zsh/fish, enhance `--status` with version/health/disk info
+
+### Fixed
+- **Docker** — add entrypoint to fix volume permissions for non-root user
+- **Security** — run Docker container as non-root user
+- **Tests** — fix mock collision in task-tools causing cron-tools test failure
+- **Site** — fix Plugins section layout, dark-on-dark/light-on-light theme issue, missing FAQ property
+
+### Changed
+- **Plugins** — use PasswordInput for secret plugin config fields
+- **CI** — consolidate duplicate PR templates into one
+
+---
+
+## [0.11.0] - 2026-03-04
+
+### Added
+- **Plugins** — Phase 1 MVP plugin system (#41)
+- **Plugins** — Phase 2: provider and channel registration from plugins
+- **Mini Apps** — add responsive layout template, `useBreakpoint` hook, responsive CSS utilities, `useLocalStorage` hook
+- **Memory** — reduce default embedding dimension to 768 (50% storage savings)
+- **Tests** — add tests for SSE manager, user-tools, memory tools, shared constants
+- **Installer** — extract categorized changelog into reusable function
+- **Docs** — add plugin system to README features, comparison table, and project structure
+
+### Changed
+- **Memory** — extract unified MemoryModelConfig component
+
+---
+
+## [0.10.1] - 2026-03-04
+
+### Added
+- **Mini Apps** — add TypeScript type definitions for SDK, React hooks, and components
+- **Mini Apps** — upgrade form template with `useAsync` + backend submission + history tab
+- **Memory** — improve extraction prompt precision with durability guidance
+- **Tests** — add tests for notification-delivery (formatting, rate limiting, avatar URL)
+- **E2E** — expand provider management spec with test-all, cancel, and type switching tests
+- **UI** — cron form validation feedback and timezone display (#38, #40)
+- **Installer** — add lockfile to prevent concurrent runs
+
+### Fixed
+- **SSE** — add missing events for MCP server mutations via Kin tools
+
+---
+
+## [0.10.0] - 2026-03-04
+
+### Added
+- **Tools** — add `http_request` tool for generic HTTP calls (#34)
+- **Tools** — add `get_system_info` tool with system info in prompt (#33)
+- **Tools** — add `trigger_cron` tool to run crons immediately (#32)
+- **Mini Apps** — add API Explorer template, data-browser template, `useInfiniteScroll`/`usePagination`/`useFetch`/`useApi`/`useAsync`/`useEventStream` hooks, `KinBot.download()` for file export
+- **Memory** — subject-based memory grouping in prompts, importance auto-recalibration, contradiction-aware extraction + subject-partitioned consolidation
+- **UI** — improve onboarding UX with user-friendly model explanations (#35), reduce contrast mode (#36)
+- **Tests** — add tests for webhooks service, http-request-tools, mini-app-backend, kin-engine, mini-app-templates
+- **E2E** — expand login spec with session persistence, logout, error recovery tests
+- **Docs** — update README with new tools and bump tool count to 100+
+- **Installer** — group `--help` output into logical categories, add resource monitoring to `--status`
+
+### Fixed
+- **SSE** — add missing events for `setContactNote` upsert
+- **i18n** — add missing mention notification type translations (#37)
+- **Kins** — allow setting slug during creation (#31)
+- **Security** — security, UX, and model filtering fixes (#25, #26, #27, #28)
+- **Zod** — update `z.record()` calls to Zod 4 two-arg syntax
+
+### Changed
+- **CI** — remove duplicate PR template, add security advisory link to issue config
+
+---
+
+## [0.9.0] - 2026-03-03
+
+*No detailed changelog available — see [commit history](https://github.com/MarlBurroW/kinbot/compare/v0.8.1...v0.9.0) for full details.*
+
+---
+
 ## [0.8.1] - 2026-03-02
 
 ### Added
