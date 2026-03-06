@@ -32,10 +32,15 @@ interface PaletteItem {
 
 const sections: Omit<PaletteItem, 'action'>[] = [
   { id: 'hero', label: 'Home', description: 'Back to the top', icon: Zap, keywords: ['home', 'top', 'start', 'hero'] },
+  { id: 'demo', label: 'Interactive Demo', description: 'Watch simulated conversations', icon: Zap, keywords: ['demo', 'interactive', 'try', 'simulation', 'chat'] },
   { id: 'what-is-a-kin', label: 'What is a Kin?', description: 'Core concept explained', icon: Users, keywords: ['kin', 'agent', 'concept', 'what'] },
-  { id: 'features', label: 'Features', description: 'Core capabilities', icon: Zap, keywords: ['features', 'capabilities', 'mini apps'] },
+  { id: 'features', label: 'Features', description: 'Core capabilities', icon: Zap, keywords: ['features', 'capabilities'] },
   { id: 'tools', label: 'Built-in Tools', description: '90+ tools out of the box', icon: Zap, keywords: ['tools', 'built-in', 'recall', 'memorize', 'shell', 'cron', 'vault'] },
+  { id: 'memory', label: 'Memory', description: 'Persistent long-term memory system', icon: Zap, keywords: ['memory', 'remember', 'vector', 'search', 'context', 'persistent'] },
+  { id: 'mini-apps', label: 'Mini Apps', description: 'Agent-built interactive UIs', icon: Layers, keywords: ['mini apps', 'apps', 'ui', 'dashboard', 'react', 'sidebar'] },
   { id: 'use-cases', label: 'Use Cases', description: 'What people are building', icon: Layers, keywords: ['use case', 'build', 'homelab', 'dev'] },
+  { id: 'plugins', label: 'Plugin System', description: 'Extend with tools, providers, channels, hooks', icon: Layers, keywords: ['plugin', 'extension', 'hook', 'registry', 'marketplace', 'hot reload'] },
+  { id: 'privacy', label: 'Privacy & Security', description: 'Self-hosted, zero telemetry, encrypted vault', icon: Zap, keywords: ['privacy', 'security', 'vault', 'encryption', 'self-hosted', 'telemetry'] },
   { id: 'screenshots', label: 'Demo Videos', description: 'See KinBot in action', icon: Image, keywords: ['demo', 'video', 'screenshot', 'preview'] },
   { id: 'comparison', label: 'Comparison', description: 'vs ChatGPT, Open WebUI, etc.', icon: BarChart3, keywords: ['compare', 'versus', 'vs', 'alternative'] },
   { id: 'providers', label: 'Providers', description: '23+ AI providers', icon: Cpu, keywords: ['provider', 'model', 'openai', 'anthropic', 'ollama', 'gemini'] },
@@ -48,8 +53,10 @@ const sections: Omit<PaletteItem, 'action'>[] = [
 ]
 
 const externalLinks: Omit<PaletteItem, 'action'>[] = [
+  { id: 'docs', label: 'Documentation', description: 'Full project documentation', icon: HelpCircle, keywords: ['docs', 'documentation', 'guide', 'reference', 'api'] },
   { id: 'github', label: 'GitHub Repository', description: 'Source code & issues', icon: Github, keywords: ['github', 'repo', 'source', 'code', 'issue', 'star'] },
   { id: 'contributing', label: 'Contributing Guide', description: 'How to contribute', icon: ArrowRight, keywords: ['contribute', 'pr', 'pull request'] },
+  { id: 'discussions', label: 'Discussions', description: 'Questions, ideas, show & tell', icon: MessageSquare, keywords: ['discussions', 'community', 'forum', 'help', 'support'] },
 ]
 
 function scrollToSection(id: string) {
@@ -63,10 +70,18 @@ function scrollToSection(id: string) {
 
 function openExternal(id: string) {
   const urls: Record<string, string> = {
+    docs: '/kinbot/docs/',
     github: 'https://github.com/MarlBurroW/kinbot',
     contributing: 'https://github.com/MarlBurroW/kinbot/blob/main/CONTRIBUTING.md',
+    discussions: 'https://github.com/MarlBurroW/kinbot/discussions',
   }
-  if (urls[id]) window.open(urls[id], '_blank', 'noopener,noreferrer')
+  const url = urls[id]
+  if (!url) return
+  if (url.startsWith('/')) {
+    window.location.href = url
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 }
 
 export function CommandPalette() {
