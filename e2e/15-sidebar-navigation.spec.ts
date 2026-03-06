@@ -6,7 +6,7 @@ import { loginAs, mockProviderModels } from './helpers/auth'
  *
  * Covers:
  * - Sidebar structure (logo, sections, footer)
- * - Collapsible sections (Mini Apps, Tasks, Cron Jobs)
+ * - Tabbed sections (Tasks, Jobs, Apps)
  * - Kins section with create button
  * - Footer elements (version badge, keyboard shortcuts, settings button)
  * - Responsive behavior (mobile viewport)
@@ -48,29 +48,42 @@ test.describe.serial('Sidebar navigation & layout', () => {
     await expect(sidebar.getByText('Test Assistant')).toBeVisible({ timeout: 5_000 })
   })
 
-  test('should display Mini Apps section and toggle collapse', async ({ page }) => {
+  test('should display tabbed sections (Tasks, Jobs, Apps)', async ({ page }) => {
     const sidebar = page.locator('[data-slot="sidebar"]')
 
-    // Mini-Apps section title
-    const miniAppsToggle = sidebar.getByRole('button', { name: 'Mini-Apps' })
-    await expect(miniAppsToggle).toBeVisible()
+    // All three tabs should be visible
+    const tasksTab = sidebar.getByRole('tab', { name: 'Tasks' })
+    const jobsTab = sidebar.getByRole('tab', { name: 'Jobs' })
+    const appsTab = sidebar.getByRole('tab', { name: 'Apps' })
 
-    // Click to collapse
-    await miniAppsToggle.click()
-    await page.waitForTimeout(300)
-
-    // Click to expand again
-    await miniAppsToggle.click()
-    await page.waitForTimeout(300)
-
-    // Section should still be visible
-    await expect(miniAppsToggle).toBeVisible()
+    await expect(tasksTab).toBeVisible()
+    await expect(jobsTab).toBeVisible()
+    await expect(appsTab).toBeVisible()
   })
 
-  test('should display Mini Apps gallery button', async ({ page }) => {
+  test('should switch between tabs', async ({ page }) => {
     const sidebar = page.locator('[data-slot="sidebar"]')
 
-    // Gallery button near Mini-Apps
+    // Click Jobs tab
+    await sidebar.getByRole('tab', { name: 'Jobs' }).click()
+    await page.waitForTimeout(300)
+
+    // Click Apps tab
+    await sidebar.getByRole('tab', { name: 'Apps' }).click()
+    await page.waitForTimeout(300)
+
+    // Click back to Tasks
+    await sidebar.getByRole('tab', { name: 'Tasks' }).click()
+    await page.waitForTimeout(300)
+  })
+
+  test('should display App Gallery button in Apps tab', async ({ page }) => {
+    const sidebar = page.locator('[data-slot="sidebar"]')
+
+    // Navigate to Apps tab
+    await sidebar.getByRole('tab', { name: 'Apps' }).click()
+
+    // Gallery button in Apps tab
     const galleryButton = sidebar.getByRole('button', { name: 'App Gallery' })
     await expect(galleryButton).toBeVisible()
 
@@ -85,41 +98,6 @@ test.describe.serial('Sidebar navigation & layout', () => {
     } else {
       await page.keyboard.press('Escape')
     }
-  })
-
-  test('should display Tasks section and toggle collapse', async ({ page }) => {
-    const sidebar = page.locator('[data-slot="sidebar"]')
-
-    // Tasks section
-    const tasksToggle = sidebar.getByRole('button', { name: 'Tasks' })
-    await expect(tasksToggle).toBeVisible()
-
-    // Should show empty state or task list
-    // Click to collapse
-    await tasksToggle.click()
-    await page.waitForTimeout(300)
-
-    // Click to expand
-    await tasksToggle.click()
-    await page.waitForTimeout(300)
-
-    await expect(tasksToggle).toBeVisible()
-  })
-
-  test('should display Cron Jobs section and toggle collapse', async ({ page }) => {
-    const sidebar = page.locator('[data-slot="sidebar"]')
-
-    // Scheduled Jobs section
-    const cronToggle = sidebar.getByRole('button', { name: 'Scheduled Jobs' })
-    await expect(cronToggle).toBeVisible()
-
-    // Toggle collapse
-    await cronToggle.click()
-    await page.waitForTimeout(300)
-    await cronToggle.click()
-    await page.waitForTimeout(300)
-
-    await expect(cronToggle).toBeVisible()
   })
 
   test('should display footer with version badge', async ({ page }) => {

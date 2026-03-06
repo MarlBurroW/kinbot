@@ -1,4 +1,4 @@
-import { useCallback, memo } from 'react'
+import { useCallback, memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroupContent,
@@ -7,9 +7,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avat
 import { useMiniApps } from '@/client/hooks/useMiniApps'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { cn } from '@/client/lib/utils'
-import { AppWindow, Loader2, Trash2 } from 'lucide-react'
+import { AppWindow, Loader2, Store, Trash2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
+import { MiniAppGallery } from '@/client/components/mini-app/MiniAppGallery'
+import { Button } from '@/client/components/ui/button'
+import { useKins } from '@/client/hooks/useKins'
 import type { MiniAppSummary } from '@/shared/types'
 
 function MiniAppCard({
@@ -86,6 +89,8 @@ export const MiniAppList = memo(function MiniAppList() {
   const { t } = useTranslation()
   const { apps, isLoading, deleteApp } = useMiniApps(null, 'all')
   const { activeAppId, badges, openApp, closePanel } = useMiniAppPanel()
+  const { kins } = useKins()
+  const [galleryOpen, setGalleryOpen] = useState(false)
 
   const handleDelete = useCallback(async (appId: string) => {
     if (appId === activeAppId) closePanel()
@@ -93,6 +98,18 @@ export const MiniAppList = memo(function MiniAppList() {
   }, [activeAppId, closePanel, deleteApp])
 
   return (
+    <>
+    <div className="flex items-center justify-end px-1 pb-1 shrink-0">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-6 shrink-0"
+        onClick={() => setGalleryOpen(true)}
+        title={t('miniApps.gallery.title')}
+      >
+        <Store className="size-4" />
+      </Button>
+    </div>
     <SidebarGroupContent>
       {isLoading ? (
         <div className="flex justify-center py-4">
@@ -120,5 +137,12 @@ export const MiniAppList = memo(function MiniAppList() {
         </div>
       )}
     </SidebarGroupContent>
+    <MiniAppGallery
+      open={galleryOpen}
+      onOpenChange={setGalleryOpen}
+      currentKinId={null}
+      kins={kins.map((k) => ({ id: k.id, name: k.name, avatarPath: k.avatarUrl }))}
+    />
+    </>
   )
 })

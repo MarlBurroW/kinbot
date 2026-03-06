@@ -18,10 +18,19 @@ async function mockCronApis(page: Page) {
 }
 
 /**
+ * Navigate to the Jobs tab in the sidebar.
+ */
+async function navigateToJobsTab(page: Page) {
+  const jobsTab = page.getByRole('tab', { name: 'Jobs' })
+  await jobsTab.click()
+}
+
+/**
  * Open the "Create scheduled job" modal via the sidebar plus button.
  */
 async function openCreateJobModal(page: Page) {
-  // The Scheduled Jobs section has a plus button with title="New job"
+  await navigateToJobsTab(page)
+  // The Jobs tab has a plus button with title="New job"
   const plusBtn = page.getByTitle('New job')
   await plusBtn.click()
 
@@ -82,8 +91,8 @@ test.describe.serial('Scheduled jobs management', () => {
   })
 
   test('should see empty scheduled jobs section in sidebar', async ({ page }) => {
-    // The scheduled jobs section should be visible
-    await expect(page.getByText('Scheduled Jobs', { exact: true })).toBeVisible({ timeout: 5_000 })
+    // Navigate to the Jobs tab
+    await navigateToJobsTab(page)
 
     // Should show empty state
     await expect(page.getByText('No scheduled jobs')).toBeVisible({ timeout: 5_000 })
@@ -122,6 +131,7 @@ test.describe.serial('Scheduled jobs management', () => {
   })
 
   test('should open job detail modal by clicking on a job', async ({ page }) => {
+    await navigateToJobsTab(page)
     // Click on the first job
     const jobCard = page.locator('[role="button"]', { hasText: 'Daily Report Job' }).first()
     await jobCard.click()
@@ -141,6 +151,7 @@ test.describe.serial('Scheduled jobs management', () => {
   })
 
   test('should edit a scheduled job', async ({ page }) => {
+    await navigateToJobsTab(page)
     // Click on the job to open detail
     const jobCard = page.locator('[role="button"]', { hasText: 'Daily Report Job' }).first()
     await jobCard.click()
@@ -167,6 +178,7 @@ test.describe.serial('Scheduled jobs management', () => {
   })
 
   test('should toggle job active state', async ({ page }) => {
+    await navigateToJobsTab(page)
     // Locate the switch next to 'Updated Daily Report' text
     const toggle = page.getByText('Updated Daily Report').locator('..').locator('[role="switch"]').first()
 
@@ -198,6 +210,7 @@ test.describe.serial('Scheduled jobs management', () => {
   })
 
   test('should delete the hourly job with confirmation', async ({ page }) => {
+    await navigateToJobsTab(page)
     // Open job detail
     const jobCard = page.locator('[role="button"]', { hasText: 'Hourly Check Job' }).first()
     await jobCard.click()
@@ -224,6 +237,7 @@ test.describe.serial('Scheduled jobs management', () => {
   })
 
   test('should delete the remaining job for cleanup', async ({ page }) => {
+    await navigateToJobsTab(page)
     const jobCard = page.locator('[role="button"]', { hasText: 'Updated Daily Report' }).first()
     await jobCard.click()
     const dialog = page.locator('[role="dialog"]')

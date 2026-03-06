@@ -113,7 +113,11 @@ async function mockGalleryError(page: Page) {
 }
 
 async function openGallery(page: Page) {
-  // The gallery button is the Store icon next to "Mini-Apps" section header
+  // Navigate to the Apps tab first (sidebar uses tabbed layout)
+  const appsTab = page.getByRole('tab', { name: 'Apps' })
+  await appsTab.click()
+
+  // The gallery button is the Store icon in the Apps tab
   const galleryButton = page.locator('button[title="App Gallery"]')
   await galleryButton.waitFor({ state: 'visible', timeout: 5000 })
   await galleryButton.click()
