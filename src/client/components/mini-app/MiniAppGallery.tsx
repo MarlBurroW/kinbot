@@ -13,7 +13,7 @@ import { Input } from '@/client/components/ui/input'
 import { KinSelector } from '@/client/components/common/KinSelector'
 import { api } from '@/client/lib/api'
 import { toast } from 'sonner'
-import { Copy, Search, AppWindow, Loader2 } from 'lucide-react'
+import { Copy, Check, Search, AppWindow, Loader2 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import type { MiniAppSummary } from '@/shared/types'
 
@@ -36,12 +36,18 @@ export function MiniAppGallery({ open, onOpenChange, currentKinId, kins }: MiniA
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [cloning, setCloning] = useState<string | null>(null)
+  const [clonedIds, setClonedIds] = useState<Set<string>>(new Set())
   const [targetKinId, setTargetKinId] = useState<string>(currentKinId ?? '')
 
   // Update target kin when current kin changes
   useEffect(() => {
     if (currentKinId) setTargetKinId(currentKinId)
   }, [currentKinId])
+
+  // Reset cloned state when target kin changes
+  useEffect(() => {
+    setClonedIds(new Set())
+  }, [targetKinId])
 
   // Fetch gallery apps when dialog opens
   useEffect(() => {
@@ -71,6 +77,7 @@ export function MiniAppGallery({ open, onOpenChange, currentKinId, kins }: MiniA
     setCloning(appId)
     try {
       await api.post<{ app: MiniAppSummary }>(`/mini-apps/${appId}/clone`, { targetKinId })
+      setClonedIds((prev) => new Set(prev).add(appId))
       toast.success(t('miniApps.gallery.cloneSuccess'))
     } catch {
       toast.error(t('miniApps.gallery.cloneError'))
@@ -164,15 +171,17 @@ export function MiniAppGallery({ open, onOpenChange, currentKinId, kins }: MiniA
                       variant="outline"
                       size="sm"
                       className="shrink-0 gap-1.5 text-xs h-7"
-                      disabled={isOwn || cloning === app.id || !targetKinId}
+                      disabled={isOwn || clonedIds.has(app.id) || cloning === app.id || !targetKinId}
                       onClick={() => handleClone(app.id)}
                     >
                       {cloning === app.id ? (
                         <Loader2 className="size-3 animate-spin" />
+                      ) : clonedIds.has(app.id) ? (
+                        <Check className="size-3" />
                       ) : (
                         <Copy className="size-3" />
                       )}
-                      {isOwn ? t('miniApps.gallery.owned') : t('miniApps.gallery.clone')}
+                      {isOwn ? t('miniApps.gallery.owned') : clonedIds.has(app.id) ? t('miniApps.gallery.cloned') : t('miniApps.gallery.clone')}
                     </Button>
                   </div>
                 )

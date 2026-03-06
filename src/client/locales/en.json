@@ -223,7 +223,9 @@
     "miniApps": {
       "title": "Mini-Apps",
       "empty": "No apps yet",
-      "emptyDescription": "Ask a Kin to create one"
+      "emptyDescription": "Ask a Kin to create one",
+      "noKinSelected": "Select a Kin",
+      "noKinSelectedDescription": "Select a Kin to see its mini-apps"
     },
     "account": "My account",
     "settings": "Settings",
@@ -1607,6 +1609,7 @@
       "clone": "Clone",
       "owned": "Owned",
       "selectKin": "Select a Kin to clone to",
+      "cloned": "Cloned",
       "cloneSuccess": "App cloned successfully!",
       "cloneError": "Failed to clone app",
       "fetchError": "Failed to load gallery",

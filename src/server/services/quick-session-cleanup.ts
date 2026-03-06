@@ -3,6 +3,7 @@ import { db } from '@/server/db/index'
 import { quickSessions } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { createLogger } from '@/server/logger'
+import { sseManager } from '@/server/sse/index'
 
 const log = createLogger('quick-session-cleanup')
 
@@ -25,7 +26,7 @@ export function startQuickSessionCleanup() {
 
       // 1. Close expired sessions
       const expired = await db
-        .select({ id: quickSessions.id })
+        .select({ id: quickSessions.id, kinId: quickSessions.kinId })
         .from(quickSessions)
         .where(and(
           eq(quickSessions.status, 'active'),
@@ -39,6 +40,13 @@ export function startQuickSessionCleanup() {
             status: 'closed',
             closedAt: now,
           }).where(eq(quickSessions.id, s.id))
+
+          // Notify connected clients so the UI updates
+          sseManager.sendToKin(s.kinId, {
+            type: 'quick-session:closed',
+            kinId: s.kinId,
+            data: { sessionId: s.id },
+          })
         }
         log.info({ count: expired.length }, 'Closed expired quick sessions')
       }

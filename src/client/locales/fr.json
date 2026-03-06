@@ -223,7 +223,9 @@
     "miniApps": {
       "title": "Mini-Apps",
       "empty": "Aucune app",
-      "emptyDescription": "Demandez à un Kin d'en créer une"
+      "emptyDescription": "Demandez à un Kin d'en créer une",
+      "noKinSelected": "Sélectionnez un Kin",
+      "noKinSelectedDescription": "Sélectionnez un Kin pour voir ses mini-apps"
     },
     "account": "Mon compte",
     "settings": "Paramètres",
@@ -1611,7 +1613,8 @@
       "cloneError": "Échec du clonage",
       "fetchError": "Impossible de charger la galerie",
       "noResults": "Aucune app ne correspond",
-      "empty": "Aucune app disponible"
+      "empty": "Aucune app disponible",
+      "cloned": "Cloné"
     }
   },
   "accessibility": {

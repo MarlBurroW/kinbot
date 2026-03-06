@@ -165,8 +165,8 @@ export const MiniAppList = memo(function MiniAppList({ selectedKinId, kins = [] 
               <EmptyState
                 compact
                 icon={AppWindow}
-                title={t('sidebar.miniApps.empty')}
-                description={t('sidebar.miniApps.emptyDescription')}
+                title={selectedKinId ? t('sidebar.miniApps.empty') : t('sidebar.miniApps.noKinSelected', 'Select a Kin')}
+                description={selectedKinId ? t('sidebar.miniApps.emptyDescription') : t('sidebar.miniApps.noKinSelectedDescription', 'Select a Kin to see its mini-apps')}
               />
             ) : (
               <div className="max-h-[25vh] overflow-y-auto">

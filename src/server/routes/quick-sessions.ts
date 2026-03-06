@@ -7,6 +7,7 @@ import { enqueueMessage } from '@/server/services/queue'
 import { abortQuickSessionStream } from '@/server/services/kin-engine'
 import { resolveKinId } from '@/server/services/kin-resolver'
 import { getFilesForMessages, serializeFile } from '@/server/services/files'
+import { createMemory } from '@/server/services/memory'
 import { config } from '@/server/config'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
@@ -262,34 +263,15 @@ sessionRoutes.post('/:id/close', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const { saveMemory, memorySummary } = body as { saveMemory?: boolean; memorySummary?: string }
 
-  // Save memory if requested
+  // Save memory if requested (uses createMemory to generate embedding + vector index)
   if (saveMemory && memorySummary?.trim()) {
-    const memoryId = uuid()
-    const now = new Date()
-    await db.insert(memories).values({
-      id: memoryId,
-      kinId: session!.kinId,
+    const memory = await createMemory(session!.kinId, {
       content: memorySummary.trim(),
       category: 'knowledge',
       subject: session!.title ?? 'Quick session',
       sourceChannel: 'explicit',
-      createdAt: now,
-      updatedAt: now,
     })
-    log.debug({ sessionId: session!.id, kinId: session!.kinId }, 'Quick session memory saved')
-
-    sseManager.sendToKin(session!.kinId, {
-      type: 'memory:created',
-      kinId: session!.kinId,
-      data: {
-        memoryId,
-        kinId: session!.kinId,
-        content: memorySummary.trim(),
-        category: 'knowledge',
-        subject: session!.title ?? 'Quick session',
-        createdAt: now.getTime(),
-      },
-    })
+    log.debug({ sessionId: session!.id, kinId: session!.kinId, memoryId: memory.id }, 'Quick session memory saved')
   }
 
   // Close the session
