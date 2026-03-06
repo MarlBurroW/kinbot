@@ -1514,6 +1514,14 @@ case "${1:-}" in
     fi
     exec bash "$_install_sh" --reset
     ;;
+  cron)
+    _install_sh="$KINBOT_DIR/install.sh"
+    if [ ! -f "$_install_sh" ]; then
+      echo "install.sh not found at $_install_sh"
+      exit 1
+    fi
+    exec bash "$_install_sh" --cron "${2:-status}"
+    ;;
   *)
     echo "KinBot service manager"
     echo ""
@@ -1536,6 +1544,7 @@ case "${1:-}" in
     echo "  backup [path] Back up the database"
     echo "  restore [path] Restore database from a backup"
     echo "  reset         Fix broken install: re-clone & rebuild, keep data"
+    echo "  cron [cmd]    Manage auto-updates (enable/disable/status)"
     echo "  doctor        Generate a diagnostic report (for bug reports)"
     echo "  test          Run self-tests to validate the installation"
     echo "  version       Show installed version"
@@ -2280,6 +2289,13 @@ show_help() {
   echo "  --changelog     Show what changed between installed and latest version"
   echo ""
 
+  echo -e "${BOLD}AUTOMATION${NC}"
+  echo "  --cron [enable|disable|status]  Manage automatic update scheduling"
+  echo "                  enable: set up weekly auto-updates (cron/launchd)"
+  echo "                  disable: remove the auto-update job"
+  echo "                  status: show current auto-update config"
+  echo ""
+
   echo -e "${BOLD}SHELL${NC}"
   echo "  --completions [bash|zsh|fish]  Generate shell tab-completions"
   echo ""
@@ -2300,6 +2316,7 @@ show_help() {
   echo "  KINBOT_NO_PROMPT    Skip interactive prompts (default: false)"
   echo "  KINBOT_YES          Auto-confirm all prompts (same as --yes)"
   echo "  KINBOT_QUIET        Suppress non-essential output (same as --quiet)"
+  echo "  KINBOT_CRON_SCHEDULE    Cron expression for auto-updates (default: 0 3 * * 0)"
   echo "  KINBOT_SKIP_SELF_UPDATE  Skip installer self-update check"
   echo ""
 
@@ -2318,8 +2335,11 @@ show_help() {
   echo -e "  ${DIM}# Update to latest version${NC}"
   echo "  bash install.sh --update"
   echo ""
-  echo -e "  ${DIM}# Auto-update from crontab${NC}"
-  echo "  bash install.sh --update -y -q"
+  echo -e "  ${DIM}# Set up automatic weekly updates${NC}"
+  echo "  bash install.sh --cron enable"
+  echo ""
+  echo -e "  ${DIM}# Or daily auto-updates${NC}"
+  echo "  KINBOT_CRON_SCHEDULE='0 3 * * *' bash install.sh --cron enable"
   echo ""
   echo -e "  ${DIM}# Change config${NC}"
   echo "  bash install.sh --config"
@@ -5001,6 +5021,258 @@ do_test() {
   exit "$( [ "$failed" -gt 0 ] && echo 1 || echo 0 )"
 }
 
+# ─── Cron (automatic updates) ─────────────────────────────────────────────────
+# Usage: bash install.sh --cron [enable|disable|status]
+# Sets up a system cron job (or launchd timer on macOS) that runs
+# `install.sh --update -y -q` periodically. Defaults to weekly (Sunday 3AM).
+
+KINBOT_CRON_SCHEDULE="${KINBOT_CRON_SCHEDULE:-0 3 * * 0}"  # Default: Sunday 3:00 AM
+KINBOT_CRON_TAG="# kinbot-auto-update"
+
+do_cron() {
+  local subcmd="${1:-status}"
+
+  # Minimal env setup
+  OS="$(uname -s)"
+  IS_ROOT=false
+  [ "$(id -u)" -eq 0 ] && IS_ROOT=true
+  if [ "$IS_ROOT" = true ]; then
+    KINBOT_DIR="${KINBOT_DIR:-/opt/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-/var/lib/kinbot}"
+  else
+    KINBOT_DIR="${KINBOT_DIR:-$HOME/kinbot}"
+    KINBOT_DATA_DIR="${KINBOT_DATA_DIR:-$HOME/.local/share/kinbot}"
+  fi
+
+  local install_sh="$KINBOT_DIR/install.sh"
+
+  if [ ! -f "$install_sh" ] && [ "$subcmd" != "status" ]; then
+    error "KinBot not installed at $KINBOT_DIR. Run the installer first: bash install.sh"
+  fi
+
+  # ── macOS: use launchd ──
+  if [ "$OS" = "Darwin" ]; then
+    local plist_dir="$HOME/Library/LaunchAgents"
+    local plist_path="$plist_dir/io.kinbot.auto-update.plist"
+    local log_dir="$HOME/Library/Logs/kinbot"
+
+    case "$subcmd" in
+      enable)
+        mkdir -p "$plist_dir" "$log_dir"
+
+        # Parse schedule for launchd (cron → Calendar dict is complex;
+        # use StartInterval for simplicity: weekly = 604800 seconds)
+        local interval=604800
+        if [ "${KINBOT_CRON_SCHEDULE}" != "0 3 * * 0" ]; then
+          # If user customized the schedule, try to convert common patterns
+          case "$KINBOT_CRON_SCHEDULE" in
+            *"* * *") # daily patterns
+              interval=86400
+              info "Detected daily schedule, using 24h interval"
+              ;;
+            *)
+              info "Using default weekly interval (customize KINBOT_CRON_SCHEDULE for crontab-based systems)"
+              ;;
+          esac
+        fi
+
+        # Unload existing if present
+        [ -f "$plist_path" ] && launchctl unload "$plist_path" 2>/dev/null || true
+
+        cat > "$plist_path" << PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.kinbot.auto-update</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$install_sh</string>
+    <string>--update</string>
+    <string>-y</string>
+    <string>-q</string>
+  </array>
+
+  <key>StartInterval</key>
+  <integer>$interval</integer>
+
+  <key>StandardOutPath</key>
+  <string>$log_dir/auto-update.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>$log_dir/auto-update-error.log</string>
+
+  <key>Nice</key>
+  <integer>10</integer>
+</dict>
+</plist>
+PLIST
+
+        launchctl load "$plist_path"
+        success "Automatic updates enabled (launchd, every $((interval / 3600))h)"
+        info "Log: $log_dir/auto-update.log"
+        ;;
+
+      disable)
+        if [ -f "$plist_path" ]; then
+          launchctl unload "$plist_path" 2>/dev/null || true
+          rm -f "$plist_path"
+          success "Automatic updates disabled"
+        else
+          info "Automatic updates are not enabled"
+        fi
+        ;;
+
+      status)
+        echo ""
+        echo -e "${BOLD}Auto-Update Status${NC}"
+        echo ""
+        if [ -f "$plist_path" ]; then
+          if launchctl list 2>/dev/null | grep -q io.kinbot.auto-update; then
+            echo -e "  ${GREEN}●${NC} Enabled (launchd timer loaded)"
+          else
+            echo -e "  ${YELLOW}●${NC} Plist exists but timer not loaded"
+          fi
+          if [ -f "$log_dir/auto-update.log" ]; then
+            local last_run
+            last_run="$(stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$log_dir/auto-update.log" 2>/dev/null || echo "unknown")"
+            echo -e "  ${CYAN}Last activity:${NC} $last_run"
+            echo -e "  ${CYAN}Log:${NC} $log_dir/auto-update.log"
+          fi
+        else
+          echo -e "  ${DIM}○${NC} Not enabled"
+          echo ""
+          echo -e "  ${DIM}Enable with: bash install.sh --cron enable${NC}"
+        fi
+        echo ""
+        ;;
+
+      *)
+        error "Unknown cron subcommand: $subcmd (use enable, disable, or status)"
+        ;;
+    esac
+    return
+  fi
+
+  # ── Linux: use crontab ──
+  if ! command -v crontab &>/dev/null; then
+    error "crontab command not found. Install cron (e.g., apt install cron) or set up the update job manually."
+  fi
+
+  local cron_cmd="$KINBOT_CRON_SCHEDULE bash $install_sh --update -y -q >> $KINBOT_DATA_DIR/auto-update.log 2>&1 $KINBOT_CRON_TAG"
+
+  case "$subcmd" in
+    enable)
+      mkdir -p "$KINBOT_DATA_DIR"
+
+      # Remove existing kinbot cron entry, then add new one
+      local existing_crontab
+      existing_crontab="$(crontab -l 2>/dev/null || echo "")"
+
+      # Filter out old kinbot-auto-update lines
+      local new_crontab
+      new_crontab="$(echo "$existing_crontab" | grep -v "$KINBOT_CRON_TAG" || true)"
+
+      # Append new entry
+      if [ -n "$new_crontab" ]; then
+        new_crontab="$new_crontab
+$cron_cmd"
+      else
+        new_crontab="$cron_cmd"
+      fi
+
+      echo "$new_crontab" | crontab -
+      success "Automatic updates enabled"
+      echo ""
+      echo -e "  ${CYAN}Schedule:${NC}  $KINBOT_CRON_SCHEDULE (default: weekly, Sunday 3 AM)"
+      echo -e "  ${CYAN}Command:${NC}   bash $install_sh --update -y -q"
+      echo -e "  ${CYAN}Log:${NC}       $KINBOT_DATA_DIR/auto-update.log"
+      echo ""
+      echo -e "  ${DIM}Customize schedule: KINBOT_CRON_SCHEDULE='0 3 * * *' bash install.sh --cron enable${NC}"
+      echo -e "  ${DIM}Daily at 3 AM:      KINBOT_CRON_SCHEDULE='0 3 * * *'${NC}"
+      echo -e "  ${DIM}Every 6 hours:      KINBOT_CRON_SCHEDULE='0 */6 * * *'${NC}"
+      echo -e "  ${DIM}Disable:            bash install.sh --cron disable${NC}"
+      ;;
+
+    disable)
+      local existing_crontab
+      existing_crontab="$(crontab -l 2>/dev/null || echo "")"
+
+      if echo "$existing_crontab" | grep -q "$KINBOT_CRON_TAG"; then
+        local new_crontab
+        new_crontab="$(echo "$existing_crontab" | grep -v "$KINBOT_CRON_TAG")"
+        if [ -n "$new_crontab" ]; then
+          echo "$new_crontab" | crontab -
+        else
+          crontab -r 2>/dev/null || echo "" | crontab -
+        fi
+        success "Automatic updates disabled (cron job removed)"
+      else
+        info "Automatic updates are not enabled"
+      fi
+      ;;
+
+    status)
+      echo ""
+      echo -e "${BOLD}Auto-Update Status${NC}"
+      echo ""
+
+      local existing_crontab
+      existing_crontab="$(crontab -l 2>/dev/null || echo "")"
+
+      if echo "$existing_crontab" | grep -q "$KINBOT_CRON_TAG"; then
+        local cron_line
+        cron_line="$(echo "$existing_crontab" | grep "$KINBOT_CRON_TAG")"
+        local schedule
+        schedule="$(echo "$cron_line" | awk '{print $1, $2, $3, $4, $5}')"
+
+        echo -e "  ${GREEN}●${NC} Enabled"
+        echo -e "  ${CYAN}Schedule:${NC} $schedule"
+
+        # Parse cron to human-readable
+        case "$schedule" in
+          "0 3 * * 0")  echo -e "  ${DIM}(Weekly, Sunday at 3:00 AM)${NC}" ;;
+          "0 3 * * *")  echo -e "  ${DIM}(Daily at 3:00 AM)${NC}" ;;
+          "0 */6 * * *") echo -e "  ${DIM}(Every 6 hours)${NC}" ;;
+          "0 */12 * * *") echo -e "  ${DIM}(Every 12 hours)${NC}" ;;
+        esac
+
+        # Show last update log
+        local log_file="$KINBOT_DATA_DIR/auto-update.log"
+        if [ -f "$log_file" ]; then
+          local log_size
+          log_size="$(du -h "$log_file" 2>/dev/null | awk '{print $1}')"
+          local last_mod
+          last_mod="$(date -r "$log_file" '+%Y-%m-%d %H:%M' 2>/dev/null || stat -c '%y' "$log_file" 2>/dev/null | cut -d. -f1 || echo "unknown")"
+          echo -e "  ${CYAN}Last run:${NC} $last_mod"
+          echo -e "  ${CYAN}Log:${NC} $log_file ($log_size)"
+
+          # Show last few lines of the log
+          echo ""
+          echo -e "  ${BOLD}Last update output:${NC}"
+          tail -5 "$log_file" 2>/dev/null | while IFS= read -r line; do
+            echo -e "  ${DIM}  $line${NC}"
+          done
+        else
+          echo -e "  ${CYAN}Log:${NC} $log_file (no runs yet)"
+        fi
+      else
+        echo -e "  ${DIM}○${NC} Not enabled"
+        echo ""
+        echo -e "  ${DIM}Enable with: bash install.sh --cron enable${NC}"
+      fi
+      echo ""
+      ;;
+
+    *)
+      error "Unknown cron subcommand: $subcmd\n\n  Usage: bash install.sh --cron [enable|disable|status]\n\n  ${BOLD}enable${NC}   Set up automatic updates (default: weekly, Sunday 3 AM)\n  ${BOLD}disable${NC}  Remove the automatic update job\n  ${BOLD}status${NC}   Show current auto-update configuration"
+      ;;
+  esac
+}
+
 # ─── Shell completions ────────────────────────────────────────────────────────
 generate_completions() {
   local shell="${1:-bash}"
@@ -5019,12 +5291,16 @@ _kinbot_completions() {
   local commands="--help --update --docker --dry-run --reset --uninstall
     --start --stop --restart --logs --status --test --doctor
     --config --env --backup --restore --version --changelog
-    --completions --yes --quiet --no-color"
+    --cron --completions --yes --quiet --no-color"
 
   # Sub-options for specific commands
   case "$prev" in
     --logs|logs)
       COMPREPLY=( $(compgen -W "--grep --since" -- "$cur") )
+      return
+      ;;
+    --cron|cron)
+      COMPREPLY=( $(compgen -W "enable disable status" -- "$cur") )
       return
       ;;
     --completions|completions)
@@ -5080,6 +5356,7 @@ _kinbot() {
     '--restore:Restore from a backup'
     '--version:Show installed version'
     '--changelog:Show changes since installed version'
+    '--cron:Manage automatic update scheduling'
     '--completions:Generate shell completions'
     '--yes:Auto-confirm all prompts'
     '--quiet:Suppress non-essential output'
@@ -5121,6 +5398,7 @@ complete -c kinbot -l backup -d 'Back up database and config'
 complete -c kinbot -l restore -d 'Restore from a backup'
 complete -c kinbot -l version -d 'Show installed version'
 complete -c kinbot -l changelog -d 'Show changes'
+complete -c kinbot -l cron -d 'Manage automatic update scheduling'
 complete -c kinbot -l completions -d 'Generate shell completions'
 complete -c kinbot -l yes -d 'Auto-confirm all prompts'
 complete -c kinbot -l quiet -d 'Suppress non-essential output'
@@ -5283,6 +5561,19 @@ main() {
       --changelog|changelog)
         trap - INT TERM
         show_changelog
+        exit 0
+        ;;
+      --cron|cron)
+        trap - INT TERM
+        local cron_subcmd="status"
+        local found_cron=false
+        for a in "$@"; do
+          if [ "$found_cron" = true ]; then
+            [[ "$a" != --* ]] && cron_subcmd="$a" && break
+          fi
+          [[ "$a" = "--cron" || "$a" = "cron" ]] && found_cron=true
+        done
+        do_cron "$cron_subcmd"
         exit 0
         ;;
       --completions|completions)
