@@ -15,6 +15,7 @@ interface Memory {
   subject: string | null
   importance?: number | null
   updatedAt?: Date | null
+  score?: number | null
 }
 
 interface KinDirectoryEntry {
@@ -99,6 +100,17 @@ function formatRelativeTime(date: Date | null | undefined): string | null {
 }
 
 /**
+ * Convert a retrieval score into a qualitative relevance tag.
+ * RRF scores are typically small (0.01–0.07); thresholds are calibrated
+ * for the hybrid search pipeline (vector + FTS with RRF fusion).
+ */
+function formatRelevanceTag(score: number): string {
+  if (score >= 0.04) return '⬤'   // highly relevant
+  if (score >= 0.02) return '◉'   // relevant
+  return '○'                       // loosely related
+}
+
+/**
  * Format a single memory line with optional metadata (importance, recency).
  */
 function formatMemoryLine(m: Memory): string {
@@ -106,6 +118,10 @@ function formatMemoryLine(m: Memory): string {
   // Importance indicator: ★ for high (7-10), · for normal
   if (m.importance != null && m.importance >= 7) {
     parts.push('★')
+  }
+  // Relevance indicator from retrieval score
+  if (m.score != null) {
+    parts.push(formatRelevanceTag(m.score))
   }
   parts.push(`[${m.category}]`)
   parts.push(m.content)
@@ -236,6 +252,9 @@ function formatMemoryLineCompact(m: Memory): string {
   if (m.importance != null && m.importance >= 7) {
     parts.push('★')
   }
+  if (m.score != null) {
+    parts.push(formatRelevanceTag(m.score))
+  }
   parts.push(`[${m.category}]`)
   parts.push(m.content)
   const relTime = formatRelativeTime(m.updatedAt)
@@ -255,7 +274,7 @@ function formatMemoryLineCompact(m: Memory): string {
  * about X?" is more natural than "what facts vs preferences do I have?"
  */
 function buildMemoriesBlock(memories: Memory[]): string {
-  const header = `## Memories\n\nRelevant information from your past interactions (★ = high importance):`
+  const header = `## Memories\n\nRelevant information from your past interactions (★ = high importance, ⬤ = highly relevant, ◉ = relevant, ○ = loosely related):`
 
   if (memories.length <= 3) {
     const memoryLines = memories.map(formatMemoryLine).join('\n')

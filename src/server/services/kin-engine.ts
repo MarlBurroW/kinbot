@@ -238,7 +238,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     // Retrieve relevant memories via hybrid search (semantic + FTS5)
     // If contextual rewriting is enabled, enrich short/ambiguous queries with conversation context
-    let relevantMemories: Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null }> = []
+    let relevantMemories: Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null; score: number }> = []
     try {
       let memoryQuery = queueItem.content
       if (config.memory.contextualRewriteModel) {
@@ -828,7 +828,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     }
 
     // Retrieve relevant memories (read-only) via hybrid search
-    let relevantMemories: Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null }> = []
+    let relevantMemories: Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null; score: number }> = []
     try {
       relevantMemories = await getRelevantMemories(kinId, queueItem.content)
     } catch {

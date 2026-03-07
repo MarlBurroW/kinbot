@@ -785,11 +785,11 @@ export async function rewriteQueryWithContext(
 export async function getRelevantMemories(
   kinId: string,
   query: string,
-): Promise<Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; category: string; content: string; subject: string | null; importance: number | null; updatedAt: Date | null; score: number }>> {
   const results = await searchMemories(kinId, query, config.memory.maxRelevantMemories)
   // Track which memories were actually injected into the prompt (fire-and-forget)
   trackRetrievals(results.map((r) => r.id))
-  return results.map((r) => ({ id: r.id, category: r.category, content: r.content, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt }))
+  return results.map((r) => ({ id: r.id, category: r.category, content: r.content, subject: r.subject, importance: r.importance, updatedAt: r.updatedAt, score: r.score }))
 }
 
 // ─── Re-embedding ────────────────────────────────────────────────────────────
