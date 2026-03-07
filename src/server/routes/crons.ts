@@ -27,7 +27,7 @@ function kinAvatarUrl(kinId: string, avatarPath: string | null): string | null {
 interface KinInfo { name: string; avatarPath: string | null }
 
 // Serialize cron for API response
-function serializeCron(cron: any, kinInfo?: KinInfo) {
+function serializeCron(cron: any, kinInfo?: KinInfo, targetKinInfo?: KinInfo) {
   return {
     id: cron.id,
     kinId: cron.kinId,
@@ -37,6 +37,8 @@ function serializeCron(cron: any, kinInfo?: KinInfo) {
     schedule: cron.schedule,
     taskDescription: cron.taskDescription,
     targetKinId: cron.targetKinId,
+    targetKinName: targetKinInfo?.name ?? null,
+    targetKinAvatarUrl: cron.targetKinId && targetKinInfo ? kinAvatarUrl(cron.targetKinId, targetKinInfo.avatarPath) : null,
     model: cron.model,
     isActive: cron.isActive,
     requiresApproval: cron.requiresApproval,
@@ -51,8 +53,11 @@ cronRoutes.get('/', async (c) => {
   const kinId = c.req.query('kinId')
   const allCrons = await listCrons(kinId ?? undefined)
 
-  // Fetch kin info (name + avatar)
-  const kinIds = [...new Set(allCrons.map((cr) => cr.kinId))]
+  // Fetch kin info (name + avatar) for owners and targets
+  const kinIds = [...new Set([
+    ...allCrons.map((cr) => cr.kinId),
+    ...allCrons.map((cr) => cr.targetKinId).filter(Boolean) as string[],
+  ])]
   const kinMap = new Map<string, KinInfo>()
   for (const id of kinIds) {
     const kin = await db.select({ name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, id)).get()
@@ -60,7 +65,7 @@ cronRoutes.get('/', async (c) => {
   }
 
   return c.json({
-    crons: allCrons.map((cr) => serializeCron(cr, kinMap.get(cr.kinId))),
+    crons: allCrons.map((cr) => serializeCron(cr, kinMap.get(cr.kinId), cr.targetKinId ? kinMap.get(cr.targetKinId) : undefined)),
   })
 })
 
@@ -96,7 +101,8 @@ cronRoutes.post('/', async (c) => {
     log.info({ cronId: cron.id, kinId: cron.kinId, name: cron.name, schedule: cron.schedule }, 'Cron created')
 
     const kin = await db.select({ name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, cron.kinId)).get()
-    return c.json({ cron: serializeCron(cron, kin ?? undefined) }, 201)
+    const targetKin = cron.targetKinId ? await db.select({ name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, cron.targetKinId)).get() : undefined
+    return c.json({ cron: serializeCron(cron, kin ?? undefined, targetKin ?? undefined) }, 201)
   } catch (err) {
     return c.json(
       { error: { code: 'CRON_CREATE_ERROR', message: err instanceof Error ? err.message : 'Unknown error' } },
@@ -129,7 +135,8 @@ cronRoutes.patch('/:id', async (c) => {
     }
 
     const kin = await db.select({ name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, updated.kinId)).get()
-    return c.json({ cron: serializeCron(updated, kin ?? undefined) })
+    const targetKin = updated.targetKinId ? await db.select({ name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, updated.targetKinId)).get() : undefined
+    return c.json({ cron: serializeCron(updated, kin ?? undefined, targetKin ?? undefined) })
   } catch (err) {
     return c.json(
       { error: { code: 'CRON_UPDATE_ERROR', message: err instanceof Error ? err.message : 'Unknown error' } },
@@ -201,5 +208,6 @@ cronRoutes.post('/:id/approve', async (c) => {
   log.info({ cronId, kinId: approved.kinId, name: approved.name }, 'Cron approved')
 
   const kin = await db.select({ name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, approved.kinId)).get()
-  return c.json({ cron: serializeCron(approved, kin ?? undefined) })
+  const targetKin = approved.targetKinId ? await db.select({ name: kins.name, avatarPath: kins.avatarPath }).from(kins).where(eq(kins.id, approved.targetKinId)).get() : undefined
+  return c.json({ cron: serializeCron(approved, kin ?? undefined, targetKin ?? undefined) })
 })

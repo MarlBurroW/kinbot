@@ -17,6 +17,7 @@ import { Label } from '@/client/components/ui/label'
 const TaskDetailModal = lazy(() => import('@/client/components/sidebar/TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import {
+  ArrowRight,
   Clock,
   Pencil,
   CheckCircle2,
@@ -223,6 +224,23 @@ export function CronDetailModal({
                   <p className="text-sm whitespace-pre-wrap">{cron.taskDescription}</p>
                 </div>
               </div>
+
+              {/* Target Kin */}
+              {cron.targetKinId && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">{t('cron.detail.targetKin')}</p>
+                  <div className="flex items-center gap-2">
+                    <ArrowRight className="size-3.5 text-muted-foreground shrink-0" />
+                    <Avatar className="size-5 shrink-0">
+                      {cron.targetKinAvatarUrl && <AvatarImage src={cron.targetKinAvatarUrl} alt={cron.targetKinName ?? ''} />}
+                      <AvatarFallback className="text-[10px] bg-secondary">
+                        {(cron.targetKinName ?? '?').slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{cron.targetKinName ?? cron.targetKinId}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Model */}
               <div className="space-y-1">

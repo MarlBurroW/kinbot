@@ -157,6 +157,8 @@ export interface CronSummary {
   schedule: string
   taskDescription: string
   targetKinId: string | null
+  targetKinName: string | null
+  targetKinAvatarUrl: string | null
   model: string | null
   isActive: boolean
   requiresApproval: boolean

@@ -433,7 +433,8 @@
       "historyError": "Failed to load execution history",
       "runNow": "Run Now",
       "triggerSuccess": "Job triggered successfully",
-      "triggerError": "Failed to trigger job"
+      "triggerError": "Failed to trigger job",
+      "targetKin": "Target Kin"
     }
   },
   "chat": {

@@ -433,7 +433,8 @@
       "historyError": "Erreur lors du chargement de l'historique",
       "runNow": "Exécuter",
       "triggerSuccess": "Tâche déclenchée avec succès",
-      "triggerError": "Impossible de déclencher la tâche"
+      "triggerError": "Impossible de déclencher la tâche",
+      "targetKin": "Kin cible"
     }
   },
   "chat": {
