@@ -28,6 +28,8 @@ import { Check, ChevronsUpDown, Loader2, Plus, X } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { CONTACT_IDENTIFIER_SUGGESTIONS } from '@/shared/constants'
+import { KinSelector } from '@/client/components/common/KinSelector'
+import { useKins } from '@/client/hooks/useKins'
 import type { ContactData } from '@/client/components/contacts/ContactCard'
 
 interface UserOption {
@@ -147,8 +149,10 @@ export function ContactFormDialog({
   const [name, setName] = useState('')
   const [type, setType] = useState<'human' | 'kin'>('human')
   const [linkedUserId, setLinkedUserId] = useState<string | null>(null)
+  const [linkedKinId, setLinkedKinId] = useState<string | null>(null)
   const [users, setUsers] = useState<UserOption[]>([])
   const [identifiers, setIdentifiers] = useState<IdentifierRow[]>([])
+  const { kins } = useKins()
 
   useEffect(() => {
     if (open) {
@@ -163,6 +167,7 @@ export function ContactFormDialog({
       setName(contact.name)
       setType(contact.type as 'human' | 'kin')
       setLinkedUserId(contact.linkedUserId ?? null)
+      setLinkedKinId(contact.linkedKinId ?? null)
       setIdentifiers(
         contact.identifiers.map((i) => ({ existingId: i.id, label: i.label, value: i.value })),
       )
@@ -171,6 +176,7 @@ export function ContactFormDialog({
       setName('')
       setType('human')
       setLinkedUserId(null)
+      setLinkedKinId(null)
       setIdentifiers([])
       setError('')
     }
@@ -201,7 +207,12 @@ export function ContactFormDialog({
       const validIdentifiers = identifiers.filter((i) => i.label && i.value.trim())
 
       if (isEditing) {
-        await api.patch(`/contacts/${contact.id}`, { name, type, linkedUserId })
+        await api.patch(`/contacts/${contact.id}`, {
+          name,
+          type,
+          linkedUserId: type === 'human' ? linkedUserId : null,
+          linkedKinId: type === 'kin' ? linkedKinId : null,
+        })
 
         // Delete identifiers that were removed from the form
         const currentExistingIds = new Set(validIdentifiers.filter((i) => i.existingId).map((i) => i.existingId))
@@ -232,7 +243,8 @@ export function ContactFormDialog({
         await api.post('/contacts', {
           name,
           type,
-          linkedUserId: linkedUserId || undefined,
+          linkedUserId: type === 'human' ? (linkedUserId || undefined) : undefined,
+          linkedKinId: type === 'kin' ? (linkedKinId || undefined) : undefined,
           identifiers: validIdentifiers.length > 0
             ? validIdentifiers.map((i) => ({ label: i.label, value: i.value }))
             : undefined,
@@ -306,6 +318,20 @@ export function ContactFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {type === 'kin' && kins.length > 0 && (
+            <div className="space-y-2">
+              <Label className="inline-flex items-center gap-1.5">{t('settings.contacts.linkToKin')} <InfoTip content={t('settings.contacts.linkToKinTip')} /></Label>
+              <KinSelector
+                value={linkedKinId ?? '_none'}
+                onValueChange={(v) => setLinkedKinId(v === '_none' ? null : v)}
+                kins={kins.map((k) => ({ id: k.id, name: k.name, avatarUrl: k.avatarUrl }))}
+                noneLabel={t('settings.contacts.noKinLink')}
+                noneValue="_none"
+                placeholder={t('settings.contacts.selectKin')}
+              />
             </div>
           )}
 
