@@ -1402,6 +1402,7 @@
       "custom": "Personnalisé",
       "images": "Images",
       "shell": "Shell",
+      "filesystem": "Fichiers",
       "file-storage": "Stockage fichiers",
       "mcp": "MCP",
       "kin-management": "Gestion des Kins",

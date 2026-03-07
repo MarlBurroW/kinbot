@@ -420,6 +420,7 @@ export type ToolDomain =
   | 'custom'
   | 'images'
   | 'shell'
+  | 'filesystem'
   | 'file-storage'
   | 'mcp'
   | 'kin-management'

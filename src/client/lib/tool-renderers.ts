@@ -24,6 +24,14 @@ export function getRenderer(toolName: string): ComponentType<ToolResultRendererP
 // Register built-in renderers (lazy imports to avoid bloating main bundle)
 import { ShellResultRenderer } from '@/client/components/chat/renderers/ShellResultRenderer'
 import { HttpRequestRenderer } from '@/client/components/chat/renderers/HttpRequestRenderer'
+import { FileReadRenderer } from '@/client/components/chat/renderers/FileReadRenderer'
+import { FileWriteRenderer } from '@/client/components/chat/renderers/FileWriteRenderer'
+import { FileEditRenderer } from '@/client/components/chat/renderers/FileEditRenderer'
+import { ListDirectoryRenderer } from '@/client/components/chat/renderers/ListDirectoryRenderer'
 
 registerRenderer('run_shell', ShellResultRenderer)
 registerRenderer('http_request', HttpRequestRenderer)
+registerRenderer('read_file', FileReadRenderer)
+registerRenderer('write_file', FileWriteRenderer)
+registerRenderer('edit_file', FileEditRenderer)
+registerRenderer('list_directory', ListDirectoryRenderer)

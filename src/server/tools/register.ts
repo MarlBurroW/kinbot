@@ -144,6 +144,12 @@ import { getMiniAppDocsTool } from '@/server/tools/mini-app-docs'
 import { browseMiniAppsTool } from '@/server/tools/mini-app-gallery'
 import { attachFileTool } from '@/server/tools/attach-file-tool'
 import {
+  readFileTool,
+  writeFileTool,
+  editFileTool,
+  listDirectoryTool,
+} from '@/server/tools/filesystem-tools'
+import {
   listInstalledPluginsTool,
   browsePluginStoreTool,
   installPluginTool,
@@ -326,6 +332,12 @@ export function registerAllTools(): void {
   toolRegistry.register('disable_plugin', disablePluginTool)
   toolRegistry.register('configure_plugin', configurePluginTool)
   toolRegistry.register('get_plugin_details', getPluginDetailsTool)
+
+  // Filesystem tools (main + sub-kin)
+  toolRegistry.register('read_file', readFileTool)
+  toolRegistry.register('write_file', writeFileTool)
+  toolRegistry.register('edit_file', editFileTool)
+  toolRegistry.register('list_directory', listDirectoryTool)
 
   // Knowledge base tools (main only)
   toolRegistry.register('search_knowledge', searchKnowledgeTool)

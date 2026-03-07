@@ -19,6 +19,7 @@ import {
   UserCog,
   Database,
   AppWindow,
+  FileCode,
 } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 import type { ToolDomain } from '@/shared/types'
@@ -36,6 +37,7 @@ const DOMAIN_ICONS: Record<ToolDomain, React.FC<LucideProps>> = {
   custom: Puzzle,
   images: Image,
   shell: Terminal,
+  filesystem: FileCode,
   'file-storage': HardDrive,
   mcp: Plug,
   'kin-management': Crown,
