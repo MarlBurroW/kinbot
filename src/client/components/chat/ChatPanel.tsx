@@ -13,6 +13,7 @@ import { HumanPromptCard } from '@/client/components/chat/HumanPromptCard'
 const TaskDetailModal = lazy(() => import('@/client/components/sidebar/TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
 import { Sheet, SheetContent, SheetTitle } from '@/client/components/ui/sheet'
 const QuickChatPanel = lazy(() => import('@/client/components/chat/QuickChatPanel').then(m => ({ default: m.QuickChatPanel })))
+const QuickSessionHistory = lazy(() => import('@/client/components/chat/QuickSessionHistory').then(m => ({ default: m.QuickSessionHistory })))
 import { useChat } from '@/client/hooks/useChat'
 import { useToolCalls } from '@/client/hooks/useToolCalls'
 import { useHumanPrompts } from '@/client/hooks/useHumanPrompts'
@@ -68,6 +69,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
   const { pendingFiles, addFiles, removeFile, clearFiles, isUploading } = useFileUpload(kin.id)
   const { activeSession, isOpen: isQuickOpen, setIsOpen: setQuickOpen, createSession, closeSession } = useQuickSession(kin.id)
+  const [showQuickHistory, setShowQuickHistory] = useState(false)
   const { exportAsMarkdown, exportAsJSON } = useExportConversation(messages, kin.name)
   const { users: mentionableUsers, kins: mentionableKins } = useMentionables()
   const { toggleReaction } = useReactions(kin.id)
@@ -755,10 +757,19 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       )}
 
       {/* Quick session side panel */}
-      <Sheet open={isQuickOpen} onOpenChange={setQuickOpen}>
+      <Sheet open={isQuickOpen} onOpenChange={(open) => { setQuickOpen(open); if (!open) setShowQuickHistory(false) }}>
         <SheetContent side="right" className="w-[500px] sm:max-w-lg p-0" showCloseButton={false}>
           <SheetTitle className="sr-only">{t('chat.quickChat')}</SheetTitle>
-          {activeSession && (
+          {showQuickHistory ? (
+            <Suspense fallback={null}>
+              <QuickSessionHistory
+                kinId={kin.id}
+                kinName={kin.name}
+                kinAvatarUrl={kin.avatarUrl}
+                onBack={() => setShowQuickHistory(false)}
+              />
+            </Suspense>
+          ) : activeSession ? (
             <Suspense fallback={null}>
               <QuickChatPanel
                 kinId={kin.id}
@@ -770,9 +781,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                 onHide={() => setQuickOpen(false)}
                 onEnd={handleQuickClose}
                 onModelChange={onModelChange}
+                onShowHistory={() => setShowQuickHistory(true)}
               />
             </Suspense>
-          )}
+          ) : null}
         </SheetContent>
       </Sheet>
     </div>

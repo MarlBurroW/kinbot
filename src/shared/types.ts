@@ -242,6 +242,7 @@ export interface QuickSessionSummary {
   status: QuickSessionStatus
   createdAt: number
   closedAt: number | null
+  messageCount?: number
 }
 
 // ─── Channel types ──────────────────────────────────────────────────────────

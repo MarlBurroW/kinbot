@@ -75,7 +75,10 @@ kinScopedRoutes.post('/', async (c) => {
   } satisfies QuickSessionSummary, 201)
 })
 
-// GET / — list active quick sessions for the current user on this kin
+// GET / — list quick sessions for the current user on this kin
+// Query params:
+//   ?status=active (default) | closed | all
+//   ?limit=N (default 20, max 50, only for closed/all)
 kinScopedRoutes.get('/', async (c) => {
   const kinIdParam = c.req.param('kinId')
   const kinId = kinIdParam ? resolveKinId(kinIdParam) : null
@@ -84,17 +87,41 @@ kinScopedRoutes.get('/', async (c) => {
   }
 
   const user = c.get('user') as { id: string; name: string }
+  const statusFilter = (c.req.query('status') ?? 'active') as string
+  const limitParam = Math.min(Math.max(parseInt(c.req.query('limit') ?? '20', 10) || 20, 1), 50)
+
+  const conditions = [
+    eq(quickSessions.kinId, kinId),
+    eq(quickSessions.createdBy, user.id),
+  ]
+
+  if (statusFilter === 'active' || statusFilter === 'closed') {
+    conditions.push(eq(quickSessions.status, statusFilter))
+  }
+  // 'all' — no status filter
 
   const sessions = await db
     .select()
     .from(quickSessions)
-    .where(and(
-      eq(quickSessions.kinId, kinId),
-      eq(quickSessions.createdBy, user.id),
-      eq(quickSessions.status, 'active'),
-    ))
+    .where(and(...conditions))
     .orderBy(desc(quickSessions.createdAt))
+    .limit(limitParam)
     .all()
+
+  // For closed sessions, include message count
+  const sessionIds = sessions.filter(s => s.status === 'closed').map(s => s.id)
+  const messageCounts = new Map<string, number>()
+
+  if (sessionIds.length > 0) {
+    for (const sid of sessionIds) {
+      const result = await db
+        .select({ count: messages.id })
+        .from(messages)
+        .where(eq(messages.sessionId, sid))
+        .all()
+      messageCounts.set(sid, result.length)
+    }
+  }
 
   return c.json({
     sessions: sessions.map((s) => ({
@@ -104,7 +131,8 @@ kinScopedRoutes.get('/', async (c) => {
       status: s.status as QuickSessionStatus,
       createdAt: (s.createdAt as Date).getTime(),
       closedAt: s.closedAt ? (s.closedAt as Date).getTime() : null,
-    } satisfies QuickSessionSummary)),
+      messageCount: messageCounts.get(s.id) ?? undefined,
+    })),
   })
 })
 

@@ -627,6 +627,13 @@
       "summaryPlaceholder": "Décrivez ce qui a été discuté ou décidé...",
       "save": "Sauvegarder et fermer",
       "closeOnly": "Fermer sans sauvegarder"
+    },
+    "history": {
+      "title": "Historique des sessions",
+      "open": "Historique",
+      "empty": "Aucune session passée. Les sessions rapides terminées apparaitront ici.",
+      "untitled": "Session sans titre",
+      "noMessages": "Aucun message dans cette session"
     }
   },
   "taskDetail": {

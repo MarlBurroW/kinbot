@@ -627,6 +627,13 @@
       "summaryPlaceholder": "Describe what was discussed or decided...",
       "save": "Save & close",
       "closeOnly": "Close without saving"
+    },
+    "history": {
+      "title": "Session History",
+      "open": "History",
+      "empty": "No past sessions yet. Closed quick sessions will appear here.",
+      "untitled": "Untitled session",
+      "noMessages": "No messages in this session"
     }
   },
   "taskDetail": {
