@@ -218,7 +218,13 @@ const ElectricBorder: React.FC<ElectricBorderProps> = ({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.scale(dpr, dpr);
 
-      ctx.strokeStyle = color;
+      // Resolve CSS variables — canvas API doesn't support var(--...)
+      let resolvedColor = color;
+      if (color.startsWith('var(')) {
+        const varName = color.slice(4, -1).trim();
+        resolvedColor = getComputedStyle(container!).getPropertyValue(varName).trim() || color;
+      }
+      ctx.strokeStyle = resolvedColor;
       ctx.lineWidth = 1;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
