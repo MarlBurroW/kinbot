@@ -1,0 +1,127 @@
+<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background: radial dark -->
+    <radialGradient id="bg" cx="42%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#1e1045"/>
+      <stop offset="100%" stop-color="#050a1c"/>
+    </radialGradient>
+
+    <!-- Central core glow -->
+    <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="35%"  stop-color="#ddd6fe"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Big glow (center star) -->
+    <filter id="bigGlow" x="-130%" y="-130%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="11" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Glow for orbital nodes -->
+    <filter id="nodeGlow" x="-90%" y="-90%" width="280%" height="280%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Glow for orbital arcs -->
+    <filter id="arcGlow" x="-8%" y="-40%" width="116%" height="180%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background disc -->
+  <circle cx="120" cy="120" r="116" fill="url(#bg)"/>
+
+  <!-- Outer decorative rings -->
+  <circle cx="120" cy="120" r="110" fill="none" stroke="#a78bfa" stroke-width="1"   opacity="0.18"/>
+  <circle cx="120" cy="120" r="103" fill="none" stroke="#38bdf8" stroke-width="0.5" opacity="0.07"/>
+
+  <!-- ── Orbital arcs ──────────────────────────────────
+       Each orbit has a faded back arc (top) and bright front arc (bottom).
+       Orbits 2 and 3 reuse the same arc paths with rotation transforms.
+
+       Arc anatomy for rx=87, ry=24, center (120,120):
+         Back  (top):    M 207,120 A 87,24 0 0,0 33,120
+         Front (bottom): M  33,120 A 87,24 0 0,0 207,120
+  ─────────────────────────────────────────────────── -->
+
+  <!-- Back arcs (behind center, faded) -->
+  <g filter="url(#arcGlow)" opacity="0.28">
+    <!-- Orbit 1 back — violet -->
+    <path d="M 207,120 A 87,24 0 0,0 33,120"
+      fill="none" stroke="#a78bfa" stroke-width="1.6" stroke-linecap="round"/>
+    <!-- Orbit 2 back — indigo -->
+    <path d="M 207,120 A 87,24 0 0,0 33,120"
+      fill="none" stroke="#818cf8" stroke-width="1.6" stroke-linecap="round"
+      transform="rotate(60 120 120)"/>
+    <!-- Orbit 3 back — sky -->
+    <path d="M 207,120 A 87,24 0 0,0 33,120"
+      fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round"
+      transform="rotate(-60 120 120)"/>
+  </g>
+
+  <!-- Front arcs (nearer to viewer, bright) -->
+  <g filter="url(#arcGlow)" opacity="0.72">
+    <!-- Orbit 1 front — violet -->
+    <path d="M 33,120 A 87,24 0 0,0 207,120"
+      fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/>
+    <!-- Orbit 2 front — indigo -->
+    <path d="M 33,120 A 87,24 0 0,0 207,120"
+      fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round"
+      transform="rotate(60 120 120)"/>
+    <!-- Orbit 3 front — sky -->
+    <path d="M 33,120 A 87,24 0 0,0 207,120"
+      fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"
+      transform="rotate(-60 120 120)"/>
+  </g>
+
+  <!-- ── 6 orbital nodes (one pair per orbit) ──────────
+       All at radius 87 from center, forming a regular hexagon:
+         Orbit 1 (0°):   (207,120)  and  (33,120)
+         Orbit 2 (60°):  (163,195)  and  (77,45)
+         Orbit 3 (-60°): (163,45)   and  (77,195)
+  ─────────────────────────────────────────────────── -->
+  <g filter="url(#nodeGlow)">
+    <!-- Orbit 1: violet -->
+    <circle cx="207" cy="120" r="8"   fill="#a78bfa"/>
+    <circle cx="207" cy="120" r="3.5" fill="#ede9fe"/>
+    <circle cx="33"  cy="120" r="8"   fill="#a78bfa"/>
+    <circle cx="33"  cy="120" r="3.5" fill="#ede9fe"/>
+
+    <!-- Orbit 2: indigo -->
+    <circle cx="163" cy="195" r="8"   fill="#818cf8"/>
+    <circle cx="163" cy="195" r="3.5" fill="#e0e7ff"/>
+    <circle cx="77"  cy="45"  r="8"   fill="#818cf8"/>
+    <circle cx="77"  cy="45"  r="3.5" fill="#e0e7ff"/>
+
+    <!-- Orbit 3: sky -->
+    <circle cx="163" cy="45"  r="8"   fill="#38bdf8"/>
+    <circle cx="163" cy="45"  r="3.5" fill="#e0f2fe"/>
+    <circle cx="77"  cy="195" r="8"   fill="#38bdf8"/>
+    <circle cx="77"  cy="195" r="3.5" fill="#e0f2fe"/>
+  </g>
+
+  <!-- ── Central star core ────────────────────────── -->
+  <g filter="url(#bigGlow)">
+    <!-- Outer glow halo -->
+    <circle cx="120" cy="120" r="22" fill="#5b21b6" opacity="0.65"/>
+    <!-- Main core -->
+    <circle cx="120" cy="120" r="14" fill="#a78bfa"/>
+    <!-- Highlight ring -->
+    <circle cx="120" cy="120" r="8"  fill="#ddd6fe"/>
+    <!-- White hot center -->
+    <circle cx="120" cy="120" r="4"  fill="#ffffff"/>
+  </g>
+</svg>

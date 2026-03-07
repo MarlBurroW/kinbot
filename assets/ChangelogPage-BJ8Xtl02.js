@@ -1,0 +1,1 @@
+import{j as e}from"./vendor-react-Ah1pgjPn.js";function o(){return e.jsxs("div",{className:"container-lg pt-32 pb-24",children:[e.jsx("h1",{className:"text-4xl font-bold text-white mb-8",children:"Changelog"}),e.jsx("p",{className:"text-white/60",children:"Coming soon. Sections will be moved here from the homepage."})]})}export{o as ChangelogPage};
