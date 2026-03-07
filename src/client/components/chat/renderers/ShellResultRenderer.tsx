@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/client/lib/utils'
 import { ChevronDown, ChevronRight, Terminal } from 'lucide-react'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
@@ -9,6 +10,7 @@ import type { ToolResultRendererProps } from '@/client/lib/tool-renderers'
  * Shows command in a terminal-style block with stdout/stderr.
  */
 export function ShellResultRenderer({ args, result, status }: ToolResultRendererProps) {
+  const { t } = useTranslation()
   const [showRaw, setShowRaw] = useState(false)
   const command = typeof args.command === 'string' ? args.command : null
 
@@ -22,8 +24,8 @@ export function ShellResultRenderer({ args, result, status }: ToolResultRenderer
   if (!command && !stdout && !stderr) {
     return (
       <>
-        <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-        {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+        <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+        {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
       </>
     )
   }
@@ -35,13 +37,13 @@ export function ShellResultRenderer({ args, result, status }: ToolResultRenderer
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
           <Terminal className="size-3 text-zinc-500" />
-          <span className="text-zinc-400 text-[10px]">Shell</span>
+          <span className="text-zinc-400 text-[10px]">{t('tools.renderers.shell')}</span>
           {exitCode !== null && (
             <span className={cn(
               'ml-auto text-[10px] font-medium',
               exitCode === 0 ? 'text-green-400' : 'text-red-400',
             )}>
-              exit {exitCode}
+              {t('tools.renderers.exit', { code: exitCode })}
             </span>
           )}
         </div>
@@ -76,16 +78,16 @@ export function ShellResultRenderer({ args, result, status }: ToolResultRenderer
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {showRaw ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        Raw JSON
+        {t('tools.renderers.rawJson')}
       </button>
 
       {showRaw && (
         <>
-          <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
+          <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
           {result !== undefined && (
             <JsonViewer
               data={result}
-              label="Output"
+              label={t('tools.renderers.output')}
               labelClassName={status === 'error' ? 'text-destructive' : undefined}
               maxHeight="max-h-60"
             />

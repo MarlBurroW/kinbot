@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/client/lib/utils'
 import { ChevronDown, ChevronRight, Globe } from 'lucide-react'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
@@ -31,6 +32,7 @@ function isJsonValue(value: unknown): boolean {
  * Shows method badge, URL, status code, collapsible request/response bodies with syntax highlighting.
  */
 export function HttpRequestRenderer({ args, result, status }: ToolResultRendererProps) {
+  const { t } = useTranslation()
   const [showRequestBody, setShowRequestBody] = useState(true)
   const [showResponseBody, setShowResponseBody] = useState(true)
   const [showHeaders, setShowHeaders] = useState(false)
@@ -49,8 +51,8 @@ export function HttpRequestRenderer({ args, result, status }: ToolResultRenderer
   if (!url) {
     return (
       <>
-        <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-        {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+        <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+        {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
       </>
     )
   }
@@ -84,7 +86,7 @@ export function HttpRequestRenderer({ args, result, status }: ToolResultRenderer
               className="flex items-center gap-1 px-3 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
             >
               {showRequestBody ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-              Request Body
+              {t('tools.renderers.requestBody')}
             </button>
             {showRequestBody && (
               <div className="px-1 pb-1">
@@ -107,7 +109,7 @@ export function HttpRequestRenderer({ args, result, status }: ToolResultRenderer
               className="flex items-center gap-1 px-3 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
             >
               {showResponseBody ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-              Response Body
+              {t('tools.renderers.responseBody')}
             </button>
             {showResponseBody && (
               <div className="px-1 pb-1">
@@ -137,7 +139,7 @@ export function HttpRequestRenderer({ args, result, status }: ToolResultRenderer
               className="flex items-center gap-1 px-3 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
             >
               {showHeaders ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-              Response Headers ({Object.keys(headers).length})
+              {t('tools.renderers.responseHeaders', { count: Object.keys(headers).length })}
             </button>
             {showHeaders && (
               <div className="px-3 pb-2 space-y-0.5">
@@ -160,16 +162,16 @@ export function HttpRequestRenderer({ args, result, status }: ToolResultRenderer
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {showRaw ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        Raw JSON
+        {t('tools.renderers.rawJson')}
       </button>
 
       {showRaw && (
         <>
-          <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
+          <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
           {result !== undefined && (
             <JsonViewer
               data={result}
-              label="Output"
+              label={t('tools.renderers.output')}
               labelClassName={status === 'error' ? 'text-destructive' : undefined}
               maxHeight="max-h-60"
             />

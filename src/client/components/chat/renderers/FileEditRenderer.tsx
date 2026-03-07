@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/client/lib/utils'
 import { ChevronDown, ChevronRight, FilePen, FileWarning } from 'lucide-react'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
 import type { ToolResultRendererProps } from '@/client/lib/tool-renderers'
 
 export function FileEditRenderer({ args, result, status }: ToolResultRendererProps) {
+  const { t } = useTranslation()
   const [showRaw, setShowRaw] = useState(false)
 
   const res = result as Record<string, unknown> | null | undefined
@@ -23,10 +25,10 @@ export function FileEditRenderer({ args, result, status }: ToolResultRendererPro
         <div className="rounded-md bg-zinc-950 text-zinc-100 text-xs font-mono overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
             <FileWarning className="size-3 text-red-400" />
-            <span className="text-zinc-400 text-[10px]">{filePath ?? 'File'}</span>
-            <span className="ml-auto text-[10px] text-red-400">Failed</span>
+            <span className="text-zinc-400 text-[10px]">{filePath ?? t('tools.renderers.file')}</span>
+            <span className="ml-auto text-[10px] text-red-400">{t('tools.renderers.failed')}</span>
           </div>
-          <div className="px-3 py-2 text-red-300">{error ?? 'Edit failed'}</div>
+          <div className="px-3 py-2 text-red-300">{error ?? t('tools.renderers.editFailed')}</div>
         </div>
       </div>
     )
@@ -45,10 +47,10 @@ export function FileEditRenderer({ args, result, status }: ToolResultRendererPro
           {language && <span className="text-[10px] text-zinc-500">{language}</span>}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded text-blue-400 bg-blue-500/20">
-              Edited
+              {t('tools.renderers.edited')}
             </span>
             {editLine !== null && (
-              <span className="text-[10px] text-zinc-500">line {editLine}</span>
+              <span className="text-[10px] text-zinc-500">{t('tools.renderers.line', { line: editLine })}</span>
             )}
           </div>
         </div>
@@ -79,13 +81,13 @@ export function FileEditRenderer({ args, result, status }: ToolResultRendererPro
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {showRaw ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        Raw JSON
+        {t('tools.renderers.rawJson')}
       </button>
 
       {showRaw && (
         <>
-          <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-          {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+          <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+          {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
         </>
       )}
     </div>

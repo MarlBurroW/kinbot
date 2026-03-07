@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/client/lib/utils'
 import { ChevronDown, ChevronRight, FilePlus, FilePen } from 'lucide-react'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
@@ -42,6 +43,7 @@ function computeUnifiedDiff(oldText: string, newText: string): { type: 'same' | 
 }
 
 export function FileWriteRenderer({ args, result, status }: ToolResultRendererProps) {
+  const { t } = useTranslation()
   const [showRaw, setShowRaw] = useState(false)
 
   const res = result as Record<string, unknown> | null | undefined
@@ -61,17 +63,17 @@ export function FileWriteRenderer({ args, result, status }: ToolResultRendererPr
         <div className="rounded-md bg-zinc-950 text-zinc-100 text-xs font-mono overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
             <FilePen className="size-3 text-red-400" />
-            <span className="text-zinc-400 text-[10px]">{filePath ?? 'File'}</span>
-            <span className="ml-auto text-[10px] text-red-400">Error</span>
+            <span className="text-zinc-400 text-[10px]">{filePath ?? t('tools.renderers.file')}</span>
+            <span className="ml-auto text-[10px] text-red-400">{t('tools.renderers.error')}</span>
           </div>
-          <div className="px-3 py-2 text-red-300">{error ?? 'Write failed'}</div>
+          <div className="px-3 py-2 text-red-300">{error ?? t('tools.renderers.writeFailed')}</div>
         </div>
       </div>
     )
   }
 
   const Icon = created ? FilePlus : FilePen
-  const badge = created ? 'Created' : 'Modified'
+  const badge = created ? t('tools.renderers.created') : t('tools.renderers.modified')
   const badgeColor = created ? 'text-green-400 bg-green-500/20' : 'text-amber-400 bg-amber-500/20'
 
   // Show diff if overwriting
@@ -92,8 +94,8 @@ export function FileWriteRenderer({ args, result, status }: ToolResultRendererPr
             </span>
             {bytesWritten !== null && (
               <span className="text-[10px] text-zinc-500">
-                {bytesWritten > 1024 ? `${(bytesWritten / 1024).toFixed(1)} KB` : `${bytesWritten} B`}
-                {linesWritten !== null && ` · ${linesWritten} lines`}
+                {bytesWritten > 1024 ? t('tools.renderers.bytesKB', { size: (bytesWritten / 1024).toFixed(1) }) : t('tools.renderers.bytesB', { size: bytesWritten })}
+                {linesWritten !== null && ` · ${t('tools.renderers.linesWritten', { count: linesWritten })}`}
               </span>
             )}
           </div>
@@ -122,10 +124,10 @@ export function FileWriteRenderer({ args, result, status }: ToolResultRendererPr
             </div>
           ) : content ? (
             <pre className="px-3 py-2 whitespace-pre-wrap break-all text-zinc-300">
-              {content.length > 5000 ? content.substring(0, 5000) + '\n... (truncated)' : content}
+              {content.length > 5000 ? content.substring(0, 5000) + '\n' + t('tools.renderers.truncated') : content}
             </pre>
           ) : (
-            <div className="px-3 py-2 text-zinc-500 italic">File written successfully</div>
+            <div className="px-3 py-2 text-zinc-500 italic">{t('tools.renderers.fileWritten')}</div>
           )}
         </div>
       </div>
@@ -137,13 +139,13 @@ export function FileWriteRenderer({ args, result, status }: ToolResultRendererPr
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {showRaw ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        Raw JSON
+        {t('tools.renderers.rawJson')}
       </button>
 
       {showRaw && (
         <>
-          <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-          {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+          <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+          {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
         </>
       )}
     </div>

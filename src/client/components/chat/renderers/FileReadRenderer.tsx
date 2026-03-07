@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/client/lib/utils'
 import { ChevronDown, ChevronRight, FileText, FileWarning } from 'lucide-react'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
 import type { ToolResultRendererProps } from '@/client/lib/tool-renderers'
 
 export function FileReadRenderer({ args, result, status }: ToolResultRendererProps) {
+  const { t } = useTranslation()
   const [showRaw, setShowRaw] = useState(false)
 
   const res = result as Record<string, unknown> | null | undefined
@@ -24,8 +26,8 @@ export function FileReadRenderer({ args, result, status }: ToolResultRendererPro
         <div className="rounded-md bg-zinc-950 text-zinc-100 text-xs font-mono overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
             <FileWarning className="size-3 text-red-400" />
-            <span className="text-zinc-400 text-[10px]">{filePath ?? 'File'}</span>
-            <span className="ml-auto text-[10px] text-red-400">Error</span>
+            <span className="text-zinc-400 text-[10px]">{filePath ?? t('tools.renderers.file')}</span>
+            <span className="ml-auto text-[10px] text-red-400">{t('tools.renderers.error')}</span>
           </div>
           <div className="px-3 py-2 text-red-300">{error}</div>
         </div>
@@ -36,8 +38,8 @@ export function FileReadRenderer({ args, result, status }: ToolResultRendererPro
   if (!filePath || content === null) {
     return (
       <>
-        <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-        {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+        <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+        {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
       </>
     )
   }
@@ -57,8 +59,8 @@ export function FileReadRenderer({ args, result, status }: ToolResultRendererPro
           {totalLines !== null && (
             <span className="ml-auto text-[10px] text-zinc-500">
               {startLine !== null && endLine !== null && (startLine !== 1 || endLine !== totalLines)
-                ? `lines ${startLine}-${endLine} of ${totalLines}`
-                : `${totalLines} lines`}
+                ? t('tools.renderers.linesRange', { start: startLine, end: endLine, total: totalLines })
+                : t('tools.renderers.lines', { count: totalLines })}
             </span>
           )}
         </div>
@@ -80,7 +82,7 @@ export function FileReadRenderer({ args, result, status }: ToolResultRendererPro
         {/* Truncation notice */}
         {truncated && (
           <div className="px-3 py-1.5 text-[10px] text-amber-400 bg-zinc-900/50 border-t border-zinc-800">
-            File truncated. Use offset/limit to read more.
+            {t('tools.renderers.fileTruncated')}
           </div>
         )}
       </div>
@@ -92,13 +94,13 @@ export function FileReadRenderer({ args, result, status }: ToolResultRendererPro
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {showRaw ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        Raw JSON
+        {t('tools.renderers.rawJson')}
       </button>
 
       {showRaw && (
         <>
-          <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-          {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+          <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+          {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
         </>
       )}
     </div>

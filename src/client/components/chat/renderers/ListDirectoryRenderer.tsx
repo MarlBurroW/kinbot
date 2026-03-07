@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/client/lib/utils'
 import { ChevronDown, ChevronRight, Folder, FolderOpen, FileText, FolderSearch } from 'lucide-react'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
@@ -69,6 +70,7 @@ function TreeEntry({ entry, depth }: { entry: DirEntry; depth: number }) {
 }
 
 export function ListDirectoryRenderer({ args, result, status }: ToolResultRendererProps) {
+  const { t } = useTranslation()
   const [showRaw, setShowRaw] = useState(false)
 
   const res = result as Record<string, unknown> | null | undefined
@@ -84,9 +86,9 @@ export function ListDirectoryRenderer({ args, result, status }: ToolResultRender
           <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
             <FolderSearch className="size-3 text-red-400" />
             <span className="text-zinc-400 text-[10px]">{dirPath}</span>
-            <span className="ml-auto text-[10px] text-red-400">Error</span>
+            <span className="ml-auto text-[10px] text-red-400">{t('tools.renderers.error')}</span>
           </div>
-          <div className="px-3 py-2 text-red-300">{error ?? 'Failed to list directory'}</div>
+          <div className="px-3 py-2 text-red-300">{error ?? t('tools.renderers.failedToListDirectory')}</div>
         </div>
       </div>
     )
@@ -95,8 +97,8 @@ export function ListDirectoryRenderer({ args, result, status }: ToolResultRender
   if (!entries) {
     return (
       <>
-        <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-        {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+        <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+        {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
       </>
     )
   }
@@ -112,16 +114,16 @@ export function ListDirectoryRenderer({ args, result, status }: ToolResultRender
           <Folder className="size-3 text-amber-400" />
           <span className="text-zinc-300 text-[10px] font-medium">{dirPath}</span>
           <span className="ml-auto text-[10px] text-zinc-500">
-            {dirCount > 0 && `${dirCount} dir${dirCount > 1 ? 's' : ''}`}
+            {dirCount > 0 && t('tools.renderers.dirCount', { count: dirCount })}
             {dirCount > 0 && fileCount > 0 && ' · '}
-            {fileCount > 0 && `${fileCount} file${fileCount > 1 ? 's' : ''}`}
+            {fileCount > 0 && t('tools.renderers.fileCount', { count: fileCount })}
           </span>
         </div>
 
         {/* Tree */}
         <div className="max-h-80 overflow-auto scrollbar-thin py-1">
           {entries.length === 0 ? (
-            <div className="px-3 py-2 text-zinc-500 italic">Empty directory</div>
+            <div className="px-3 py-2 text-zinc-500 italic">{t('tools.renderers.emptyDirectory')}</div>
           ) : (
             entries.map((entry, i) => (
               <TreeEntry key={`${entry.name}-${i}`} entry={entry} depth={0} />
@@ -137,13 +139,13 @@ export function ListDirectoryRenderer({ args, result, status }: ToolResultRender
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {showRaw ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        Raw JSON
+        {t('tools.renderers.rawJson')}
       </button>
 
       {showRaw && (
         <>
-          <JsonViewer data={args} label="Input" maxHeight="max-h-40" />
-          {result !== undefined && <JsonViewer data={result} label="Output" maxHeight="max-h-60" />}
+          <JsonViewer data={args} label={t('tools.renderers.input')} maxHeight="max-h-40" />
+          {result !== undefined && <JsonViewer data={result} label={t('tools.renderers.output')} maxHeight="max-h-60" />}
         </>
       )}
     </div>
