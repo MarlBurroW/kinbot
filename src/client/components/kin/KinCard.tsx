@@ -199,16 +199,9 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
           </Tooltip>
         )}
         {shortcutIndex != null && shortcutIndex >= 1 && shortcutIndex <= 9 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <kbd className="hidden rounded border border-border/60 bg-muted/50 px-1 py-0.5 font-mono text-[9px] leading-none text-muted-foreground/70 group-hover:inline-block">
-                {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl+'}{shortcutIndex}
-              </kbd>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {t('sidebar.kins.shortcutHint', { key: shortcutIndex })}
-            </TooltipContent>
-          </Tooltip>
+          <kbd className="rounded border border-border/60 bg-muted/50 px-1 py-0.5 font-mono text-[9px] leading-none text-muted-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity">
+            {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl+'}{shortcutIndex}
+          </kbd>
         )}
         {onEdit && (
           <span

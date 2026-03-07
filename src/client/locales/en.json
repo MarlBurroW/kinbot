@@ -230,7 +230,9 @@
       "search": "Search mini-apps...",
       "noResults": "No mini-apps found",
       "noKinSelected": "Select a Kin",
-      "noKinSelectedDescription": "Select a Kin to see its mini-apps"
+      "noKinSelectedDescription": "Select a Kin to see its mini-apps",
+      "viewGrid": "Grid view",
+      "viewList": "List view"
     },
     "tabs": {
       "tasks": "Tasks",
@@ -1648,16 +1650,6 @@
       "sent": "Message sent to Kin",
       "error": "Failed to send message",
       "rateLimited": "Too many messages, please wait"
-    },
-    "gallery": {
-      "title": "App Gallery",
-      "description": "Browse mini-apps from all Kins.",
-      "searchPlaceholder": "Search apps...",
-      "fetchError": "Failed to load gallery",
-      "noResults": "No apps match your search",
-      "empty": "No apps available yet",
-      "viewGrid": "Grid view",
-      "viewList": "List view"
     },
     "icon": {
       "generate": "Generate icon",

@@ -230,7 +230,9 @@
       "search": "Rechercher...",
       "noResults": "Aucune mini-app trouvée",
       "noKinSelected": "Sélectionnez un Kin",
-      "noKinSelectedDescription": "Sélectionnez un Kin pour voir ses mini-apps"
+      "noKinSelectedDescription": "Sélectionnez un Kin pour voir ses mini-apps",
+      "viewGrid": "Vue grille",
+      "viewList": "Vue liste"
     },
     "tabs": {
       "tasks": "Tâches",
@@ -1648,17 +1650,6 @@
       "sent": "Message envoyé au Kin",
       "error": "Échec de l'envoi du message",
       "rateLimited": "Trop de messages, veuillez patienter"
-    },
-    "gallery": {
-      "title": "Galerie d'apps",
-      "description": "Parcourez les mini-apps de tous les Kins.",
-      "searchPlaceholder": "Rechercher...",
-      "fetchError": "Impossible de charger la galerie",
-      "noResults": "Aucune app ne correspond",
-      "empty": "Aucune app disponible",
-      "cloned": "Cloné",
-      "viewGrid": "Vue grille",
-      "viewList": "Vue liste"
     },
     "icon": {
       "generate": "Générer l'icône",

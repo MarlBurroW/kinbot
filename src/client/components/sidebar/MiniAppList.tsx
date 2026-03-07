@@ -8,13 +8,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avat
 import { useMiniApps } from '@/client/hooks/useMiniApps'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { cn } from '@/client/lib/utils'
-import { AppWindow, LayoutGrid, List, Loader2, Search, Store, Trash2 } from 'lucide-react'
+import { AppWindow, LayoutGrid, List, Loader2, Search, Trash2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
-import { MiniAppGallery, MiniAppIcon } from '@/client/components/mini-app/MiniAppGallery'
-import { Button } from '@/client/components/ui/button'
-import { useKins } from '@/client/hooks/useKins'
 import type { MiniAppSummary } from '@/shared/types'
+
+function MiniAppIcon({ app, size = 'md' }: { app: MiniAppSummary; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClass = size === 'lg' ? 'size-14 text-3xl rounded-xl' : size === 'md' ? 'size-10 text-xl rounded-lg' : 'size-8 text-lg rounded-md'
+  if (app.iconUrl) {
+    return <img src={app.iconUrl} alt={app.name} className={cn(sizeClass, 'object-cover shrink-0')} />
+  }
+  return (
+    <div className={cn('flex shrink-0 items-center justify-center bg-secondary', sizeClass)}>
+      {app.icon || '\u{1F4E6}'}
+    </div>
+  )
+}
 
 function MiniAppCard({
   app,
@@ -150,8 +159,6 @@ export const MiniAppList = memo(function MiniAppList() {
   const { t } = useTranslation()
   const { apps, isLoading, deleteApp } = useMiniApps(null, 'all')
   const { activeAppId, badges, openApp, closePanel } = useMiniAppPanel()
-  const { kins } = useKins()
-  const [galleryOpen, setGalleryOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() =>
     (localStorage.getItem('kinbot:sidebar-miniapps-view-mode') as 'grid' | 'list') || 'list',
@@ -182,7 +189,7 @@ export const MiniAppList = memo(function MiniAppList() {
 
   return (
     <>
-      {/* Gallery button + View toggle + Search — fixed above scroll */}
+      {/* View toggle + Search — fixed above scroll */}
       <div className="shrink-0">
         <div className="flex items-center justify-end gap-0.5 px-1 pb-1">
           <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
@@ -193,7 +200,7 @@ export const MiniAppList = memo(function MiniAppList() {
                 'rounded p-0.5 transition-colors',
                 viewMode === 'grid' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
-              title={t('miniApps.gallery.viewGrid')}
+              title={t('sidebar.miniApps.viewGrid')}
             >
               <LayoutGrid className="size-3" />
             </button>
@@ -204,20 +211,11 @@ export const MiniAppList = memo(function MiniAppList() {
                 'rounded p-0.5 transition-colors',
                 viewMode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
-              title={t('miniApps.gallery.viewList')}
+              title={t('sidebar.miniApps.viewList')}
             >
               <List className="size-3" />
             </button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-6 shrink-0"
-            onClick={() => setGalleryOpen(true)}
-            title={t('miniApps.gallery.title')}
-          >
-            <Store className="size-4" />
-          </Button>
         </div>
         {apps.length > 0 && (
           <div className="px-1 pb-2">
@@ -280,11 +278,6 @@ export const MiniAppList = memo(function MiniAppList() {
           </div>
         )}
       </SidebarGroupContent>
-
-      <MiniAppGallery
-        open={galleryOpen}
-        onOpenChange={setGalleryOpen}
-      />
     </>
   )
 })

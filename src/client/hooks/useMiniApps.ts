@@ -19,7 +19,7 @@ export function useMiniApps(kinId: string | null, mode: 'kin' | 'all' = 'kin') {
     setIsLoading(true)
     try {
       const endpoint = mode === 'all'
-        ? '/mini-apps/gallery/browse'
+        ? '/mini-apps'
         : `/mini-apps?kinId=${kinId}`
       const data = await api.get<MiniAppsResponse>(endpoint)
       setApps(data.apps)
