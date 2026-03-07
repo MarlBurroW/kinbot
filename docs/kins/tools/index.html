@@ -79,80 +79,765 @@ KinBot is in early development
 		})();
 	</script> </sl-sidebar-state-persist>  <div class="md:sl-hidden"> <div class="kb-mobile-footer astro-lbnvevm2"> <div class="mobile-preferences sl-flex astro-wu23bvmt"> <div class="social-icons astro-wu23bvmt"> <a href="https://github.com/MarlBurroW/kinbot" rel="me" class="sl-flex astro-wy4te6ga"><span class="sr-only astro-wy4te6ga">GitHub</span><svg aria-hidden="true" class="astro-wy4te6ga astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a> </div> <starlight-theme-select>  <label style="--sl-select-width: 6.25em" class="astro-4yphtoen"> <span class="sr-only astro-4yphtoen">Select theme</span> <svg aria-hidden="true" class="icon label-icon astro-4yphtoen astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg> <select autocomplete="off" class="astro-4yphtoen"> <option value="dark" class="astro-4yphtoen">Dark</option><option value="light" class="astro-4yphtoen">Light</option><option value="auto" selected class="astro-4yphtoen">Auto</option> </select> <svg aria-hidden="true" class="icon caret astro-4yphtoen astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg> </label>  </starlight-theme-select>  <script>
 	StarlightThemeProvider.updatePickers();
-</script>   </div>  </div>  </div>  </div> </div> </nav> <div class="main-frame astro-vrdttmbt">     <script type="module">const a=document.getElementById("starlight__sidebar"),n=a?.querySelector("sl-sidebar-state-persist"),o="sl-sidebar-state",i=()=>{let t=[];const e=n?.dataset.hash||"";try{const s=sessionStorage.getItem(o),r=JSON.parse(s||"{}");Array.isArray(r.open)&&r.hash===e&&(t=r.open)}catch{}return{hash:e,open:t,scroll:a?.scrollTop||0}},c=t=>{try{sessionStorage.setItem(o,JSON.stringify(t))}catch{}},d=()=>c(i()),l=(t,e)=>{const s=i();s.open[e]=t,c(s)};n?.addEventListener("click",t=>{if(!(t.target instanceof Element))return;const e=t.target.closest("summary")?.closest("details");if(!e)return;const s=e.querySelector("sl-sidebar-restore"),r=parseInt(s?.dataset.index||"");isNaN(r)||l(!e.open,r)});addEventListener("visibilitychange",()=>{document.visibilityState==="hidden"&&d()});addEventListener("pageHide",d);</script> <div class="lg:sl-flex astro-67yu43on"> <aside class="right-sidebar-container print:hidden astro-67yu43on"> <div class="right-sidebar astro-67yu43on"> <script type="module" src="/kinbot/docs/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.hwBsy0Mo.js"></script><script type="module" src="/kinbot/docs/_astro/TableOfContents.astro_astro_type_script_index_0_lang.FuRcXuRY.js"></script><div class="lg:sl-hidden astro-pb3aqygn"><div class="kb-mobile-toc astro-kasrnjty"> <mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-doynk5tl"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-doynk5tl"><details id="starlight__mobile-toc" class="astro-doynk5tl"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-doynk5tl"><span class="toggle sl-flex astro-doynk5tl">On this page<svg aria-hidden="true" class="caret astro-doynk5tl astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-doynk5tl"></span></summary><div class="dropdown astro-doynk5tl"><ul class="isMobile astro-g2bywc46" style="--depth: 0;"> <li class="astro-g2bywc46" style="--depth: 0;"> <a href="#_top" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Overview</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#built-in-tools" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Built-in tools</span> </a> <ul class="isMobile astro-g2bywc46" style="--depth: 1;"> <li class="astro-g2bywc46" style="--depth: 1;"> <a href="#memory--knowledge" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Memory &amp; Knowledge</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#web--browsing" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Web &amp; Browsing</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#contacts" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Contacts</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#vault--secrets" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Vault &amp; Secrets</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#multi-agent" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Multi-Agent</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#automation" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Automation</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#mini-apps" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Mini Apps</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#channels" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Channels</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#custom-tools" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Custom Tools</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#files--images" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Files &amp; Images</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#system" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">System</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#http" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">HTTP</span> </a>  </li> </ul>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-configuration" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool configuration</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#mcp-servers" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">MCP servers</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#custom-tools-1" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Custom tools</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-availability-contexts" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool availability contexts</span> </a>  </li> </ul> </div></details></nav></mobile-starlight-toc> </div> </div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-pb3aqygn"><div class="sl-container astro-pb3aqygn"><div class="kb-toc-wrap astro-xvrfupwn"> <starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-g2bywc46" style="--depth: 0;"> <li class="astro-g2bywc46" style="--depth: 0;"> <a href="#_top" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Overview</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#built-in-tools" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Built-in tools</span> </a> <ul class="astro-g2bywc46" style="--depth: 1;"> <li class="astro-g2bywc46" style="--depth: 1;"> <a href="#memory--knowledge" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Memory &amp; Knowledge</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#web--browsing" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Web &amp; Browsing</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#contacts" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Contacts</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#vault--secrets" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Vault &amp; Secrets</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#multi-agent" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Multi-Agent</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#automation" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Automation</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#mini-apps" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Mini Apps</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#channels" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Channels</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#custom-tools" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Custom Tools</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#files--images" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Files &amp; Images</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#system" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">System</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#http" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">HTTP</span> </a>  </li> </ul>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-configuration" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool configuration</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#mcp-servers" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">MCP servers</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#custom-tools-1" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Custom tools</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-availability-contexts" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool availability contexts</span> </a>  </li> </ul> </nav></starlight-toc> </div> </div></div> </div> </aside> <div class="main-pane astro-67yu43on">   <main data-pagefind-body class="astro-bguv2lll" lang="en" dir="ltr">    <div class="content-panel astro-7nkwcw3z"> <div class="sl-container astro-7nkwcw3z"> <h1 id="_top" class="kb-page-title astro-guvttfii">Tools</h1>  </div> </div>  <div class="content-panel astro-7nkwcw3z"> <div class="sl-container astro-7nkwcw3z"> <div class="sl-markdown-content"> <p>Kins interact with the world through <strong>tools</strong> — functions they can call during conversations. KinBot provides 100+ built-in tools, plus support for MCP servers and custom scripts.</p>
+</script>   </div>  </div>  </div>  </div> </div> </nav> <div class="main-frame astro-vrdttmbt">     <script type="module">const a=document.getElementById("starlight__sidebar"),n=a?.querySelector("sl-sidebar-state-persist"),o="sl-sidebar-state",i=()=>{let t=[];const e=n?.dataset.hash||"";try{const s=sessionStorage.getItem(o),r=JSON.parse(s||"{}");Array.isArray(r.open)&&r.hash===e&&(t=r.open)}catch{}return{hash:e,open:t,scroll:a?.scrollTop||0}},c=t=>{try{sessionStorage.setItem(o,JSON.stringify(t))}catch{}},d=()=>c(i()),l=(t,e)=>{const s=i();s.open[e]=t,c(s)};n?.addEventListener("click",t=>{if(!(t.target instanceof Element))return;const e=t.target.closest("summary")?.closest("details");if(!e)return;const s=e.querySelector("sl-sidebar-restore"),r=parseInt(s?.dataset.index||"");isNaN(r)||l(!e.open,r)});addEventListener("visibilitychange",()=>{document.visibilityState==="hidden"&&d()});addEventListener("pageHide",d);</script> <div class="lg:sl-flex astro-67yu43on"> <aside class="right-sidebar-container print:hidden astro-67yu43on"> <div class="right-sidebar astro-67yu43on"> <script type="module" src="/kinbot/docs/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.hwBsy0Mo.js"></script><script type="module" src="/kinbot/docs/_astro/TableOfContents.astro_astro_type_script_index_0_lang.FuRcXuRY.js"></script><div class="lg:sl-hidden astro-pb3aqygn"><div class="kb-mobile-toc astro-kasrnjty"> <mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-doynk5tl"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-doynk5tl"><details id="starlight__mobile-toc" class="astro-doynk5tl"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-doynk5tl"><span class="toggle sl-flex astro-doynk5tl">On this page<svg aria-hidden="true" class="caret astro-doynk5tl astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-doynk5tl"></span></summary><div class="dropdown astro-doynk5tl"><ul class="isMobile astro-g2bywc46" style="--depth: 0;"> <li class="astro-g2bywc46" style="--depth: 0;"> <a href="#_top" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Overview</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#built-in-tools" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Built-in tools</span> </a> <ul class="isMobile astro-g2bywc46" style="--depth: 1;"> <li class="astro-g2bywc46" style="--depth: 1;"> <a href="#memory--knowledge" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Memory &amp; Knowledge</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#web--browsing" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Web &amp; Browsing</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#contacts" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Contacts</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#vault--secrets" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Vault &amp; Secrets</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#tasks-multi-agent" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Tasks (multi-agent)</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#inter-kin-communication" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Inter-Kin communication</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#automation--scheduling" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Automation &amp; Scheduling</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#mini-apps" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Mini-Apps</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#channels" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Channels</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#files--images" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Files &amp; Images</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#webhooks" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Webhooks</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#kin-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Kin Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#plugin-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Plugin Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#user-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">User Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#human-in-the-loop" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Human-in-the-loop</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#system--advanced" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">System &amp; Advanced</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#mcp-server-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">MCP Server Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#custom-tools" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Custom Tools</span> </a>  </li> </ul>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-configuration" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool configuration</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#opt-in-tools" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Opt-in tools</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-availability" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool availability</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#mcp-servers" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">MCP servers</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#custom-tools-1" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Custom tools</span> </a>  </li> </ul> </div></details></nav></mobile-starlight-toc> </div> </div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-pb3aqygn"><div class="sl-container astro-pb3aqygn"><div class="kb-toc-wrap astro-xvrfupwn"> <starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-g2bywc46" style="--depth: 0;"> <li class="astro-g2bywc46" style="--depth: 0;"> <a href="#_top" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Overview</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#built-in-tools" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Built-in tools</span> </a> <ul class="astro-g2bywc46" style="--depth: 1;"> <li class="astro-g2bywc46" style="--depth: 1;"> <a href="#memory--knowledge" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Memory &amp; Knowledge</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#web--browsing" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Web &amp; Browsing</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#contacts" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Contacts</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#vault--secrets" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Vault &amp; Secrets</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#tasks-multi-agent" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Tasks (multi-agent)</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#inter-kin-communication" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Inter-Kin communication</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#automation--scheduling" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Automation &amp; Scheduling</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#mini-apps" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Mini-Apps</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#channels" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Channels</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#files--images" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Files &amp; Images</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#webhooks" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Webhooks</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#kin-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Kin Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#plugin-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Plugin Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#user-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">User Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#human-in-the-loop" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Human-in-the-loop</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#system--advanced" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">System &amp; Advanced</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#mcp-server-management" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">MCP Server Management</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 1;"> <a href="#custom-tools" class="astro-g2bywc46" style="--depth: 1;"> <span class="astro-g2bywc46" style="--depth: 1;">Custom Tools</span> </a>  </li> </ul>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-configuration" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool configuration</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#opt-in-tools" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Opt-in tools</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#tool-availability" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Tool availability</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#mcp-servers" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">MCP servers</span> </a>  </li><li class="astro-g2bywc46" style="--depth: 0;"> <a href="#custom-tools-1" class="astro-g2bywc46" style="--depth: 0;"> <span class="astro-g2bywc46" style="--depth: 0;">Custom tools</span> </a>  </li> </ul> </nav></starlight-toc> </div> </div></div> </div> </aside> <div class="main-pane astro-67yu43on">   <main data-pagefind-body class="astro-bguv2lll" lang="en" dir="ltr">    <div class="content-panel astro-7nkwcw3z"> <div class="sl-container astro-7nkwcw3z"> <h1 id="_top" class="kb-page-title astro-guvttfii">Tools</h1>  </div> </div>  <div class="content-panel astro-7nkwcw3z"> <div class="sl-container astro-7nkwcw3z"> <div class="sl-markdown-content"> <p>Kins interact with the world through <strong>tools</strong> — functions they can call during conversations. KinBot provides 100+ built-in tools, plus support for MCP servers and custom scripts.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="built-in-tools">Built-in tools</h2><a class="sl-anchor-link" href="#built-in-tools"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Built-in tools”</span></a></div>
-<p>Every Kin has access to these tool categories out of the box:</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="memory--knowledge">Memory &#x26; Knowledge</h3><a class="sl-anchor-link" href="#memory--knowledge"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Memory &#x26; Knowledge”</span></a></div>
-<p><code dir="auto">recall</code>, <code dir="auto">memorize</code>, <code dir="auto">update_memory</code>, <code dir="auto">forget</code>, <code dir="auto">list_memories</code>, <code dir="auto">search_history</code></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">recall</code></td><td>Semantic search across memories</td></tr><tr><td><code dir="auto">memorize</code></td><td>Store a new memory</td></tr><tr><td><code dir="auto">update_memory</code></td><td>Edit an existing memory</td></tr><tr><td><code dir="auto">forget</code></td><td>Delete a memory</td></tr><tr><td><code dir="auto">list_memories</code></td><td>Browse all memories with filters</td></tr><tr><td><code dir="auto">review_memories</code></td><td>Review and curate memories</td></tr><tr><td><code dir="auto">search_history</code></td><td>Full-text search through past conversation messages</td></tr><tr><td><code dir="auto">search_knowledge</code></td><td>Search the knowledge base (uploaded documents)</td></tr><tr><td><code dir="auto">list_knowledge_sources</code></td><td>List available knowledge sources</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h3"><h3 id="web--browsing">Web &#x26; Browsing</h3><a class="sl-anchor-link" href="#web--browsing"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Web &#x26; Browsing”</span></a></div>
-<p><code dir="auto">web_search</code>, <code dir="auto">browse_url</code>, <code dir="auto">extract_links</code>, <code dir="auto">screenshot_url</code></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">web_search</code></td><td>Search the web (provider configurable per Kin)</td></tr><tr><td><code dir="auto">browse_url</code></td><td>Fetch and read a web page</td></tr><tr><td><code dir="auto">extract_links</code></td><td>Extract all links from a URL</td></tr><tr><td><code dir="auto">screenshot_url</code></td><td>Take a screenshot of a web page</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h3"><h3 id="contacts">Contacts</h3><a class="sl-anchor-link" href="#contacts"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Contacts”</span></a></div>
-<p><code dir="auto">get_contact</code>, <code dir="auto">search_contacts</code>, <code dir="auto">create_contact</code>, <code dir="auto">update_contact</code>, <code dir="auto">delete_contact</code>, <code dir="auto">find_contact_by_identifier</code></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">get_contact</code></td><td>Get full contact details by ID</td></tr><tr><td><code dir="auto">search_contacts</code></td><td>Search across all contacts</td></tr><tr><td><code dir="auto">create_contact</code></td><td>Create a new contact with identifiers</td></tr><tr><td><code dir="auto">update_contact</code></td><td>Update contact info or add identifiers</td></tr><tr><td><code dir="auto">delete_contact</code></td><td>Remove a contact</td></tr><tr><td><code dir="auto">set_contact_note</code></td><td>Add private or global notes to a contact</td></tr><tr><td><code dir="auto">find_contact_by_identifier</code></td><td>Look up a contact by platform/identifier</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h3"><h3 id="vault--secrets">Vault &#x26; Secrets</h3><a class="sl-anchor-link" href="#vault--secrets"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Vault &#x26; Secrets”</span></a></div>
-<p><code dir="auto">get_secret</code>, <code dir="auto">create_secret</code>, <code dir="auto">update_secret</code>, <code dir="auto">delete_secret</code>, <code dir="auto">search_secrets</code>, <code dir="auto">redact_message</code></p>
-<div class="sl-heading-wrapper level-h3"><h3 id="multi-agent">Multi-Agent</h3><a class="sl-anchor-link" href="#multi-agent"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Multi-Agent”</span></a></div>
-<p><code dir="auto">spawn_self</code>, <code dir="auto">spawn_kin</code>, <code dir="auto">send_message</code>, <code dir="auto">reply</code>, <code dir="auto">list_kins</code>, <code dir="auto">report_to_parent</code>, <code dir="auto">request_input</code></p>
-<div class="sl-heading-wrapper level-h3"><h3 id="automation">Automation</h3><a class="sl-anchor-link" href="#automation"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Automation”</span></a></div>
-<p><code dir="auto">create_cron</code>, <code dir="auto">update_cron</code>, <code dir="auto">delete_cron</code>, <code dir="auto">list_crons</code>, <code dir="auto">trigger_cron</code>, <code dir="auto">wake_me_in</code>, <code dir="auto">cancel_wakeup</code></p>
-<div class="sl-heading-wrapper level-h3"><h3 id="mini-apps">Mini Apps</h3><a class="sl-anchor-link" href="#mini-apps"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Mini Apps”</span></a></div>
-<p>Create, update, delete mini apps; read/write files; snapshots; rollback; persistent storage; App Gallery</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">get_secret</code></td><td>Retrieve a secret value by key</td></tr><tr><td><code dir="auto">create_secret</code></td><td>Store a new secret</td></tr><tr><td><code dir="auto">update_secret</code></td><td>Update an existing secret</td></tr><tr><td><code dir="auto">delete_secret</code></td><td>Remove a secret</td></tr><tr><td><code dir="auto">search_secrets</code></td><td>Search secrets by query</td></tr><tr><td><code dir="auto">redact_message</code></td><td>Redact sensitive content from a chat message</td></tr><tr><td><code dir="auto">get_vault_entry</code></td><td>Retrieve a structured vault entry</td></tr><tr><td><code dir="auto">create_vault_entry</code></td><td>Create a structured vault entry</td></tr><tr><td><code dir="auto">create_vault_type</code></td><td>Define a custom vault type (e.g. “WiFi Network”)</td></tr><tr><td><code dir="auto">get_vault_attachment</code></td><td>Retrieve a vault entry’s attachment</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="tasks-multi-agent">Tasks (multi-agent)</h3><a class="sl-anchor-link" href="#tasks-multi-agent"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Tasks (multi-agent)”</span></a></div>
+<p>These tools let a Kin spawn background sub-agents and manage delegated work:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Availability</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">spawn_self</code></td><td>main</td><td>Spawn a sub-agent of yourself</td></tr><tr><td><code dir="auto">spawn_kin</code></td><td>main</td><td>Spawn a sub-agent of another Kin</td></tr><tr><td><code dir="auto">respond_to_task</code></td><td>main</td><td>Respond to a completed/failed task</td></tr><tr><td><code dir="auto">cancel_task</code></td><td>main</td><td>Cancel a running task</td></tr><tr><td><code dir="auto">list_tasks</code></td><td>main</td><td>List all tasks</td></tr><tr><td><code dir="auto">get_task_detail</code></td><td>main</td><td>Get details of a specific task</td></tr><tr><td><code dir="auto">report_to_parent</code></td><td>sub-kin</td><td>Send progress updates to the parent</td></tr><tr><td><code dir="auto">update_task_status</code></td><td>sub-kin</td><td>Mark the task as completed or failed (<strong>mandatory</strong>)</td></tr><tr><td><code dir="auto">request_input</code></td><td>sub-kin</td><td>Ask the parent for clarification</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="inter-kin-communication">Inter-Kin communication</h3><a class="sl-anchor-link" href="#inter-kin-communication"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Inter-Kin communication”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">send_message</code></td><td>Send a message to another Kin (request or inform)</td></tr><tr><td><code dir="auto">reply</code></td><td>Reply to an inter-Kin request</td></tr><tr><td><code dir="auto">list_kins</code></td><td>List all available Kins</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="automation--scheduling">Automation &#x26; Scheduling</h3><a class="sl-anchor-link" href="#automation--scheduling"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Automation &#x26; Scheduling”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">create_cron</code></td><td>Create a scheduled recurring task</td></tr><tr><td><code dir="auto">update_cron</code></td><td>Update a cron job</td></tr><tr><td><code dir="auto">delete_cron</code></td><td>Remove a cron job</td></tr><tr><td><code dir="auto">list_crons</code></td><td>List all cron jobs</td></tr><tr><td><code dir="auto">get_cron_journal</code></td><td>View a cron’s execution history</td></tr><tr><td><code dir="auto">trigger_cron</code></td><td>Manually trigger a cron job</td></tr><tr><td><code dir="auto">wake_me_in</code></td><td>Set a one-shot timer (“remind me in 30 minutes”)</td></tr><tr><td><code dir="auto">cancel_wakeup</code></td><td>Cancel a pending wakeup</td></tr><tr><td><code dir="auto">list_wakeups</code></td><td>List pending wakeups</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="mini-apps">Mini-Apps</h3><a class="sl-anchor-link" href="#mini-apps"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Mini-Apps”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">create_mini_app</code></td><td>Create a new mini-app</td></tr><tr><td><code dir="auto">update_mini_app</code></td><td>Update app metadata</td></tr><tr><td><code dir="auto">delete_mini_app</code></td><td>Delete an app</td></tr><tr><td><code dir="auto">list_mini_apps</code></td><td>List all mini-apps</td></tr><tr><td><code dir="auto">write_mini_app_file</code></td><td>Write a file to an app’s workspace</td></tr><tr><td><code dir="auto">read_mini_app_file</code></td><td>Read a file from an app</td></tr><tr><td><code dir="auto">delete_mini_app_file</code></td><td>Delete a file</td></tr><tr><td><code dir="auto">list_mini_app_files</code></td><td>List all files in an app</td></tr><tr><td><code dir="auto">get_mini_app_storage</code></td><td>Read a persistent KV entry</td></tr><tr><td><code dir="auto">set_mini_app_storage</code></td><td>Write a persistent KV entry</td></tr><tr><td><code dir="auto">delete_mini_app_storage</code></td><td>Delete a KV entry</td></tr><tr><td><code dir="auto">list_mini_app_storage</code></td><td>List all KV keys</td></tr><tr><td><code dir="auto">clear_mini_app_storage</code></td><td>Clear all KV entries</td></tr><tr><td><code dir="auto">create_mini_app_snapshot</code></td><td>Save a snapshot before risky changes</td></tr><tr><td><code dir="auto">list_mini_app_snapshots</code></td><td>List available snapshots</td></tr><tr><td><code dir="auto">rollback_mini_app</code></td><td>Restore from a snapshot</td></tr><tr><td><code dir="auto">get_mini_app_templates</code></td><td>Browse starter templates</td></tr><tr><td><code dir="auto">get_mini_app_docs</code></td><td>Get mini-app SDK documentation</td></tr><tr><td><code dir="auto">browse_mini_apps</code></td><td>Browse the App Gallery (apps from all Kins)</td></tr><tr><td><code dir="auto">generate_mini_app_icon</code></td><td>Generate an icon for an app</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h3"><h3 id="channels">Channels</h3><a class="sl-anchor-link" href="#channels"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Channels”</span></a></div>
-<p><code dir="auto">list_channels</code>, <code dir="auto">list_channel_conversations</code>, <code dir="auto">send_channel_message</code></p>
-<div class="sl-heading-wrapper level-h3"><h3 id="custom-tools">Custom Tools</h3><a class="sl-anchor-link" href="#custom-tools"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Custom Tools”</span></a></div>
-<p><code dir="auto">register_tool</code>, <code dir="auto">run_custom_tool</code>, <code dir="auto">list_custom_tools</code></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">list_channels</code></td><td>List configured messaging channels</td></tr><tr><td><code dir="auto">list_channel_conversations</code></td><td>List recent conversations on a channel</td></tr><tr><td><code dir="auto">send_channel_message</code></td><td>Send a message to a channel</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h3"><h3 id="files--images">Files &#x26; Images</h3><a class="sl-anchor-link" href="#files--images"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Files &#x26; Images”</span></a></div>
-<p><code dir="auto">store_file</code>, <code dir="auto">get_stored_file</code>, <code dir="auto">search_stored_files</code>, <code dir="auto">generate_image</code>, <code dir="auto">list_image_models</code></p>
-<div class="sl-heading-wrapper level-h3"><h3 id="system">System</h3><a class="sl-anchor-link" href="#system"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “System”</span></a></div>
-<p><code dir="auto">run_shell</code>, <code dir="auto">execute_sql</code>, <code dir="auto">get_platform_logs</code>, <code dir="auto">get_system_info</code>, <code dir="auto">prompt_human</code>, <code dir="auto">notify</code></p>
-<div class="sl-heading-wrapper level-h3"><h3 id="http">HTTP</h3><a class="sl-anchor-link" href="#http"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “HTTP”</span></a></div>
-<p><code dir="auto">http_request</code> — make HTTP requests to external APIs with full method/header/body control</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">store_file</code></td><td>Create a shareable file (text, base64, URL, or workspace path)</td></tr><tr><td><code dir="auto">get_stored_file</code></td><td>Get file metadata and download URL</td></tr><tr><td><code dir="auto">list_stored_files</code></td><td>List all stored files</td></tr><tr><td><code dir="auto">search_stored_files</code></td><td>Search files by name or description</td></tr><tr><td><code dir="auto">update_stored_file</code></td><td>Update file metadata</td></tr><tr><td><code dir="auto">delete_stored_file</code></td><td>Delete a stored file</td></tr><tr><td><code dir="auto">attach_file</code></td><td>Attach a file to the current message</td></tr><tr><td><code dir="auto">generate_image</code></td><td>Generate an image using a configured provider</td></tr><tr><td><code dir="auto">list_image_models</code></td><td>List available image generation models</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="webhooks">Webhooks</h3><a class="sl-anchor-link" href="#webhooks"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Webhooks”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">create_webhook</code></td><td>Create an incoming webhook</td></tr><tr><td><code dir="auto">update_webhook</code></td><td>Update webhook configuration</td></tr><tr><td><code dir="auto">delete_webhook</code></td><td>Remove a webhook</td></tr><tr><td><code dir="auto">list_webhooks</code></td><td>List all webhooks</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="kin-management">Kin Management</h3><a class="sl-anchor-link" href="#kin-management"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Kin Management”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">create_kin</code></td><td>Create a new Kin</td></tr><tr><td><code dir="auto">update_kin</code></td><td>Update a Kin’s configuration</td></tr><tr><td><code dir="auto">delete_kin</code></td><td>Delete a Kin</td></tr><tr><td><code dir="auto">get_kin_details</code></td><td>Get full details of a Kin</td></tr></tbody></table>
+<aside aria-label="Note" class="starlight-aside starlight-aside--note"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 11C11.7348 11 11.4804 11.1054 11.2929 11.2929C11.1054 11.4804 11 11.7348 11 12V16C11 16.2652 11.1054 16.5196 11.2929 16.7071C11.4804 16.8946 11.7348 17 12 17C12.2652 17 12.5196 16.8946 12.7071 16.7071C12.8946 16.5196 13 16.2652 13 16V12C13 11.7348 12.8946 11.4804 12.7071 11.2929C12.5196 11.1054 12.2652 11 12 11ZM12.38 7.08C12.1365 6.97998 11.8635 6.97998 11.62 7.08C11.4973 7.12759 11.3851 7.19896 11.29 7.29C11.2017 7.3872 11.1306 7.49882 11.08 7.62C11.024 7.73868 10.9966 7.86882 11 8C10.9992 8.13161 11.0245 8.26207 11.0742 8.38391C11.124 8.50574 11.1973 8.61656 11.29 8.71C11.3872 8.79833 11.4988 8.86936 11.62 8.92C11.7715 8.98224 11.936 9.00632 12.099 8.99011C12.2619 8.97391 12.4184 8.91792 12.5547 8.82707C12.691 8.73622 12.8029 8.61328 12.8805 8.46907C12.9582 8.32486 12.9992 8.16378 13 8C12.9963 7.73523 12.8927 7.48163 12.71 7.29C12.6149 7.19896 12.5028 7.12759 12.38 7.08ZM12 2C10.0222 2 8.08879 2.58649 6.4443 3.6853C4.79981 4.78412 3.51809 6.3459 2.76121 8.17317C2.00433 10.0004 1.8063 12.0111 2.19215 13.9509C2.578 15.8907 3.53041 17.6725 4.92894 19.0711C6.32746 20.4696 8.10929 21.422 10.0491 21.8079C11.9889 22.1937 13.9996 21.9957 15.8268 21.2388C17.6541 20.4819 19.2159 19.2002 20.3147 17.5557C21.4135 15.9112 22 13.9778 22 12C22 10.6868 21.7413 9.38642 21.2388 8.17317C20.7363 6.95991 19.9997 5.85752 19.0711 4.92893C18.1425 4.00035 17.0401 3.26375 15.8268 2.7612C14.6136 2.25866 13.3132 2 12 2ZM12 20C10.4178 20 8.87104 19.5308 7.55544 18.6518C6.23985 17.7727 5.21447 16.5233 4.60897 15.0615C4.00347 13.5997 3.84504 11.9911 4.15372 10.4393C4.4624 8.88743 5.22433 7.46197 6.34315 6.34315C7.46197 5.22433 8.88743 4.4624 10.4393 4.15372C11.9911 3.84504 13.5997 4.00346 15.0615 4.60896C16.5233 5.21447 17.7727 6.23984 18.6518 7.55544C19.5308 8.87103 20 10.4177 20 12C20 14.1217 19.1572 16.1566 17.6569 17.6569C16.1566 19.1571 14.1217 20 12 20Z"></path></svg>Note</p><div class="starlight-aside__content"><p>Kin management tools are <strong>opt-in</strong> (disabled by default). Enable them via <code dir="auto">enabledOptInTools</code> in the tool config.</p></div></aside>
+<div class="sl-heading-wrapper level-h3"><h3 id="plugin-management">Plugin Management</h3><a class="sl-anchor-link" href="#plugin-management"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Plugin Management”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">list_installed_plugins</code></td><td>List installed plugins</td></tr><tr><td><code dir="auto">browse_plugin_store</code></td><td>Browse the plugin store</td></tr><tr><td><code dir="auto">install_plugin</code></td><td>Install a plugin</td></tr><tr><td><code dir="auto">uninstall_plugin</code></td><td>Remove a plugin</td></tr><tr><td><code dir="auto">enable_plugin</code></td><td>Enable a disabled plugin</td></tr><tr><td><code dir="auto">disable_plugin</code></td><td>Disable a plugin</td></tr><tr><td><code dir="auto">configure_plugin</code></td><td>Set plugin configuration</td></tr><tr><td><code dir="auto">get_plugin_details</code></td><td>View plugin details and config schema</td></tr></tbody></table>
+<aside aria-label="Note" class="starlight-aside starlight-aside--note"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 11C11.7348 11 11.4804 11.1054 11.2929 11.2929C11.1054 11.4804 11 11.7348 11 12V16C11 16.2652 11.1054 16.5196 11.2929 16.7071C11.4804 16.8946 11.7348 17 12 17C12.2652 17 12.5196 16.8946 12.7071 16.7071C12.8946 16.5196 13 16.2652 13 16V12C13 11.7348 12.8946 11.4804 12.7071 11.2929C12.5196 11.1054 12.2652 11 12 11ZM12.38 7.08C12.1365 6.97998 11.8635 6.97998 11.62 7.08C11.4973 7.12759 11.3851 7.19896 11.29 7.29C11.2017 7.3872 11.1306 7.49882 11.08 7.62C11.024 7.73868 10.9966 7.86882 11 8C10.9992 8.13161 11.0245 8.26207 11.0742 8.38391C11.124 8.50574 11.1973 8.61656 11.29 8.71C11.3872 8.79833 11.4988 8.86936 11.62 8.92C11.7715 8.98224 11.936 9.00632 12.099 8.99011C12.2619 8.97391 12.4184 8.91792 12.5547 8.82707C12.691 8.73622 12.8029 8.61328 12.8805 8.46907C12.9582 8.32486 12.9992 8.16378 13 8C12.9963 7.73523 12.8927 7.48163 12.71 7.29C12.6149 7.19896 12.5028 7.12759 12.38 7.08ZM12 2C10.0222 2 8.08879 2.58649 6.4443 3.6853C4.79981 4.78412 3.51809 6.3459 2.76121 8.17317C2.00433 10.0004 1.8063 12.0111 2.19215 13.9509C2.578 15.8907 3.53041 17.6725 4.92894 19.0711C6.32746 20.4696 8.10929 21.422 10.0491 21.8079C11.9889 22.1937 13.9996 21.9957 15.8268 21.2388C17.6541 20.4819 19.2159 19.2002 20.3147 17.5557C21.4135 15.9112 22 13.9778 22 12C22 10.6868 21.7413 9.38642 21.2388 8.17317C20.7363 6.95991 19.9997 5.85752 19.0711 4.92893C18.1425 4.00035 17.0401 3.26375 15.8268 2.7612C14.6136 2.25866 13.3132 2 12 2ZM12 20C10.4178 20 8.87104 19.5308 7.55544 18.6518C6.23985 17.7727 5.21447 16.5233 4.60897 15.0615C4.00347 13.5997 3.84504 11.9911 4.15372 10.4393C4.4624 8.88743 5.22433 7.46197 6.34315 6.34315C7.46197 5.22433 8.88743 4.4624 10.4393 4.15372C11.9911 3.84504 13.5997 4.00346 15.0615 4.60896C16.5233 5.21447 17.7727 6.23984 18.6518 7.55544C19.5308 8.87103 20 10.4177 20 12C20 14.1217 19.1572 16.1566 17.6569 17.6569C16.1566 19.1571 14.1217 20 12 20Z"></path></svg>Note</p><div class="starlight-aside__content"><p>Plugin management tools are <strong>opt-in</strong> (disabled by default). Enable them via <code dir="auto">enabledOptInTools</code> in the tool config.</p></div></aside>
+<div class="sl-heading-wrapper level-h3"><h3 id="user-management">User Management</h3><a class="sl-anchor-link" href="#user-management"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “User Management”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">list_users</code></td><td>List all platform users</td></tr><tr><td><code dir="auto">get_user</code></td><td>Get user details</td></tr><tr><td><code dir="auto">create_invitation</code></td><td>Create a signup invitation link</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="human-in-the-loop">Human-in-the-loop</h3><a class="sl-anchor-link" href="#human-in-the-loop"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Human-in-the-loop”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Availability</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">prompt_human</code></td><td>main, sub-kin</td><td>Ask the user a question and wait for a response</td></tr><tr><td><code dir="auto">notify</code></td><td>main, sub-kin</td><td>Send a notification to the user</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="system--advanced">System &#x26; Advanced</h3><a class="sl-anchor-link" href="#system--advanced"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “System &#x26; Advanced”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">run_shell</code></td><td>Execute a shell command (main + sub-kin)</td></tr><tr><td><code dir="auto">http_request</code></td><td>Make HTTP requests to external APIs</td></tr><tr><td><code dir="auto">get_platform_logs</code></td><td>View KinBot platform logs (opt-in)</td></tr><tr><td><code dir="auto">get_system_info</code></td><td>Get system/platform information</td></tr><tr><td><code dir="auto">execute_sql</code></td><td>Run raw SQL on the database (opt-in, dangerous)</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="mcp-server-management">MCP Server Management</h3><a class="sl-anchor-link" href="#mcp-server-management"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “MCP Server Management”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">add_mcp_server</code></td><td>Register a new MCP server</td></tr><tr><td><code dir="auto">update_mcp_server</code></td><td>Update MCP server configuration</td></tr><tr><td><code dir="auto">remove_mcp_server</code></td><td>Remove an MCP server</td></tr><tr><td><code dir="auto">list_mcp_servers</code></td><td>List configured MCP servers</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="custom-tools">Custom Tools</h3><a class="sl-anchor-link" href="#custom-tools"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Custom Tools”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">register_tool</code></td><td>Create a custom tool with a script</td></tr><tr><td><code dir="auto">run_custom_tool</code></td><td>Execute a custom tool</td></tr><tr><td><code dir="auto">list_custom_tools</code></td><td>List registered custom tools</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h2"><h2 id="tool-configuration">Tool configuration</h2><a class="sl-anchor-link" href="#tool-configuration"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Tool configuration”</span></a></div>
 <p>Each Kin has a <strong>tool config</strong> that controls access:</p>
-<div class="expressive-code"><link rel="stylesheet" href="/kinbot/docs/_astro/ec.4zx47.css"><script type="module" src="/kinbot/docs/_astro/ec.0vx5m.js"></script><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="json"><code><div class="ec-line"><div class="code"><span style="--0:#918DAB;--1:#625F77">{</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">disabledNativeTools</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">[</span><span style="--0:#F6C177;--1:#855A1E">"run_shell"</span><span style="--0:#918DAB;--1:#625F77">,</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#F6C177;--1:#855A1E">"execute_sql"</span><span style="--0:#918DAB;--1:#625F77">],</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">mcpAccess</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">{</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">server-id</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">[</span><span style="--0:#F6C177;--1:#855A1E">"*"</span><span style="--0:#918DAB;--1:#625F77">]</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">},</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">enabledOptInTools</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">[</span><span style="--0:#F6C177;--1:#855A1E">"dangerous_tool"</span><span style="--0:#918DAB;--1:#625F77">],</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">searchProviderId</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#F6C177;--1:#855A1E">"provider-id"</span></div></div><div class="ec-line"><div class="code"><span style="--0:#918DAB;--1:#625F77">}</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="{  &#x22;disabledNativeTools&#x22;: [&#x22;run_shell&#x22;, &#x22;execute_sql&#x22;],  &#x22;mcpAccess&#x22;: {    &#x22;server-id&#x22;: [&#x22;*&#x22;]  },  &#x22;enabledOptInTools&#x22;: [&#x22;dangerous_tool&#x22;],  &#x22;searchProviderId&#x22;: &#x22;provider-id&#x22;}"><div></div></button></div></figure></div>
+<div class="expressive-code"><link rel="stylesheet" href="/kinbot/docs/_astro/ec.4zx47.css"><script type="module" src="/kinbot/docs/_astro/ec.0vx5m.js"></script><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="json"><code><div class="ec-line"><div class="code"><span style="--0:#918DAB;--1:#625F77">{</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">disabledNativeTools</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">[</span><span style="--0:#F6C177;--1:#855A1E">"run_shell"</span><span style="--0:#918DAB;--1:#625F77">,</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#F6C177;--1:#855A1E">"execute_sql"</span><span style="--0:#918DAB;--1:#625F77">],</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">mcpAccess</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">{</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">server-id</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">[</span><span style="--0:#F6C177;--1:#855A1E">"*"</span><span style="--0:#918DAB;--1:#625F77">]</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">},</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">enabledOptInTools</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#918DAB;--1:#625F77">[</span><span style="--0:#F6C177;--1:#855A1E">"create_kin"</span><span style="--0:#918DAB;--1:#625F77">,</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#F6C177;--1:#855A1E">"get_platform_logs"</span><span style="--0:#918DAB;--1:#625F77">],</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#9CCFD8;--1:#3D6971">searchProviderId</span><span style="--0:#918DAB;--1:#625F77">"</span><span style="--0:#918DAB;--1:#625F77">:</span><span style="--0:#E0DEF4;--1:#575279"> </span><span style="--0:#F6C177;--1:#855A1E">"provider-id"</span></div></div><div class="ec-line"><div class="code"><span style="--0:#918DAB;--1:#625F77">}</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="{  &#x22;disabledNativeTools&#x22;: [&#x22;run_shell&#x22;, &#x22;execute_sql&#x22;],  &#x22;mcpAccess&#x22;: {    &#x22;server-id&#x22;: [&#x22;*&#x22;]  },  &#x22;enabledOptInTools&#x22;: [&#x22;create_kin&#x22;, &#x22;get_platform_logs&#x22;],  &#x22;searchProviderId&#x22;: &#x22;provider-id&#x22;}"><div></div></button></div></figure></div>
 <ul>
-<li><strong>disabledNativeTools</strong> — deny-list of native tools to disable for this Kin</li>
-<li><strong>mcpAccess</strong> — which MCP server tools the Kin can use (<code dir="auto">["*"]</code> for all tools on a server)</li>
-<li><strong>enabledOptInTools</strong> — explicitly enable tools that are disabled by default</li>
+<li><strong>disabledNativeTools</strong> — deny-list of native tools to hide from this Kin</li>
+<li><strong>mcpAccess</strong> — which MCP server tools the Kin can use (<code dir="auto">["*"]</code> for all tools on a server, or specific tool names)</li>
+<li><strong>enabledOptInTools</strong> — explicitly enable tools that are disabled by default (kin management, plugin management, <code dir="auto">get_platform_logs</code>, <code dir="auto">execute_sql</code>)</li>
 <li><strong>searchProviderId</strong> — override the global web search provider for this Kin</li>
 </ul>
 <p>Configure this in the Kin’s settings page in the UI.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="opt-in-tools">Opt-in tools</h2><a class="sl-anchor-link" href="#opt-in-tools"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Opt-in tools”</span></a></div>
+<p>Some powerful tools are <strong>disabled by default</strong> and must be explicitly enabled via <code dir="auto">enabledOptInTools</code>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tools</th><th>Why opt-in</th></tr></thead><tbody><tr><td><code dir="auto">create_kin</code>, <code dir="auto">update_kin</code>, <code dir="auto">delete_kin</code>, <code dir="auto">get_kin_details</code></td><td>Can modify platform structure</td></tr><tr><td>All plugin management tools</td><td>Can install/remove server extensions</td></tr><tr><td><code dir="auto">get_platform_logs</code></td><td>Exposes internal server logs</td></tr><tr><td><code dir="auto">execute_sql</code></td><td>Direct database access — use with extreme caution</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h2"><h2 id="tool-availability">Tool availability</h2><a class="sl-anchor-link" href="#tool-availability"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Tool availability”</span></a></div>
+<p>Tools declare which contexts they’re available in:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Context</th><th>Description</th></tr></thead><tbody><tr><td><strong>main</strong></td><td>The primary Kin agent in a conversation</td></tr><tr><td><strong>sub-kin</strong></td><td>A sub-agent spawned via <code dir="auto">spawn_self</code> or <code dir="auto">spawn_kin</code></td></tr></tbody></table>
+<p>Most tools are <strong>main-only</strong>. The following are also available to sub-kins:</p>
+<ul>
+<li><code dir="auto">report_to_parent</code>, <code dir="auto">update_task_status</code>, <code dir="auto">request_input</code> (sub-kin only)</li>
+<li><code dir="auto">prompt_human</code>, <code dir="auto">notify</code>, <code dir="auto">run_shell</code>, <code dir="auto">http_request</code></li>
+</ul>
+<p>Sub-kins have access to standard tools (memory, web, contacts, vault, files, etc.) but not to administrative tools (cron, webhooks, channels, kin management, inter-kin communication).</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="mcp-servers">MCP servers</h2><a class="sl-anchor-link" href="#mcp-servers"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “MCP servers”</span></a></div>
 <p><a href="https://modelcontextprotocol.io/">Model Context Protocol</a> servers extend Kins with external tools. Kins can even manage their own MCP connections (with user approval).</p>
+<p>MCP servers added by a Kin start in <code dir="auto">pending_approval</code> status and must be approved by an admin before they become active.</p>
 <p>To connect an MCP server:</p>
 <ol>
 <li>Go to Settings > MCP Servers</li>
 <li>Add the server command, args, and environment variables</li>
-<li>Assign it to specific Kins via their tool config</li>
+<li>Assign it to specific Kins via their tool config (<code dir="auto">mcpAccess</code>)</li>
 </ol>
+<p>Kins can also manage MCP servers programmatically using <code dir="auto">add_mcp_server</code>, <code dir="auto">update_mcp_server</code>, <code dir="auto">remove_mcp_server</code>, and <code dir="auto">list_mcp_servers</code>.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="custom-tools-1">Custom tools</h2><a class="sl-anchor-link" href="#custom-tools-1"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Custom tools”</span></a></div>
 <p>Kins can create their own tools by writing scripts:</p>
 <ol>
 <li>The Kin calls <code dir="auto">register_tool</code> with a name, description, and script</li>
 <li>The script is stored in the Kin’s workspace</li>
-<li>Other tools or the Kin itself can invoke it via <code dir="auto">run_custom_tool</code></li>
+<li>The Kin (or other tools) can invoke it via <code dir="auto">run_custom_tool</code></li>
 </ol>
-<p>This lets Kins build specialized automation without needing code changes to KinBot.</p>
-<div class="sl-heading-wrapper level-h2"><h2 id="tool-availability-contexts">Tool availability contexts</h2><a class="sl-anchor-link" href="#tool-availability-contexts"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Tool availability contexts”</span></a></div>
-<p>Not all tools are available everywhere:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<table><thead><tr><th>Context</th><th>Available tools</th></tr></thead><tbody><tr><td><strong>Main agent</strong></td><td>All tools (based on config)</td></tr><tr><td><strong>Sub-Kin</strong></td><td><code dir="auto">report_to_parent</code>, <code dir="auto">update_task_status</code>, <code dir="auto">request_input</code>, plus most standard tools</td></tr><tr><td><strong>Quick session</strong></td><td>Reduced set — no memory writes, no admin tools, no inter-Kin communication</td></tr></tbody></table> </div> <footer class="sl-flex astro-3yyafb3n"> <div class="meta sl-flex astro-3yyafb3n"> <a href="https://github.com/MarlBurroW/kinbot/edit/main/docs-site/src/content/docs/kins/tools.md" class="sl-flex print:hidden astro-eez2twj6"><svg aria-hidden="true" class="astro-eez2twj6 astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a> <p>Last updated: <time datetime="2026-03-07T12:09:21.000Z">Mar 7, 2026</time></p> </div> <div class="kb-pagination astro-d776pwuy"> <div class="pagination-links print:hidden astro-u2l5gyhi" dir="ltr"> <a href="/kinbot/docs/kins/system-prompts/" rel="prev" class="astro-u2l5gyhi"> <svg aria-hidden="true" class="astro-u2l5gyhi astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg> <span class="astro-u2l5gyhi"> Previous <br class="astro-u2l5gyhi"> <span class="link-title astro-u2l5gyhi">System Prompts</span> </span> </a> <a href="/kinbot/docs/kins/memory/" rel="next" class="astro-u2l5gyhi"> <svg aria-hidden="true" class="astro-u2l5gyhi astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg> <span class="astro-u2l5gyhi"> Next <br class="astro-u2l5gyhi"> <span class="link-title astro-u2l5gyhi">Memory</span> </span> </a> </div>  </div>   </footer>  <footer class="kb-site-footer astro-sz7xmlte"> <div class="kb-footer-divider astro-sz7xmlte" aria-hidden="true"></div> <div class="kb-footer-content astro-sz7xmlte"> <div class="kb-footer-links astro-sz7xmlte"> <div class="kb-footer-col astro-sz7xmlte"> <p class="kb-footer-heading astro-sz7xmlte">Resources</p> <ul class="astro-sz7xmlte"> <li class="astro-sz7xmlte"><a href="/kinbot/" class="astro-sz7xmlte">Landing Page</a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">GitHub <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/releases" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Releases <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> </ul> </div> <div class="kb-footer-col astro-sz7xmlte"> <p class="kb-footer-heading astro-sz7xmlte">Community</p> <ul class="astro-sz7xmlte"> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/discussions" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Discussions <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/issues/new" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Report Issue <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Contributing <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> </ul> </div> </div> <div class="kb-footer-bottom astro-sz7xmlte"> <span class="kb-copyright astro-sz7xmlte">© 2026 KinBot. Built with <a href="https://starlight.astro.build" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Starlight</a>.</span> </div> </div> </footer>  </div> </div>   </main>   </div> </div>    </div> </div>  <!-- Back-to-top button with circular scroll progress --> <button class="kb-back-to-top astro-4toy2ex6" id="kb-btt" aria-label="Back to top" title="Back to top"> <svg class="kb-btt-ring astro-4toy2ex6" width="44" height="44" viewBox="0 0 44 44"> <circle cx="22" cy="22" r="19.5" fill="none" stroke="currentColor" stroke-width="2" opacity="0.15" class="astro-4toy2ex6"></circle> <circle class="kb-btt-progress astro-4toy2ex6" cx="22" cy="22" r="19.5" fill="none" stroke="url(#btt-grad)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="122.52" stroke-dashoffset="122.52"></circle> <defs class="astro-4toy2ex6"> <linearGradient id="btt-grad" x1="0" y1="0" x2="1" y2="1" class="astro-4toy2ex6"> <stop offset="0%" stop-color="oklch(0.60 0.22 300)" class="astro-4toy2ex6"></stop> <stop offset="100%" stop-color="oklch(0.66 0.24 340)" class="astro-4toy2ex6"></stop> </linearGradient> </defs> </svg> <svg class="kb-btt-arrow astro-4toy2ex6" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"> <path d="m18 15-6-6-6 6" class="astro-4toy2ex6"></path> </svg> </button>   <script type="module">const t=document.getElementById("kb-btt"),s=t?.querySelector(".kb-btt-progress"),c=2*Math.PI*19.5;if(t&&s){const e=()=>{const o=document.documentElement.scrollHeight-window.innerHeight,n=o>0?Math.min(window.scrollY/o,1):0;s.style.strokeDashoffset=String(c*(1-n)),t.classList.toggle("visible",window.scrollY>400)};window.addEventListener("scroll",e,{passive:!0}),e(),t.addEventListener("click",()=>{window.scrollTo({top:0,behavior:"smooth"})})}</script> </body></html>
+<p>This lets Kins build specialized automation without needing code changes to KinBot.</p> </div> <footer class="sl-flex astro-3yyafb3n"> <div class="meta sl-flex astro-3yyafb3n"> <a href="https://github.com/MarlBurroW/kinbot/edit/main/docs-site/src/content/docs/kins/tools.md" class="sl-flex print:hidden astro-eez2twj6"><svg aria-hidden="true" class="astro-eez2twj6 astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a> <p>Last updated: <time datetime="2026-03-07T16:58:55.000Z">Mar 7, 2026</time></p> </div> <div class="kb-pagination astro-d776pwuy"> <div class="pagination-links print:hidden astro-u2l5gyhi" dir="ltr"> <a href="/kinbot/docs/kins/system-prompts/" rel="prev" class="astro-u2l5gyhi"> <svg aria-hidden="true" class="astro-u2l5gyhi astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg> <span class="astro-u2l5gyhi"> Previous <br class="astro-u2l5gyhi"> <span class="link-title astro-u2l5gyhi">System Prompts</span> </span> </a> <a href="/kinbot/docs/kins/memory/" rel="next" class="astro-u2l5gyhi"> <svg aria-hidden="true" class="astro-u2l5gyhi astro-c6vsoqas" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg> <span class="astro-u2l5gyhi"> Next <br class="astro-u2l5gyhi"> <span class="link-title astro-u2l5gyhi">Memory</span> </span> </a> </div>  </div>   </footer>  <footer class="kb-site-footer astro-sz7xmlte"> <div class="kb-footer-divider astro-sz7xmlte" aria-hidden="true"></div> <div class="kb-footer-content astro-sz7xmlte"> <div class="kb-footer-links astro-sz7xmlte"> <div class="kb-footer-col astro-sz7xmlte"> <p class="kb-footer-heading astro-sz7xmlte">Resources</p> <ul class="astro-sz7xmlte"> <li class="astro-sz7xmlte"><a href="/kinbot/" class="astro-sz7xmlte">Landing Page</a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">GitHub <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/releases" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Releases <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> </ul> </div> <div class="kb-footer-col astro-sz7xmlte"> <p class="kb-footer-heading astro-sz7xmlte">Community</p> <ul class="astro-sz7xmlte"> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/discussions" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Discussions <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/issues/new" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Report Issue <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> <li class="astro-sz7xmlte"><a href="https://github.com/MarlBurroW/kinbot/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Contributing <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="astro-sz7xmlte"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" class="astro-sz7xmlte"></path><polyline points="15 3 21 3 21 9" class="astro-sz7xmlte"></polyline><line x1="10" y1="14" x2="21" y2="3" class="astro-sz7xmlte"></line></svg></a></li> </ul> </div> </div> <div class="kb-footer-bottom astro-sz7xmlte"> <span class="kb-copyright astro-sz7xmlte">© 2026 KinBot. Built with <a href="https://starlight.astro.build" target="_blank" rel="noopener noreferrer" class="astro-sz7xmlte">Starlight</a>.</span> </div> </div> </footer>  </div> </div>   </main>   </div> </div>    </div> </div>  <!-- Back-to-top button with circular scroll progress --> <button class="kb-back-to-top astro-4toy2ex6" id="kb-btt" aria-label="Back to top" title="Back to top"> <svg class="kb-btt-ring astro-4toy2ex6" width="44" height="44" viewBox="0 0 44 44"> <circle cx="22" cy="22" r="19.5" fill="none" stroke="currentColor" stroke-width="2" opacity="0.15" class="astro-4toy2ex6"></circle> <circle class="kb-btt-progress astro-4toy2ex6" cx="22" cy="22" r="19.5" fill="none" stroke="url(#btt-grad)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="122.52" stroke-dashoffset="122.52"></circle> <defs class="astro-4toy2ex6"> <linearGradient id="btt-grad" x1="0" y1="0" x2="1" y2="1" class="astro-4toy2ex6"> <stop offset="0%" stop-color="oklch(0.60 0.22 300)" class="astro-4toy2ex6"></stop> <stop offset="100%" stop-color="oklch(0.66 0.24 340)" class="astro-4toy2ex6"></stop> </linearGradient> </defs> </svg> <svg class="kb-btt-arrow astro-4toy2ex6" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"> <path d="m18 15-6-6-6 6" class="astro-4toy2ex6"></path> </svg> </button>   <script type="module">const t=document.getElementById("kb-btt"),s=t?.querySelector(".kb-btt-progress"),c=2*Math.PI*19.5;if(t&&s){const e=()=>{const o=document.documentElement.scrollHeight-window.innerHeight,n=o>0?Math.min(window.scrollY/o,1):0;s.style.strokeDashoffset=String(c*(1-n)),t.classList.toggle("visible",window.scrollY>400)};window.addEventListener("scroll",e,{passive:!0}),e(),t.addEventListener("click",()=>{window.scrollTo({top:0,behavior:"smooth"})})}</script> </body></html>
