@@ -956,6 +956,7 @@
       "identifierValuePlaceholder": "Saisir la valeur",
       "delete": "Supprimer le contact",
       "deleteConfirm": "Cela supprimera définitivement ce contact ainsi que tous ses identifiants et notes associés.",
+      "deleteWarnPlatforms": "Cela révoquera aussi l'accès depuis {{count}} plateforme(s) connectée(s) ({{platforms}}).",
       "notes": "Notes des Kins",
       "notesPrivate": "privée",
       "addNote": "Ajouter une note",

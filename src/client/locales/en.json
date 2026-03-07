@@ -956,6 +956,7 @@
       "identifierValuePlaceholder": "Enter value",
       "delete": "Delete contact",
       "deleteConfirm": "This will permanently delete this contact and all associated identifiers and notes.",
+      "deleteWarnPlatforms": "This will also revoke access from {{count}} connected platform(s) ({{platforms}}).",
       "notes": "Kin notes",
       "notesPrivate": "private",
       "addNote": "Add note",

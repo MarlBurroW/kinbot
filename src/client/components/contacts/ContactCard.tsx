@@ -61,6 +61,17 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
   const { t } = useTranslation()
   const Icon = contact.type === 'kin' ? Bot : User
 
+  // Build delete confirmation with cascade warning
+  const platformCount = contact.platformIds?.length ?? 0
+  const platformNames = contact.platformIds?.map((p) => p.platform).join(', ')
+  let deleteDescription = t('settings.contacts.deleteConfirm')
+  if (platformCount > 0) {
+    deleteDescription += ' ' + t('settings.contacts.deleteWarnPlatforms', {
+      count: platformCount,
+      platforms: platformNames,
+    })
+  }
+
   return (
     <Card className="surface-card">
       <CardContent className="py-3 px-4 space-y-2">
@@ -102,7 +113,7 @@ export function ContactCard({ contact, kinInfo, onEdit, onDelete, onRefresh }: C
             {onDelete && (
               <ConfirmDeleteButton
                 onConfirm={onDelete}
-                description={t('settings.contacts.deleteConfirm')}
+                description={deleteDescription}
               />
             )}
           </div>
