@@ -151,6 +151,7 @@ describe('config', () => {
     it('webhooks defaults', () => {
       expect(config.webhooks.maxPerKin).toBe(20)
       expect(config.webhooks.maxPayloadBytes).toBe(1_048_576)
+      expect(config.webhooks.rateLimitPerMinute).toBe(60)
     })
 
     it('channels defaults', () => {

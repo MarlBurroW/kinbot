@@ -9,11 +9,53 @@ import { createLogger } from '@/server/logger'
 
 const log = createLogger('routes:webhooks-incoming')
 
+// ─── In-memory sliding window rate limiter per webhookId ─────────────────────
+const rateBuckets = new Map<string, number[]>()
+
+function isRateLimited(webhookId: string, maxPerMinute: number): boolean {
+  const now = Date.now()
+  const windowMs = 60_000
+  let timestamps = rateBuckets.get(webhookId)
+  if (!timestamps) {
+    timestamps = []
+    rateBuckets.set(webhookId, timestamps)
+  }
+  // Evict expired entries
+  while (timestamps.length > 0 && timestamps[0]! <= now - windowMs) {
+    timestamps.shift()
+  }
+  if (timestamps.length >= maxPerMinute) {
+    return true
+  }
+  timestamps.push(now)
+  return false
+}
+
+// Periodic cleanup of stale buckets (every 5 min)
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, timestamps] of rateBuckets) {
+    while (timestamps.length > 0 && timestamps[0]! <= now - 60_000) {
+      timestamps.shift()
+    }
+    if (timestamps.length === 0) rateBuckets.delete(key)
+  }
+}, 5 * 60_000)
+
 export const webhookIncomingRoutes = new Hono()
 
 // POST /api/webhooks/incoming/:webhookId — public endpoint for external services
 webhookIncomingRoutes.post('/:webhookId', async (c) => {
   const webhookId = c.req.param('webhookId')
+
+  // 0. Rate limit check
+  if (isRateLimited(webhookId, config.webhooks.rateLimitPerMinute)) {
+    log.warn({ webhookId }, 'Webhook rate limited')
+    return c.json(
+      { error: { code: 'RATE_LIMITED', message: `Rate limit exceeded (max ${config.webhooks.rateLimitPerMinute}/min)` } },
+      429,
+    )
+  }
 
   // 1. Look up webhook
   const webhook = await getWebhook(webhookId)
