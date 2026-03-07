@@ -23,6 +23,7 @@ import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
 import { cn } from '@/client/lib/utils'
 import { getErrorMessage } from '@/client/lib/api'
 import { cronToHuman } from '@/client/lib/cron-human'
+import { cronNextRuns } from '@/client/lib/cron-next'
 import type { CronSummary } from '@/shared/types'
 
 interface LLMModel {
@@ -173,6 +174,7 @@ export function CronFormModal({
   const selectedKin = kins.find((k) => k.id === kinId)
   const scheduleHuman = useMemo(() => cronToHuman(schedule, i18n.language), [schedule, i18n.language])
   const scheduleInvalid = useMemo(() => schedule.trim().length > 0 && !scheduleHuman, [schedule, scheduleHuman])
+  const nextRuns = useMemo(() => scheduleHuman ? cronNextRuns(schedule, 3) : [], [schedule, scheduleHuman])
 
   return (
     <>
@@ -262,9 +264,18 @@ export function CronFormModal({
                 </p>
               )}
               {scheduleHuman && (
-                <p className="text-[11px] text-primary/80 italic">
-                  {scheduleHuman} ({t('cron.create.serverTime')})
-                </p>
+                <div className="space-y-0.5">
+                  <p className="text-[11px] text-primary/80 italic">
+                    {scheduleHuman} ({t('cron.create.serverTime')})
+                  </p>
+                  {nextRuns.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {t('cron.create.nextRuns')}: {nextRuns.map((d) =>
+                        d.toLocaleString(i18n.language, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+                      ).join(', ')}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

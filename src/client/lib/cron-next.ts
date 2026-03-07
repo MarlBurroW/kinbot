@@ -15,6 +15,20 @@ export function cronNextRun(expression: string): Date | null {
 }
 
 /**
+ * Compute the next N run dates for a cron expression.
+ * Returns empty array if the expression is invalid.
+ */
+export function cronNextRuns(expression: string, count: number = 3): Date[] {
+  if (!expression.trim()) return []
+  try {
+    const job = new Cron(expression)
+    return job.nextRuns(count)
+  } catch {
+    return []
+  }
+}
+
+/**
  * Format a future date as a relative countdown string.
  * e.g. "in 3m", "in 1h 20m", "in 2d"
  */
