@@ -85,12 +85,15 @@ function enforceMaxEvents(state: CalendarState, max: number): void {
 }
 
 export default function calendarPlugin(ctx: {
-  pluginId: string
-  config: Record<string, string>
+  config: Record<string, any>
+  log?: { info: (...args: any[]) => void }
+  manifest?: { name: string }
+  [key: string]: any
 }) {
   const maxEvents = parseInt(ctx.config.maxEvents || '500', 10)
   const defaultReminder = parseInt(ctx.config.defaultReminderMinutes || '15', 10)
-  const state = getState(ctx.pluginId)
+  const stateId = ctx.manifest?.name || ctx.pluginId || 'calendar'
+  const state = getState(stateId)
 
   return {
     tools: {

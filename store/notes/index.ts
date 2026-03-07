@@ -57,7 +57,7 @@ function formatNote(n: Note): object {
 
 export default function (ctx: any) {
   const maxNotes = parseInt(ctx.config.maxNotes || '250', 10)
-  const stateId = ctx.kinId || 'default'
+  const stateId = ctx.manifest?.name || ctx.kinId || 'default'
 
   return {
     tools: {

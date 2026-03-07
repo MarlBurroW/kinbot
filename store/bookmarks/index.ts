@@ -56,7 +56,7 @@ function formatBookmark(b: Bookmark): object {
 
 export default function (ctx: any) {
   const maxBookmarks = parseInt(ctx.config.maxBookmarks || '250', 10)
-  const stateId = ctx.kinId || 'default'
+  const stateId = ctx.manifest?.name || ctx.kinId || 'default'
 
   return {
     tools: {

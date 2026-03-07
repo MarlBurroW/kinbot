@@ -58,7 +58,7 @@ export default function (ctx: any) {
   const longBreakInterval = parseInt(ctx.config.longBreakInterval || '4', 10)
 
   // Use plugin instance id or fallback
-  const stateId = ctx.kinId || 'default'
+  const stateId = ctx.manifest?.name || ctx.kinId || 'default'
 
   return {
     tools: {
