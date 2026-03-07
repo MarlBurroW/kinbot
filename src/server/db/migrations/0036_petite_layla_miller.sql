@@ -1,0 +1,1 @@
+ALTER TABLE `mini_apps` ADD `icon_url` text;

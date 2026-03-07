@@ -387,6 +387,7 @@ export interface MiniAppSummary {
   slug: string
   description: string | null
   icon: string | null
+  iconUrl: string | null
   entryFile: string
   hasBackend: boolean
   isActive: boolean

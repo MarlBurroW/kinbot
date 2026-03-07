@@ -13,7 +13,7 @@ import {
   AlertDialogAction,
 } from '@/client/components/ui/alert-dialog'
 import { Input } from '@/client/components/ui/input'
-import { X, RotateCw, Maximize2, Minimize2 } from 'lucide-react'
+import { X, RotateCw, Maximize2, Minimize2, Sparkles, Loader2 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { toast } from 'sonner'
@@ -46,6 +46,7 @@ export function MiniAppViewer() {
     defaultValue?: string
   } | null>(null)
   const [promptValue, setPromptValue] = useState('')
+  const [generatingIcon, setGeneratingIcon] = useState(false)
 
   const sendDialogResult = useCallback((callbackId: string, value: unknown) => {
     if (!iframeRef.current?.contentWindow) return
@@ -56,6 +57,21 @@ export function MiniAppViewer() {
       value,
     }, '*')
   }, [])
+
+  const handleGenerateIcon = useCallback(async () => {
+    if (!app || generatingIcon) return
+    setGeneratingIcon(true)
+    try {
+      const data = await api.post<{ app: MiniAppSummary }>(`/mini-apps/${app.id}/generate-icon`, {})
+      setApp(data.app)
+      toast.success(t('miniApps.icon.generated'))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('miniApps.icon.error')
+      toast.error(msg)
+    } finally {
+      setGeneratingIcon(false)
+    }
+  }, [app, generatingIcon, t])
 
   // Fetch app details when activeAppId changes
   useEffect(() => {
@@ -494,10 +510,24 @@ export function MiniAppViewer() {
         {dialogElement}
         {/* Header */}
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
-          {app?.icon && <span className="text-base">{app.icon}</span>}
+          {app?.iconUrl ? (
+            <img src={app.iconUrl} alt={app.name} className="size-6 rounded-md object-cover" />
+          ) : app?.icon ? (
+            <span className="text-base">{app.icon}</span>
+          ) : null}
           <span className="flex-1 truncate text-sm font-medium">
             {customTitle || (app?.name ?? '...')}
           </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={handleGenerateIcon}
+            disabled={generatingIcon}
+            title={t('miniApps.icon.generate')}
+          >
+            {generatingIcon ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -552,10 +582,24 @@ export function MiniAppViewer() {
         {dialogElement}
         {/* Header */}
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
-          {app?.icon && <span className="text-base">{app.icon}</span>}
+          {app?.iconUrl ? (
+            <img src={app.iconUrl} alt={app.name} className="size-6 rounded-md object-cover" />
+          ) : app?.icon ? (
+            <span className="text-base">{app.icon}</span>
+          ) : null}
           <span className="flex-1 truncate text-sm font-medium">
             {customTitle || (app?.name ?? '...')}
           </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={handleGenerateIcon}
+            disabled={generatingIcon}
+            title={t('miniApps.icon.generate')}
+          >
+            {generatingIcon ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+          </Button>
           <Button
             variant="ghost"
             size="icon"

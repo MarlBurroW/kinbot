@@ -1655,7 +1655,17 @@
       "searchPlaceholder": "Rechercher...",
       "fetchError": "Impossible de charger la galerie",
       "noResults": "Aucune app ne correspond",
-      "empty": "Aucune app disponible"
+      "empty": "Aucune app disponible",
+      "cloned": "Cloné",
+      "viewGrid": "Vue grille",
+      "viewList": "Vue liste"
+    },
+    "icon": {
+      "generate": "Générer l'icône",
+      "generating": "Génération...",
+      "generated": "Icône générée !",
+      "noProvider": "Aucun fournisseur d'images configuré",
+      "error": "Échec de la génération"
     }
   },
   "accessibility": {

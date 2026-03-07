@@ -551,6 +551,7 @@ export const miniApps = sqliteTable('mini_apps', {
   slug: text('slug').notNull(),
   description: text('description'),
   icon: text('icon'),                        // emoji or Lucide icon name
+  iconUrl: text('icon_url'),                  // URL path to generated logo image
   entryFile: text('entry_file').notNull().default('index.html'),
   hasBackend: integer('has_backend', { mode: 'boolean' }).notNull().default(false),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),

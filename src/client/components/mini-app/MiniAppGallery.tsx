@@ -11,28 +11,42 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avat
 import { Input } from '@/client/components/ui/input'
 import { api } from '@/client/lib/api'
 import { toast } from 'sonner'
-import { Search, AppWindow, Loader2 } from 'lucide-react'
+import { Search, AppWindow, Loader2, LayoutGrid, List } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import type { MiniAppSummary } from '@/shared/types'
-
-interface KinSummary {
-  id: string
-  name: string
-  avatarPath: string | null
-}
 
 interface MiniAppGalleryProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentKinId: string | null
-  kins: KinSummary[]
 }
+
+function MiniAppIcon({ app, size = 'md' }: { app: MiniAppSummary; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClass = size === 'lg' ? 'size-14 text-3xl rounded-xl' : size === 'md' ? 'size-10 text-xl rounded-lg' : 'size-8 text-lg rounded-md'
+  if (app.iconUrl) {
+    return <img src={app.iconUrl} alt={app.name} className={cn(sizeClass, 'object-cover shrink-0')} />
+  }
+  return (
+    <div className={cn('flex shrink-0 items-center justify-center bg-secondary', sizeClass)}>
+      {app.icon || '\u{1F4E6}'}
+    </div>
+  )
+}
+
+export { MiniAppIcon }
 
 export function MiniAppGallery({ open, onOpenChange }: MiniAppGalleryProps) {
   const { t } = useTranslation()
   const [apps, setApps] = useState<MiniAppSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() =>
+    (localStorage.getItem('kinbot:gallery-view-mode') as 'grid' | 'list') || 'grid',
+  )
+
+  const toggleView = (mode: 'grid' | 'list') => {
+    setViewMode(mode)
+    localStorage.setItem('kinbot:gallery-view-mode', mode)
+  }
 
   // Fetch gallery apps when dialog opens
   useEffect(() => {
@@ -56,7 +70,7 @@ export function MiniAppGallery({ open, onOpenChange }: MiniAppGalleryProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-5xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AppWindow className="size-5" />
@@ -67,18 +81,44 @@ export function MiniAppGallery({ open, onOpenChange }: MiniAppGalleryProps) {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t('miniApps.gallery.searchPlaceholder')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 text-sm"
-          />
+        {/* Controls */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t('miniApps.gallery.searchPlaceholder')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-8 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+            <button
+              type="button"
+              onClick={() => toggleView('grid')}
+              className={cn(
+                'rounded p-1 transition-colors',
+                viewMode === 'grid' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+              title={t('miniApps.gallery.viewGrid')}
+            >
+              <LayoutGrid className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleView('list')}
+              className={cn(
+                'rounded p-1 transition-colors',
+                viewMode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+              title={t('miniApps.gallery.viewList')}
+            >
+              <List className="size-3.5" />
+            </button>
+          </div>
         </div>
 
-        {/* App list */}
+        {/* App list / grid */}
         <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -89,18 +129,45 @@ export function MiniAppGallery({ open, onOpenChange }: MiniAppGalleryProps) {
               <AppWindow className="size-10 mb-2 opacity-40" />
               <p className="text-sm">{search ? t('miniApps.gallery.noResults') : t('miniApps.gallery.empty')}</p>
             </div>
+          ) : viewMode === 'grid' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-1">
+              {filtered.map((app) => (
+                <div
+                  key={app.id}
+                  className="flex flex-col rounded-xl border border-border p-4 transition-colors hover:bg-accent/30"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <MiniAppIcon app={app} size="lg" />
+                    {app.hasBackend && (
+                      <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                        API
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-3 truncate text-sm font-medium">{app.name}</p>
+                  {app.description && (
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{app.description}</p>
+                  )}
+                  <div className="mt-auto pt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <Avatar className="size-3.5">
+                      {app.kinAvatarUrl && <AvatarImage src={app.kinAvatarUrl} alt={app.kinName} />}
+                      <AvatarFallback className="text-[7px]">{app.kinName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">{app.kinName}</span>
+                    <span className="opacity-40">·</span>
+                    <span>v{app.version}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="space-y-2 py-1">
               {filtered.map((app) => (
                 <div
                   key={app.id}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/30',
-                  )}
+                  className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/30"
                 >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-xl">
-                    {app.icon || '📦'}
-                  </div>
+                  <MiniAppIcon app={app} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-medium">{app.name}</p>

@@ -20,7 +20,9 @@ import {
   createSnapshot,
   listSnapshots,
   rollbackToSnapshot,
+  generateMiniAppIcon,
 } from '@/server/services/mini-apps'
+import { ImageGenerationError } from '@/server/services/image-generation'
 import { getTemplateById } from '@/server/tools/mini-app-templates'
 import { sseManager } from '@/server/sse/index'
 import type { ToolRegistration } from '@/server/tools/types'
@@ -599,6 +601,48 @@ export const rollbackMiniAppTool: ToolRegistration = {
           return { message: result.message }
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Failed to rollback'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── generate_mini_app_icon ──────────────────────────────────────────────────
+
+export const generateMiniAppIconTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Generate an AI-created icon/logo for one of your mini-apps. ' +
+        'Uses the app name, description, and emoji to create a flat-design app icon. ' +
+        'Requires an image generation provider to be configured. ' +
+        'Falls back gracefully with an error message if no image provider is available.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini-app to generate an icon for'),
+      }),
+      execute: async ({ app_id }) => {
+        log.debug({ kinId: ctx.kinId, appId: app_id }, 'generate_mini_app_icon invoked')
+
+        // Verify the app belongs to this kin
+        const row = await getMiniAppRow(app_id)
+        if (!row || row.kinId !== ctx.kinId) {
+          return { error: 'Mini-app not found or does not belong to this Kin' }
+        }
+
+        try {
+          const app = await generateMiniAppIcon(app_id)
+          sseManager.broadcast({ type: 'miniapp:updated', kinId: ctx.kinId, data: { app } })
+          return {
+            iconUrl: app.iconUrl,
+            message: `Icon generated for "${app.name}". It is now visible in the sidebar and gallery.`,
+          }
+        } catch (err) {
+          if (err instanceof ImageGenerationError && err.code === 'NO_IMAGE_PROVIDER') {
+            return { error: 'No image generation provider is configured. The app will keep using its emoji icon.' }
+          }
+          const message = err instanceof Error ? err.message : 'Failed to generate icon'
+          log.warn({ kinId: ctx.kinId, appId: app_id, error: message }, 'generate_mini_app_icon failed')
           return { error: message }
         }
       },

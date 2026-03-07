@@ -7,6 +7,7 @@ import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { miniApps, miniAppStorage, miniAppSnapshots, kins } from '@/server/db/schema'
 import { config } from '@/server/config'
+import { buildMiniAppIconPrompt, generateImage, ImageGenerationError } from '@/server/services/image-generation'
 import type { MiniAppSummary } from '@/shared/types'
 
 const log = createLogger('mini-apps')
@@ -56,6 +57,7 @@ function serializeApp(row: MiniAppRow, kinName: string, kinAvatarUrl: string | n
     slug: row.slug,
     description: row.description,
     icon: row.icon,
+    iconUrl: row.iconUrl ?? null,
     entryFile: row.entryFile,
     hasBackend: row.hasBackend,
     isActive: row.isActive,
@@ -164,6 +166,7 @@ export interface UpdateMiniAppParams {
   name?: string
   description?: string | null
   icon?: string | null
+  iconUrl?: string | null
   entryFile?: string
   isActive?: boolean
 }
@@ -176,6 +179,7 @@ export async function updateMiniApp(id: string, params: UpdateMiniAppParams): Pr
   if (params.name !== undefined) updates.name = params.name
   if (params.description !== undefined) updates.description = params.description
   if (params.icon !== undefined) updates.icon = params.icon
+  if (params.iconUrl !== undefined) updates.iconUrl = params.iconUrl
   if (params.entryFile !== undefined) updates.entryFile = params.entryFile
   if (params.isActive !== undefined) updates.isActive = params.isActive
 
@@ -611,4 +615,40 @@ async function walkDirForSnapshot(base: string, current: string, results: { path
       })
     }
   }
+}
+
+// ─── Icon generation ─────────────────────────────────────────────────────────
+
+export async function generateMiniAppIcon(
+  appId: string,
+  options?: { providerId?: string; modelId?: string },
+): Promise<MiniAppSummary> {
+  const row = await db.select().from(miniApps).where(eq(miniApps.id, appId)).get()
+  if (!row) throw new Error('Mini-app not found')
+
+  const prompt = await buildMiniAppIconPrompt({
+    name: row.name,
+    description: row.description,
+    icon: row.icon,
+  })
+
+  const result = await generateImage(prompt, {
+    providerId: options?.providerId,
+    modelId: options?.modelId,
+  })
+
+  // Save icon file to app directory
+  const dir = appDir(row.kinId, appId)
+  await mkdir(dir, { recursive: true })
+  const ext = result.mediaType === 'image/webp' ? 'webp' : 'png'
+  const iconPath = join(dir, `_icon.${ext}`)
+  const buffer = Buffer.from(result.base64, 'base64')
+  await Bun.write(iconPath, buffer)
+
+  // Update DB with icon URL
+  const iconUrl = `/api/mini-apps/${appId}/static/_icon.${ext}?v=${Date.now()}`
+  await db.update(miniApps).set({ iconUrl, updatedAt: new Date() }).where(eq(miniApps.id, appId))
+
+  log.info({ appId, iconUrl }, 'Mini-app icon generated')
+  return (await getMiniApp(appId))!
 }

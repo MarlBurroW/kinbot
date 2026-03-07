@@ -1655,7 +1655,16 @@
       "searchPlaceholder": "Search apps...",
       "fetchError": "Failed to load gallery",
       "noResults": "No apps match your search",
-      "empty": "No apps available yet"
+      "empty": "No apps available yet",
+      "viewGrid": "Grid view",
+      "viewList": "List view"
+    },
+    "icon": {
+      "generate": "Generate icon",
+      "generating": "Generating...",
+      "generated": "Icon generated!",
+      "noProvider": "No image provider configured",
+      "error": "Failed to generate icon"
     }
   },
   "accessibility": {

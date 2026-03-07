@@ -273,6 +273,68 @@ export async function buildAvatarPrompt(kin: {
   return text.trim()
 }
 
+// ─── Mini-App Icon Prompt ────────────────────────────────────────────────────
+
+const MINI_APP_ICON_STYLE_SYSTEM = `You are an icon design prompt writer. The user will give you the name, description, and emoji of a mini web application. You must write a short image generation prompt (2-3 sentences max) describing a flat app icon for this application.
+
+Style guidelines:
+- Flat design app icon, clean and minimal, single centered symbol or object
+- Solid or subtle gradient background that reflects the app's theme
+- Like a modern iOS/Android app icon or macOS Dock icon
+- Simple geometric shapes, clean lines, soft shadows
+- The icon should clearly convey the app's purpose at a glance
+
+Rules:
+- Output ONLY the image prompt, nothing else
+- Never include text, letters, words, or UI elements in the image
+- End the prompt with: "No text, no letters, no words, no UI elements. Flat design app icon, square with rounded corners."`
+
+/**
+ * Use an LLM to generate an image prompt from mini-app metadata,
+ * then use it to generate the app icon image.
+ */
+export async function buildMiniAppIconPrompt(app: {
+  name: string
+  description: string | null
+  icon: string | null
+}): Promise<string> {
+  const llmProvider = await findLLMProvider()
+  if (!llmProvider) {
+    return `Flat design app icon for "${app.name}". Clean, minimal, single centered symbol. Soft gradient background. No text, no letters, no words, no UI elements. Flat design app icon, square with rounded corners.`
+  }
+
+  const providerConfig = JSON.parse(await decrypt(llmProvider.configEncrypted)) as {
+    apiKey: string
+    baseUrl?: string
+  }
+
+  let model
+  if (llmProvider.type === 'anthropic') {
+    const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+    model = anthropic('claude-haiku-4-5-20251001')
+  } else if (llmProvider.type === 'openai' || OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
+    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+    model = openai('gpt-4o-mini')
+  } else if (llmProvider.type === 'gemini') {
+    const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+    model = google('gemini-2.0-flash')
+  } else {
+    return `Flat design app icon for "${app.name}". Clean, minimal, single centered symbol. Soft gradient background. No text, no letters, no words, no UI elements. Flat design app icon, square with rounded corners.`
+  }
+
+  const desc = app.description?.slice(0, 300) ?? ''
+  const emoji = app.icon ?? ''
+
+  const { text } = await generateText({
+    model,
+    system: MINI_APP_ICON_STYLE_SYSTEM,
+    prompt: `App name: ${app.name}\nDescription: ${desc}\nEmoji hint: ${emoji}`,
+    maxOutputTokens: 200,
+  })
+
+  return text.trim()
+}
+
 /**
  * Custom error class for image generation failures.
  */
