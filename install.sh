@@ -1014,8 +1014,31 @@ build_kinbot() {
   step "Installing dependencies and building"
 
   cd "$KINBOT_DIR"
-  run_with_spinner "Installing dependencies..." retry 3 "bun install" bun install --frozen-lockfile
-  run_with_spinner "Building KinBot..." bun run build
+
+  # On updates, clean stale build output before rebuilding.
+  # Prevents serving outdated/broken builds if the build step layout changed.
+  if [ "${IS_UPDATE:-false}" = true ]; then
+    for dir in .output dist .nuxt; do
+      [ -d "${KINBOT_DIR:?}/$dir" ] && rm -rf "${KINBOT_DIR:?}/$dir"
+    done
+  fi
+
+  # Install dependencies with retry. If it fails (e.g., corrupted node_modules
+  # from a previously interrupted install), remove node_modules and retry clean.
+  if ! run_with_spinner "Installing dependencies..." retry 3 "bun install" bun install --frozen-lockfile; then
+    warn "Dependency install failed — cleaning node_modules and retrying from scratch..."
+    rm -rf "$KINBOT_DIR/node_modules" "$KINBOT_DIR/bun.lockb.tmp" 2>/dev/null || true
+    run_with_spinner "Installing dependencies (clean retry)..." retry 3 "bun install" bun install --frozen-lockfile
+  fi
+
+  # Build with retry. If the build fails (OOM, stale cache), clean build
+  # artifacts and retry once. This handles cases where a previous interrupted
+  # build left partial output that confuses the bundler.
+  if ! run_with_spinner "Building KinBot..." bun run build; then
+    warn "Build failed — cleaning build artifacts and retrying..."
+    rm -rf "$KINBOT_DIR/.output" "$KINBOT_DIR/dist" "$KINBOT_DIR/.nuxt" 2>/dev/null || true
+    run_with_spinner "Building KinBot (clean retry)..." bun run build
+  fi
 }
 
 # ─── Database ────────────────────────────────────────────────────────────────
