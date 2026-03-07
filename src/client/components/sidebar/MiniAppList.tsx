@@ -1,13 +1,14 @@
-import { useCallback, memo, useState } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroupContent,
 } from '@/client/components/ui/sidebar'
+import { Input } from '@/client/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { useMiniApps } from '@/client/hooks/useMiniApps'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { cn } from '@/client/lib/utils'
-import { AppWindow, Loader2, Store, Trash2 } from 'lucide-react'
+import { AppWindow, Loader2, Search, Store, Trash2 } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { MiniAppGallery } from '@/client/components/mini-app/MiniAppGallery'
@@ -91,58 +92,96 @@ export const MiniAppList = memo(function MiniAppList() {
   const { activeAppId, badges, openApp, closePanel } = useMiniAppPanel()
   const { kins } = useKins()
   const [galleryOpen, setGalleryOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredApps = useMemo(() => {
+    if (!searchQuery.trim()) return apps
+    const q = searchQuery.toLowerCase()
+    return apps.filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.kinName.toLowerCase().includes(q) ||
+        (a.description?.toLowerCase().includes(q)),
+    )
+  }, [apps, searchQuery])
 
   const handleDelete = useCallback(async (appId: string) => {
     if (appId === activeAppId) closePanel()
     await deleteApp(appId)
   }, [activeAppId, closePanel, deleteApp])
 
+  const isEmpty = filteredApps.length === 0 && !isLoading
+
   return (
     <>
-    <div className="flex items-center justify-end px-1 pb-1 shrink-0">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-6 shrink-0"
-        onClick={() => setGalleryOpen(true)}
-        title={t('miniApps.gallery.title')}
-      >
-        <Store className="size-4" />
-      </Button>
-    </div>
-    <SidebarGroupContent>
-      {isLoading ? (
-        <div className="flex justify-center py-4">
-          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+      {/* Gallery button + Search — fixed above scroll */}
+      <div className="shrink-0">
+        <div className="flex items-center justify-end px-1 pb-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-6 shrink-0"
+            onClick={() => setGalleryOpen(true)}
+            title={t('miniApps.gallery.title')}
+          >
+            <Store className="size-4" />
+          </Button>
         </div>
-      ) : apps.length === 0 ? (
-        <EmptyState
-          compact
-          icon={AppWindow}
-          title={t('sidebar.miniApps.empty')}
-          description={t('sidebar.miniApps.emptyDescription')}
-        />
-      ) : (
-        <div className="space-y-1 px-1">
-          {apps.map((app) => (
-            <MiniAppCard
-              key={app.id}
-              app={app}
-              isActive={app.id === activeAppId}
-              badge={badges[app.id]}
-              onClick={() => openApp(app.id)}
-              onDelete={() => handleDelete(app.id)}
+        {apps.length > 0 && (
+          <div className="px-1 pb-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('sidebar.miniApps.search')}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <SidebarGroupContent className="flex-1 min-h-0 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : isEmpty ? (
+          searchQuery ? (
+            <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+              {t('sidebar.miniApps.noResults')}
+            </p>
+          ) : (
+            <EmptyState
+              compact
+              icon={AppWindow}
+              title={t('sidebar.miniApps.empty')}
+              description={t('sidebar.miniApps.emptyDescription')}
             />
-          ))}
-        </div>
-      )}
-    </SidebarGroupContent>
-    <MiniAppGallery
-      open={galleryOpen}
-      onOpenChange={setGalleryOpen}
-      currentKinId={null}
-      kins={kins.map((k) => ({ id: k.id, name: k.name, avatarPath: k.avatarUrl }))}
-    />
+          )
+        ) : (
+          <div className="space-y-1 px-1">
+            {filteredApps.map((app) => (
+              <MiniAppCard
+                key={app.id}
+                app={app}
+                isActive={app.id === activeAppId}
+                badge={badges[app.id]}
+                onClick={() => openApp(app.id)}
+                onDelete={() => handleDelete(app.id)}
+              />
+            ))}
+          </div>
+        )}
+      </SidebarGroupContent>
+
+      <MiniAppGallery
+        open={galleryOpen}
+        onOpenChange={setGalleryOpen}
+        currentKinId={null}
+        kins={kins.map((k) => ({ id: k.id, name: k.name, avatarPath: k.avatarUrl }))}
+      />
     </>
   )
 })

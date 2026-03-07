@@ -45,6 +45,7 @@ interface AppSidebarProps {
   onCreateKin: () => void
   onEditKin: (id: string) => void
   onDeleteKin?: (id: string) => void
+  onSetAsHub?: (id: string) => void
   onReorderKins: (newOrder: string[]) => void
   onOpenSettings?: (section?: string) => void
 }
@@ -59,6 +60,7 @@ export function AppSidebar({
   onCreateKin,
   onEditKin,
   onDeleteKin,
+  onSetAsHub,
   onReorderKins,
   onOpenSettings,
 }: AppSidebarProps) {
@@ -122,6 +124,7 @@ export function AppSidebar({
           onCreateKin={onCreateKin}
           onEditKin={onEditKin}
           onDeleteKin={onDeleteKin}
+          onSetAsHub={onSetAsHub}
           onReorderKins={onReorderKins}
         />
 
@@ -161,7 +164,7 @@ export function AppSidebar({
               <CronList kins={cronKins} llmModels={llmModels} />
             </TabsContent>
 
-            <TabsContent value="apps" className="flex-1 min-h-0 overflow-y-auto">
+            <TabsContent value="apps" className="flex-1 min-h-0 flex flex-col">
               <MiniAppList />
             </TabsContent>
           </Tabs>

@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { AlertTriangle, Bot, Download, GripVertical, Loader2, Network, Settings2, Trash2 } from 'lucide-react'
+import { AlertTriangle, Bot, Download, GripVertical, Loader2, Network, Settings2, Trash2, Crown } from 'lucide-react'
 
 export interface KinCardProps extends HTMLAttributes<HTMLDivElement> {
   id: string
@@ -40,6 +40,7 @@ export interface KinCardProps extends HTMLAttributes<HTMLDivElement> {
   onEdit?: () => void
   onDelete?: () => void
   onExport?: () => void
+  onSetAsHub?: () => void
   dragHandleProps?: Record<string, unknown>
 }
 
@@ -60,6 +61,7 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
   onEdit,
   onDelete,
   onExport,
+  onSetAsHub,
   dragHandleProps,
   style,
   className: extraClassName,
@@ -241,6 +243,15 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
               <Download className="size-4" />
               {t('sidebar.kins.contextMenu.export', { defaultValue: 'Export config' })}
             </ContextMenuItem>
+          )}
+          {onSetAsHub && !isHub && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={onSetAsHub}>
+                <Crown className="size-4" />
+                {t('sidebar.kins.contextMenu.setAsHub')}
+              </ContextMenuItem>
+            </>
           )}
           {onDelete && (
             <>

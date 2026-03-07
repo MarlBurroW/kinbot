@@ -174,7 +174,8 @@
       "noResults": "No kins match your search",
       "contextMenu": {
         "edit": "Edit settings",
-        "delete": "Delete Kin"
+        "delete": "Delete Kin",
+        "setAsHub": "Set as Hub"
       }
     },
     "tasks": {
@@ -226,13 +227,15 @@
       "title": "Mini-Apps",
       "empty": "No apps yet",
       "emptyDescription": "Ask a Kin to create one",
+      "search": "Search mini-apps...",
+      "noResults": "No mini-apps found",
       "noKinSelected": "Select a Kin",
       "noKinSelectedDescription": "Select a Kin to see its mini-apps"
     },
     "tabs": {
       "tasks": "Tasks",
-      "jobs": "Jobs",
-      "apps": "Apps"
+      "jobs": "Scheduled Jobs",
+      "apps": "Mini-Apps"
     },
     "account": "My account",
     "settings": "Settings",
@@ -646,6 +649,11 @@
       "globalPromptHint": "This text is injected into every Kin's system prompt.",
       "saved": "Global prompt updated",
       "globalPromptTip": "Instructions injected into every Kin's system prompt. Use this for rules or guidelines all your Kins should follow.",
+      "hubKin": "Hub Kin",
+      "hubKinTip": "The Hub Kin is the central coordinator that routes messages and manages other Kins. It gets access to all tools automatically.",
+      "hubKinPlaceholder": "Select a Kin...",
+      "hubKinHint": "The Hub Kin receives messages by default and can delegate to specialist Kins.",
+      "hubSaved": "Hub Kin updated",
       "help": {
         "content": "General settings control platform-wide behavior that applies to all your Kins. The global prompt lets you define instructions every Kin follows.",
         "bullet1": "The global prompt is injected into every Kin's system prompt. Use it for universal rules or guidelines"

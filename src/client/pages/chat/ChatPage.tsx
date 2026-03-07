@@ -52,6 +52,7 @@ export function ChatPage() {
     generateAvatarPreviewFromConfig,
     hasImageCapability,
     reorderKins,
+    refetch: refetchKins,
     refetchModels,
   } = useKins()
 
@@ -109,6 +110,12 @@ export function ChatPage() {
     await api.put('/settings/hub', { kinId: result.id })
     return result
   }, [createKin])
+
+  // Designate an existing kin as Hub
+  const handleSetAsHub = useCallback(async (kinId: string) => {
+    await api.put('/settings/hub', { kinId })
+    await refetchKins()
+  }, [refetchKins])
 
   const handleOpenEditModal = async (kinId?: string) => {
     const id = kinId ?? selectedKin?.id
@@ -198,6 +205,7 @@ export function ChatPage() {
         onCreateKin={handleOpenCreateModal}
         onEditKin={handleOpenEditModal}
         onDeleteKin={handleDeleteKin}
+        onSetAsHub={handleSetAsHub}
         onReorderKins={reorderKins}
         onOpenSettings={handleOpenSettings}
       />

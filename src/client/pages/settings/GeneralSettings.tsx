@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { Skeleton } from '@/client/components/ui/skeleton'
@@ -19,9 +20,40 @@ export function GeneralSettings() {
   const [initialGlobalPrompt, setInitialGlobalPrompt] = useState('')
   const [savingPrompt, setSavingPrompt] = useState(false)
 
+  // Hub Kin
+  const [hubKinId, setHubKinId] = useState<string | null>(null)
+  const [allKins, setAllKins] = useState<{ id: string; name: string }[]>([])
+  const [savingHub, setSavingHub] = useState(false)
+
   useEffect(() => {
-    fetchGlobalPrompt()
+    Promise.all([fetchGlobalPrompt(), fetchHubKin()])
   }, [])
+
+  const fetchHubKin = async () => {
+    try {
+      const [hubData, kinsData] = await Promise.all([
+        api.get<{ hubKinId: string | null }>('/settings/hub'),
+        api.get<{ kins: { id: string; name: string }[] }>('/kins'),
+      ])
+      setHubKinId(hubData.hubKinId)
+      setAllKins(kinsData.kins)
+    } catch {
+      // Ignore
+    }
+  }
+
+  const handleHubChange = async (kinId: string) => {
+    setSavingHub(true)
+    try {
+      await api.put('/settings/hub', { kinId })
+      setHubKinId(kinId)
+      toast.success(t('settings.general.hubSaved'))
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setSavingHub(false)
+    }
+  }
 
   const fetchGlobalPrompt = async () => {
     try {
@@ -70,6 +102,35 @@ export function GeneralSettings() {
       <p className="text-sm text-muted-foreground">
         {t('settings.general.description')}
       </p>
+
+      {/* Hub Kin selector */}
+      {allKins.length > 0 && (
+        <div className="space-y-2">
+          <Label className="inline-flex items-center gap-1.5">
+            {t('settings.general.hubKin')}
+            <InfoTip content={t('settings.general.hubKinTip')} />
+          </Label>
+          <Select
+            value={hubKinId ?? ''}
+            onValueChange={handleHubChange}
+            disabled={savingHub}
+          >
+            <SelectTrigger className="w-full max-w-sm">
+              <SelectValue placeholder={t('settings.general.hubKinPlaceholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              {allKins.map((kin) => (
+                <SelectItem key={kin.id} value={kin.id}>
+                  {kin.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {t('settings.general.hubKinHint')}
+          </p>
+        </div>
+      )}
 
       {/* Global prompt */}
       <div className="space-y-2">
