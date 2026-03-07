@@ -2091,8 +2091,60 @@ uninstall() {
     info "Data kept at $KINBOT_DATA_DIR"
   fi
 
+  # Remove auto-update cron job if present
+  header "Cleaning up scheduled tasks..."
+  KINBOT_CRON_TAG="# kinbot-auto-update"
+  local existing_crontab
+  existing_crontab="$(crontab -l 2>/dev/null || echo "")"
+  if echo "$existing_crontab" | grep -q "$KINBOT_CRON_TAG"; then
+    local new_crontab
+    new_crontab="$(echo "$existing_crontab" | grep -v "$KINBOT_CRON_TAG")"
+    if [ -n "$new_crontab" ]; then
+      echo "$new_crontab" | crontab -
+    else
+      crontab -r 2>/dev/null || echo "" | crontab -
+    fi
+    success "Auto-update cron job removed"
+  else
+    info "No auto-update cron job found"
+  fi
+
+  # Remove launchd auto-update plist (macOS)
+  if [ "$INIT_SYSTEM" = "launchd" ]; then
+    local update_plist="$HOME/Library/LaunchAgents/io.kinbot.auto-update.plist"
+    if [ -f "$update_plist" ]; then
+      launchctl unload "$update_plist" 2>/dev/null || true
+      rm -f "$update_plist"
+      success "Auto-update launchd job removed"
+    fi
+  fi
+
+  # Remove lockfile
+  local lock_file="${TMPDIR:-/tmp}/kinbot-installer.lock"
+  if [ -f "$lock_file" ]; then
+    rm -f "$lock_file"
+    success "Lockfile removed"
+  fi
+
   echo ""
   echo -e "${GREEN}${BOLD}KinBot uninstalled.${NC}"
+
+  # Post-uninstall hints
+  local hints=()
+  if command -v bun &>/dev/null; then
+    hints+=("Bun runtime is still installed. Remove it with: rm -rf ~/.bun")
+  fi
+  if [ -d "$KINBOT_DATA_DIR" ] && [[ ! "$remove_data" =~ ^[Yy]$ ]]; then
+    hints+=("Data preserved at $KINBOT_DATA_DIR (re-install will reuse it)")
+  fi
+
+  if [ ${#hints[@]} -gt 0 ]; then
+    echo ""
+    echo -e "  ${DIM}Notes:${NC}"
+    for hint in "${hints[@]}"; do
+      echo -e "  ${DIM}  • $hint${NC}"
+    done
+  fi
   echo ""
 }
 
