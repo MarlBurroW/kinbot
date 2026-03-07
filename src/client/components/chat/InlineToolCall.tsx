@@ -10,6 +10,7 @@ import { cn } from '@/client/lib/utils'
 import { TOOL_DOMAIN_META } from '@/shared/constants'
 import { ToolDomainIcon } from '@/client/components/common/ToolDomainIcon'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
+import { getRenderer } from '@/client/lib/tool-renderers'
 import type { ToolCallViewItem, ToolCallStatus } from '@/client/hooks/useToolCalls'
 
 const STATUS_ICONS: Record<ToolCallStatus, typeof CheckCircle2> = {
@@ -36,6 +37,7 @@ export const InlineToolCall = memo(function InlineToolCall({ toolCall }: InlineT
   const StatusIcon = STATUS_ICONS[toolCall.status]
   const statusClass = STATUS_CLASSES[toolCall.status]
   const isError = toolCall.status === 'error'
+  const CustomRenderer = getRenderer(toolCall.name)
   const humanName = t(`tools.names.${toolCall.name}`, { defaultValue: toolCall.name })
 
   return (
@@ -59,20 +61,31 @@ export const InlineToolCall = memo(function InlineToolCall({ toolCall }: InlineT
 
         <CollapsibleContent>
           <div className="px-2.5 pb-2 space-y-1.5 border-t border-border/30 pt-1.5">
-            <JsonViewer
-              data={toolCall.args}
-              label={t('tools.viewer.input')}
-              maxHeight="max-h-40"
-            />
-
-            {toolCall.result !== undefined && (
-              <JsonViewer
-                data={toolCall.result}
-                label={t('tools.viewer.output')}
-                labelClassName={isError ? 'text-destructive' : undefined}
-                maxHeight="max-h-60"
-                className={isError ? 'bg-destructive/5 border border-destructive/20' : undefined}
+            {CustomRenderer ? (
+              <CustomRenderer
+                toolName={toolCall.name}
+                args={toolCall.args as Record<string, unknown>}
+                result={toolCall.result}
+                status={toolCall.status}
               />
+            ) : (
+              <>
+                <JsonViewer
+                  data={toolCall.args}
+                  label={t('tools.viewer.input')}
+                  maxHeight="max-h-40"
+                />
+
+                {toolCall.result !== undefined && (
+                  <JsonViewer
+                    data={toolCall.result}
+                    label={t('tools.viewer.output')}
+                    labelClassName={isError ? 'text-destructive' : undefined}
+                    maxHeight="max-h-60"
+                    className={isError ? 'bg-destructive/5 border border-destructive/20' : undefined}
+                  />
+                )}
+              </>
             )}
           </div>
         </CollapsibleContent>

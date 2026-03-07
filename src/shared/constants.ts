@@ -127,6 +127,7 @@ export const TOOL_DOMAIN_MAP: Record<string, ToolDomain> = {
   browse_url: 'browse',
   extract_links: 'browse',
   screenshot_url: 'browse',
+  http_request: 'browse',
   // Contacts
   get_contact: 'contacts',
   search_contacts: 'contacts',
