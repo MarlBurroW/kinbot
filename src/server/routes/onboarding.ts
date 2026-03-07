@@ -133,12 +133,15 @@ onboardingRoutes.post('/profile', async (c) => {
   const existingContact = findContactByLinkedUserId(userId)
   if (!existingContact) {
     const userEmail = session.user.email
-    await createContact({
+    const result = await createContact({
       name: `${firstName} ${lastName}`,
       type: 'human',
       linkedUserId: userId,
       identifiers: userEmail ? [{ label: 'email', value: userEmail }] : undefined,
     })
+    if ('error' in result) {
+      log.warn({ userId }, 'User already linked to a contact during onboarding')
+    }
   }
 
   // Mark invitation as used if provided

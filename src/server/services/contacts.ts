@@ -113,7 +113,9 @@ export async function createContact(input: CreateContactInput) {
   // Prevent duplicate user-contact links
   if (input.linkedUserId) {
     const existing = findContactByLinkedUserId(input.linkedUserId)
-    if (existing) return existing
+    if (existing) {
+      return { error: 'USER_ALREADY_LINKED' as const, linkedContactName: existing.name }
+    }
   }
 
   const id = uuid()

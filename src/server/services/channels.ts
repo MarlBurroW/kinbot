@@ -637,11 +637,12 @@ export async function approveChannelUser(mappingId: string, params: ApproveParam
   if (params.action === 'create') {
     // Create a new contact with the platform ID pre-filled
     const displayName = params.name ?? mapping.platformDisplayName ?? mapping.platformUsername ?? `${channel.platform}:${mapping.platformUserId}`
-    const contact = await createContact({
+    const result = await createContact({
       name: displayName,
       type: 'human',
     })
-    contactId = contact.id
+    if ('error' in result) throw new Error(`User already linked to "${result.linkedContactName}"`)
+    contactId = result.id
     log.info({ mappingId, contactId, displayName }, 'Created contact on approval')
   } else {
     // Link to an existing contact — verify it exists

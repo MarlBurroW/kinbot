@@ -77,9 +77,15 @@ contactRoutes.post('/', async (c) => {
     )
   }
 
-  const contact = await createContact({ name: trimmedName, type, linkedUserId, linkedKinId, identifiers })
-  log.info({ contactId: contact.id, name }, 'Contact created')
-  return c.json({ contact }, 201)
+  const result = await createContact({ name: trimmedName, type, linkedUserId, linkedKinId, identifiers })
+  if ('error' in result && result.error === 'USER_ALREADY_LINKED') {
+    return c.json(
+      { error: { code: 'USER_ALREADY_LINKED', message: `This user is already linked to contact "${result.linkedContactName}"` } },
+      409,
+    )
+  }
+  log.info({ contactId: result.id, name }, 'Contact created')
+  return c.json({ contact: result }, 201)
 })
 
 // PATCH /api/contacts/:id — update basic info

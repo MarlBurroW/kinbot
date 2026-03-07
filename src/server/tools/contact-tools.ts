@@ -110,11 +110,14 @@ export const createContactTool: ToolRegistration = {
       }),
       execute: async ({ name, type, identifiers }) => {
         log.debug({ kinId: ctx.kinId, contactName: name, contactType: type }, 'Contact creation requested')
-        const contact = await createContact({ name, type, identifiers })
+        const result = await createContact({ name, type, identifiers })
+        if ('error' in result) {
+          return { error: `User is already linked to contact "${result.linkedContactName}"` }
+        }
         return {
-          id: contact.id,
-          name: contact.name,
-          type: contact.type,
+          id: result.id,
+          name: result.name,
+          type: result.type,
         }
       },
     }),
