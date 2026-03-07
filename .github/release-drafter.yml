@@ -26,12 +26,21 @@ categories:
   - title: '🖥️ Mini Apps'
     labels:
       - 'mini-apps'
+  - title: '📚 Knowledge Base'
+    labels:
+      - 'knowledge'
+  - title: '👥 Contacts & Notifications'
+    labels:
+      - 'contacts'
+      - 'notifications'
   - title: '🔧 Tools & Automation'
     labels:
       - 'tools'
+      - 'custom-tools'
       - 'cron'
       - 'webhooks'
       - 'mcp'
+      - 'image-generation'
   - title: '🔒 Security'
     labels:
       - 'security'

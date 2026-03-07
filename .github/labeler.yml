@@ -125,6 +125,45 @@
   - changed-files:
       - any-glob-to-any-file: "store/**"
 
+"knowledge":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/knowledge*"
+          - "src/server/tools/knowledge*"
+          - "src/server/routes/knowledge*"
+          - "src/client/**/knowledge*"
+          - "src/client/**/*Knowledge*"
+
+"contacts":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/contacts*"
+          - "src/server/routes/contacts*"
+          - "src/client/**/contact*"
+          - "src/client/**/*Contact*"
+
+"notifications":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/notification*"
+          - "src/server/tools/notification*"
+          - "src/server/routes/notification*"
+          - "src/client/**/notification*"
+          - "src/client/**/*Notification*"
+
+"custom-tools":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/custom-tools*"
+          - "src/server/tools/custom-tools*"
+          - "src/server/routes/custom-tools*"
+
+"image-generation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/image-generation*"
+          - "src/server/tools/image-generation*"
+
 "security":
   - changed-files:
       - any-glob-to-any-file:
