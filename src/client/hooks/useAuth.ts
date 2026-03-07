@@ -12,6 +12,7 @@ interface UserProfile {
   role: 'admin' | 'member'
   avatarUrl: string | null
   kinOrder: string | null
+  createdAt: number | null
 }
 
 interface AuthState {

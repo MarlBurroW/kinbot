@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogTitle,
 } from '@/client/components/ui/dialog'
-import { Camera, Loader2 } from 'lucide-react'
+import { Calendar, Camera, Loader2 } from 'lucide-react'
 import { useAuth } from '@/client/hooks/useAuth'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { toast } from 'sonner'
@@ -140,6 +140,12 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
               <Badge variant="secondary" className="mt-1 text-xs">
                 {t('account.role.admin')}
               </Badge>
+            )}
+            {user?.createdAt && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <Calendar className="size-3" />
+                {t('account.memberSince', { date: new Date(user.createdAt).toLocaleDateString(i18n.language, { year: 'numeric', month: 'long', day: 'numeric' }) })}
+              </p>
             )}
           </div>
         </div>

@@ -24,6 +24,7 @@ meRoutes.get('/', async (c) => {
       avatarUrl: user.image,
       kinOrder: userProfiles.kinOrder,
       cronOrder: userProfiles.cronOrder,
+      createdAt: user.createdAt,
     })
     .from(user)
     .leftJoin(userProfiles, eq(user.id, userProfiles.userId))
@@ -37,7 +38,10 @@ meRoutes.get('/', async (c) => {
     )
   }
 
-  return c.json(profile)
+  return c.json({
+    ...profile,
+    createdAt: profile.createdAt instanceof Date ? profile.createdAt.getTime() : profile.createdAt,
+  })
 })
 
 // PATCH /api/me — update current user profile
@@ -138,13 +142,17 @@ meRoutes.patch('/', async (c) => {
       avatarUrl: user.image,
       kinOrder: userProfiles.kinOrder,
       cronOrder: userProfiles.cronOrder,
+      createdAt: user.createdAt,
     })
     .from(user)
     .leftJoin(userProfiles, eq(user.id, userProfiles.userId))
     .where(eq(user.id, sessionUser.id))
     .get()
 
-  return c.json(updated)
+  return c.json(updated ? {
+    ...updated,
+    createdAt: updated.createdAt instanceof Date ? updated.createdAt.getTime() : updated.createdAt,
+  } : updated)
 })
 
 // POST /api/me/avatar — upload avatar

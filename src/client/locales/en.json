@@ -1347,7 +1347,8 @@
     "role": {
       "admin": "Admin",
       "member": "Member"
-    }
+    },
+    "memberSince": "Member since {{date}}"
   },
   "tools": {
     "viewer": {
