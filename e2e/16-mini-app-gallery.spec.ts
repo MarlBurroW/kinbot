@@ -151,26 +151,30 @@ test.describe.serial('Mini App Gallery', () => {
     await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 5000 }).catch(() => {})
     await page.waitForTimeout(300)
 
+    // Scope all assertions to the gallery dialog to avoid strict mode violations
+    // (app names may also appear in sidebar mini-app cards)
+    const gallery = page.getByLabel('App Gallery')
+
     // Verify all 3 apps appear
-    await expect(page.getByText('Weather Dashboard')).toBeVisible()
-    await expect(page.getByText('Todo Tracker')).toBeVisible()
-    await expect(page.getByText('Pomodoro Timer')).toBeVisible()
+    await expect(gallery.getByText('Weather Dashboard')).toBeVisible()
+    await expect(gallery.getByText('Todo Tracker')).toBeVisible()
+    await expect(gallery.getByText('Pomodoro Timer')).toBeVisible()
 
     // Verify descriptions
-    await expect(page.getByText('Real-time weather forecast widget')).toBeVisible()
-    await expect(page.getByText('Simple task management app')).toBeVisible()
+    await expect(gallery.getByText('Real-time weather forecast widget')).toBeVisible()
+    await expect(gallery.getByText('Simple task management app')).toBeVisible()
 
     // Verify kin names
-    await expect(page.getByText('Weather Bot')).toBeVisible()
-    await expect(page.getByText('Productivity Kin')).toBeVisible()
-    await expect(page.getByText('Focus Kin')).toBeVisible()
+    await expect(gallery.getByText('Weather Bot')).toBeVisible()
+    await expect(gallery.getByText('Productivity Kin')).toBeVisible()
+    await expect(gallery.getByText('Focus Kin')).toBeVisible()
 
     // Verify version numbers
-    await expect(page.getByText('v3')).toBeVisible()
-    await expect(page.getByText('v1')).toBeVisible()
+    await expect(gallery.getByText('v3')).toBeVisible()
+    await expect(gallery.getByText('v1')).toBeVisible()
 
     // Verify API badge on Weather Dashboard (hasBackend: true)
-    await expect(page.getByText('API', { exact: true })).toBeVisible()
+    await expect(gallery.getByText('API', { exact: true })).toBeVisible()
   })
 
   test('should show empty state when no apps exist', async ({ page }) => {
@@ -197,10 +201,11 @@ test.describe.serial('Mini App Gallery', () => {
     await searchInput.fill('weather')
     await page.waitForTimeout(200)
 
-    // Only Weather Dashboard should be visible
-    await expect(page.getByText('Weather Dashboard')).toBeVisible()
-    await expect(page.getByText('Todo Tracker')).not.toBeVisible()
-    await expect(page.getByText('Pomodoro Timer')).not.toBeVisible()
+    // Only Weather Dashboard should be visible (scope to gallery dialog)
+    const gallery = page.getByLabel('App Gallery')
+    await expect(gallery.getByText('Weather Dashboard')).toBeVisible()
+    await expect(gallery.getByText('Todo Tracker')).not.toBeVisible()
+    await expect(gallery.getByText('Pomodoro Timer')).not.toBeVisible()
   })
 
   test('should filter apps by description text', async ({ page }) => {
@@ -210,13 +215,14 @@ test.describe.serial('Mini App Gallery', () => {
     await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 5000 }).catch(() => {})
     await page.waitForTimeout(300)
 
+    const gallery = page.getByLabel('App Gallery')
     const searchInput = page.getByPlaceholder('Search apps...')
     await searchInput.fill('task management')
     await page.waitForTimeout(200)
 
-    await expect(page.getByText('Todo Tracker')).toBeVisible()
-    await expect(page.getByText('Weather Dashboard')).not.toBeVisible()
-    await expect(page.getByText('Pomodoro Timer')).not.toBeVisible()
+    await expect(gallery.getByText('Todo Tracker')).toBeVisible()
+    await expect(gallery.getByText('Weather Dashboard')).not.toBeVisible()
+    await expect(gallery.getByText('Pomodoro Timer')).not.toBeVisible()
   })
 
   test('should filter apps by kin name', async ({ page }) => {
@@ -226,12 +232,13 @@ test.describe.serial('Mini App Gallery', () => {
     await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 5000 }).catch(() => {})
     await page.waitForTimeout(300)
 
+    const gallery = page.getByLabel('App Gallery')
     const searchInput = page.getByPlaceholder('Search apps...')
     await searchInput.fill('Productivity')
     await page.waitForTimeout(200)
 
-    await expect(page.getByText('Todo Tracker')).toBeVisible()
-    await expect(page.getByText('Weather Dashboard')).not.toBeVisible()
+    await expect(gallery.getByText('Todo Tracker')).toBeVisible()
+    await expect(gallery.getByText('Weather Dashboard')).not.toBeVisible()
   })
 
   test('should show no results message for unmatched search', async ({ page }) => {
@@ -257,19 +264,21 @@ test.describe.serial('Mini App Gallery', () => {
 
     const searchInput = page.getByPlaceholder('Search apps...')
 
+    const gallery = page.getByLabel('App Gallery')
+
     // Filter first
     await searchInput.fill('weather')
     await page.waitForTimeout(200)
-    await expect(page.getByText('Todo Tracker')).not.toBeVisible()
+    await expect(gallery.getByText('Todo Tracker')).not.toBeVisible()
 
     // Clear search
     await searchInput.clear()
     await page.waitForTimeout(200)
 
     // All apps should be visible again
-    await expect(page.getByText('Weather Dashboard')).toBeVisible()
-    await expect(page.getByText('Todo Tracker')).toBeVisible()
-    await expect(page.getByText('Pomodoro Timer')).toBeVisible()
+    await expect(gallery.getByText('Weather Dashboard')).toBeVisible()
+    await expect(gallery.getByText('Todo Tracker')).toBeVisible()
+    await expect(gallery.getByText('Pomodoro Timer')).toBeVisible()
   })
 
   test('should have clone buttons for each app', async ({ page }) => {

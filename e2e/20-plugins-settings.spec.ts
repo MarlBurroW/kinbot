@@ -92,6 +92,70 @@ test.describe.serial('Settings — Plugins', () => {
     await expect(page.getByText('Plugins reloaded')).toBeVisible({ timeout: 5_000 })
   })
 
+  test('should have install button disabled when git URL is empty', async ({ page }) => {
+    await openSettings(page)
+    await navigateToSection(page, 'Plugins')
+
+    await page.getByRole('button', { name: /install plugin/i }).click()
+    await expect(page.getByText('Git Repository URL')).toBeVisible({ timeout: 3_000 })
+
+    // The install button in the dialog footer should be disabled
+    const installBtn = page.getByRole('dialog').getByRole('button', { name: /install plugin/i })
+    await expect(installBtn).toBeDisabled()
+  })
+
+  test('should enable install button when git URL is filled', async ({ page }) => {
+    await openSettings(page)
+    await navigateToSection(page, 'Plugins')
+
+    await page.getByRole('button', { name: /install plugin/i }).click()
+    await expect(page.getByText('Git Repository URL')).toBeVisible({ timeout: 3_000 })
+
+    // Fill the git URL field
+    await page.fill('#git-url', 'https://github.com/user/kinbot-plugin-test.git')
+
+    // The install button should now be enabled
+    const installBtn = page.getByRole('dialog').getByRole('button', { name: /install plugin/i })
+    await expect(installBtn).toBeEnabled()
+  })
+
+  test('should have install button disabled when npm package is empty', async ({ page }) => {
+    await openSettings(page)
+    await navigateToSection(page, 'Plugins')
+
+    await page.getByRole('button', { name: /install plugin/i }).click()
+    await expect(page.getByText('Git Repository URL')).toBeVisible({ timeout: 3_000 })
+
+    // Switch to npm
+    const sourceSelect = page.locator('[data-slot="select-trigger"]').last()
+    await sourceSelect.click()
+    await page.getByRole('option', { name: /npm/i }).click()
+
+    // Install button should be disabled with empty npm field
+    const installBtn = page.getByRole('dialog').getByRole('button', { name: /install plugin/i })
+    await expect(installBtn).toBeDisabled()
+
+    // Fill the npm field
+    await page.fill('#npm-package', 'kinbot-plugin-test')
+
+    // Should now be enabled
+    await expect(installBtn).toBeEnabled()
+  })
+
+  test('should close install dialog with cancel button', async ({ page }) => {
+    await openSettings(page)
+    await navigateToSection(page, 'Plugins')
+
+    await page.getByRole('button', { name: /install plugin/i }).click()
+    await expect(page.getByText('Git Repository URL')).toBeVisible({ timeout: 3_000 })
+
+    // Click cancel
+    await page.getByRole('button', { name: /cancel/i }).click()
+
+    // The install dialog inner content should be gone
+    await expect(page.getByText('Git Repository URL')).not.toBeVisible({ timeout: 3_000 })
+  })
+
   test('should navigate to Browse Plugins (marketplace)', async ({ page }) => {
     await openSettings(page)
     await navigateToSection(page, 'Browse Plugins')
@@ -103,6 +167,19 @@ test.describe.serial('Settings — Plugins', () => {
     // Should show search input
     await expect(
       page.getByPlaceholder('Search plugins...')
+    ).toBeVisible()
+  })
+
+  test('should show marketplace search input and refresh button', async ({ page }) => {
+    await openSettings(page)
+    await navigateToSection(page, 'Browse Plugins')
+
+    const searchInput = page.getByPlaceholder('Search plugins...')
+    await expect(searchInput).toBeVisible({ timeout: 5_000 })
+
+    // Refresh button should be visible
+    await expect(
+      page.getByRole('dialog').locator('button:has(.lucide-refresh-cw)')
     ).toBeVisible()
   })
 })
