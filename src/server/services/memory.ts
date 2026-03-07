@@ -289,6 +289,48 @@ async function generateQueryVariations(query: string, knownSubjects?: string[]):
   }
 }
 
+// ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
+
+/**
+ * Generate a hypothetical memory entry that would answer the query.
+ * The embedding of this hypothetical doc is closer to actual relevant memories
+ * than the question-style query embedding, improving retrieval quality.
+ *
+ * Returns null if HyDE is disabled or generation fails.
+ */
+async function generateHypotheticalMemory(query: string): Promise<string | null> {
+  const hydeModel = config.memory.hydeModel
+  if (!hydeModel) return null
+
+  try {
+    const { resolveLLMModel } = await import('@/server/services/kin-engine')
+    const model = await resolveLLMModel(hydeModel, null)
+    if (!model) return null
+
+    const result = await generateText({
+      model,
+      messages: [{
+        role: 'user',
+        content:
+          `You are a personal AI companion that stores memories about its user. ` +
+          `Given a search query, write a SHORT hypothetical memory entry (1-2 sentences) that would answer it. ` +
+          `Write it as a factual statement, not a question. Be specific and use natural language.\n\n` +
+          `Query: "${query}"\n\nHypothetical memory:`,
+      }],
+    })
+
+    const doc = result.text.trim().replace(/^["']|["']$/g, '')
+    if (doc.length > 0 && doc.length < 500) {
+      log.debug({ query: query.slice(0, 80), hyde: doc.slice(0, 120) }, 'HyDE generated hypothetical memory')
+      return doc
+    }
+    return null
+  } catch (err) {
+    log.debug({ err }, 'HyDE generation failed')
+    return null
+  }
+}
+
 // ─── Adaptive K ──────────────────────────────────────────────────────────────
 
 /**
@@ -397,13 +439,19 @@ export async function searchMemories(
   const ftsBoost = config.memory.ftsBoost
   const scoreMap = new Map<string, ScoreMapEntry>()
 
-  // Generate query variations if multi-query is enabled
-  const queries = config.memory.multiQueryModel
-    ? await generateQueryVariations(query, await getDistinctSubjects(kinId))
-    : [query]
+  // Generate query variations (multi-query) and/or hypothetical document (HyDE)
+  const [multiQueries, hydeDoc] = await Promise.all([
+    config.memory.multiQueryModel
+      ? generateQueryVariations(query, await getDistinctSubjects(kinId))
+      : Promise.resolve([query]),
+    generateHypotheticalMemory(query),
+  ])
+
+  // Combine: multi-query variations + HyDE hypothetical doc (if generated)
+  const queries = hydeDoc ? [...multiQueries, hydeDoc] : multiQueries
 
   if (queries.length > 1) {
-    log.debug({ kinId, queries: queries.length }, 'Multi-query search')
+    log.debug({ kinId, queries: queries.length, hasHyDE: !!hydeDoc }, 'Multi-query search')
   }
 
   // Run hybrid search for each query variation in parallel
