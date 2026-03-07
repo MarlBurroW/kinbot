@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useContext, createContext } from 'react'
+import type { ReactNode } from 'react'
 import { api } from '@/client/lib/api'
 import i18n from '@/client/lib/i18n'
 
@@ -21,7 +22,16 @@ interface AuthState {
   isAuthenticated: boolean
 }
 
-export function useAuth() {
+interface AuthContextValue extends AuthState {
+  login: (email: string, password: string) => Promise<void>
+  register: (data: { name: string; email: string; password: string }) => Promise<void>
+  logout: () => Promise<void>
+  refetch: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     isLoading: true,
@@ -93,11 +103,23 @@ export function useAuth() {
     window.location.href = '/'
   }
 
-  return {
-    ...state,
-    login,
-    register,
-    logout,
-    refetch: fetchUser,
+  return (
+    <AuthContext.Provider value={{
+      ...state,
+      login,
+      register,
+      logout,
+      refetch: fetchUser,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
   }
+  return context
 }

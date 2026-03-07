@@ -158,8 +158,8 @@ meRoutes.patch('/', async (c) => {
 // POST /api/me/avatar — upload avatar
 meRoutes.post('/avatar', async (c) => {
   const sessionUser = c.get('user') as { id: string }
-  const formData = await c.req.formData()
-  const file = formData.get('file')
+  const body = await c.req.parseBody()
+  const file = body['file']
 
   if (!file || !(file instanceof File)) {
     return c.json(
@@ -202,7 +202,7 @@ meRoutes.post('/avatar', async (c) => {
   const buffer = await file.arrayBuffer()
   await Bun.write(filePath, buffer)
 
-  const avatarUrl = `/api/uploads/avatars/${filename}`
+  const avatarUrl = `/api/uploads/avatars/${filename}?v=${Date.now()}`
 
   await db
     .update(user)

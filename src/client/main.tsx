@@ -6,13 +6,16 @@ import { App } from '@/client/App'
 import { ThemeProvider } from '@/client/components/theme-provider'
 import { Toaster } from '@/client/components/ui/sonner'
 import { ErrorBoundary } from '@/client/components/common/ErrorBoundary'
+import { AuthProvider } from '@/client/hooks/useAuth'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <ThemeProvider>
-        <App />
-        <Toaster />
+        <AuthProvider>
+          <App />
+          <Toaster />
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   </StrictMode>,
