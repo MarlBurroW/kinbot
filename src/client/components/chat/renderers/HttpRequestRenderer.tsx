@@ -122,7 +122,7 @@ export function HttpRequestRenderer({ args, result, status }: ToolResultRenderer
         )}
 
         {/* Error message (when no body) */}
-        {res?.error && !hasResponseBody && (
+        {!!res?.error && !hasResponseBody && (
           <div className="px-3 py-2 text-xs text-destructive">
             {typeof res.error === 'string' ? res.error : JSON.stringify(res.error)}
           </div>

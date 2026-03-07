@@ -135,7 +135,7 @@ describe('httpRequestTool registration', () => {
   it('imports and has correct shape', async () => {
     const { httpRequestTool } = await import('./http-request-tools')
     expect(httpRequestTool).toBeDefined()
-    expect(httpRequestTool.availability).toEqual(['main'])
+    expect(httpRequestTool.availability).toEqual(['main', 'sub-kin'])
     expect(typeof httpRequestTool.create).toBe('function')
   })
 
