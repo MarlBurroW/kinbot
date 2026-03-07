@@ -22,7 +22,7 @@ mock.module('@/server/logger', () => ({
   }),
 }))
 
-import { isBlockedUrl, extractContent, extractLinksFromHtml } from '@/server/services/web-browse'
+import { isBlockedUrl, extractContent, extractLinksFromHtml } from './web-browse'
 import type { ExtractMode } from '@/server/services/web-browse'
 
 // ─── isBlockedUrl ───────────────────────────────────────────────────────────
