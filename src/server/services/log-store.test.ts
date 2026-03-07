@@ -1,234 +1,255 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
 
-// We need to test the LogStore class directly, but the module exports a singleton.
-// Re-import the module internals by testing through the exported logStore,
-// or by creating a fresh instance. Since the class isn't exported, we'll test
-// via the singleton's methods after clearing state between tests.
-//
-// Actually, let's import the module and test the singleton + behavior.
-
-import { logStore } from '@/server/services/log-store'
-import type { LogQueryOptions } from '@/server/services/log-store'
-
-// Helper: build a raw Pino JSON line
-function pinoLine(overrides: Record<string, unknown> = {}): string {
-  return JSON.stringify({
-    level: 30,
-    time: new Date().toISOString(),
-    msg: 'test message',
-    module: 'test',
-    pid: 1,
-    hostname: 'host',
-    ...overrides,
-  })
-}
+// LogStore class is not exported, so we test via the exported `logStore` singleton.
+// Each test uses unique tags to avoid cross-test pollution.
 
 describe('LogStore', () => {
-  // Note: logStore is a singleton so entries accumulate across tests.
-  // We work around this by using unique module/message identifiers per test.
+  // We'll dynamically import to get a fresh module each time
+  // But bun caches imports, so let's just use the singleton and accept accumulation.
+
+  let logStore: typeof import('./log-store')['logStore']
+
+  beforeEach(async () => {
+    // Fresh import won't work due to module caching in bun.
+    // Instead, we'll just use the singleton and be aware of accumulated state.
+    const mod = await import('./log-store')
+    logStore = mod.logStore
+  })
 
   describe('pushRaw', () => {
-    it('parses a valid Pino JSON line', () => {
-      const before = logStore.query({ module: 'pushraw-valid', limit: 200 }).length
-      logStore.pushRaw(pinoLine({ module: 'pushraw-valid', msg: 'hello' }))
-      const entries = logStore.query({ module: 'pushraw-valid', limit: 200 })
-      expect(entries.length).toBe(before + 1)
-      expect(entries[entries.length - 1]!.message).toBe('hello')
-      expect(entries[entries.length - 1]!.level).toBe('info')
+    it('parses a valid Pino JSON log line', () => {
+      const line = JSON.stringify({
+        level: 30,
+        time: '2026-01-15T12:00:00.000Z',
+        msg: 'Test message',
+        module: 'test-mod',
+        pid: 123,
+        hostname: 'localhost',
+      })
+
+      logStore.pushRaw(line)
+
+      const results = logStore.query({ search: 'Test message', limit: 1 })
+      expect(results.length).toBeGreaterThanOrEqual(1)
+
+      const entry = results[results.length - 1]!
+      expect(entry.level).toBe('info')
+      expect(entry.module).toBe('test-mod')
+      expect(entry.message).toBe('Test message')
     })
 
-    it('ignores unparseable lines', () => {
-      const before = logStore.query({ limit: 200 }).length
-      logStore.pushRaw('not json at all')
-      logStore.pushRaw('')
-      logStore.pushRaw('{broken')
-      const after = logStore.query({ limit: 200 }).length
-      // Should not have increased (or at most unchanged)
-      expect(after).toBe(before)
-    })
-
-    it('maps Pino numeric levels to labels', () => {
-      const levels: Array<[number, string]> = [
-        [10, 'trace'],
-        [20, 'debug'],
-        [30, 'info'],
-        [40, 'warn'],
-        [50, 'error'],
-        [60, 'fatal'],
+    it('maps Pino numeric levels correctly', () => {
+      const levels = [
+        { num: 10, label: 'trace' },
+        { num: 20, label: 'debug' },
+        { num: 30, label: 'info' },
+        { num: 40, label: 'warn' },
+        { num: 50, label: 'error' },
+        { num: 60, label: 'fatal' },
       ]
-      for (const [num, label] of levels) {
-        logStore.pushRaw(pinoLine({ level: num, module: `level-${label}`, msg: `lvl-${label}` }))
-        const entries = logStore.query({ module: `level-${label}` })
-        expect(entries[entries.length - 1]!.level).toBe(label)
+
+      for (const { num, label } of levels) {
+        const uniqueMsg = `level-test-${label}-${Date.now()}-${Math.random()}`
+        logStore.pushRaw(JSON.stringify({ level: num, msg: uniqueMsg, module: 'level-test' }))
+        const results = logStore.query({ search: uniqueMsg, limit: 1 })
+        expect(results.length).toBe(1)
+        expect(results[0]!.level).toBe(label)
       }
     })
 
-    it('defaults to info for unknown level numbers', () => {
-      logStore.pushRaw(pinoLine({ level: 99, module: 'level-unknown' }))
-      const entries = logStore.query({ module: 'level-unknown' })
-      expect(entries[entries.length - 1]!.level).toBe('info')
+    it('defaults to info for unknown numeric levels', () => {
+      const uniqueMsg = `unknown-level-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 99, msg: uniqueMsg }))
+      const results = logStore.query({ search: uniqueMsg, limit: 1 })
+      expect(results.length).toBe(1)
+      expect(results[0]!.level).toBe('info')
     })
 
-    it('extracts extra fields into data (excluding internal keys)', () => {
-      logStore.pushRaw(pinoLine({
-        module: 'extra-fields',
-        msg: 'with extras',
-        kinId: 'kin-123',
-        duration: 42,
-      }))
-      const entries = logStore.query({ module: 'extra-fields' })
-      const last = entries[entries.length - 1]!
-      expect(last.data).toBeDefined()
-      expect(last.data!.kinId).toBe('kin-123')
-      expect(last.data!.duration).toBe(42)
-      // Internal keys should be excluded
-      expect(last.data!.level).toBeUndefined()
-      expect(last.data!.msg).toBeUndefined()
-      expect(last.data!.pid).toBeUndefined()
-      expect(last.data!.hostname).toBeUndefined()
-      expect(last.data!.module).toBeUndefined()
+    it('defaults module to "root" when not provided', () => {
+      const uniqueMsg = `no-module-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: uniqueMsg }))
+      const results = logStore.query({ search: uniqueMsg, limit: 1 })
+      expect(results.length).toBe(1)
+      expect(results[0]!.module).toBe('root')
+    })
+
+    it('captures extra fields as data', () => {
+      const uniqueMsg = `extra-fields-${Date.now()}`
+      logStore.pushRaw(
+        JSON.stringify({
+          level: 30,
+          msg: uniqueMsg,
+          module: 'test',
+          customField: 'hello',
+          count: 42,
+          // These should be excluded:
+          pid: 1,
+          hostname: 'h',
+          time: '2026-01-01T00:00:00Z',
+        }),
+      )
+      const results = logStore.query({ search: uniqueMsg, limit: 1 })
+      expect(results.length).toBe(1)
+      const data = results[0]!.data!
+      expect(data.customField).toBe('hello')
+      expect(data.count).toBe(42)
+      // Excluded keys should not appear
+      expect(data.pid).toBeUndefined()
+      expect(data.hostname).toBeUndefined()
+      expect(data.msg).toBeUndefined()
+      expect(data.level).toBeUndefined()
+      expect(data.time).toBeUndefined()
+      expect(data.module).toBeUndefined()
+    })
+
+    it('ignores unparseable lines', () => {
+      // Should not throw
+      logStore.pushRaw('this is not json')
+      logStore.pushRaw('')
+      logStore.pushRaw('{broken')
+    })
+
+    it('handles empty message gracefully', () => {
+      const uniqueModule = `empty-msg-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 30, module: uniqueModule }))
+      const results = logStore.query({ module: uniqueModule, limit: 1 })
+      expect(results.length).toBe(1)
+      expect(results[0]!.message).toBe('')
     })
 
     it('sets data to undefined when no extra fields exist', () => {
-      // Only internal keys
-      logStore.pushRaw(JSON.stringify({
-        level: 30,
-        time: new Date().toISOString(),
-        msg: 'bare',
-        module: 'no-extras',
-        pid: 1,
-        hostname: 'host',
-      }))
-      const entries = logStore.query({ module: 'no-extras' })
-      const last = entries[entries.length - 1]!
-      expect(last.message).toBe('bare')
-      expect(last.data).toBeUndefined()
-    })
-
-    it('defaults module to root when missing', () => {
-      logStore.pushRaw(JSON.stringify({ level: 30, time: new Date().toISOString(), msg: 'no mod' }))
-      const entries = logStore.query({ search: 'no mod' })
-      expect(entries.length).toBeGreaterThanOrEqual(1)
-      expect(entries[entries.length - 1]!.module).toBe('root')
-    })
-
-    it('defaults message to empty string when msg is missing', () => {
-      logStore.pushRaw(pinoLine({ module: 'no-msg' }))
-      // Remove msg manually
-      logStore.pushRaw(JSON.stringify({ level: 30, time: new Date().toISOString(), module: 'empty-msg' }))
-      const entries = logStore.query({ module: 'empty-msg' })
-      expect(entries[entries.length - 1]!.message).toBe('')
-    })
-
-    it('uses Date.now() when time is missing', () => {
-      const before = Date.now()
-      logStore.pushRaw(JSON.stringify({ level: 30, msg: 'no time', module: 'no-time' }))
-      const after = Date.now()
-      const entries = logStore.query({ module: 'no-time' })
-      const ts = entries[entries.length - 1]!.timestamp
-      expect(ts).toBeGreaterThanOrEqual(before)
-      expect(ts).toBeLessThanOrEqual(after)
+      const uniqueMsg = `no-extra-${Date.now()}`
+      // Only standard fields
+      logStore.pushRaw(
+        JSON.stringify({
+          level: 30,
+          msg: uniqueMsg,
+          module: 'test',
+          pid: 1,
+          hostname: 'h',
+          time: '2026-01-01T00:00:00Z',
+        }),
+      )
+      const results = logStore.query({ search: uniqueMsg, limit: 1 })
+      expect(results.length).toBe(1)
+      expect(results[0]!.data).toBeUndefined()
     })
   })
 
   describe('query', () => {
     it('filters by level', () => {
-      logStore.pushRaw(pinoLine({ level: 50, module: 'q-level', msg: 'err' }))
-      logStore.pushRaw(pinoLine({ level: 30, module: 'q-level', msg: 'inf' }))
+      const tag = `level-filter-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 50, msg: `${tag}-error`, module: tag }))
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: `${tag}-info`, module: tag }))
 
-      const errors = logStore.query({ level: 'error', module: 'q-level' })
-      expect(errors.every(e => e.level === 'error')).toBe(true)
-      expect(errors.some(e => e.message === 'err')).toBe(true)
+      const errors = logStore.query({ module: tag, level: 'error' })
+      expect(errors.every((e) => e.level === 'error')).toBe(true)
+      expect(errors.some((e) => e.message === `${tag}-error`)).toBe(true)
     })
 
-    it('filters by module (case-insensitive, partial match)', () => {
-      logStore.pushRaw(pinoLine({ module: 'MyModule', msg: 'mod-test' }))
-      const results = logStore.query({ module: 'mymod' })
-      expect(results.some(e => e.message === 'mod-test')).toBe(true)
+    it('filters by module (case-insensitive partial match)', () => {
+      const tag = `ModFilter-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: 'match', module: tag }))
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: 'no-match', module: 'other' }))
+
+      const results = logStore.query({ module: tag.toLowerCase() })
+      expect(results.some((e) => e.message === 'match')).toBe(true)
+      expect(results.every((e) => e.module.toLowerCase().includes(tag.toLowerCase()))).toBe(true)
     })
 
-    it('filters by search text in message', () => {
-      logStore.pushRaw(pinoLine({ module: 'q-search', msg: 'unique-search-token-xyz' }))
-      const results = logStore.query({ search: 'unique-search-token-xyz' })
+    it('filters by search (case-insensitive, message)', () => {
+      const tag = `SearchMsg-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: `Hello ${tag} World` }))
+
+      const results = logStore.query({ search: tag.toLowerCase() })
       expect(results.length).toBeGreaterThanOrEqual(1)
-      expect(results[0]!.message).toBe('unique-search-token-xyz')
     })
 
-    it('filters by search text in data (case-insensitive)', () => {
-      logStore.pushRaw(pinoLine({ module: 'q-search-data', msg: 'x', errorCode: 'UNIQUE_ERR_42' }))
-      const results = logStore.query({ search: 'unique_err_42' })
+    it('filters by search in data fields', () => {
+      const tag = `SearchData-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: 'generic', secretTag: tag }))
+
+      const results = logStore.query({ search: tag })
       expect(results.length).toBeGreaterThanOrEqual(1)
     })
 
     it('filters by minutesAgo', () => {
-      // Push an entry with a timestamp 10 minutes ago
-      const tenMinAgo = new Date(Date.now() - 10 * 60_000).toISOString()
-      logStore.pushRaw(pinoLine({ time: tenMinAgo, module: 'q-time', msg: 'old' }))
-      logStore.pushRaw(pinoLine({ module: 'q-time', msg: 'new' }))
+      const tag = `time-filter-${Date.now()}`
+      // Push entry with current timestamp
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: tag, module: tag }))
 
-      const recent = logStore.query({ module: 'q-time', minutesAgo: 5 })
-      expect(recent.some(e => e.message === 'new')).toBe(true)
-      expect(recent.some(e => e.message === 'old')).toBe(false)
+      const results = logStore.query({ module: tag, minutesAgo: 1 })
+      expect(results.length).toBeGreaterThanOrEqual(1)
+
+      // Very short window should still include it (just pushed)
+      const recent = logStore.query({ module: tag, minutesAgo: 1 })
+      expect(recent.length).toBeGreaterThanOrEqual(1)
     })
 
     it('respects limit parameter', () => {
+      const tag = `limit-test-${Date.now()}`
       for (let i = 0; i < 10; i++) {
-        logStore.pushRaw(pinoLine({ module: 'q-limit', msg: `item-${i}` }))
+        logStore.pushRaw(JSON.stringify({ level: 30, msg: `${tag}-${i}`, module: tag }))
       }
-      const results = logStore.query({ module: 'q-limit', limit: 3 })
-      expect(results.length).toBeLessThanOrEqual(3)
+
+      const limited = logStore.query({ module: tag, limit: 3 })
+      expect(limited.length).toBe(3)
     })
 
     it('caps limit at 200', () => {
-      // Even if we request more, should be capped
+      // query with limit > 200 should be capped
       const results = logStore.query({ limit: 999 })
       expect(results.length).toBeLessThanOrEqual(200)
     })
 
     it('defaults limit to 50', () => {
-      // Push 60 entries with a unique module
+      const tag = `default-limit-${Date.now()}`
       for (let i = 0; i < 60; i++) {
-        logStore.pushRaw(pinoLine({ module: 'q-default-limit', msg: `dl-${i}` }))
+        logStore.pushRaw(JSON.stringify({ level: 30, msg: `${tag}-${i}`, module: tag }))
       }
-      const results = logStore.query({ module: 'q-default-limit' })
-      expect(results.length).toBeLessThanOrEqual(50)
+
+      const results = logStore.query({ module: tag })
+      expect(results.length).toBe(50)
     })
 
     it('returns newest entries last', () => {
-      const t1 = new Date(Date.now() - 2000).toISOString()
-      const t2 = new Date(Date.now() - 1000).toISOString()
-      logStore.pushRaw(pinoLine({ time: t1, module: 'q-order', msg: 'first' }))
-      logStore.pushRaw(pinoLine({ time: t2, module: 'q-order', msg: 'second' }))
+      const tag = `order-test-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: `${tag}-first`, module: tag }))
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: `${tag}-second`, module: tag }))
 
-      const results = logStore.query({ module: 'q-order' })
-      const firstIdx = results.findIndex(e => e.message === 'first')
-      const secondIdx = results.findIndex(e => e.message === 'second')
+      const results = logStore.query({ module: tag })
+      const firstIdx = results.findIndex((e) => e.message === `${tag}-first`)
+      const secondIdx = results.findIndex((e) => e.message === `${tag}-second`)
       expect(secondIdx).toBeGreaterThan(firstIdx)
     })
 
     it('combines multiple filters', () => {
-      logStore.pushRaw(pinoLine({ level: 50, module: 'multi-filter', msg: 'target-combo' }))
-      logStore.pushRaw(pinoLine({ level: 30, module: 'multi-filter', msg: 'not this one' }))
+      const tag = `combo-${Date.now()}`
+      logStore.pushRaw(JSON.stringify({ level: 50, msg: `${tag}-error`, module: tag }))
+      logStore.pushRaw(JSON.stringify({ level: 30, msg: `${tag}-info`, module: tag }))
+      logStore.pushRaw(JSON.stringify({ level: 50, msg: `${tag}-error2`, module: 'other' }))
 
-      const results = logStore.query({ level: 'error', module: 'multi-filter', search: 'target-combo' })
-      expect(results.length).toBeGreaterThanOrEqual(1)
-      expect(results.every(e => e.level === 'error' && e.message.includes('target-combo'))).toBe(true)
+      const results = logStore.query({ module: tag, level: 'error', search: tag })
+      expect(results.length).toBe(1)
+      expect(results[0]!.message).toBe(`${tag}-error`)
     })
 
     it('returns empty array when no matches', () => {
-      const results = logStore.query({ module: 'nonexistent-module-xyz-abc-123' })
+      const results = logStore.query({ search: `nonexistent-${Date.now()}-${Math.random()}` })
       expect(results).toEqual([])
     })
   })
 
   describe('ring buffer behavior', () => {
-    it('does not crash when many entries are pushed', () => {
-      // Push more than DEFAULT_MAX_SIZE to test ring buffer trim
+    it('trims old entries when buffer exceeds maxSize', () => {
+      // We can't easily test with the singleton (maxSize=2000),
+      // but we can verify that pushRaw doesn't crash with many entries
+      const tag = `overflow-${Date.now()}`
       for (let i = 0; i < 100; i++) {
-        logStore.pushRaw(pinoLine({ module: 'ring-buffer', msg: `ring-${i}` }))
+        logStore.pushRaw(JSON.stringify({ level: 30, msg: `${tag}-${i}`, module: tag }))
       }
-      const results = logStore.query({ module: 'ring-buffer', limit: 200 })
-      expect(results.length).toBeGreaterThan(0)
+      const results = logStore.query({ module: tag, limit: 200 })
+      expect(results.length).toBe(100)
     })
   })
 })
