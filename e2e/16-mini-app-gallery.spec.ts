@@ -68,22 +68,6 @@ async function mockGalleryApis(page: Page, apps = MOCK_GALLERY_APPS) {
     return route.continue()
   })
 
-  await page.route('**/api/mini-apps/*/clone', (route) => {
-    if (route.request().method() === 'POST') {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          app: {
-            ...apps[0],
-            id: 'cloned-app-1',
-            kinId: 'target-kin',
-          },
-        }),
-      })
-    }
-    return route.continue()
-  })
 }
 
 async function mockGalleryEmpty(page: Page) {
@@ -279,27 +263,6 @@ test.describe.serial('Mini App Gallery', () => {
     await expect(gallery.getByText('Weather Dashboard')).toBeVisible()
     await expect(gallery.getByText('Todo Tracker')).toBeVisible()
     await expect(gallery.getByText('Pomodoro Timer')).toBeVisible()
-  })
-
-  test('should have clone buttons for each app', async ({ page }) => {
-    await mockGalleryApis(page)
-    await openGallery(page)
-
-    await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 5000 }).catch(() => {})
-    await page.waitForTimeout(300)
-
-    // Each app should have a Clone button
-    const cloneButtons = page.getByRole('button', { name: 'Clone' })
-    expect(await cloneButtons.count()).toBe(3)
-  })
-
-  test('should have a Kin selector for clone target', async ({ page }) => {
-    await mockGalleryApis(page)
-    await openGallery(page)
-
-    // The KinSelector should be present with "Clone to..." placeholder
-    const dialog = page.locator('[role="dialog"]')
-    await expect(dialog.locator('[data-slot="select-trigger"]').first()).toBeVisible()
   })
 
   test('should handle gallery fetch error gracefully', async ({ page }) => {
