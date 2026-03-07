@@ -150,6 +150,33 @@ describe('promptHumanTool', () => {
     })
   })
 
+  describe('rate limiting', () => {
+    it('blocks second prompt_human call on the same tool instance (same turn)', async () => {
+      const t = (promptHumanTool as any).create(baseCtx)
+      const callOpts = { toolCallId: 'tc-1', messages: [], abortSignal: new AbortController().signal }
+
+      const first = await t.execute(validArgs, callOpts)
+      expect(first.promptId).toBe('prompt-1')
+
+      const second = await t.execute(validArgs, callOpts)
+      expect(second.error).toContain('already prompted')
+      expect(mockHumanPrompts.createHumanPrompt).toHaveBeenCalledTimes(1)
+    })
+
+    it('allows prompt_human on a new tool instance (new turn)', async () => {
+      const t1 = (promptHumanTool as any).create(baseCtx)
+      const t2 = (promptHumanTool as any).create(baseCtx)
+      const callOpts = { toolCallId: 'tc-1', messages: [], abortSignal: new AbortController().signal }
+
+      const first = await t1.execute(validArgs, callOpts)
+      expect(first.promptId).toBe('prompt-1')
+
+      const second = await t2.execute(validArgs, callOpts)
+      expect(second.promptId).toBe('prompt-1')
+      expect(mockHumanPrompts.createHumanPrompt).toHaveBeenCalledTimes(2)
+    })
+  })
+
   describe('sub-kin context (with taskId)', () => {
     const subCtx: ToolExecutionContext = { kinId: 'kin-sub', isSubKin: true, taskId: 'task-1' }
 

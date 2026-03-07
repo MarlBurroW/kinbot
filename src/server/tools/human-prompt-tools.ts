@@ -25,8 +25,9 @@ const optionSchema = z.object({
  */
 export const promptHumanTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
-  create: (ctx) =>
-    tool({
+  create: (ctx) => {
+    let promptCalledThisTurn = false
+    return tool({
       description:
         'Prompt the user with a structured interactive question. ' +
         'Use "confirm" for yes/no decisions, "select" for single choice from a list, ' +
@@ -59,6 +60,14 @@ export const promptHumanTool: ToolRegistration = {
       execute: async ({ prompt_type, question, description, options }) => {
         log.debug({ kinId: ctx.kinId, taskId: ctx.taskId, promptType: prompt_type }, 'prompt_human invoked')
 
+        // Limit to 1 prompt_human call per LLM turn
+        if (promptCalledThisTurn) {
+          return {
+            error: 'You already prompted the user this turn. Wait for their response before asking another question. If you need multiple inputs, use a single multi_select prompt.',
+          }
+        }
+        promptCalledThisTurn = true
+
         // Guard: cron-spawned tasks cannot prompt humans
         if (ctx.taskId) {
           const task = await db.select().from(tasks).where(eq(tasks.id, ctx.taskId)).get()
@@ -88,5 +97,6 @@ export const promptHumanTool: ToolRegistration = {
           message: 'The user has been prompted with your question. Their response will arrive as a new message. Please wait.',
         }
       },
-    }),
+    })
+  },
 }
