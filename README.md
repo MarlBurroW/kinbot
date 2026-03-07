@@ -247,15 +247,17 @@ NODE_ENV=production bun run start
 │  │  shadcn/ui       │      └───────┬───────────────────────┘  │
 │  └──────────────────┘              │                          │
 │                                    │                          │
-│    ┌───────────────┬───────────────┼───────────────┐          │
-│    │               │               │               │          │
-│  ┌─▼───────────┐ ┌─▼──────────┐ ┌─▼───────────┐ ┌─▼────────┐│
-│  │  Vercel     │ │  Queue     │ │  Croner     │ │  Mini    ││
-│  │  AI SDK     │ │  (FIFO)    │ │  (Cron jobs)│ │  Apps    ││
-│  │  Kin Engine │ │  per Kin   │ └─────────────┘ │  + Tools ││
-│  └──────┬──────┘ └────────────┘                 └──────────┘│
-│         │                                                    │
-│  ┌──────▼──────────────────────────────────────────────────┐ │
+│    ┌───────────┬───────────┬───────────┬───────────┐          │
+│    │           │           │           │           │          │
+│  ┌─▼────────┐┌─▼────────┐┌─▼────────┐┌─▼────────┐┌─▼──────┐ │
+│  │ Vercel   ││ Queue    ││ Croner   ││ Mini     ││Plugins │ │
+│  │ AI SDK   ││ (FIFO)   ││(Cron     ││ Apps     ││        │ │
+│  │ Kin      ││ per Kin  ││ jobs)    ││ + Tools  ││ tools  │ │
+│  │ Engine   │└──────────┘└──────────┘└──────────┘│ hooks  │ │
+│  └────┬─────┘                                    │providers│ │
+│       │                                          │channels│ │
+│       │                                          └────────┘ │
+│  ┌────▼────────────────────────────────────────────────────┐ │
 │  │           SQLite  (bun:sqlite + Drizzle ORM)            │ │
 │  │           + FTS5 (full-text search)                     │ │
 │  │           + sqlite-vec (vector similarity)              │ │
@@ -267,7 +269,7 @@ NODE_ENV=production bun run start
    Mistral · DeepSeek · Groq            Webhooks
    Ollama · OpenRouter · xAI            Custom tools
    Cohere · Together · Fireworks        Web browsing
-   + embedding, image, search
+   + embedding, image, search           Plugins (community)
 ```
 
 **Key design principles:**
