@@ -343,4 +343,293 @@ describe('buildSystemPrompt', () => {
     expect(result).toContain('## Memories')
     expect(result).not.toContain('### Facts')
   })
+
+  // --- Subject-grouped memories ---
+
+  it('groups memories by subject when ≥60% have subjects', () => {
+    const memories = [
+      { category: 'fact', content: 'Lives in Paris', subject: 'Alice' },
+      { category: 'preference', content: 'Likes coffee', subject: 'Alice' },
+      { category: 'fact', content: 'Works at Acme', subject: 'Bob' },
+      { category: 'decision', content: 'Use TypeScript', subject: 'Project' },
+      { category: 'preference', content: 'Dark mode', subject: null },
+    ]
+    const result = buildSystemPrompt(makeParams({ relevantMemories: memories }))
+    // Subject grouping: headers are subject names, not category labels
+    expect(result).toContain('### Alice')
+    expect(result).toContain('### Bob')
+    expect(result).toContain('### Project')
+    expect(result).toContain('### General') // null subject → General
+    expect(result).not.toContain('### Facts')
+  })
+
+  it('falls back to category grouping when <60% have subjects', () => {
+    const memories = [
+      { category: 'fact', content: 'Lives in Paris', subject: 'Alice' },
+      { category: 'preference', content: 'Likes dark mode', subject: null },
+      { category: 'fact', content: 'Has a cat', subject: null },
+      { category: 'decision', content: 'Use PostgreSQL', subject: null },
+    ]
+    const result = buildSystemPrompt(makeParams({ relevantMemories: memories }))
+    // Only 25% have subjects → category grouping
+    expect(result).toContain('### Facts')
+    expect(result).toContain('### Preferences')
+    expect(result).not.toContain('### Alice')
+  })
+
+  // --- High importance memories ---
+
+  it('marks high importance memories with ★', () => {
+    const memories = [
+      { category: 'fact', content: 'Important fact', subject: null, importance: 8 },
+      { category: 'fact', content: 'Normal fact', subject: null, importance: 5 },
+    ]
+    const result = buildSystemPrompt(makeParams({ relevantMemories: memories }))
+    expect(result).toContain('★')
+    expect(result).toContain('★ [fact] Important fact')
+    expect(result).not.toContain('★ [fact] Normal fact')
+  })
+
+  // --- Hub Kin directory ---
+
+  it('includes hub view kin directory with routing instructions', () => {
+    const result = buildSystemPrompt(makeParams({
+      isHub: true,
+      hubKinDirectory: [
+        {
+          slug: 'coder',
+          name: 'Coder',
+          role: 'software engineer',
+          expertiseSummary: 'Python, TypeScript, DevOps',
+          activeChannels: ['discord', 'telegram'],
+        },
+        {
+          slug: 'writer',
+          name: 'Writer',
+          role: 'content writer',
+          expertiseSummary: 'Blog posts, documentation',
+        },
+      ],
+    }))
+    expect(result).toContain('## Kin directory (Hub view)')
+    expect(result).toContain('central coordinator')
+    expect(result).toContain('### Routing behavior')
+    expect(result).toContain('**Coder** (slug: coder)')
+    expect(result).toContain('Expertise: Python, TypeScript, DevOps')
+    expect(result).toContain('Connected channels: discord, telegram')
+    expect(result).toContain('**Writer** (slug: writer)')
+    // Writer entry should NOT have "Connected channels" line (no activeChannels)
+    // Extract just the Writer block and verify no "Connected channels" in it
+    const writerSection = result.split('**Writer**')[1]?.split('\n\n')[0] ?? ''
+    expect(writerSection).not.toContain('Connected channels')
+    // Should NOT include the standard kin directory block
+    expect(result).not.toContain('### Collaboration and delegation')
+  })
+
+  it('prefers hub directory over standard directory when isHub is true', () => {
+    const result = buildSystemPrompt(makeParams({
+      isHub: true,
+      hubKinDirectory: [
+        { slug: 'helper', name: 'Helper', role: 'assistant', expertiseSummary: 'General' },
+      ],
+      kinDirectory: [
+        { slug: 'helper', name: 'Helper', role: 'assistant' },
+      ],
+    }))
+    expect(result).toContain('## Kin directory (Hub view)')
+    expect(result).not.toContain('### Collaboration and delegation')
+  })
+
+  // --- Participants ---
+
+  it('includes participants block for group conversation', () => {
+    const now = new Date()
+    const result = buildSystemPrompt(makeParams({
+      participants: [
+        { name: 'Alice', platform: 'telegram', messageCount: 5, lastSeenAt: now },
+        { name: 'Bob', platform: 'discord', messageCount: 3, lastSeenAt: now },
+      ],
+    }))
+    expect(result).toContain('## Active participants')
+    expect(result).toContain('**group conversation**')
+    expect(result).toContain('2 participants')
+    expect(result).toContain('Alice via telegram')
+    expect(result).toContain('Bob via discord')
+  })
+
+  it('detects one-on-one conversation with single participant', () => {
+    const now = new Date()
+    const result = buildSystemPrompt(makeParams({
+      participants: [
+        { name: 'Alice', platform: 'web', messageCount: 10, lastSeenAt: now },
+      ],
+    }))
+    expect(result).toContain('**one-on-one conversation** with Alice')
+    expect(result).not.toContain('group conversation')
+  })
+
+  it('treats same person from multiple platforms as one-on-one', () => {
+    const now = new Date()
+    const result = buildSystemPrompt(makeParams({
+      participants: [
+        { name: 'Alice', platform: 'telegram', messageCount: 3, lastSeenAt: now },
+        { name: 'Alice', platform: 'discord', messageCount: 2, lastSeenAt: now },
+      ],
+    }))
+    // Same name = 1 unique participant → one-on-one
+    expect(result).toContain('**one-on-one conversation**')
+  })
+
+  it('omits participants section when empty', () => {
+    const result = buildSystemPrompt(makeParams({ participants: [] }))
+    expect(result).not.toContain('## Active participants')
+  })
+
+  // --- Conversation state ---
+
+  it('includes conversation state for full history', () => {
+    const result = buildSystemPrompt(makeParams({
+      conversationState: {
+        visibleMessageCount: 42,
+        totalMessageCount: 42,
+        hasCompactedHistory: false,
+      },
+    }))
+    expect(result).toContain('## Conversation state')
+    expect(result).toContain('full conversation history: 42 messages')
+    // Conversation state block should NOT suggest search_history for non-compacted
+    expect(result).toContain('## Conversation state')
+    expect(result).not.toContain('If you need details from before your visible history')
+  })
+
+  it('includes conversation state for compacted history', () => {
+    const result = buildSystemPrompt(makeParams({
+      conversationState: {
+        visibleMessageCount: 20,
+        totalMessageCount: 150,
+        hasCompactedHistory: true,
+      },
+    }))
+    expect(result).toContain('130 older messages have been summarized')
+    expect(result).toContain('20 most recent messages')
+    expect(result).toContain('search_history()')
+  })
+
+  it('uses singular for 1 compacted message', () => {
+    const result = buildSystemPrompt(makeParams({
+      conversationState: {
+        visibleMessageCount: 10,
+        totalMessageCount: 11,
+        hasCompactedHistory: true,
+      },
+    }))
+    expect(result).toContain('1 older message has been summarized')
+  })
+
+  it('omits conversation state when not provided', () => {
+    const result = buildSystemPrompt(makeParams())
+    expect(result).not.toContain('## Conversation state')
+  })
+
+  // --- Compacting summary ---
+
+  it('includes compacting summary when provided', () => {
+    const result = buildSystemPrompt(makeParams({
+      compactingSummary: 'User discussed project setup and database migration.',
+    }))
+    expect(result).toContain('## Previous conversation summary')
+    expect(result).toContain('User discussed project setup and database migration.')
+    expect(result).toContain('faithful summary')
+  })
+
+  it('includes compacted timestamp when provided', () => {
+    const result = buildSystemPrompt(makeParams({
+      compactingSummary: 'Earlier discussion.',
+      compactedUpTo: new Date('2025-06-15T10:00:00Z'),
+    }))
+    expect(result).toContain('## Previous conversation summary')
+    expect(result).toContain('Jun 15, 2025')
+  })
+
+  it('omits compacting summary when not provided', () => {
+    const result = buildSystemPrompt(makeParams())
+    expect(result).not.toContain('## Previous conversation summary')
+  })
+
+  // --- Cron run result truncation ---
+
+  it('truncates long cron run results to 500 chars', () => {
+    const longResult = 'x'.repeat(600)
+    const result = buildSystemPrompt(makeParams({
+      isSubKin: true,
+      taskDescription: 'Recurring task',
+      previousCronRuns: [
+        {
+          status: 'completed',
+          result: longResult,
+          createdAt: new Date('2025-01-01T00:00:00Z'),
+          updatedAt: new Date('2025-01-01T00:01:00Z'),
+        },
+      ],
+    }))
+    expect(result).toContain('## Previous runs')
+    // Should contain truncated result (500 chars + ...)
+    expect(result).toContain('x'.repeat(500) + '...')
+    expect(result).not.toContain('x'.repeat(501))
+  })
+
+  it('does not truncate short cron run results', () => {
+    const shortResult = 'All good'
+    const result = buildSystemPrompt(makeParams({
+      isSubKin: true,
+      taskDescription: 'Check stuff',
+      previousCronRuns: [
+        {
+          status: 'completed',
+          result: shortResult,
+          createdAt: new Date('2025-01-01T00:00:00Z'),
+          updatedAt: new Date('2025-01-01T00:00:30Z'),
+        },
+      ],
+    }))
+    expect(result).toContain('All good')
+    expect(result).not.toContain('...')
+  })
+
+  it('shows execution time in seconds for cron runs', () => {
+    const result = buildSystemPrompt(makeParams({
+      isSubKin: true,
+      taskDescription: 'Task',
+      previousCronRuns: [
+        {
+          status: 'completed',
+          result: 'Done',
+          createdAt: new Date('2025-01-01T00:00:00Z'),
+          updatedAt: new Date('2025-01-01T00:00:45Z'),
+        },
+      ],
+    }))
+    expect(result).toContain('(45s)')
+  })
+
+  // --- WhatsApp formatting hint ---
+
+  it('includes whatsapp formatting hints', () => {
+    const result = buildSystemPrompt(makeParams({
+      currentMessageSource: { platform: 'whatsapp' },
+    }))
+    expect(result).toContain('Very limited formatting')
+  })
+
+  // --- Quick session with global prompt ---
+
+  it('quick session includes global prompt', () => {
+    const result = buildSystemPrompt(makeParams({
+      isQuickSession: true,
+      globalPrompt: 'Always sign off with a smiley.',
+    }))
+    expect(result).toContain('## Platform directives')
+    expect(result).toContain('Always sign off with a smiley.')
+    expect(result).toContain('## Quick session')
+  })
 })
