@@ -7,16 +7,38 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   root: 'src/client',
   resolve: {
+    dedupe: ['react', 'react-dom', 'react-dom/client'],
     alias: {
       '@/server': path.resolve(__dirname, 'src/server'),
       '@/client': path.resolve(__dirname, 'src/client'),
       '@/shared': path.resolve(__dirname, 'src/shared'),
+      // Force all React imports to the root node_modules (avoid site/ copy)
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-dom/client', 'react-router-dom'],
   },
   server: {
     host: true,
     port: 5173,
-    
+    warmup: {
+      clientFiles: [
+        './pages/chat/ChatPage.tsx',
+        './pages/settings/SettingsPage.tsx',
+        './pages/login/LoginPage.tsx',
+        './components/mini-app/MiniAppViewer.tsx',
+        './components/chat/ChatPanel.tsx',
+      ],
+    },
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
+    fs: {
+      allow: [path.resolve(__dirname)],
+    },
     proxy: {
       '/api/sse': {
         target: 'http://localhost:3333',

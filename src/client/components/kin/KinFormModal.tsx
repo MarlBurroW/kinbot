@@ -21,7 +21,8 @@ import { FormErrorAlert } from '@/client/components/common/FormErrorAlert'
 import { AvatarPickerModal, type AvatarPickerResult } from '@/client/components/kin/AvatarPickerModal'
 import { KinToolsTab } from '@/client/components/kin/KinToolsTab'
 import { MemoryList } from '@/client/components/memory/MemoryList'
-import { ArrowLeft, Bot, Brain, Camera, Loader2, Network, Settings, Sparkles, Trash2, Upload, User, Wrench } from 'lucide-react'
+import { Switch } from '@/client/components/ui/switch'
+import { ArrowLeft, Bot, Brain, Camera, Loader2, Network, Settings, ShieldCheck, Sparkles, Trash2, Upload, User, Wrench } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
 import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
@@ -161,6 +162,9 @@ export function KinFormModal({
   const defaultCharacter = t('kin.defaults.character')
   const defaultExpertise = t('kin.defaults.expertise')
 
+  // Hub: grant all tools by default
+  const [hubGrantAllTools, setHubGrantAllTools] = useState(true)
+
   // Unsaved changes guard
   const { isDirty, markDirty, resetDirty, guardedClose, confirmDialogProps } = useUnsavedChanges({
     onClose: () => onOpenChange(false),
@@ -249,6 +253,7 @@ export function KinFormModal({
       setWizardStep('describe')
       setWasAiGenerated(false)
       setWizardDescription(hubMode ? t('hub.defaultDescription') : '')
+      setHubGrantAllTools(true)
     }
     setAvatarFile(null)
     setError('')
@@ -413,9 +418,13 @@ export function KinFormModal({
       } else if (onCreateKin) {
         const created = await onCreateKin({ name, slug: slug || undefined, role, character, expertise, model, providerId })
         if (avatarFile) await onUploadAvatar(created.id, avatarFile)
+        // Hub with "grant all tools": override AI config to enable everything
+        const effectiveToolConfig = (hubMode && hubGrantAllTools)
+          ? { disabledNativeTools: [], mcpAccess: {}, enabledOptInTools: Object.keys(TOOL_DOMAIN_MAP) }
+          : toolConfig
         // If tool config was set by wizard, update it after creation
-        if (toolConfig && onUpdateKin) {
-          await onUpdateKin(created.id, { toolConfig })
+        if (effectiveToolConfig && onUpdateKin) {
+          await onUpdateKin(created.id, { toolConfig: effectiveToolConfig })
         }
       }
       resetDirty()
@@ -473,81 +482,75 @@ export function KinFormModal({
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="flex flex-1 flex-col items-center justify-center px-8 py-10">
-                <div className="w-full max-w-xl animate-fade-in-up space-y-6">
+              <div className="flex flex-1 flex-col items-center overflow-y-auto px-8 py-10">
+                <div className="m-auto w-full max-w-xl animate-fade-in-up space-y-6">
                   {hubMode ? (
                     <>
                       <p className="text-center text-muted-foreground">
                         {t('hub.wizard.subtitle')}
                       </p>
 
-                      {/* Hub pattern mini-diagram — vertical flow */}
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
-                        <div className="flex flex-col items-center gap-0">
+                      {/* Hub pattern mini-diagram — horizontal compact */}
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
+                        <div className="flex items-center justify-center gap-3">
                           {/* You */}
-                          <div className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-background/80 px-3.5 py-2">
-                            <div className="flex size-7 items-center justify-center rounded-full bg-muted">
-                              <User className="size-3.5 text-muted-foreground" />
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex size-8 items-center justify-center rounded-full bg-muted">
+                              <User className="size-4 text-muted-foreground" />
                             </div>
-                            <span className="text-xs font-medium">{t('hub.wizard.diagramYou')}</span>
+                            <span className="text-[10px] font-medium text-muted-foreground">{t('hub.wizard.diagramYou')}</span>
                           </div>
 
-                          {/* Connector You → Hub */}
-                          <svg viewBox="0 0 2 20" className="h-5" style={{ width: 2 }} aria-hidden="true">
-                            <line x1="1" y1="0" x2="1" y2="20" className="stroke-muted-foreground/40" strokeWidth={1.2} strokeDasharray="3 3" />
+                          {/* Arrow You → Hub */}
+                          <svg viewBox="0 0 24 2" className="w-6 shrink-0" style={{ height: 2 }} aria-hidden="true">
+                            <line x1="0" y1="1" x2="24" y2="1" className="stroke-muted-foreground/40" strokeWidth={1.2} strokeDasharray="3 3" />
                           </svg>
 
                           {/* Hub */}
-                          <div className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/10 px-3.5 py-2 shadow-sm shadow-primary/10">
-                            <div className="flex size-7 items-center justify-center rounded-full bg-primary/20 ring-1 ring-primary/40">
-                              <Network className="size-3.5 text-primary" />
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex size-8 items-center justify-center rounded-full bg-primary/20 ring-1 ring-primary/40">
+                              <Network className="size-4 text-primary" />
                             </div>
-                            <span className="text-xs font-semibold text-primary">{t('kin.hub')}</span>
+                            <span className="text-[10px] font-semibold text-primary">{t('kin.hub')}</span>
                           </div>
 
-                          {/* Fan-out + Specialists — shared grid so SVG endpoints align with icon centers */}
-                          <div className="w-52">
-                            <svg
-                              viewBox="0 0 300 28"
-                              preserveAspectRatio="none"
-                              className="w-full"
-                              style={{ height: 28, display: 'block' }}
-                              aria-hidden="true"
-                            >
-                              {[50, 150, 250].map((x, i) => (
-                                <path
-                                  key={i}
-                                  d={x === 150
-                                    ? 'M 150 0 L 150 28'
-                                    : `M 150 0 C 150 16 ${x} 16 ${x} 28`}
-                                  fill="none"
-                                  className="stroke-muted-foreground/40"
-                                  strokeWidth={1.2}
-                                  strokeDasharray="3 3"
-                                />
-                              ))}
-                            </svg>
-                            {/* Specialists — grid-cols-3 so centers are at 1/6, 1/2, 5/6 matching SVG */}
-                            <div className="grid grid-cols-3">
-                              {[
-                                { label: t('hub.wizard.specDev'), icon: Bot },
-                                { label: t('hub.wizard.specResearch'), icon: Bot },
-                                { label: t('hub.wizard.specWriter'), icon: Bot },
-                              ].map(({ label, icon: Icon }, i) => (
-                                <div key={i} className="flex flex-col items-center gap-1">
-                                  <div className="flex size-7 items-center justify-center rounded-full bg-muted">
-                                    <Icon className="size-3.5 text-muted-foreground" />
-                                  </div>
-                                  <span className="text-[10px] text-muted-foreground">{label}</span>
+                          {/* Arrow Hub → Specialists */}
+                          <svg viewBox="0 0 24 2" className="w-6 shrink-0" style={{ height: 2 }} aria-hidden="true">
+                            <line x1="0" y1="1" x2="24" y2="1" className="stroke-muted-foreground/40" strokeWidth={1.2} strokeDasharray="3 3" />
+                          </svg>
+
+                          {/* Specialists */}
+                          <div className="flex gap-2">
+                            {[
+                              { label: t('hub.wizard.specDev'), icon: Bot },
+                              { label: t('hub.wizard.specResearch'), icon: Bot },
+                              { label: t('hub.wizard.specWriter'), icon: Bot },
+                            ].map(({ label, icon: Icon }, i) => (
+                              <div key={i} className="flex flex-col items-center gap-1">
+                                <div className="flex size-7 items-center justify-center rounded-full bg-muted">
+                                  <Icon className="size-3.5 text-muted-foreground" />
                                 </div>
-                              ))}
-                            </div>
+                                <span className="text-[10px] text-muted-foreground">{label}</span>
+                              </div>
+                            ))}
                           </div>
                         </div>
-
-                        <p className="mt-4 text-center text-xs text-muted-foreground leading-relaxed">
+                        <p className="mt-2.5 text-center text-xs text-muted-foreground">
                           {t('hub.wizard.diagramCaption')}
                         </p>
+                      </div>
+
+                      {/* Grant all tools switch */}
+                      <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                        <Switch
+                          id="hub-grant-all-tools"
+                          checked={hubGrantAllTools}
+                          onCheckedChange={setHubGrantAllTools}
+                        />
+                        <Label htmlFor="hub-grant-all-tools" className="flex flex-1 cursor-pointer items-center gap-1.5 text-sm font-medium">
+                          <ShieldCheck className="size-3.5 text-primary" />
+                          {t('hub.wizard.grantAllTools')}
+                        </Label>
                       </div>
                     </>
                   ) : (
@@ -843,6 +846,7 @@ export function KinFormModal({
                           kinId={isEdit ? kin.id : null}
                           toolConfig={toolConfig}
                           onToolConfigChange={setToolConfig}
+                          isHub={isEdit && kin?.isHub}
                         />
                       )}
 

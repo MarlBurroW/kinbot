@@ -160,7 +160,9 @@
       "diagramCaption": "You talk to the Hub. It routes to the right Kin automatically.",
       "specDev": "Dev",
       "specResearch": "Research",
-      "specWriter": "Writer"
+      "specWriter": "Writer",
+      "grantAllTools": "Grant access to all tools",
+      "grantAllToolsDescription": "The Hub will have access to every tool, including administrative ones (Kin management, system, database). Uncheck to let the AI decide which tools to enable."
     }
   },
   "sidebar": {
@@ -318,6 +320,7 @@
       "allEnabled": "All enabled",
       "allDisabled": "All disabled",
       "countEnabled": "{{count}} / {{total}}",
+      "hubNotice": "This Kin is the Hub — all opt-in tools are automatically enabled at runtime, regardless of the toggles below.",
       "autoEnabled": "Auto",
       "noMcp": "No MCP servers configured.",
       "saveMcpHint": "Save the Kin first to configure MCP tools.",

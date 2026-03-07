@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo, lazy, Suspense, memo } from 'react'
+import { useState, useEffect, useRef, useMemo, Suspense, memo } from 'react'
+import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroupContent,

@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react'
+import { useState, useMemo, useCallback, useEffect, Suspense } from 'react'
+import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/client/components/ui/sidebar'
@@ -106,10 +107,11 @@ export function ChatPage() {
   // Create a Hub kin and auto-designate it
   const handleCreateHubKin = useCallback(async (data: Parameters<typeof createKin>[0]) => {
     const result = await createKin(data)
-    // Auto-designate as Hub
+    // Auto-designate as Hub and refresh kin list so checklist updates immediately
     await api.put('/settings/hub', { kinId: result.id })
+    await refetchKins()
     return result
-  }, [createKin])
+  }, [createKin, refetchKins])
 
   // Designate an existing kin as Hub
   const handleSetAsHub = useCallback(async (kinId: string) => {

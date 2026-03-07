@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useRef, useMemo, useState, useCallback, startTransition, lazy, Suspense } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useMemo, useState, useCallback, startTransition, Suspense } from 'react'
+import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
 import { useTranslation } from 'react-i18next'
 import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { MessageBubble } from '@/client/components/chat/MessageBubble'

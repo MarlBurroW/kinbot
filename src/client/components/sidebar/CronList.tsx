@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, lazy, Suspense, memo } from 'react'
+import { useState, useMemo, useCallback, Suspense, memo } from 'react'
+import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
 import { useTranslation } from 'react-i18next'
 import {
   DndContext,

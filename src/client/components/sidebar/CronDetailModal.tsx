@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,

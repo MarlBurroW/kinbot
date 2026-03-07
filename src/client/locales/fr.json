@@ -160,7 +160,9 @@
       "diagramCaption": "Vous parlez au Hub. Il redirige vers le bon Kin automatiquement.",
       "specDev": "Dev",
       "specResearch": "Recherche",
-      "specWriter": "Rédaction"
+      "specWriter": "Rédaction",
+      "grantAllTools": "Donner accès à tous les outils",
+      "grantAllToolsDescription": "Le Hub aura accès à tous les outils, y compris les outils d'administration (gestion des Kins, système, base de données). Décochez pour laisser l'IA décider des outils à activer."
     }
   },
   "sidebar": {
@@ -318,6 +320,7 @@
       "allEnabled": "Tous activés",
       "allDisabled": "Tous désactivés",
       "countEnabled": "{{count}} / {{total}}",
+      "hubNotice": "Ce Kin est le Hub — tous les outils opt-in sont automatiquement activés au runtime, indépendamment des toggles ci-dessous.",
       "autoEnabled": "Auto",
       "noMcp": "Aucun serveur MCP configuré.",
       "saveMcpHint": "Enregistrez le Kin d'abord pour configurer les outils MCP.",
