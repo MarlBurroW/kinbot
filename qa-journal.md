@@ -717,3 +717,35 @@
 ### Next run
 - Area 14: Account (profile, password, language settings)
 - Area 15: Quick chat / Ephemeral sessions
+
+## 2026-03-07 00:40 UTC
+### Area tested: Account / Profile / Users (Area 14)
+- **Pages visited:** Code review of AccountDialog (AccountPage.tsx), UserMenu.tsx, me.ts (routes), users.ts (routes), invitations.ts (routes+service), UsersSettings.tsx, GeneralSettings.tsx, schema.ts (userProfiles)
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 4 (issues created: #100, #101, #102, #105)
+  - #100: Avatar upload has no file size limit or type validation (XSS risk via HTML upload)
+  - #101: PATCH /api/me has no input validation (whitespace, length, type) - recurring pattern
+  - #102: Invitation tokens exposed in full in list API response
+  - #105: DELETE /api/users/:id has no admin role check - any authenticated user can delete others (privilege escalation)
+
+- **UX suggestions:** 2 (issues created: #103, #104)
+  - #103: Account dialog should support password change
+  - #104: Account dialog should show last login and account creation date
+
+- **All clear:**
+  - Account dialog hero design with gradient background is polished
+  - Avatar upload UX (click avatar, hover overlay with camera icon) is intuitive
+  - Form state properly resets when dialog opens (useEffect on open+user)
+  - Language selector updates i18n in real-time on save
+  - User menu dropdown is clean and well-organized
+  - Users settings page has invitation flow (create, copy link, revoke, status badges)
+  - Delete user has confirmation dialog
+  - Self-deletion prevention ("you" badge + no delete button on self)
+  - Invitation expiry system with active/used/expired status
+  - Client-side `accept="image/*"` filter on avatar file input
+  - Loading state on save button with spinner
+
+### Next run
+- Area 15: Quick chat / Ephemeral sessions
+- Area 9: Settings page (all tabs, toggle options, save/cancel)

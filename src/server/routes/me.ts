@@ -45,6 +45,41 @@ meRoutes.patch('/', async (c) => {
   const sessionUser = c.get('user') as { id: string }
   const body = await c.req.json()
 
+  // Input validation
+  const SUPPORTED_LANGUAGES = ['en', 'fr']
+  const MAX_NAME_LENGTH = 100
+  const MAX_PSEUDONYM_LENGTH = 30
+  const PSEUDONYM_REGEX = /^[a-zA-Z0-9_-]+$/
+
+  const errors: string[] = []
+
+  if (body.firstName !== undefined) {
+    if (typeof body.firstName !== 'string') errors.push('firstName must be a string')
+    else body.firstName = body.firstName.trim()
+    if (typeof body.firstName === 'string' && body.firstName.length > MAX_NAME_LENGTH) errors.push(`firstName must be under ${MAX_NAME_LENGTH} characters`)
+  }
+  if (body.lastName !== undefined) {
+    if (typeof body.lastName !== 'string') errors.push('lastName must be a string')
+    else body.lastName = body.lastName.trim()
+    if (typeof body.lastName === 'string' && body.lastName.length > MAX_NAME_LENGTH) errors.push(`lastName must be under ${MAX_NAME_LENGTH} characters`)
+  }
+  if (body.pseudonym !== undefined) {
+    if (typeof body.pseudonym !== 'string') errors.push('pseudonym must be a string')
+    else body.pseudonym = body.pseudonym.trim()
+    if (typeof body.pseudonym === 'string' && body.pseudonym.length > MAX_PSEUDONYM_LENGTH) errors.push(`pseudonym must be under ${MAX_PSEUDONYM_LENGTH} characters`)
+    if (typeof body.pseudonym === 'string' && body.pseudonym.length > 0 && !PSEUDONYM_REGEX.test(body.pseudonym)) errors.push('pseudonym can only contain letters, numbers, underscores, and hyphens')
+  }
+  if (body.language !== undefined) {
+    if (!SUPPORTED_LANGUAGES.includes(body.language)) errors.push(`language must be one of: ${SUPPORTED_LANGUAGES.join(', ')}`)
+  }
+
+  if (errors.length > 0) {
+    return c.json(
+      { error: { code: 'VALIDATION_ERROR', message: errors.join('; ') } },
+      400,
+    )
+  }
+
   const updates: Record<string, unknown> = {}
   if (body.firstName !== undefined) updates.firstName = body.firstName
   if (body.lastName !== undefined) updates.lastName = body.lastName
@@ -125,6 +160,25 @@ meRoutes.post('/avatar', async (c) => {
     )
   }
 
+  // Validate file size (max 2MB)
+  const MAX_AVATAR_SIZE = 2 * 1024 * 1024
+  if (file.size > MAX_AVATAR_SIZE) {
+    return c.json(
+      { error: { code: 'FILE_TOO_LARGE', message: 'Avatar must be under 2MB' } },
+      400,
+    )
+  }
+
+  // Validate file type
+  const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+  const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp']
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    return c.json(
+      { error: { code: 'INVALID_FILE_TYPE', message: 'Avatar must be PNG, JPEG, GIF, or WebP' } },
+      400,
+    )
+  }
+
   // Store avatar in data/uploads/avatars/
   const { config } = await import('@/server/config')
   const { mkdirSync, existsSync } = await import('fs')
@@ -133,7 +187,8 @@ meRoutes.post('/avatar', async (c) => {
     mkdirSync(avatarDir, { recursive: true })
   }
 
-  const ext = file.name.split('.').pop() ?? 'png'
+  const rawExt = (file.name.split('.').pop() ?? '').toLowerCase()
+  const ext = ALLOWED_EXTENSIONS.includes(rawExt) ? rawExt : 'png'
   const filename = `${sessionUser.id}.${ext}`
   const filePath = `${avatarDir}/${filename}`
   const buffer = await file.arrayBuffer()

@@ -76,6 +76,20 @@ userRoutes.delete('/:id', async (c) => {
   const targetId = c.req.param('id')
   const currentUser = c.get('user')
 
+  // Only admins can delete users
+  const currentProfile = db
+    .select({ role: userProfiles.role })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, currentUser.id))
+    .get()
+
+  if (!currentProfile || currentProfile.role !== 'admin') {
+    return c.json(
+      { error: { code: 'FORBIDDEN', message: 'Only admins can delete users' } },
+      403,
+    )
+  }
+
   // Cannot delete yourself
   if (targetId === currentUser.id) {
     return c.json(

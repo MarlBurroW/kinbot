@@ -94,11 +94,15 @@ export function listInvitations() {
     if (u) usedByMap[uid] = u.name
   }
 
-  return creator.map((inv) => ({
-    ...inv,
-    url: buildInvitationUrl(inv.token),
-    usedByName: inv.usedBy ? (usedByMap[inv.usedBy] ?? null) : null,
-  }))
+  return creator.map((inv) => {
+    const isActive = !inv.usedAt && (inv.expiresAt instanceof Date ? inv.expiresAt.getTime() : (inv.expiresAt as number)) > Date.now()
+    return {
+      ...inv,
+      token: inv.token.slice(0, 8) + '...',
+      url: isActive ? buildInvitationUrl(inv.token) : null,
+      usedByName: inv.usedBy ? (usedByMap[inv.usedBy] ?? null) : null,
+    }
+  })
 }
 
 export function validateInvitation(token: string): { valid: boolean; reason?: string; label?: string } {
