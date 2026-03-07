@@ -15,11 +15,12 @@ KinBot builds the system prompt from these blocks (in order):
 4. **Expertise** — the `expertise` field you define
 5. **Platform directives** — optional global prompt that applies to all Kins (set in Settings)
 6. **Contacts directory** — shared contacts across the platform
-7. **Kin directory** — other Kins available for collaboration, with delegation instructions
+7. **Kin directory** — other Kins available for collaboration, with delegation instructions (Hub Kins get an enriched view with expertise summaries)
 8. **Relevant memories** — automatically retrieved via semantic search based on the current message
-9. **Internal instructions** — tool usage guidelines, memory management rules, formatting
-10. **Language** — response language based on user settings
-11. **Date and context** — current timestamp
+9. **Relevant knowledge** — excerpts from uploaded knowledge base documents, when applicable
+10. **Internal instructions** — tool usage guidelines, memory management, contact resolution, secrets handling, response calibration, mini-app creation
+11. **Language** — response language based on user settings
+12. **Date and context** — current timestamp
 
 ## Writing effective characters
 
