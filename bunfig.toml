@@ -1,3 +1,4 @@
 [test]
 # Only run unit/integration tests under src/ — E2E tests run via: npx playwright test
+# Store plugin tests: bun test ./store/
 root = "./src"

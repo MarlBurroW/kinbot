@@ -27,6 +27,7 @@ import {
   Shield,
   BookOpen,
   Store,
+  Trash2,
 } from 'lucide-react'
 import type { PluginSummary } from '@/shared/types/plugin'
 
@@ -53,6 +54,8 @@ export function PluginMarketplace() {
   const [detailPlugin, setDetailPlugin] = useState<StorePlugin | null>(null)
   const [readme, setReadme] = useState<string | null>(null)
   const [readmeLoading, setReadmeLoading] = useState(false)
+  const [uninstallTarget, setUninstallTarget] = useState<string | null>(null)
+  const [uninstalling, setUninstalling] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -93,13 +96,18 @@ export function PluginMarketplace() {
     }
   }
 
-  const handleUninstall = async (name: string) => {
+  const confirmUninstall = async () => {
+    if (!uninstallTarget) return
+    setUninstalling(true)
     try {
-      await api.delete(`/plugins/${name}`)
+      await api.delete(`/plugins/${uninstallTarget}`)
       toast.success(t('settings.marketplace.uninstallSuccess'))
       await loadData()
     } catch (err) {
       toast.error(getErrorMessage(err))
+    } finally {
+      setUninstalling(false)
+      setUninstallTarget(null)
     }
   }
 
@@ -200,7 +208,7 @@ export function PluginMarketplace() {
                     variant="outline"
                     size="sm"
                     className="w-full text-destructive hover:text-destructive"
-                    onClick={() => handleUninstall(plugin.name)}
+                    onClick={() => setUninstallTarget(plugin.name)}
                   >
                     {t('settings.marketplace.uninstall')}
                   </Button>
@@ -310,7 +318,7 @@ export function PluginMarketplace() {
                   <Button
                     variant="destructive"
                     onClick={() => {
-                      handleUninstall(detailPlugin.name)
+                      setUninstallTarget(detailPlugin.name)
                       setDetailPlugin(null)
                     }}
                   >
@@ -332,6 +340,31 @@ export function PluginMarketplace() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Uninstall confirmation dialog */}
+      <Dialog open={!!uninstallTarget} onOpenChange={(open) => !open && setUninstallTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('settings.plugins.uninstallTitle', 'Uninstall plugin')}</DialogTitle>
+            <DialogDescription>
+              {t('settings.plugins.uninstallDescription', { name: uninstallTarget })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUninstallTarget(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={confirmUninstall} disabled={uninstalling}>
+              {uninstalling ? (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="size-4 mr-2" />
+              )}
+              {t('settings.marketplace.uninstall')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

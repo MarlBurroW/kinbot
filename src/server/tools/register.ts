@@ -102,6 +102,10 @@ import {
   listChannelConversationsTool,
   sendChannelMessageTool,
 } from '@/server/tools/channel-tools'
+import {
+  searchKnowledgeTool,
+  listKnowledgeSourcesTool,
+} from '@/server/tools/knowledge-tools'
 import { getPlatformLogsTool } from '@/server/tools/platform-tools'
 import { getSystemInfoTool } from '@/server/tools/system-info-tools'
 import { httpRequestTool } from '@/server/tools/http-request-tools'
@@ -322,6 +326,10 @@ export function registerAllTools(): void {
   toolRegistry.register('disable_plugin', disablePluginTool)
   toolRegistry.register('configure_plugin', configurePluginTool)
   toolRegistry.register('get_plugin_details', getPluginDetailsTool)
+
+  // Knowledge base tools (main only)
+  toolRegistry.register('search_knowledge', searchKnowledgeTool)
+  toolRegistry.register('list_knowledge_sources', listKnowledgeSourcesTool)
 
   log.info({ count: toolRegistry.registeredCount }, 'Native tools registered')
 }

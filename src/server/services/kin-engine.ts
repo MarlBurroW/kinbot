@@ -263,6 +263,15 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       // Memory retrieval failure is non-fatal — proceed without memories
     }
 
+    // Retrieve relevant knowledge base chunks
+    let relevantKnowledge: Array<{ content: string; sourceId: string; score: number }> = []
+    try {
+      const { searchKnowledge } = await import('@/server/services/knowledge')
+      relevantKnowledge = await searchKnowledge(kinId, queueItem.content, 5)
+    } catch {
+      // Knowledge retrieval failure is non-fatal
+    }
+
     // Resolve MCP tool summaries for system prompt injection
     const mcpToolsSummary = await getMCPToolsSummary(kinId)
 
@@ -328,6 +337,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: contactsWithSlug,
       relevantMemories,
+      relevantKnowledge,
       kinDirectory,
       mcpTools: mcpToolsSummary,
       isSubKin: false,
@@ -825,6 +835,15 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       // Non-fatal
     }
 
+    // Retrieve relevant knowledge base chunks
+    let relevantKnowledge: Array<{ content: string; sourceId: string; score: number }> = []
+    try {
+      const { searchKnowledge } = await import('@/server/services/knowledge')
+      relevantKnowledge = await searchKnowledge(kinId, queueItem.content, 5)
+    } catch {
+      // Non-fatal
+    }
+
     // Build quick session system prompt (minimal — no contacts, no kin directory, no hidden instructions)
     const globalPrompt = await getGlobalPrompt()
 
@@ -832,6 +851,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: [],
       relevantMemories,
+      relevantKnowledge,
       kinDirectory: [],
       isSubKin: false,
       isQuickSession: true,

@@ -140,4 +140,107 @@ test.describe.serial('Settings — General & Navigation', () => {
     await page.getByRole('button', { name: 'Close' }).click()
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 5_000 })
   })
+
+  test('should close settings with Escape key', async ({ page }) => {
+    await openSettings(page)
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 5_000 })
+  })
+
+  test('should show Hub Kin selector when kins exist', async ({ page }) => {
+    await openSettings(page)
+
+    // Hub Kin label should be visible (kins exist from onboarding)
+    await expect(page.getByText('Hub Kin')).toBeVisible({ timeout: 5_000 })
+
+    // Hint text should be visible
+    await expect(
+      page.getByText('The Hub Kin receives messages by default')
+    ).toBeVisible()
+
+    // Select trigger should show placeholder or a kin name
+    const selectTrigger = page.getByRole('dialog').locator('[data-slot="select-trigger"]').first()
+    await expect(selectTrigger).toBeVisible()
+  })
+
+  test('should select a Hub Kin and see success toast', async ({ page }) => {
+    await openSettings(page)
+
+    // Open the Hub Kin dropdown
+    const selectTrigger = page.getByRole('dialog').locator('[data-slot="select-trigger"]').first()
+    await expect(selectTrigger).toBeVisible({ timeout: 5_000 })
+    await selectTrigger.click()
+
+    // Pick the first available kin option
+    const option = page.getByRole('option').first()
+    await expect(option).toBeVisible({ timeout: 3_000 })
+    const kinName = await option.textContent()
+    await option.click()
+
+    // Should show success toast
+    await expect(page.getByText('Hub Kin updated').first()).toBeVisible({ timeout: 5_000 })
+
+    // The select should now display the chosen kin name
+    await expect(selectTrigger).toContainText(kinName!)
+  })
+
+  test('should toggle help panel', async ({ page }) => {
+    await openSettings(page)
+
+    // Find and click the help toggle
+    const helpToggle = page.getByRole('dialog').locator('button:has(.lucide-circle-help)')
+    await expect(helpToggle).toBeVisible({ timeout: 5_000 })
+    await helpToggle.click()
+
+    // Help content should appear
+    await expect(
+      page.getByText('General settings control platform-wide behavior')
+    ).toBeVisible({ timeout: 5_000 })
+
+    // Bullet point should be visible
+    await expect(
+      page.getByText('The global prompt is injected into every Kin')
+    ).toBeVisible()
+
+    // Toggle off
+    await helpToggle.click()
+    await expect(
+      page.getByText('General settings control platform-wide behavior')
+    ).not.toBeVisible({ timeout: 3_000 })
+  })
+
+  test('should show save button disabled after clearing prompt to empty', async ({ page }) => {
+    await openSettings(page)
+
+    const editor = page.locator('.cm-editor .cm-content')
+    await expect(editor).toBeVisible({ timeout: 5_000 })
+
+    // Type something to make the prompt dirty
+    await editor.click()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('Temporary content')
+
+    const saveButton = page.getByRole('button', { name: /save/i })
+    await expect(saveButton).toBeEnabled({ timeout: 3_000 })
+
+    // Save it
+    await saveButton.click()
+    await expect(saveButton).toBeDisabled({ timeout: 5_000 })
+
+    // Now clear the prompt
+    await editor.click()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.press('Backspace')
+
+    // Save should be enabled again (prompt changed from saved value)
+    await expect(saveButton).toBeEnabled({ timeout: 3_000 })
+
+    // Save the empty prompt
+    await saveButton.click()
+    await expect(page.getByText('Global prompt updated').first()).toBeVisible({ timeout: 5_000 })
+    await expect(saveButton).toBeDisabled({ timeout: 3_000 })
+  })
 })

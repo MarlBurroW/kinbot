@@ -1,0 +1,12 @@
+{
+  "name": "unit-converter",
+  "version": "1.0.0",
+  "description": "Convert between units of measurement: length, weight, temperature, volume, speed, time, data size, and more. No API needed.",
+  "author": "KinBot Team",
+  "license": "MIT",
+  "main": "index.ts",
+  "icon": "📐",
+  "tags": ["utilities", "math", "tools", "reference"],
+  "permissions": [],
+  "config": {}
+}

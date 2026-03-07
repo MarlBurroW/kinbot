@@ -14,6 +14,7 @@ export function GeneralSettings() {
   const { t } = useTranslation()
 
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   // Global prompt
   const [globalPrompt, setGlobalPrompt] = useState('')
@@ -26,7 +27,8 @@ export function GeneralSettings() {
   const [savingHub, setSavingHub] = useState(false)
 
   useEffect(() => {
-    Promise.all([fetchGlobalPrompt(), fetchHubKin()])
+    setFetchError(null)
+    Promise.all([fetchGlobalPrompt(), fetchHubKin()]).catch(() => {})
   }, [])
 
   const fetchHubKin = async () => {
@@ -37,16 +39,18 @@ export function GeneralSettings() {
       ])
       setHubKinId(hubData.hubKinId)
       setAllKins(kinsData.kins)
-    } catch {
-      // Ignore
+    } catch (err: unknown) {
+      setFetchError(getErrorMessage(err))
+      toast.error(t('settings.general.fetchError', 'Failed to load settings'))
     }
   }
 
   const handleHubChange = async (kinId: string) => {
+    const actualKinId = kinId === '__none__' ? null : kinId
     setSavingHub(true)
     try {
-      await api.put('/settings/hub', { kinId })
-      setHubKinId(kinId)
+      await api.put('/settings/hub', { kinId: actualKinId })
+      setHubKinId(actualKinId)
       toast.success(t('settings.general.hubSaved'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
@@ -60,8 +64,9 @@ export function GeneralSettings() {
       const data = await api.get<{ globalPrompt: string }>('/settings/global-prompt')
       setGlobalPrompt(data.globalPrompt)
       setInitialGlobalPrompt(data.globalPrompt)
-    } catch {
-      // Ignore — will show empty
+    } catch (err: unknown) {
+      setFetchError(getErrorMessage(err))
+      toast.error(t('settings.general.fetchError', 'Failed to load settings'))
     } finally {
       setIsLoading(false)
     }
@@ -80,8 +85,10 @@ export function GeneralSettings() {
     }
   }
 
+  const MAX_PROMPT_LENGTH = 10000
   const hasPromptChanges = globalPrompt !== initialGlobalPrompt
   const approxTokens = Math.ceil(globalPrompt.length / 4)
+  const isOverLimit = globalPrompt.length > MAX_PROMPT_LENGTH
 
   if (isLoading) {
     return (
@@ -93,6 +100,21 @@ export function GeneralSettings() {
           <Skeleton className="h-3 w-48" />
         </div>
         <Skeleton className="h-9 w-20 rounded-md" />
+      </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-destructive">{fetchError}</p>
+        <Button variant="outline" onClick={() => {
+          setIsLoading(true)
+          setFetchError(null)
+          Promise.all([fetchGlobalPrompt(), fetchHubKin()]).catch(() => {})
+        }}>
+          {t('common.retry', 'Retry')}
+        </Button>
       </div>
     )
   }
@@ -111,7 +133,7 @@ export function GeneralSettings() {
             <InfoTip content={t('settings.general.hubKinTip')} />
           </Label>
           <Select
-            value={hubKinId ?? ''}
+            value={hubKinId ?? '__none__'}
             onValueChange={handleHubChange}
             disabled={savingHub}
           >
@@ -119,6 +141,9 @@ export function GeneralSettings() {
               <SelectValue placeholder={t('settings.general.hubKinPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__">
+                {t('settings.general.hubKinNone', 'None')}
+              </SelectItem>
               {allKins.map((kin) => (
                 <SelectItem key={kin.id} value={kin.id}>
                   {kin.name}
@@ -147,18 +172,28 @@ export function GeneralSettings() {
           <p className="text-xs text-muted-foreground">
             {t('settings.general.globalPromptHint')}
           </p>
-          <p className="text-xs text-muted-foreground tabular-nums">
-            ~{approxTokens} tokens
+          <p className={`text-xs tabular-nums ${isOverLimit ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+            {globalPrompt.length.toLocaleString()}/{MAX_PROMPT_LENGTH.toLocaleString()} · ~{approxTokens} tokens
           </p>
         </div>
       </div>
 
-      <Button
-        onClick={handleSavePrompt}
-        disabled={!hasPromptChanges || savingPrompt}
-      >
-        {savingPrompt ? t('common.loading') : t('common.save')}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={handleSavePrompt}
+          disabled={!hasPromptChanges || savingPrompt || isOverLimit}
+        >
+          {savingPrompt ? t('common.loading') : t('common.save')}
+        </Button>
+        {hasPromptChanges && (
+          <Button
+            variant="ghost"
+            onClick={() => setGlobalPrompt(initialGlobalPrompt)}
+          >
+            {t('common.discard', 'Discard')}
+          </Button>
+        )}
+      </div>
 
       <HelpPanel
         contentKey="settings.general.help.content"

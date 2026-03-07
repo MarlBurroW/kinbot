@@ -38,6 +38,7 @@ import { notificationRoutes } from '@/server/routes/notifications'
 import { settingsRoutes } from '@/server/routes/settings'
 import { miniAppRoutes, miniAppSdkRoutes } from '@/server/routes/mini-apps'
 import { pluginRoutes } from '@/server/routes/plugins'
+import { knowledgeRoutes } from '@/server/routes/knowledge'
 
 export type AppVariables = {
   session: { id: string; userId: string; token: string }
@@ -166,6 +167,7 @@ app.route('/api/channels/slack/webhook', channelSlackRoutes)
 app.route('/api/channels/whatsapp/webhook', channelWhatsAppRoutes)
 app.route('/api/channels/signal/webhook', channelSignalRoutes)
 app.route('/api/channels', channelRoutes)
+app.route('/api/kins/:kinId/knowledge', knowledgeRoutes)
 app.route('/api/kins/:kinId/quick-sessions', quickSessionKinRoutes)
 app.route('/api/quick-sessions', quickSessionDetailRoutes)
 app.route('/api/mini-apps/sdk', miniAppSdkRoutes)

@@ -22,6 +22,7 @@ export function VaultSettings() {
   const [entries, setEntries] = useState<VaultSecretData[]>([])
   const [customTypes, setCustomTypes] = useState<VaultTypeSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const { kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<VaultSecretData | null>(null)
@@ -35,10 +36,12 @@ export function VaultSettings() {
 
   const fetchEntries = async () => {
     try {
+      setFetchError(null)
       const data = await api.get<{ entries: VaultSecretData[] }>('/vault/entries')
       setEntries(data.entries)
-    } catch {
-      // Ignore
+    } catch (err: unknown) {
+      setFetchError(getErrorMessage(err))
+      toast.error(t('settings.vault.fetchError', 'Failed to load vault entries'))
     } finally {
       setIsLoading(false)
     }
@@ -48,8 +51,8 @@ export function VaultSettings() {
     try {
       const data = await api.get<{ types: VaultTypeSummary[] }>('/vault/types')
       setCustomTypes(data.types)
-    } catch {
-      // Ignore
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -115,6 +118,21 @@ export function VaultSettings() {
 
   if (isLoading) {
     return <SettingsListSkeleton count={2} />
+  }
+
+  if (fetchError) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-destructive">{fetchError}</p>
+        <Button variant="outline" onClick={() => {
+          setIsLoading(true)
+          setFetchError(null)
+          fetchEntries()
+        }}>
+          {t('common.retry', 'Retry')}
+        </Button>
+      </div>
+    )
   }
 
   return (

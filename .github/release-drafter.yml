@@ -1,0 +1,92 @@
+# Configuration for release-drafter
+# Auto-generates draft release notes from merged PRs
+# https://github.com/release-drafter/release-drafter
+
+name-template: 'KinBot v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '✨ New Features'
+    labels:
+      - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bug'
+  - title: '🧠 Intelligence & Memory'
+    labels:
+      - 'memory'
+  - title: '🔌 Providers & Channels'
+    labels:
+      - 'providers'
+      - 'channels'
+  - title: '🧩 Plugins & Store'
+    labels:
+      - 'plugins'
+      - 'store'
+  - title: '🖥️ Mini Apps'
+    labels:
+      - 'mini-apps'
+  - title: '🔧 Tools & Automation'
+    labels:
+      - 'tools'
+      - 'cron'
+      - 'webhooks'
+      - 'mcp'
+  - title: '🔒 Security'
+    labels:
+      - 'security'
+  - title: '🐳 Docker'
+    labels:
+      - 'docker'
+  - title: '🗄️ Database'
+    labels:
+      - 'database'
+  - title: '🌐 Internationalization'
+    labels:
+      - 'i18n'
+  - title: '🧪 Tests'
+    labels:
+      - 'tests'
+  - title: '📖 Documentation'
+    labels:
+      - 'documentation'
+      - 'site'
+  - title: '🏗️ CI & Infrastructure'
+    labels:
+      - 'ci'
+  - title: '📦 Dependencies'
+    labels:
+      - 'dependencies'
+    collapse-after: 5
+
+# Exclude bots and certain labels from release notes
+exclude-labels:
+  - 'stale'
+  - 'skip-changelog'
+
+# Auto-label PRs for version resolution
+version-resolver:
+  major:
+    labels:
+      - 'breaking'
+  minor:
+    labels:
+      - 'enhancement'
+  patch:
+    labels:
+      - 'bug'
+      - 'documentation'
+      - 'dependencies'
+      - 'ci'
+      - 'tests'
+  default: patch
+
+# Exclude dependabot from individual entries (they're grouped)
+autolabeler: []
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

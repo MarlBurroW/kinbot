@@ -667,6 +667,17 @@ class PluginManager {
 
   /** Install a plugin from a git URL */
   async installFromGit(url: string): Promise<{ name: string }> {
+    // Validate URL protocol (prevent SSRF via file://, ssh://, etc.)
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(url)
+    } catch {
+      throw new Error('Invalid git URL')
+    }
+    if (!['https:', 'http:'].includes(parsedUrl.protocol)) {
+      throw new Error('Only HTTPS and HTTP git URLs are allowed')
+    }
+
     // Ensure plugins dir exists
     await mkdir(this.pluginsDir, { recursive: true })
 
@@ -775,6 +786,18 @@ class PluginManager {
 
   /** Install a plugin from an npm package */
   async installFromNpm(packageName: string): Promise<{ name: string }> {
+    // Validate package name (prevent path traversal and command injection)
+    if (packageName.includes('..') || packageName.includes('/') && !packageName.startsWith('@')) {
+      throw new Error('Invalid npm package name')
+    }
+    // Scoped packages: @scope/name - validate both parts
+    if (packageName.startsWith('@')) {
+      const parts = packageName.split('/')
+      if (parts.length !== 2 || !parts[0] || !parts[1] || parts[1].includes('..')) {
+        throw new Error('Invalid scoped npm package name')
+      }
+    }
+
     await mkdir(this.pluginsDir, { recursive: true })
 
     // Use a temp directory approach: create plugin dir, init, install
@@ -877,6 +900,9 @@ class PluginManager {
 
   /** Install a plugin from the in-repo store/ directory */
   async installFromStore(storeName: string): Promise<{ name: string }> {
+    if (storeName.includes('..') || storeName.includes('/') || storeName.includes('\\')) {
+      throw new Error('Invalid store plugin name')
+    }
     const storeDir = resolve(process.cwd(), 'store', storeName)
 
     // Verify the store plugin exists

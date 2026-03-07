@@ -60,6 +60,13 @@ settingsRoutes.put('/global-prompt', async (c) => {
 
   const trimmed = globalPrompt.trim()
 
+  if (trimmed.length > 10000) {
+    return c.json(
+      { error: { code: 'INVALID_BODY', message: 'Global prompt must be under 10,000 characters' } },
+      400,
+    )
+  }
+
   if (trimmed === '') {
     await deleteSetting('global_prompt')
   } else {

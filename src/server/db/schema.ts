@@ -616,6 +616,44 @@ export const fileStorage = sqliteTable('file_storage', {
   index('idx_file_storage_expires').on(table.expiresAt),
 ])
 
+// ─── Knowledge Base ─────────────────────────────────────────────────────────
+
+export const knowledgeSources = sqliteTable('knowledge_sources', {
+  id: text('id').primaryKey(),
+  kinId: text('kin_id').notNull().references(() => kins.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type').notNull(), // 'file' | 'text' | 'url'
+  status: text('status').notNull().default('pending'), // 'pending' | 'processing' | 'ready' | 'error'
+  errorMessage: text('error_message'),
+  originalFilename: text('original_filename'),
+  mimeType: text('mime_type'),
+  storedPath: text('stored_path'),
+  sourceUrl: text('source_url'),
+  rawContent: text('raw_content'),
+  chunkCount: integer('chunk_count').notNull().default(0),
+  tokenCount: integer('token_count').notNull().default(0),
+  metadata: text('metadata'), // JSON
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_knowledge_sources_kin_id').on(table.kinId),
+])
+
+export const knowledgeChunks = sqliteTable('knowledge_chunks', {
+  id: text('id').primaryKey(),
+  sourceId: text('source_id').notNull().references(() => knowledgeSources.id, { onDelete: 'cascade' }),
+  kinId: text('kin_id').notNull().references(() => kins.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  embedding: blob('embedding'),
+  position: integer('position').notNull(),
+  tokenCount: integer('token_count').notNull(),
+  metadata: text('metadata'), // JSON
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_knowledge_chunks_kin_id').on(table.kinId),
+  index('idx_knowledge_chunks_source_id').on(table.sourceId),
+])
+
 // ─── Plugin System ───────────────────────────────────────────────────────────
 
 export const pluginStates = sqliteTable('plugin_states', {

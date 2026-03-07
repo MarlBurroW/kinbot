@@ -797,3 +797,44 @@
 
 ### Next run
 - Area 9: Settings page (all tabs, toggle options, save/cancel)
+
+## 2026-03-07 12:40 UTC
+### Area tested: Settings Page (Area 9)
+- **Pages visited:** Code review of SettingsPage.tsx, GeneralSettings.tsx, FileStorageSettings.tsx, VaultSettings.tsx, PluginsSettings.tsx, PluginMarketplace.tsx, SearchProvidersSettings.tsx, MemoriesSettings.tsx, NotificationPreferences.tsx, settings.ts (routes), notifications.ts (routes), app.ts (/api/info), plugins.ts (routes+service)
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 2 (issues created: #126, #127)
+  - #126: Path traversal in plugin store routes (`/api/plugins/store/:name`) allows reading arbitrary files (security)
+  - #127: FileStorageSettings and VaultSettings still silently swallow fetch errors (incomplete fix of #122)
+
+- **UX suggestions:** 2 (issues created: #128, #129)
+  - #128: Marketplace plugin uninstall has no confirmation dialog (inconsistent with Plugins page)
+  - #129: Global prompt editor has no discard/reset button
+
+- **All clear:**
+  - Settings modal layout: clean sidebar (desktop) + select dropdown (mobile) pattern
+  - Section groups with labeled categories work well
+  - SettingsFooter with version, uptime, and entity stats with tooltips is polished
+  - GeneralSettings has proper error state with retry button (post-#122 fix)
+  - Global prompt has character counter, token estimate, and over-limit warning
+  - Hub Kin selector with immediate save + toast feedback
+  - Server-side validation for global prompt (type check, length limit, trimming)
+  - Admin guard on all settings routes
+  - SearchProviders: default provider selector with "Automatic" option
+  - SearchProviders: TestAllProviders component for batch testing
+  - PluginsSettings: rich card UI with version, source badge, stats (tools/hooks/providers/channels)
+  - PluginsSettings: collapsible permissions detail
+  - PluginsSettings: proper uninstall confirmation dialog
+  - Plugin config dialog with dynamic field renderer supporting string, number, boolean, select, password, text types
+  - PluginMarketplace: grid layout, search, detail modal with README rendering
+  - VaultSettings: type filter tabs (all, favorites, built-in types, custom types)
+  - VaultSettings: favorite toggle with optimistic update + rollback
+  - NotificationPreferences: per-type toggles with optimistic update + rollback
+  - NotificationPreferences: external delivery channels with test button
+  - Sound toggle (localStorage-based, appropriate for client-side preference)
+  - MemoriesSettings: clean delegation to MemoryModelConfig + MemoryList components
+  - /api/info endpoint efficiently counts all entity types for the footer
+
+### Next run
+- Area 11: Contacts (add, approve, edit, delete contacts)
+- Area 12: Webhooks (create, edit, test, delete webhooks)

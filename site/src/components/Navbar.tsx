@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router'
 import { Moon, Sun, Github, Menu, X, Star, BookOpen } from 'lucide-react'
 import { useGitHubData } from './GitHubDataProvider'
 
@@ -8,44 +9,12 @@ interface NavbarProps {
 }
 
 const NAV_LINKS = [
-  { label: 'Demo', href: '#demo' },
-  { label: 'Features', href: '#features' },
-  { label: 'Plugins', href: '#plugins' },
-  { label: 'Privacy', href: '#privacy' },
-  { label: 'Compare', href: '#comparison' },
-  { label: 'Install', href: '#install' },
-  { label: 'FAQ', href: '#faq' },
-  { label: 'Changelog', href: '#changelog' },
+  { label: 'Home', to: '/' },
+  { label: 'Features', to: '/features' },
+  { label: 'Architecture', to: '/architecture' },
+  { label: 'Changelog', to: '/changelog' },
+  { label: 'FAQ', to: '/faq' },
 ]
-
-function useActiveSection() {
-  const [active, setActive] = useState('')
-
-  useEffect(() => {
-    const ids = NAV_LINKS.map(l => l.href.slice(1))
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Find the topmost visible section
-        const visible = entries
-          .filter(e => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        if (visible.length > 0) {
-          setActive(visible[0].target.id)
-        }
-      },
-      { rootMargin: '-20% 0px -60% 0px', threshold: 0 }
-    )
-
-    ids.forEach(id => {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    })
-
-    return () => observer.disconnect()
-  }, [])
-
-  return active
-}
 
 function formatStarCount(count: number): string {
   if (count >= 1000) {
@@ -58,7 +27,7 @@ function formatStarCount(count: number): string {
 export function Navbar({ dark, onToggleDark }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const activeSection = useActiveSection()
+  const location = useLocation()
   const { repo } = useGitHubData()
   const starCount = repo?.stars ?? null
 
@@ -74,13 +43,16 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
     return () => window.removeEventListener('scroll', handler)
   }, [])
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
   // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
-
-  const handleNavClick = () => setMobileOpen(false)
 
   return (
     <header
@@ -93,20 +65,20 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
       }}
     >
       <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between" aria-label="Main navigation">
-        <a href="#" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2.5">
           <img src="/kinbot/kinbot.svg" alt="KinBot" width={32} height={32} className="rounded-lg" />
           <span className="text-xl font-extrabold gradient-text">KinBot</span>
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map(({ label, href }) => {
-            const isActive = activeSection === href.slice(1)
+          {NAV_LINKS.map(({ label, to }) => {
+            const isActive = location.pathname === to
             return (
-              <a
+              <Link
                 key={label}
-                href={href}
-                aria-current={isActive ? 'true' : undefined}
+                to={to}
+                aria-current={isActive ? 'page' : undefined}
                 className="relative text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-200"
                 style={{
                   color: isActive ? 'var(--color-primary)' : 'var(--color-muted-foreground)',
@@ -120,7 +92,7 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
                     style={{ background: 'var(--color-primary)' }}
                   />
                 )}
-              </a>
+              </Link>
             )
           })}
         </div>
@@ -211,14 +183,13 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
           }}
         >
           <div className="flex flex-col gap-1">
-            {NAV_LINKS.map(({ label, href }) => {
-              const isActive = activeSection === href.slice(1)
+            {NAV_LINKS.map(({ label, to }) => {
+              const isActive = location.pathname === to
               return (
-                <a
+                <Link
                   key={label}
-                  href={href}
-                  onClick={handleNavClick}
-                  aria-current={isActive ? 'true' : undefined}
+                  to={to}
+                  aria-current={isActive ? 'page' : undefined}
                   className="text-base font-medium px-3 py-2.5 rounded-lg transition-all duration-200"
                   style={{
                     color: isActive ? 'var(--color-primary)' : 'var(--color-foreground)',
@@ -226,13 +197,12 @@ export function Navbar({ dark, onToggleDark }: NavbarProps) {
                   }}
                 >
                   {label}
-                </a>
+                </Link>
               )
             })}
           </div>
           <a
             href="/kinbot/docs/"
-            onClick={handleNavClick}
             className="flex items-center justify-center gap-2 mt-4 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
             style={{
               background: 'color-mix(in oklch, var(--color-glow-1) 15%, transparent)',

@@ -346,8 +346,9 @@
       "generating": "Generating...",
       "noImageProvider": "No image provider configured. Add one in Settings.",
       "createFirst": "Save the Kin first to enable generation.",
-      "uploadHint": "Click to select or drag & drop an image",
-      "imageModel": "Image model"
+      "uploadHint": "Click to select or drag & drop an image (any size)",
+      "imageModel": "Image model",
+      "cropConfirm": "Crop & use"
     },
     "wizard": {
       "title": "Describe your Kin",
@@ -666,6 +667,8 @@
       "hubKinPlaceholder": "Select a Kin...",
       "hubKinHint": "The Hub Kin receives messages by default and can delegate to specialist Kins.",
       "hubSaved": "Hub Kin updated",
+      "hubKinNone": "None",
+      "fetchError": "Failed to load settings",
       "help": {
         "content": "General settings control platform-wide behavior that applies to all your Kins. The global prompt lets you define instructions every Kin follows.",
         "bullet1": "The global prompt is injected into every Kin's system prompt. Use it for universal rules or guidelines"

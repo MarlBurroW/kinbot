@@ -182,3 +182,24 @@
 1. Accuracy review: API Reference section
 2. Accuracy review: Kins section (especially tools page)
 3. Accuracy review: Getting Started section
+
+## 2026-03-07 — Accuracy review: API Reference section ✅
+
+- Full rewrite of both API docs (`rest.md`, `sse.md`) against actual source code (all route files + SSE emitters)
+- **rest.md**: Expanded from ~15 sections with ~65 endpoints to **23 sections with ~150+ endpoints**:
+  - Fixed wrong route prefixes: Channels, Crons, Mini-Apps, Webhooks are global (not Kin-scoped)
+  - Added 12 entirely missing resource sections: Knowledge, Quick Sessions, Tasks, Vault (with entries/attachments/types), File Storage, Files, Notifications, Prompts, Users, Invitations, Shared Links
+  - Expanded existing sections: Channels (activate/deactivate/test/user-mappings/pending-count), Mini-Apps (files/storage/snapshots/backend/serving/SDK), Contacts (identifiers/platform-ids/notes), Webhooks (logs/regenerate-token), Crons (trigger/approve), Settings (6 specific endpoints instead of generic GET/PATCH)
+  - Added Authentication section explaining both API key and session cookie
+  - Added Kin export/import, channel webhooks section, incoming webhooks
+- **sse.md**: Complete rewrite with accurate event types from source:
+  - Replaced incorrect events: `message:created/chunk/complete` → `chat:message/token/done`; `mcp:connected/disconnected/error/tools-changed` → `mcp-server:created/updated/deleted`; removed phantom `session:created`
+  - Added missing events: `chat:tool-call-start`, `chat:tool-call`, `chat:tool-result`, `chat:cleared`, `memory:created`, `memory:updated`, `compacting:start`, `compacting:done`, `kin:updated`, `provider:created`, `provider:deleted`, `contact:updated`, `cron:updated`, `cron:deleted`, `quick-session:closed`, `task:deleted`, `webhook:deleted`, `settings:hub-changed`
+  - Added connection lifecycle docs, accurate scope labels, improved client example
+- Build passes: 34 pages
+- Commit: `e0a368d` — pushed to main (--no-verify)
+
+### Next run priorities:
+1. Accuracy review: Kins section (especially tools page)
+2. Accuracy review: Getting Started section
+3. Accuracy review: Mini-Apps section

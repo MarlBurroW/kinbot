@@ -69,6 +69,31 @@ miniAppRoutes.post('/:id/generate-icon', async (c) => {
   }
 })
 
+// Generate icon for a mini-app using AI image generation
+miniAppRoutes.post('/:id/generate-icon', async (c) => {
+  const body = await c.req.json<{ providerId?: string; modelId?: string }>().catch(() => ({} as { providerId?: string; modelId?: string }))
+  try {
+    const app = await generateMiniAppIcon(c.req.param('id'), {
+      providerId: body.providerId,
+      modelId: body.modelId,
+    })
+    sseManager.broadcast({ type: 'miniapp:updated', kinId: app.kinId, data: { app } })
+    return c.json({ app })
+  } catch (err) {
+    if (err instanceof ImageGenerationError) {
+      if (err.code === 'NO_IMAGE_PROVIDER') {
+        return c.json({ error: { code: 'NO_IMAGE_PROVIDER', message: err.message } }, 422)
+      }
+      return c.json({ error: { code: 'IMAGE_GENERATION_FAILED', message: err.message } }, 502)
+    }
+    const message = err instanceof Error ? err.message : 'Failed to generate icon'
+    if (message === 'Mini-app not found') {
+      return c.json({ error: { code: 'NOT_FOUND', message } }, 404)
+    }
+    return c.json({ error: { code: 'IMAGE_GENERATION_FAILED', message } }, 502)
+  }
+})
+
 // ─── CRUD ────────────────────────────────────────────────────────────────────
 
 // List apps for a kin

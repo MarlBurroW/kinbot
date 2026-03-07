@@ -53,6 +53,7 @@ interface PromptParams {
   }
   contacts: ContactSummary[]
   relevantMemories: Memory[]
+  relevantKnowledge?: Array<{ content: string; sourceId: string; score: number }>
   kinDirectory: KinDirectoryEntry[]
   mcpTools?: MCPToolSummaryForPrompt[]
   isSubKin: boolean
@@ -533,6 +534,19 @@ export function buildSystemPrompt(params: PromptParams): string {
   // [5] Relevant memories
   if (params.relevantMemories.length > 0) {
     blocks.push(buildMemoriesBlock(params.relevantMemories))
+  }
+
+  // [5.5] Relevant knowledge base chunks
+  if (params.relevantKnowledge && params.relevantKnowledge.length > 0) {
+    const knowledgeLines = params.relevantKnowledge
+      .map((k, i) => `[${i + 1}] ${k.content}`)
+      .join('\n\n')
+    blocks.push(
+      `## Relevant knowledge\n\n` +
+      `The following excerpts from your knowledge base may be relevant to the current conversation. ` +
+      `Use this information to inform your responses when applicable.\n\n` +
+      knowledgeLines,
+    )
   }
 
   // [6] Hidden system instructions (main agent only)

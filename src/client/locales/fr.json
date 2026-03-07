@@ -346,8 +346,9 @@
       "generating": "Génération...",
       "noImageProvider": "Aucun fournisseur d'image configuré. Ajoutez-en un dans les Paramètres.",
       "createFirst": "Enregistrez le Kin d'abord pour activer la génération.",
-      "uploadHint": "Cliquez pour sélectionner ou glissez-déposez une image",
-      "imageModel": "Modèle d'image"
+      "uploadHint": "Cliquez pour sélectionner ou glissez-déposez une image (toute taille)",
+      "imageModel": "Modèle d'image",
+      "cropConfirm": "Recadrer et utiliser"
     },
     "wizard": {
       "title": "Décrivez votre Kin",
@@ -666,6 +667,8 @@
       "hubKinPlaceholder": "Sélectionner un Kin...",
       "hubKinHint": "Le Kin Hub reçoit les messages par défaut et peut déléguer aux Kins spécialistes.",
       "hubSaved": "Kin Hub mis à jour",
+      "hubKinNone": "Aucun",
+      "fetchError": "Impossible de charger les paramètres",
       "help": {
         "content": "Les paramètres généraux contrôlent le comportement global de la plateforme, applicable à tous vos Kins. Le prompt global permet de définir des instructions suivies par chaque Kin.",
         "bullet1": "Le prompt global est injecté dans le prompt système de chaque Kin. Utilisez-le pour des règles ou directives universelles"

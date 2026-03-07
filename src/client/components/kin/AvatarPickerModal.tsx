@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import Cropper from 'react-easy-crop'
+import type { Area } from 'react-easy-crop'
 import {
   Dialog,
   DialogContent,
@@ -13,8 +15,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avat
 import { ToggleGroup, ToggleGroupItem } from '@/client/components/ui/toggle-group'
 import { ModelPicker } from '@/client/components/common/ModelPicker'
 import { Label } from '@/client/components/ui/label'
+import { Slider } from '@/client/components/ui/slider'
 import { Dialog as DialogPrimitive } from 'radix-ui'
-import { Camera, ImageUp, Info, Loader2, MessageSquare, Sparkles, Upload } from 'lucide-react'
+import { Camera, Crop, ImageUp, Info, Loader2, MessageSquare, Sparkles, Upload, ZoomIn } from 'lucide-react'
+import { cropImage, type CropArea } from '@/client/lib/crop-image'
 
 type AvatarMode = 'upload' | 'auto' | 'prompt'
 
@@ -71,6 +75,13 @@ export function AvatarPickerModal({
   const [isDragging, setIsDragging] = useState(false)
   const [showFullPreview, setShowFullPreview] = useState(false)
 
+  // Cropper state
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null)
+  const [isCropping, setIsCropping] = useState(false)
+
   const canGenerate = !!kinId && hasImageCapability
   const initials = kinName.slice(0, 2).toUpperCase()
   const displayAvatar = preview ?? currentAvatar
@@ -88,16 +99,46 @@ export function AvatarPickerModal({
       setIsGenerating(false)
       setIsDragging(false)
       setShowFullPreview(false)
+      setCropSrc(null)
+      setCrop({ x: 0, y: 0 })
+      setZoom(1)
+      setCroppedAreaPixels(null)
+      setIsCropping(false)
     }
   }, [open])
 
   const handleFileSelect = useCallback((file: File) => {
-    setPendingFile(file)
     setMode('upload')
+    // Show the cropper with the raw image
     const reader = new FileReader()
-    reader.onload = () => setPreview(reader.result as string)
+    reader.onload = () => {
+      setCropSrc(reader.result as string)
+      setCrop({ x: 0, y: 0 })
+      setZoom(1)
+    }
     reader.readAsDataURL(file)
   }, [])
+
+  const onCropComplete = useCallback((_: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels)
+  }, [])
+
+  const handleCropConfirm = async () => {
+    if (!cropSrc || !croppedAreaPixels) return
+    setIsCropping(true)
+    try {
+      const { file, dataUrl } = await cropImage(cropSrc, croppedAreaPixels)
+      setPendingFile(file)
+      setPreview(dataUrl)
+      setCropSrc(null)
+    } finally {
+      setIsCropping(false)
+    }
+  }
+
+  const handleCropCancel = () => {
+    setCropSrc(null)
+  }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -157,7 +198,51 @@ export function AvatarPickerModal({
           </DialogHeader>
 
           <div className="flex flex-col items-center gap-5">
-            {/* Avatar preview */}
+            {/* Cropper overlay */}
+            {cropSrc && (
+              <div className="flex w-full flex-col gap-3">
+                <div className="relative h-64 w-full overflow-hidden rounded-lg bg-muted">
+                  <Cropper
+                    image={cropSrc}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={1}
+                    cropShape="round"
+                    showGrid={false}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                  />
+                </div>
+                <div className="flex items-center gap-3 px-1">
+                  <ZoomIn className="size-4 shrink-0 text-muted-foreground" />
+                  <Slider
+                    min={1}
+                    max={3}
+                    step={0.05}
+                    value={[zoom]}
+                    onValueChange={([v]) => v !== undefined && setZoom(v)}
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="flex-1" onClick={handleCropCancel}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button type="button" className="btn-shine flex-1" onClick={handleCropConfirm} disabled={isCropping}>
+                    {isCropping ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Crop className="size-4" />
+                    )}
+                    {t('kin.avatar.cropConfirm')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Avatar preview (hidden during cropping) */}
+            {!cropSrc && (<>
             <button
               type="button"
               className="group relative cursor-pointer"
@@ -365,6 +450,8 @@ export function AvatarPickerModal({
             >
               {t('kin.avatar.confirm')}
             </Button>
+            </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -5,10 +5,34 @@ import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
 import { readFile, readdir, access } from 'fs/promises'
 import { resolve, join } from 'path'
+import { db } from '@/server/db'
+import { userProfiles } from '@/server/db/schema'
+import { eq } from 'drizzle-orm'
 
 const log = createLogger('routes:plugins')
 
 export const pluginRoutes = new Hono<{ Variables: AppVariables }>()
+
+// Read-only routes (registry, store listing, version) are open to all authenticated users.
+// Mutating routes (install, uninstall, enable, disable, config, reload, update) require admin.
+
+/** Middleware: require admin role */
+const requireAdmin = async (c: any, next: any) => {
+  const currentUser = c.get('user')
+  const profile = db
+    .select({ role: userProfiles.role })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, currentUser.id))
+    .get()
+
+  if (!profile || profile.role !== 'admin') {
+    return c.json(
+      { error: { code: 'FORBIDDEN', message: 'Admin access required' } },
+      403,
+    )
+  }
+  return next()
+}
 
 // ─── Registry routes ─────────────────────────────────────────────────────────
 
@@ -107,6 +131,9 @@ pluginRoutes.get('/store', async (c) => {
 // GET /api/plugins/store/:name — get store plugin details + README
 pluginRoutes.get('/store/:name', async (c) => {
   const { name } = c.req.param()
+  if (name.includes('..') || name.includes('/') || name.includes('\\')) {
+    return c.json({ error: { code: 'INVALID_NAME', message: 'Invalid plugin name' } }, 400)
+  }
   try {
     const pluginDir = resolve(process.cwd(), 'store', name)
     const manifestPath = join(pluginDir, 'plugin.json')
@@ -129,9 +156,12 @@ pluginRoutes.get('/store/:name', async (c) => {
   }
 })
 
-// POST /api/plugins/store/:name/install — install a store plugin
-pluginRoutes.post('/store/:name/install', async (c) => {
+// POST /api/plugins/store/:name/install — install a store plugin (admin only)
+pluginRoutes.post('/store/:name/install', requireAdmin, async (c) => {
   const { name } = c.req.param()
+  if (name.includes('..') || name.includes('/') || name.includes('\\')) {
+    return c.json({ error: { code: 'INVALID_NAME', message: 'Invalid plugin name' } }, 400)
+  }
   try {
     const result = await pluginManager.installFromStore(name)
     return c.json({ success: true, name: result.name })
@@ -155,7 +185,7 @@ pluginRoutes.get('/', async (c) => {
 })
 
 // POST /api/plugins/:name/enable
-pluginRoutes.post('/:name/enable', async (c) => {
+pluginRoutes.post('/:name/enable', requireAdmin, async (c) => {
   const { name } = c.req.param()
   try {
     await pluginManager.enablePlugin(name)
@@ -167,7 +197,7 @@ pluginRoutes.post('/:name/enable', async (c) => {
 })
 
 // POST /api/plugins/:name/disable
-pluginRoutes.post('/:name/disable', async (c) => {
+pluginRoutes.post('/:name/disable', requireAdmin, async (c) => {
   const { name } = c.req.param()
   try {
     await pluginManager.disablePlugin(name)
@@ -190,7 +220,7 @@ pluginRoutes.get('/:name/config', async (c) => {
 })
 
 // PUT /api/plugins/:name/config
-pluginRoutes.put('/:name/config', async (c) => {
+pluginRoutes.put('/:name/config', requireAdmin, async (c) => {
   const { name } = c.req.param()
   try {
     const body = await c.req.json()
@@ -203,7 +233,7 @@ pluginRoutes.put('/:name/config', async (c) => {
 })
 
 // POST /api/plugins/reload
-pluginRoutes.post('/reload', async (c) => {
+pluginRoutes.post('/reload', requireAdmin, async (c) => {
   try {
     await pluginManager.reload()
     return c.json({ success: true, plugins: pluginManager.listPlugins() })
@@ -214,7 +244,7 @@ pluginRoutes.post('/reload', async (c) => {
 })
 
 // POST /api/plugins/install — install from git or npm
-pluginRoutes.post('/install', async (c) => {
+pluginRoutes.post('/install', requireAdmin, async (c) => {
   try {
     const body = await c.req.json<{ source: 'git' | 'npm'; url?: string; package?: string }>()
 
@@ -236,7 +266,7 @@ pluginRoutes.post('/install', async (c) => {
 })
 
 // DELETE /api/plugins/:name — uninstall a plugin
-pluginRoutes.delete('/:name', async (c) => {
+pluginRoutes.delete('/:name', requireAdmin, async (c) => {
   const { name } = c.req.param()
   try {
     await pluginManager.uninstallPlugin(name)
@@ -248,7 +278,7 @@ pluginRoutes.delete('/:name', async (c) => {
 })
 
 // POST /api/plugins/:name/update — update a plugin
-pluginRoutes.post('/:name/update', async (c) => {
+pluginRoutes.post('/:name/update', requireAdmin, async (c) => {
   const { name } = c.req.param()
   try {
     await pluginManager.updatePlugin(name)

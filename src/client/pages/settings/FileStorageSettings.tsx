@@ -15,6 +15,7 @@ export function FileStorageSettings() {
   const { t } = useTranslation()
   const [files, setFiles] = useState<StoredFileData[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const { kins, kinNames, kinAvatars } = useKinList()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingFile, setEditingFile] = useState<StoredFileData | null>(null)
@@ -25,10 +26,12 @@ export function FileStorageSettings() {
 
   const fetchFiles = async () => {
     try {
+      setFetchError(null)
       const data = await api.get<{ files: StoredFileData[] }>('/file-storage')
       setFiles(data.files)
-    } catch {
-      // Ignore
+    } catch (err: unknown) {
+      setFetchError(getErrorMessage(err))
+      toast.error(t('settings.files.fetchError', 'Failed to load files'))
     } finally {
       setIsLoading(false)
     }
@@ -61,6 +64,21 @@ export function FileStorageSettings() {
 
   if (isLoading) {
     return <SettingsListSkeleton count={2} />
+  }
+
+  if (fetchError) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-destructive">{fetchError}</p>
+        <Button variant="outline" onClick={() => {
+          setIsLoading(true)
+          setFetchError(null)
+          fetchFiles()
+        }}>
+          {t('common.retry', 'Retry')}
+        </Button>
+      </div>
+    )
   }
 
   return (

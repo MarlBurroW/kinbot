@@ -57,6 +57,9 @@ function stripHtml(html: string): string {
 /** Parse RSS 2.0 feed */
 function parseRSS(xml: string): ParsedFeed {
   const channel = getTagContent(xml, 'channel')
+  // Extract channel-level metadata from content before the first <item>
+  const firstItemIdx = channel.search(/<item[\s>]/i)
+  const channelMeta = firstItemIdx >= 0 ? channel.slice(0, firstItemIdx) : channel
   const items: FeedItem[] = []
 
   const itemMatches = xml.matchAll(/<item[\s>]([\s\S]*?)<\/item>/gi)
@@ -72,9 +75,9 @@ function parseRSS(xml: string): ParsedFeed {
   }
 
   return {
-    title: stripHtml(getTagContent(channel, 'title')),
-    description: stripHtml(getTagContent(channel, 'description')),
-    link: getTagContent(channel, 'link'),
+    title: stripHtml(getTagContent(channelMeta, 'title')),
+    description: stripHtml(getTagContent(channelMeta, 'description')),
+    link: getTagContent(channelMeta, 'link'),
     items,
   }
 }
