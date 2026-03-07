@@ -149,6 +149,78 @@ export function validateManifest(data: unknown): { valid: boolean; errors: strin
   return { valid: errors.length === 0, errors }
 }
 
+/**
+ * Validate config values against a plugin's config schema.
+ * Returns validation errors (empty array = valid).
+ */
+export function validateConfig(
+  values: Record<string, any>,
+  schema: Record<string, PluginConfigField>,
+): string[] {
+  const errors: string[] = []
+
+  // Check required fields
+  for (const [key, field] of Object.entries(schema)) {
+    const value = values[key]
+
+    if (field.required && (value === undefined || value === null || value === '')) {
+      errors.push(`"${key}" is required`)
+      continue
+    }
+
+    // Skip validation for absent optional fields
+    if (value === undefined || value === null) continue
+
+    // Type checks
+    switch (field.type) {
+      case 'boolean':
+        if (typeof value !== 'boolean') {
+          errors.push(`"${key}" must be a boolean`)
+        }
+        break
+
+      case 'number': {
+        const num = typeof value === 'string' ? Number(value) : value
+        if (typeof num !== 'number' || Number.isNaN(num)) {
+          errors.push(`"${key}" must be a number`)
+        } else {
+          if (field.min !== undefined && num < field.min) {
+            errors.push(`"${key}" must be >= ${field.min}`)
+          }
+          if (field.max !== undefined && num > field.max) {
+            errors.push(`"${key}" must be <= ${field.max}`)
+          }
+        }
+        break
+      }
+
+      case 'select':
+        if (field.options && !field.options.includes(String(value))) {
+          errors.push(`"${key}" must be one of: ${field.options.join(', ')}`)
+        }
+        break
+
+      case 'string':
+      case 'text':
+      case 'password':
+        if (typeof value !== 'string') {
+          errors.push(`"${key}" must be a string`)
+        } else if (field.type === 'string' && field.pattern) {
+          try {
+            if (!new RegExp(field.pattern).test(value)) {
+              errors.push(`"${key}" does not match required pattern`)
+            }
+          } catch {
+            // Invalid regex in schema — skip pattern check
+          }
+        }
+        break
+    }
+  }
+
+  return errors
+}
+
 // ─── Plugin Manager ──────────────────────────────────────────────────────────
 
 class PluginManager {
@@ -575,6 +647,14 @@ class PluginManager {
         continue
       }
       merged[key] = value
+    }
+
+    // Validate merged config against schema
+    if (plugin.manifest.config) {
+      const errors = validateConfig(merged, plugin.manifest.config)
+      if (errors.length > 0) {
+        throw new Error(`Invalid config: ${errors.join('; ')}`)
+      }
     }
 
     const encrypted = await encrypt(JSON.stringify(merged))
