@@ -83,7 +83,9 @@ const ctx = { kinId: 'kin-test-123' } as any
 const opts = { toolCallId: 'x', messages: [] as any[], abortSignal: undefined as any }
 
 function createTool(reg: ToolRegistration) {
-  return reg.create(ctx)
+  const tool = reg.create(ctx)
+  if (!tool.execute) throw new Error('Tool has no execute method')
+  return tool as typeof tool & { execute: NonNullable<typeof tool.execute> }
 }
 
 // ─── browseUrlTool ──────────────────────────────────────────────────────────
@@ -261,7 +263,7 @@ describe('screenshotUrlTool', () => {
   it('sanitizes hostname for filename', async () => {
     const t = createTool(screenshotUrlTool)
     await t.execute({ url: 'https://my-site.example.com/path' }, opts)
-    const call = mockCreateFileFromContent.mock.calls[0]
+    const call = mockCreateFileFromContent.mock.calls[0] as unknown as any[]
     // createFileFromContent(kinId, name, content, mimeType, options)
     expect(call[1]).toContain('my-site.example.com')
   })
@@ -269,7 +271,7 @@ describe('screenshotUrlTool', () => {
   it('stores file as public with correct mime type', async () => {
     const t = createTool(screenshotUrlTool)
     await t.execute({ url: 'https://example.com' }, opts)
-    const call = mockCreateFileFromContent.mock.calls[0]
+    const call = mockCreateFileFromContent.mock.calls[0] as unknown as any[]
     // createFileFromContent(kinId, name, content, mimeType, options)
     expect(call[3]).toBe('image/png')
     expect(call[4]).toHaveProperty('isPublic', true)
