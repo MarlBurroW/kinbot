@@ -47,7 +47,7 @@ function isPrivateUrl(urlStr: string): boolean {
  * Available to main agents only.
  */
 export const httpRequestTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: () =>
     tool({
       description:
