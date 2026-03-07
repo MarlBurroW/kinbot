@@ -78,6 +78,20 @@ webhookRoutes.post('/', async (c) => {
     )
   }
 
+  if (trimmedName.length > 200) {
+    return c.json(
+      { error: { code: 'VALIDATION_ERROR', message: 'Name must be 200 characters or less' } },
+      400,
+    )
+  }
+
+  if (body.description && body.description.length > 1000) {
+    return c.json(
+      { error: { code: 'VALIDATION_ERROR', message: 'Description must be 1,000 characters or less' } },
+      400,
+    )
+  }
+
   // Validate that the Kin exists before attempting to create the webhook
   const targetKin = await db.select({ id: kins.id }).from(kins).where(eq(kins.id, body.kinId)).get()
   if (!targetKin) {
@@ -135,7 +149,20 @@ webhookRoutes.patch('/:id', async (c) => {
         400,
       )
     }
+    if (trimmedName.length > 200) {
+      return c.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Name must be 200 characters or less' } },
+        400,
+      )
+    }
     body.name = trimmedName
+  }
+
+  if (body.description !== undefined && body.description !== null && body.description.length > 1000) {
+    return c.json(
+      { error: { code: 'VALIDATION_ERROR', message: 'Description must be 1,000 characters or less' } },
+      400,
+    )
   }
 
   try {

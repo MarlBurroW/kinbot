@@ -140,14 +140,31 @@ contactRoutes.post('/:id/identifiers', async (c) => {
   const contactId = c.req.param('id')
   const { label, value } = (await c.req.json()) as { label: string; value: string }
 
-  if (!label || !value) {
+  const trimmedLabel = label?.trim()
+  const trimmedValue = value?.trim()
+
+  if (!trimmedLabel || !trimmedValue) {
     return c.json(
-      { error: { code: 'INVALID_INPUT', message: 'Label and value are required' } },
+      { error: { code: 'INVALID_INPUT', message: 'Label and value are required and cannot be whitespace-only' } },
       400,
     )
   }
 
-  const identifier = addContactIdentifier(contactId, label, value)
+  if (trimmedLabel.length > 100) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'Label must be 100 characters or less' } },
+      400,
+    )
+  }
+
+  if (trimmedValue.length > 500) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'Value must be 500 characters or less' } },
+      400,
+    )
+  }
+
+  const identifier = addContactIdentifier(contactId, trimmedLabel, trimmedValue)
   return c.json({ identifier }, 201)
 })
 
@@ -155,6 +172,28 @@ contactRoutes.post('/:id/identifiers', async (c) => {
 contactRoutes.patch('/:id/identifiers/:identifierId', async (c) => {
   const identifierId = c.req.param('identifierId')
   const body = (await c.req.json()) as { label?: string; value?: string }
+
+  if (body.label !== undefined) {
+    const trimmed = body.label.trim()
+    if (!trimmed) {
+      return c.json({ error: { code: 'INVALID_INPUT', message: 'Label cannot be empty' } }, 400)
+    }
+    if (trimmed.length > 100) {
+      return c.json({ error: { code: 'INVALID_INPUT', message: 'Label must be 100 characters or less' } }, 400)
+    }
+    body.label = trimmed
+  }
+
+  if (body.value !== undefined) {
+    const trimmed = body.value.trim()
+    if (!trimmed) {
+      return c.json({ error: { code: 'INVALID_INPUT', message: 'Value cannot be empty' } }, 400)
+    }
+    if (trimmed.length > 500) {
+      return c.json({ error: { code: 'INVALID_INPUT', message: 'Value must be 500 characters or less' } }, 400)
+    }
+    body.value = trimmed
+  }
 
   const updated = updateContactIdentifier(identifierId, body)
   if (!updated) {
@@ -252,7 +291,15 @@ contactRoutes.post('/:id/notes', async (c) => {
     )
   }
 
-  const note = setContactNote(contactId, kinId, scope, content.trim())
+  const trimmedContent = content.trim()
+  if (trimmedContent.length > 10000) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'Note content must be 10,000 characters or less' } },
+      400,
+    )
+  }
+
+  const note = setContactNote(contactId, kinId, scope, trimmedContent)
   return c.json({ note }, 201)
 })
 
@@ -268,7 +315,15 @@ contactRoutes.patch('/:id/notes/:noteId', async (c) => {
     )
   }
 
-  const updated = updateContactNote(noteId, content.trim())
+  const trimmedContent = content.trim()
+  if (trimmedContent.length > 10000) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'Note content must be 10,000 characters or less' } },
+      400,
+    )
+  }
+
+  const updated = updateContactNote(noteId, trimmedContent)
   if (!updated) {
     return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
   }

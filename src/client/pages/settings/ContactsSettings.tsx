@@ -25,8 +25,8 @@ export function ContactsSettings() {
     try {
       const data = await api.get<{ contacts: ContactData[] }>('/contacts')
       setContacts(data.contacts)
-    } catch {
-      // Ignore
+    } catch (err) {
+      toast.error(t('contacts.fetchError', 'Failed to load contacts'))
     } finally {
       setIsLoading(false)
     }

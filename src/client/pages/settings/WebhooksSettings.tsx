@@ -59,8 +59,8 @@ export function WebhooksSettings() {
     try {
       const data = await api.get<{ webhooks: WebhookSummary[] }>('/webhooks')
       setWebhooks(data.webhooks)
-    } catch {
-      // Ignore
+    } catch (err) {
+      toast.error(t('webhooks.fetchError', 'Failed to load webhooks'))
     } finally {
       setIsLoading(false)
     }
