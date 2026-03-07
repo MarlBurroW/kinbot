@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router'
 import {
   Search,
   Zap,
@@ -11,7 +12,6 @@ import {
   Github,
   ArrowRight,
   BarChart3,
-  Image,
   Layers,
   Users,
   DollarSign,
@@ -30,26 +30,34 @@ interface PaletteItem {
   keywords: string[]
 }
 
-const sections: Omit<PaletteItem, 'action'>[] = [
+interface SectionDef {
+  id: string
+  label: string
+  description: string
+  icon: Icon
+  keywords: string[]
+  route?: string // if set, navigate to this route instead of scrolling
+}
+
+const sections: SectionDef[] = [
   { id: 'hero', label: 'Home', description: 'Back to the top', icon: Zap, keywords: ['home', 'top', 'start', 'hero'] },
   { id: 'demo', label: 'Interactive Demo', description: 'Watch simulated conversations', icon: Zap, keywords: ['demo', 'interactive', 'try', 'simulation', 'chat'] },
   { id: 'what-is-a-kin', label: 'What is a Kin?', description: 'Core concept explained', icon: Users, keywords: ['kin', 'agent', 'concept', 'what'] },
-  { id: 'features', label: 'Features', description: 'Core capabilities', icon: Zap, keywords: ['features', 'capabilities'] },
-  { id: 'tools', label: 'Built-in Tools', description: '90+ tools out of the box', icon: Zap, keywords: ['tools', 'built-in', 'recall', 'memorize', 'shell', 'cron', 'vault'] },
-  { id: 'memory', label: 'Memory', description: 'Persistent long-term memory system', icon: Zap, keywords: ['memory', 'remember', 'vector', 'search', 'context', 'persistent'] },
-  { id: 'mini-apps', label: 'Mini Apps', description: 'Agent-built interactive UIs', icon: Layers, keywords: ['mini apps', 'apps', 'ui', 'dashboard', 'react', 'sidebar'] },
-  { id: 'use-cases', label: 'Use Cases', description: 'What people are building', icon: Layers, keywords: ['use case', 'build', 'homelab', 'dev'] },
-  { id: 'plugins', label: 'Plugin System', description: 'Extend with tools, providers, channels, hooks', icon: Layers, keywords: ['plugin', 'extension', 'hook', 'registry', 'marketplace', 'hot reload'] },
-  { id: 'privacy', label: 'Privacy & Security', description: 'Self-hosted, zero telemetry, encrypted vault', icon: Zap, keywords: ['privacy', 'security', 'vault', 'encryption', 'self-hosted', 'telemetry'] },
-  { id: 'screenshots', label: 'Demo Videos', description: 'See KinBot in action', icon: Image, keywords: ['demo', 'video', 'screenshot', 'preview'] },
   { id: 'comparison', label: 'Comparison', description: 'vs ChatGPT, Open WebUI, etc.', icon: BarChart3, keywords: ['compare', 'versus', 'vs', 'alternative'] },
-  { id: 'providers', label: 'Providers', description: '23+ AI providers', icon: Cpu, keywords: ['provider', 'model', 'openai', 'anthropic', 'ollama', 'gemini'] },
-  { id: 'channels', label: 'Channels', description: 'Telegram, Discord, Slack...', icon: MessageSquare, keywords: ['channel', 'telegram', 'discord', 'slack', 'whatsapp', 'signal', 'matrix'] },
-  { id: 'architecture', label: 'Architecture', description: 'How it works under the hood', icon: Layout, keywords: ['architecture', 'stack', 'tech', 'sqlite', 'bun'] },
   { id: 'install', label: 'Install', description: 'Get started in minutes', icon: Download, keywords: ['install', 'setup', 'docker', 'download', 'get started'] },
-  { id: 'pricing', label: 'Pricing', description: 'Free & self-hosted', icon: DollarSign, keywords: ['pricing', 'cost', 'free', 'price'] },
-  { id: 'faq', label: 'FAQ', description: 'Common questions', icon: HelpCircle, keywords: ['faq', 'question', 'help', 'how'] },
-  { id: 'changelog', label: 'Changelog', description: 'Latest releases', icon: GitBranch, keywords: ['changelog', 'release', 'version', 'update', 'history'] },
+  { id: 'features', label: 'Features', description: 'Core capabilities', icon: Zap, keywords: ['features', 'capabilities'], route: '/features' },
+  { id: 'tools', label: 'Built-in Tools', description: '90+ tools out of the box', icon: Zap, keywords: ['tools', 'built-in', 'recall', 'memorize', 'shell', 'cron', 'vault'], route: '/features' },
+  { id: 'memory', label: 'Memory', description: 'Persistent long-term memory system', icon: Zap, keywords: ['memory', 'remember', 'vector', 'search', 'context', 'persistent'], route: '/features' },
+  { id: 'mini-apps', label: 'Mini Apps', description: 'Agent-built interactive UIs', icon: Layers, keywords: ['mini apps', 'apps', 'ui', 'dashboard', 'react', 'sidebar'], route: '/features' },
+  { id: 'use-cases', label: 'Use Cases', description: 'What people are building', icon: Layers, keywords: ['use case', 'build', 'homelab', 'dev'], route: '/features' },
+  { id: 'plugins', label: 'Plugin System', description: 'Extend with tools, providers, channels, hooks', icon: Layers, keywords: ['plugin', 'extension', 'hook', 'registry', 'marketplace', 'hot reload'], route: '/features' },
+  { id: 'providers', label: 'Providers', description: '23+ AI providers', icon: Cpu, keywords: ['provider', 'model', 'openai', 'anthropic', 'ollama', 'gemini'], route: '/features' },
+  { id: 'channels', label: 'Channels', description: 'Telegram, Discord, Slack...', icon: MessageSquare, keywords: ['channel', 'telegram', 'discord', 'slack', 'whatsapp', 'signal', 'matrix'], route: '/features' },
+  { id: 'architecture', label: 'Architecture', description: 'How it works under the hood', icon: Layout, keywords: ['architecture', 'stack', 'tech', 'sqlite', 'bun'], route: '/architecture' },
+  { id: 'privacy', label: 'Privacy & Security', description: 'Self-hosted, zero telemetry, encrypted vault', icon: Zap, keywords: ['privacy', 'security', 'vault', 'encryption', 'self-hosted', 'telemetry'], route: '/architecture' },
+  { id: 'faq', label: 'FAQ', description: 'Common questions', icon: HelpCircle, keywords: ['faq', 'question', 'help', 'how'], route: '/faq' },
+  { id: 'pricing', label: 'Pricing', description: 'Free & self-hosted', icon: DollarSign, keywords: ['pricing', 'cost', 'free', 'price'], route: '/faq' },
+  { id: 'changelog', label: 'Changelog', description: 'Latest releases', icon: GitBranch, keywords: ['changelog', 'release', 'version', 'update', 'history'], route: '/changelog' },
 ]
 
 const externalLinks: Omit<PaletteItem, 'action'>[] = [
@@ -90,6 +98,21 @@ export function CommandPalette() {
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+
+  const goToSection = useCallback((s: SectionDef) => {
+    if (s.route) {
+      navigate(s.route)
+      // After navigation, scroll to the section
+      setTimeout(() => {
+        const el = document.getElementById(s.id)
+        if (el) el.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    } else {
+      scrollToSection(s.id)
+    }
+    setOpen(false)
+  }, [navigate])
 
   // Cmd+K / Ctrl+K to open
   useEffect(() => {
@@ -124,14 +147,14 @@ export function CommandPalette() {
   const items = useMemo<PaletteItem[]>(() => {
     const sectionItems: PaletteItem[] = sections.map(s => ({
       ...s,
-      action: () => { scrollToSection(s.id); setOpen(false) },
+      action: () => goToSection(s),
     }))
     const extItems: PaletteItem[] = externalLinks.map(s => ({
       ...s,
       action: () => { openExternal(s.id); setOpen(false) },
     }))
     return [...sectionItems, ...extItems]
-  }, [])
+  }, [goToSection])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items

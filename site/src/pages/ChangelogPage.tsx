@@ -1,8 +1,18 @@
+import { Suspense, lazy } from 'react'
+import { ScrollReveal } from '../components/ScrollReveal'
+
+const Changelog = lazy(() => import('../components/Changelog').then(m => ({ default: m.Changelog })))
+
+function SectionFallback() {
+  return <div className="py-24" />
+}
+
 export function ChangelogPage() {
   return (
-    <div className="container-lg pt-32 pb-24">
-      <h1 className="text-4xl font-bold text-white mb-8">Changelog</h1>
-      <p className="text-white/60">Coming soon. Sections will be moved here from the homepage.</p>
+    <div className="pt-24">
+      <Suspense fallback={<SectionFallback />}>
+        <ScrollReveal><Changelog /></ScrollReveal>
+      </Suspense>
     </div>
   )
 }

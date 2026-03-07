@@ -1,8 +1,24 @@
+import { Suspense, lazy } from 'react'
+import { ScrollReveal } from '../components/ScrollReveal'
+import { SectionDivider } from '../components/SectionDivider'
+
+const FAQ = lazy(() => import('../components/FAQ').then(m => ({ default: m.FAQ })))
+const Pricing = lazy(() => import('../components/Pricing').then(m => ({ default: m.Pricing })))
+
+function SectionFallback() {
+  return <div className="py-24" />
+}
+
 export function FAQPage() {
   return (
-    <div className="container-lg pt-32 pb-24">
-      <h1 className="text-4xl font-bold text-white mb-8">FAQ</h1>
-      <p className="text-white/60">Coming soon. Sections will be moved here from the homepage.</p>
+    <div className="pt-24">
+      <Suspense fallback={<SectionFallback />}>
+        <ScrollReveal><FAQ /></ScrollReveal>
+      </Suspense>
+      <SectionDivider variant="glow" />
+      <Suspense fallback={<SectionFallback />}>
+        <ScrollReveal><Pricing /></ScrollReveal>
+      </Suspense>
     </div>
   )
 }
