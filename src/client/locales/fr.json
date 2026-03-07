@@ -541,6 +541,7 @@
       "showLess": "Voir moins"
     },
     "charCount": "{{count}} caractères",
+    "messageTooLong": "{{count}} / {{max}} — message trop long",
     "mention": {
       "users": "Utilisateur",
       "kins": "Kin",

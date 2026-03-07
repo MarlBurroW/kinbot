@@ -6,6 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/
 import { cn } from '@/client/lib/utils'
 import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2, Bold, Italic, Strikethrough, Code, Braces } from 'lucide-react'
 import { useInputHistory } from '@/client/hooks/useInputHistory'
+import { MAX_MESSAGE_LENGTH } from '@/shared/constants'
 import { MentionPopover, getMentionItemCount, getMentionItemAt, type MentionItem } from '@/client/components/chat/MentionPopover'
 import type { MentionableUser, MentionableKin } from '@/client/hooks/useMentionables'
 import type { PendingFile } from '@/client/hooks/useFileUpload'
@@ -126,7 +127,7 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
 
   const handleSubmit = () => {
     const trimmed = value.trim()
-    if ((!trimmed && !hasPendingFiles) || disabled || isStreaming || isUploading) return
+    if ((!trimmed && !hasPendingFiles) || disabled || isStreaming || isUploading || trimmed.length > MAX_MESSAGE_LENGTH) return
     history.push(trimmed)
     onSend(trimmed, readyFileIds?.length ? readyFileIds : undefined)
   }
@@ -470,7 +471,7 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={disabled || isUploading || (!value.trim() && !hasPendingFiles)}
+              disabled={disabled || isUploading || (!value.trim() && !hasPendingFiles) || value.length > MAX_MESSAGE_LENGTH}
               size="icon"
               className="shrink-0"
             >
@@ -484,13 +485,17 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
           <div className="mt-1 flex justify-end px-1">
             <span className={cn(
               'text-[10px] tabular-nums transition-colors',
-              value.length > 4000
-                ? 'text-destructive'
-                : value.length > 2000
-                  ? 'text-warning'
-                  : 'text-muted-foreground/50',
+              value.length > MAX_MESSAGE_LENGTH
+                ? 'text-destructive font-medium'
+                : value.length > MAX_MESSAGE_LENGTH * 0.75
+                  ? 'text-destructive'
+                  : value.length > MAX_MESSAGE_LENGTH * 0.5
+                    ? 'text-warning'
+                    : 'text-muted-foreground/50',
             )}>
-              {t('chat.charCount', { count: value.length })}
+              {value.length > MAX_MESSAGE_LENGTH
+                ? t('chat.messageTooLong', { count: value.length, max: MAX_MESSAGE_LENGTH })
+                : t('chat.charCount', { count: value.length })}
             </span>
           </div>
         )}

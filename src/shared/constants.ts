@@ -2,6 +2,9 @@
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr'] as const
 
+/** Maximum length (in characters) for a user message. Enforced server-side. */
+export const MAX_MESSAGE_LENGTH = 32_000
+
 // ---------------------------------------------------------------------------
 // Provider constants — all derived from PROVIDER_META (single source of truth)
 // To add a provider: add one entry to src/shared/provider-metadata.ts

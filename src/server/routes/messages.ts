@@ -10,6 +10,7 @@ import { resolveKinId } from '@/server/services/kin-resolver'
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import type { AppVariables } from '@/server/app'
 import { createLogger } from '@/server/logger'
+import { MAX_MESSAGE_LENGTH } from '@/shared/constants'
 
 const log = createLogger('routes:messages')
 const messageRoutes = new Hono<{ Variables: AppVariables }>()
@@ -28,6 +29,10 @@ messageRoutes.post('/', async (c) => {
 
   if (!content?.trim() && !hasFiles) {
     return c.json({ error: { code: 'EMPTY_MESSAGE', message: 'Message content or files required' } }, 400)
+  }
+
+  if (content && content.length > MAX_MESSAGE_LENGTH) {
+    return c.json({ error: { code: 'MESSAGE_TOO_LONG', message: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` } }, 400)
   }
 
   // Enqueue the message (clean content — pseudonym prefix is added by kin-engine for LLM context)
