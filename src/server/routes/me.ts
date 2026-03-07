@@ -168,11 +168,11 @@ meRoutes.post('/avatar', async (c) => {
     )
   }
 
-  // Validate file size (max 2MB)
-  const MAX_AVATAR_SIZE = 2 * 1024 * 1024
+  // Safety-net file size limit (client already crops to 512x512 JPEG ~50-150KB)
+  const MAX_AVATAR_SIZE = 10 * 1024 * 1024
   if (file.size > MAX_AVATAR_SIZE) {
     return c.json(
-      { error: { code: 'FILE_TOO_LARGE', message: 'Avatar must be under 2MB' } },
+      { error: { code: 'FILE_TOO_LARGE', message: 'Avatar must be under 10MB' } },
       400,
     )
   }

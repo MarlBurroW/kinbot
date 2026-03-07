@@ -544,6 +544,15 @@ kinRoutes.post('/:id/avatar', async (c) => {
     return c.json({ error: { code: 'INVALID_FILE', message: 'No file provided' } }, 400)
   }
 
+  // Safety-net file size limit (client already crops to 512x512 JPEG ~50-150KB)
+  const MAX_AVATAR_SIZE = 10 * 1024 * 1024
+  if (file.size > MAX_AVATAR_SIZE) {
+    return c.json(
+      { error: { code: 'FILE_TOO_LARGE', message: 'Avatar must be under 10MB' } },
+      400,
+    )
+  }
+
   const avatarDir = `${config.upload.dir}/kins/${id}`
   if (!existsSync(avatarDir)) {
     mkdirSync(avatarDir, { recursive: true })
