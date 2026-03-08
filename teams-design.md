@@ -435,3 +435,19 @@ Le MVP (phases 1-3) apporte déjà 80% de la valeur : l'utilisateur peut créer 
 - Build passes, all 2438 tests pass
 - Commit: `88abc83` on `feat/teams`
 - **MVP complete (Phases 1-3)! Next: Phase 4 (Shared team memory)**
+
+### Phase 4 - DONE (2026-03-08, cron run #4)
+- Added `team_memories` table to Drizzle schema with embedding, category, subject, importance, retrieval tracking
+- Generated migration `0040_little_silverclaw.sql`
+- Added FTS5 virtual table (`team_memories_fts`) and sqlite-vec table (`team_memories_vec`) with sync triggers in `db/index.ts`
+- Created `src/server/services/team-memory.ts`: full CRUD + hybrid search (semantic + FTS5 with RRF fusion + importance weighting)
+- Created `src/server/tools/team-memory-tools.ts`: 5 opt-in tools (`team_recall`, `team_memorize`, `update_team_memory`, `forget_team_memory`, `list_team_memories`) with auto team resolution
+- Registered tools in `register.ts` (all `defaultDisabled: true`, enabled when Kin joins a team)
+- Modified `kin-engine.ts`: fetches relevant team memories for all teams, passes to prompt builder
+- Modified `prompt-builder.ts`: new `relevantTeamMemories` param, renders `[5.1] Team memories` block per team
+- Added API routes in `teams.ts`: GET/POST/PATCH/DELETE for `/api/teams/:id/memories` with search support (`?q=...`)
+- Added i18n keys (en + fr) for team memories UI strings
+- 18 unit tests passing (FTS query building, importance weighting, RRF scoring, input validation, team resolution)
+- Build passes, all 2478 tests pass
+- Commit: `eb99892` on `feat/teams`
+- **Next: Phase 5 (Shared knowledge base)**
