@@ -38,12 +38,15 @@ categories:
       - 'tools'
       - 'custom-tools'
       - 'cron'
+      - 'wakeups'
       - 'webhooks'
       - 'mcp'
       - 'image-generation'
-  - title: '🔒 Security'
+      - 'web-browsing'
+  - title: '🔒 Security & Vault'
     labels:
       - 'security'
+      - 'vault'
   - title: '🐳 Docker'
     labels:
       - 'docker'
