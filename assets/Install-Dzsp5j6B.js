@@ -1,4 +1,4 @@
-import{r as i,j as o}from"./vendor-react-Ah1pgjPn.js";import{F as c,c as d,s as m,t as u,w as p,l as x,m as h}from"./vendor-icons-B-aOT1DE.js";const g=[{id:"script",label:"One-liner"},{id:"docker",label:"Docker"},{id:"compose",label:"Compose"},{id:"manual",label:"Manual"}],v={script:`curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash
+import{r as i,j as o}from"./vendor-react-Ah1pgjPn.js";import{F as c,c as d,v as m,o as u,y as p,l as x,m as h}from"./vendor-icons-BKV7kGyc.js";const g=[{id:"script",label:"One-liner"},{id:"docker",label:"Docker"},{id:"compose",label:"Compose"},{id:"manual",label:"Manual"}],v={script:`curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash
 
 # Customizable via env vars:
 # KINBOT_DIR=/opt/kinbot \\
