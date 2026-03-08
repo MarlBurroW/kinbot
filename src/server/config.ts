@@ -84,6 +84,7 @@ export const config = {
     categoryBoost: Number(process.env.MEMORY_CATEGORY_BOOST ?? 1.25),
     contextualRewriteModel: process.env.MEMORY_CONTEXTUAL_REWRITE_MODEL ?? undefined,
     contextualRewriteThreshold: Number(process.env.MEMORY_CONTEXTUAL_REWRITE_THRESHOLD ?? 80),
+    tokenBudget: Number(process.env.MEMORY_TOKEN_BUDGET || 0), // 0 = unlimited (no budget enforcement)
   },
 
   queue: {
