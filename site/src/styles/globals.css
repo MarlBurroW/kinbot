@@ -104,6 +104,55 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  position: relative;
+}
+
+/* Shimmer sweep on gradient text */
+.gradient-text-shimmer {
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-mid) 50%,
+    var(--color-gradient-end) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-text-shimmer::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 25%,
+    oklch(0.95 0.05 310 / 0.6) 45%,
+    oklch(1 0 0 / 0.8) 50%,
+    oklch(0.95 0.05 310 / 0.6) 55%,
+    transparent 75%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-sweep 6s ease-in-out infinite;
+  animation-delay: 2s;
+  pointer-events: none;
+}
+
+@keyframes shimmer-sweep {
+  0%, 100% { background-position: 200% center; }
+  40%, 60% { background-position: -50% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-text-shimmer::after {
+    animation: none;
+    display: none;
+  }
 }
 
 /* ─── GLASS ───────────────────────────────────────────── */
