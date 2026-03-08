@@ -53,6 +53,7 @@ export function ChatPage() {
     generateAvatarPreviewFromConfig,
     hasImageCapability,
     reorderKins,
+    fetchContextUsage,
     refetch: refetchKins,
     refetchModels,
   } = useKins()
@@ -147,6 +148,13 @@ export function ChatPage() {
   }, [updateKin])
 
   const selectedKin = kins.find((k) => k.slug === selectedKinSlug)
+
+  // Fetch context usage when selecting a kin so the token counter is populated immediately
+  useEffect(() => {
+    if (selectedKin?.id) {
+      fetchContextUsage(selectedKin.id)
+    }
+  }, [selectedKin?.id, fetchContextUsage])
 
   // Dynamic browser tab title — shows selected Kin name + processing state
   const selectedKinProcessing = selectedKin
