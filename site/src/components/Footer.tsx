@@ -1,11 +1,11 @@
+import { Link } from 'react-router'
 import { Github, ExternalLink, Heart } from 'lucide-react'
 
 const productLinks = [
-  { label: 'Features', href: '#features' },
-  { label: 'Providers', href: '#providers' },
-  { label: 'Architecture', href: '#architecture' },
-  { label: 'Install', href: '#install' },
-  { label: 'Changelog', href: '#changelog' },
+  { label: 'Features', to: '/features' },
+  { label: 'Architecture', to: '/architecture' },
+  { label: 'Changelog', to: '/changelog' },
+  { label: 'FAQ', to: '/faq' },
 ]
 
 const resourceLinks = [
@@ -40,18 +40,47 @@ const techStack = [
   { name: 'Vercel AI SDK', url: 'https://sdk.vercel.ai' },
 ]
 
-function FooterColumn({ title, links, external = false }: { title: string; links: { label: string; href: string }[]; external?: boolean }) {
+function FooterColumnHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="text-xs font-semibold uppercase tracking-wider mb-4"
+      style={{ color: 'var(--color-muted-foreground)' }}
+    >
+      {children}
+    </p>
+  )
+}
+
+function FooterInternalColumn({ title, links }: { title: string; links: { label: string; to: string }[] }) {
   return (
     <div>
-      <p
-        className="text-xs font-semibold uppercase tracking-wider mb-4"
-        style={{ color: 'var(--color-muted-foreground)' }}
-      >
-        {title}
-      </p>
+      <FooterColumnHeading>{title}</FooterColumnHeading>
+      <ul className="space-y-2.5">
+        {links.map(({ label, to }) => (
+          <li key={label}>
+            <Link
+              to={to}
+              className="inline-flex items-center gap-1 text-sm transition-colors duration-200"
+              style={{ color: 'var(--color-muted-foreground)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-primary)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)' }}
+            >
+              {label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function FooterExternalColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+  return (
+    <div>
+      <FooterColumnHeading>{title}</FooterColumnHeading>
       <ul className="space-y-2.5">
         {links.map(({ label, href }) => {
-          const isExternal = external || href.startsWith('http')
+          const isExternal = href.startsWith('http')
           return (
             <li key={label}>
               <a
@@ -108,9 +137,9 @@ export function Footer() {
             </a>
           </div>
 
-          <FooterColumn title="Product" links={productLinks} />
-          <FooterColumn title="Resources" links={resourceLinks} external />
-          <FooterColumn title="Community" links={communityLinks} external />
+          <FooterInternalColumn title="Product" links={productLinks} />
+          <FooterExternalColumn title="Resources" links={resourceLinks} />
+          <FooterExternalColumn title="Community" links={communityLinks} />
         </div>
 
         {/* Tech stack */}
