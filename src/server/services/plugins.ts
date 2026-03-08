@@ -1506,6 +1506,23 @@ class PluginManager {
       const mvProc = Bun.spawn(['mv', join(tempDir, 'node_modules', packageName), pluginDir], { stdout: 'pipe', stderr: 'pipe' })
       await mvProc.exited
       await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+    } else if (source === 'store') {
+      // Re-copy from store directory
+      const storeDir = resolve(process.cwd(), 'store', name)
+      try {
+        await access(join(storeDir, 'plugin.json'))
+      } catch {
+        throw new Error(`Store plugin "${name}" no longer exists in store/`)
+      }
+
+      // Remove old and copy fresh
+      await rm(pluginDir, { recursive: true, force: true })
+      const cpProc = Bun.spawn(['cp', '-r', storeDir, pluginDir], { stdout: 'pipe', stderr: 'pipe' })
+      const cpExit = await cpProc.exited
+      if (cpExit !== 0) {
+        const stderr = await new Response(cpProc.stderr).text()
+        throw new Error(`Failed to copy store plugin: ${stderr.trim()}`)
+      }
     } else {
       throw new Error('Cannot update a local plugin')
     }
@@ -1550,6 +1567,62 @@ class PluginManager {
     })
 
     log.info({ plugin: name, version: manifest.version }, 'Plugin updated')
+  }
+
+  // ─── Update Checks ─────────────────────────────────────────────────────────
+
+  /** Check which installed plugins have updates available */
+  async checkUpdates(): Promise<Array<{ name: string; currentVersion: string; availableVersion: string; source: PluginInstallSource }>> {
+    const updates: Array<{ name: string; currentVersion: string; availableVersion: string; source: PluginInstallSource }> = []
+
+    for (const [name, plugin] of this.plugins) {
+      const source = plugin.installSource
+      if (!source || source === 'local') continue
+
+      try {
+        if (source === 'store') {
+          const storeManifestPath = join(resolve(process.cwd(), 'store', name), 'plugin.json')
+          try {
+            const raw = await readFile(storeManifestPath, 'utf-8')
+            const storeManifest = JSON.parse(raw) as PluginManifest
+            if (storeManifest.version !== plugin.manifest.version) {
+              updates.push({
+                name,
+                currentVersion: plugin.manifest.version,
+                availableVersion: storeManifest.version,
+                source,
+              })
+            }
+          } catch {
+            // Store plugin removed or unreadable, skip
+          }
+        } else if (source === 'git') {
+          // Check remote for newer commits via git fetch --dry-run
+          const pluginDir = join(this.pluginsDir, name)
+          const proc = Bun.spawn(['git', 'fetch', '--dry-run'], {
+            cwd: pluginDir,
+            stdout: 'pipe',
+            stderr: 'pipe',
+          })
+          const exitCode = await proc.exited
+          const stderr = await new Response(proc.stderr).text()
+          // If fetch --dry-run outputs anything to stderr, there are remote changes
+          if (exitCode === 0 && stderr.trim().length > 0) {
+            updates.push({
+              name,
+              currentVersion: plugin.manifest.version,
+              availableVersion: 'newer commit available',
+              source,
+            })
+          }
+        }
+        // npm: would need registry check, skip for now
+      } catch {
+        // Skip plugins that fail update check
+      }
+    }
+
+    return updates
   }
 
   // ─── Hot Reload (File Watcher) ───────────────────────────────────────────

@@ -188,7 +188,7 @@ pluginRoutes.get('/', async (c) => {
 pluginRoutes.get('/:name', async (c) => {
   const { name } = c.req.param()
   // Avoid matching sub-routes like "registry", "store", "version", "reload"
-  if (['registry', 'store', 'version', 'reload'].includes(name)) return c.notFound()
+  if (['registry', 'store', 'version', 'reload', 'updates', 'install'].includes(name)) return c.notFound()
   const plugins = pluginManager.listPlugins()
   const plugin = plugins.find(p => p.name === name)
   if (!plugin) {
@@ -265,6 +265,17 @@ pluginRoutes.post('/:name/health/reset', requireAdmin, async (c) => {
     return c.json({ success: true })
   } catch (err) {
     return c.json({ error: { code: 'HEALTH_RESET_FAILED', message: err instanceof Error ? err.message : 'Failed to reset health' } }, 400)
+  }
+})
+
+// GET /api/plugins/updates — check for available plugin updates
+pluginRoutes.get('/updates', async (c) => {
+  try {
+    const updates = await pluginManager.checkUpdates()
+    return c.json({ updates })
+  } catch (err) {
+    log.error({ err }, 'Failed to check plugin updates')
+    return c.json({ error: { code: 'UPDATE_CHECK_FAILED', message: 'Failed to check for updates' } }, 500)
   }
 })
 
