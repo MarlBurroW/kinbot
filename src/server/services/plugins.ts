@@ -672,6 +672,11 @@ class PluginManager {
       await this.deactivatePlugin(name)
       await this.activatePlugin(name)
     }
+
+    sseManager.broadcast({
+      type: 'plugin:configUpdated',
+      data: { name },
+    })
   }
 
   // ─── Public API ────────────────────────────────────────────────────────────
@@ -682,6 +687,11 @@ class PluginManager {
 
     await this.setState(name, true)
     await this.activatePlugin(name)
+
+    sseManager.broadcast({
+      type: 'plugin:enabled',
+      data: { name, version: plugin.manifest.version },
+    })
   }
 
   async disablePlugin(name: string): Promise<void> {
@@ -690,6 +700,11 @@ class PluginManager {
 
     await this.setState(name, false)
     await this.deactivatePlugin(name)
+
+    sseManager.broadcast({
+      type: 'plugin:disabled',
+      data: { name },
+    })
   }
 
   /** List all discovered plugins as summaries */
@@ -1161,7 +1176,8 @@ class PluginManager {
     const manifest = data as PluginManifest
 
     // Deactivate and re-activate
-    if (plugin.enabled) {
+    const wasEnabled = plugin.enabled
+    if (wasEnabled) {
       await this.deactivatePlugin(name)
     }
 
@@ -1177,8 +1193,8 @@ class PluginManager {
       updatedAt: now,
     }).where(eq(pluginStates.name, name))
 
-    // Re-activate if was enabled
-    if (plugin.enabled || true) {
+    // Re-activate if was enabled before the update
+    if (wasEnabled) {
       await this.activatePlugin(name)
       await this.setState(name, true)
     }
