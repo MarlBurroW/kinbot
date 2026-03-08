@@ -172,3 +172,63 @@
 - Monitor if any cron has become redundant now that docs site is complete
 - Check if kinbot-ci-watchdog really needs Opus
 - Verify rate limiting improves with one fewer active cron
+
+## 2026-03-08 07:00 UTC
+### Audit summary
+- **Active KinBot crons:** 19 (+ 4 non-KinBot: PinchChat, woodbrass-reply-check, reddit-token-refresh, bot-chronicles)
+- **New since last audit:** `kinbot-teams` (2h, Opus, feat/teams branch) — Phase 1 done, Phase 2 in progress
+
+### Healthy (productive, no issues)
+- **kinbot-add-tests** (2h, Opus, 900s) — Very productive. Adding tests across multiple spec files. 188-465s runs.
+- **kinbot-plugin-improve** (2h, Opus) — Steady. Plugin dependency management, version compat. 333s runs.
+- **kinbot-community** (1h, Opus, 600s) — Quick runs (~12s when nothing open). Responsive.
+- **kinbot-ci-watchdog** (3h, Opus) — Fast 8s "CI green" checks. Working perfectly.
+- **kinbot-memory-research** (3h, Opus, 600s) — Deep R&D. Query intent detection implemented. 255s runs.
+- **kinbot-github-maintenance** (4h, Opus) — Good hygiene. 162s runs.
+- **kinbot-improve-site** (4h, Opus, 600s) — Landing page polish. 188s runs.
+- **kinbot-qa-explorer** (4h, Opus, 900s) — Finding real bugs, creating issues. 176s runs.
+- **kinbot-promo** (4x/day, Opus) — Active on GitHub, Reddit. 132s runs.
+- **kinbot-release** (3x/day, Opus) — v0.14+ shipping. 205s runs.
+- **kinbot-improve-cli** (6h, Opus, 600s) — CLI installer improvements. 340s runs.
+- **kinbot-docs-content** (6h, Opus, 600s) — Docs accuracy reviews. 96s runs.
+- **kinbot-sse-reactivity** (12h, Opus) — SSE event fixes. 180s runs.
+- **kinbot-teams** (2h, Opus, 900s) — NEW. Phase 1 (schema+CRUD) done in first run, Phase 2 (frontend) in progress. 462-562s runs.
+
+### Issues found & actions taken
+
+1. **kinbot-i18n-audit: NOTHING TO FIX for 20+ consecutive runs** ⚠️
+   - Every single run says "i18n is in excellent shape, nothing to fix". The codebase has 1200+ keys perfectly synced.
+   - Was running every 12h on Opus, burning tokens for "no changes needed" reports.
+   - **Action: Changed interval from 12h to 48h.** i18n only needs checking after significant feature batches land.
+
+2. **kinbot-consistency-guardian: NOTHING TO FIX for 10+ consecutive runs** ⚠️
+   - Keeps auditing all 5 focus areas and finding "codebase is well-factored, nothing to extract". Occasionally finds minor things.
+   - Was running every 12h on Opus.
+   - **Action: Changed interval from 12h to 48h.** Same rationale — only useful after significant new code lands.
+
+3. **kinbot-e2e-tests: FREQUENT TIMEOUTS at 600s** ⚠️
+   - ~40% of runs timeout. When it works, runs take 150-520s. But Playwright operations are slow and the agent sometimes runs the full suite despite being told not to.
+   - **Action: Increased timeout from 600s to 900s.** Prompt already says not to run full suite, but extra buffer helps.
+
+### Proposals (for Nicolas to decide)
+
+1. **Model downgrade: kinbot-ci-watchdog** → Gemini Flash (7th time proposing). 95%+ runs are "CI is green" in 8s. Opus is massive overkill.
+
+2. **Model downgrade: kinbot-i18n-audit** → Gemini Flash. When it does find something, it's simple string replacements. Doesn't need Opus reasoning.
+
+3. **Model downgrade: kinbot-consistency-guardian** → Gemini Flash. Mostly grep + pattern matching. Doesn't need Opus.
+
+4. **`.marlbot-context.md` still missing** (7th time noting). Every KinBot cron references it in its prompt.
+
+5. **kinbot-teams using 900s timeout** — The 562s Phase 2 run suggests this is appropriate, but monitor. If it consistently finishes under 300s once the feature stabilizes, reduce.
+
+### Cost analysis
+- 19 active KinBot crons on Opus = significant daily cost
+- i18n-audit + consistency-guardian were burning ~4 Opus runs/day combined for zero output. Now reduced to ~1 run/2 days each. Saves ~3.5 Opus runs/day.
+- kinbot-community runs complete in 12s most of the time (nothing to do). Could also benefit from model downgrade when idle.
+
+### Next audit focus
+- Monitor kinbot-teams for timeout issues as Phase 2 progresses
+- Check if kinbot-e2e-tests stops timing out with 900s
+- Verify i18n and consistency at 48h interval still catch issues when features land
+- Push harder on ci-watchdog model downgrade — it's the most obvious cost saving
