@@ -80,6 +80,7 @@ export interface KinRecord {
   providerId: string | null
   workspacePath: string
   toolConfig: string | null
+  compactingConfig: string | null
   createdBy: string | null
   createdAt: Date
   updatedAt: Date
