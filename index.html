@@ -49,13 +49,28 @@
     <link rel="dns-prefetch" href="https://cdn.simpleicons.org" />
     <link rel="preload" href="/kinbot/kinbot.svg" as="image" type="image/svg+xml" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/kinbot/assets/index-e_cJPTwD.js"></script>
+    <script type="module" crossorigin src="/kinbot/assets/index-jYfzXCWY.js"></script>
     <link rel="modulepreload" crossorigin href="/kinbot/assets/vendor-react-Ah1pgjPn.js">
     <link rel="modulepreload" crossorigin href="/kinbot/assets/vendor-provider-icons-CR9wDs0h.js">
     <link rel="modulepreload" crossorigin href="/kinbot/assets/vendor-icons-BKV7kGyc.js">
     <link rel="stylesheet" crossorigin href="/kinbot/assets/index-CU_R6ymq.css">
   </head>
   <body>
+    <!-- Splash loader: hides content until React mounts -->
+    <div id="splash-loader" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#09090b;transition:opacity 0.4s ease,visibility 0.4s ease">
+      <div style="text-align:center">
+        <img src="/kinbot/kinbot.svg" alt="" width="64" height="64" style="border-radius:16px;animation:splash-pulse 1.8s ease-in-out infinite" />
+        <div style="margin-top:16px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">KinBot</div>
+      </div>
+      <style>@keyframes splash-pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}</style>
+    </div>
+    <script>
+      (function(){
+        var t=localStorage.getItem('kinbot-site-theme');
+        var dark=t?t==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;
+        document.getElementById('splash-loader').style.background=dark?'#09090b':'#ffffff';
+      })();
+    </script>
     <div id="root"></div>
     <noscript>
       <div style="max-width:800px;margin:4rem auto;padding:0 1.5rem;font-family:system-ui,sans-serif;color:#e2e8f0">
