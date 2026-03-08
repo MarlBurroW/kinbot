@@ -238,27 +238,29 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     return () => viewport.removeEventListener('scroll', checkNearBottom)
   }, [checkNearBottom])
 
-  // Re-evaluate nearBottom when the viewport resizes (e.g. queue preview appearing/disappearing).
-  // If the user was at the bottom before the resize, preserve that status so the normal
-  // auto-scroll effect (which uses smooth scrolling) keeps working correctly.
+  // Compensate scroll position when the viewport height changes (e.g. queue preview
+  // appearing/disappearing). Without this, a viewport shrink pushes the user away from
+  // the bottom and breaks auto-scroll. We adjust scrollTop by the exact delta so the
+  // user stays at the same visual position — no jumps, no race conditions.
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
     if (!scrollArea) return
     const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
     if (!viewport) return
+    let prevHeight = viewport.clientHeight
     const observer = new ResizeObserver(() => {
-      const wasNearBottom = isNearBottomRef.current
-      checkNearBottom()
-      if (wasNearBottom && autoScroll) {
-        // The viewport shrank (e.g. queue preview appeared) but the user was at the bottom —
-        // keep the ref true so auto-scroll continues to work, and scroll to stay pinned.
-        isNearBottomRef.current = true
-        viewport.scrollTop = viewport.scrollHeight
+      const newHeight = viewport.clientHeight
+      const delta = prevHeight - newHeight // positive when viewport shrinks
+      prevHeight = newHeight
+      if (delta > 0 && isNearBottomRef.current) {
+        // Viewport shrunk while user was near bottom — compensate so they stay pinned
+        viewport.scrollTop += delta
       }
+      checkNearBottom()
     })
     observer.observe(viewport)
     return () => observer.disconnect()
-  }, [checkNearBottom, autoScroll])
+  }, [checkNearBottom])
 
   // IntersectionObserver — trigger loading older messages when top sentinel is visible
   useEffect(() => {
