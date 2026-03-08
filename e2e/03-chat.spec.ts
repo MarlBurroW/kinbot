@@ -174,7 +174,7 @@ test.describe.serial('Chat flow', () => {
     const toolsHeading = page.getByRole('heading', { name: 'Tool Calls' })
 
     // Click wrench button to toggle
-    const toolsButton = page.locator('button:has(svg.lucide-wrench)')
+    const toolsButton = page.locator('button:has(svg.lucide-wrench)').first()
     await expect(toolsButton).toBeVisible({ timeout: 5_000 })
     await toolsButton.click()
 
