@@ -50,6 +50,7 @@ import {
   Package,
   FolderOpen,
   Loader2,
+  HeartPulse,
 } from 'lucide-react'
 import type { PluginSummary, PluginConfigField } from '@/shared/types/plugin'
 
@@ -75,6 +76,9 @@ export function PluginsSettings() {
 
   // Update state
   const [updatingPlugin, setUpdatingPlugin] = useState<string | null>(null)
+
+  // Health reset state
+  const [resettingHealth, setResettingHealth] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPlugins()
@@ -164,6 +168,19 @@ export function PluginsSettings() {
       toastError(err)
     } finally {
       setUpdatingPlugin(null)
+    }
+  }
+
+  const handleResetHealth = async (name: string) => {
+    setResettingHealth(name)
+    try {
+      await api.post(`/plugins/${name}/health/reset`)
+      toast.success(t('settings.plugins.healthReset', 'Health stats reset'))
+      await fetchPlugins()
+    } catch (err) {
+      toastError(err)
+    } finally {
+      setResettingHealth(null)
     }
   }
 
@@ -395,6 +412,22 @@ export function PluginsSettings() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
+                  {/* Health reset button */}
+                  {plugin.health?.totalErrors > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleResetHealth(plugin.name)}
+                      disabled={resettingHealth === plugin.name}
+                      title={t('settings.plugins.resetHealth', 'Reset health stats')}
+                    >
+                      {resettingHealth === plugin.name ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <HeartPulse className="size-4" />
+                      )}
+                    </Button>
+                  )}
                   {/* Update button for git/npm plugins */}
                   {(plugin.installSource === 'git' || plugin.installSource === 'npm') && (
                     <Button
@@ -411,8 +444,8 @@ export function PluginsSettings() {
                       )}
                     </Button>
                   )}
-                  {/* Uninstall button for git/npm plugins */}
-                  {(plugin.installSource === 'git' || plugin.installSource === 'npm') && (
+                  {/* Uninstall button for non-local plugins */}
+                  {plugin.installSource && plugin.installSource !== 'local' && (
                     <Button
                       variant="ghost"
                       size="icon"

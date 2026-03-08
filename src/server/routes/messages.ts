@@ -199,11 +199,29 @@ messageRoutes.delete('/', async (c) => {
       .set({ sourceMessageId: null })
       .where(eq(kinMemories.kinId, kinId))
 
-    // Nullify messageId in files (no cascade)
-    await db
-      .update(files)
-      .set({ messageId: null })
+    // Delete orphaned files from disk and DB (instead of just nullifying messageId)
+    const kinFiles = await db
+      .select({ id: files.id, storedPath: files.storedPath })
+      .from(files)
       .where(eq(files.kinId, kinId))
+
+    if (kinFiles.length > 0) {
+      const { unlink } = await import('fs/promises')
+      for (const f of kinFiles) {
+        try {
+          await unlink(f.storedPath)
+        } catch {
+          // File may already be missing from disk
+        }
+      }
+      await db.delete(files).where(
+        inArray(
+          files.id,
+          kinFiles.map((f) => f.id),
+        ),
+      )
+      log.info({ kinId, count: kinFiles.length }, 'Deleted files during conversation clear')
+    }
 
     // Nullify messageId in humanPrompts (no cascade)
     await db

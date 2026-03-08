@@ -891,6 +891,7 @@ backup_database() {
 
 # ─── Clone or update ─────────────────────────────────────────────────────────
 ROLLBACK_COMMIT=""
+KINBOT_NO_CHANGES=false
 
 install_or_update() {
   step "Installing KinBot"
@@ -915,7 +916,10 @@ install_or_update() {
 
     local new_version
     new_version="$(get_installed_version)"
-    if [ "$old_version" = "$new_version" ]; then
+    local new_head
+    new_head="$(git -C "$KINBOT_DIR" rev-parse HEAD 2>/dev/null || echo "")"
+    if [ "$old_version" = "$new_version" ] && [ "$ROLLBACK_COMMIT" = "$new_head" ]; then
+      KINBOT_NO_CHANGES=true
       success "Already up to date ($new_version)"
     else
       success "Updated: $old_version → $new_version"
@@ -1015,6 +1019,24 @@ build_kinbot() {
 
   cd "$KINBOT_DIR"
 
+  # Skip build entirely if nothing changed and build output already exists.
+  # This makes `bash install.sh` fast when run as a health check on an
+  # up-to-date installation (avoids expensive bun install + build).
+  if [ "$KINBOT_NO_CHANGES" = true ]; then
+    local has_build=false
+    for dir in .output dist; do
+      if [ -d "${KINBOT_DIR}/$dir" ] && [ -n "$(find "${KINBOT_DIR}/$dir" -type f -print -quit 2>/dev/null)" ]; then
+        has_build=true
+        break
+      fi
+    done
+    if [ "$has_build" = true ] && [ -d "$KINBOT_DIR/node_modules" ]; then
+      success "No changes detected, skipping build"
+      return 0
+    fi
+    info "No code changes but build artifacts missing, rebuilding..."
+  fi
+
   # On updates, clean stale build output before rebuilding.
   # Prevents serving outdated/broken builds if the build step layout changed.
   if [ "${IS_UPDATE:-false}" = true ]; then
@@ -1046,6 +1068,12 @@ setup_database() {
   step "Setting up database"
 
   mkdir -p "$KINBOT_DATA_DIR"
+
+  # Skip migrations if nothing changed and database already exists
+  if [ "$KINBOT_NO_CHANGES" = true ] && [ -f "$KINBOT_DATA_DIR/kinbot.db" ]; then
+    success "No changes detected, skipping migrations"
+    return 0
+  fi
 
   cd "$KINBOT_DIR"
   run_with_spinner "Running database migrations..." env KINBOT_DATA_DIR="$KINBOT_DATA_DIR" DB_PATH="$KINBOT_DATA_DIR/kinbot.db" bun run db:migrate

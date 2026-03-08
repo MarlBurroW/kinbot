@@ -618,7 +618,9 @@
       "hoursMinutes": "{{hours}}h {{minutes}}min later"
     },
     "quickChat": "Quick Chat",
-    "react": "React"
+    "react": "React",
+    "messageRedacted": "This message was redacted",
+    "reactionFailed": "Failed to toggle reaction"
   },
   "quickChat": {
     "title": "Quick Session",
@@ -1293,7 +1295,9 @@
       "uninstallSuccess": "Plugin uninstalled",
       "update": "Update",
       "updateSuccess": "Plugin updated successfully",
-      "sourceLocal": "Local"
+      "sourceLocal": "Local",
+      "resetHealth": "Reset health stats",
+      "healthReset": "Health stats reset"
     },
     "marketplace": {
       "title": "Browse Plugins",

@@ -618,7 +618,9 @@
       "hoursMinutes": "{{hours}}h {{minutes}}min plus tard"
     },
     "quickChat": "Chat rapide",
-    "react": "Réagir"
+    "react": "Réagir",
+    "messageRedacted": "Ce message a été supprimé",
+    "reactionFailed": "Impossible de modifier la réaction"
   },
   "quickChat": {
     "title": "Session rapide",
@@ -1293,7 +1295,9 @@
       "uninstallSuccess": "Plugin désinstallé",
       "update": "Mettre à jour",
       "updateSuccess": "Plugin mis à jour avec succès",
-      "sourceLocal": "Local"
+      "sourceLocal": "Local",
+      "resetHealth": "Réinitialiser les stats de santé",
+      "healthReset": "Stats de santé réinitialisées"
     },
     "marketplace": {
       "title": "Explorer les plugins",

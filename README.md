@@ -61,7 +61,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 - **Shared Kins** — all users on the instance interact with the same Kins; messages are tagged with sender identity
 
 #### Intelligence
-- **Long-term memory** — dual-channel: automatic extraction pipeline on every LLM turn + explicit `remember()` tool; hybrid search (vector similarity + full-text)
+- **Long-term memory** — dual-channel: automatic extraction pipeline on every LLM turn + explicit `remember()` tool; hybrid search (vector similarity + full-text); query intent detection with category-aware score boosting; token-budgeted memory block in prompt
 - **Session compacting** — automatic summarization to stay within token limits; original messages are always preserved, snapshots are rollback-able
 - **Sub-Kins (tasks)** — Kins can delegate work to ephemeral sub-agents; `await` mode re-enters the parent queue with the result, `async` mode deposits it as informational
 - **Inter-Kin communication** — request/reply pattern with correlation IDs; rate-limited; replies are always informational (no ping-pong)
@@ -80,7 +80,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 
 #### Extensibility
 - **MCP servers** — connect any Model Context Protocol server to extend Kins with external tools; Kins can manage their own MCP connections
-- **Plugin system** — extend KinBot with community or custom plugins; plugins can register tools, hooks, AI providers, and channels; install from Git repos or npm packages; hot reload during development; community registry with a built-in marketplace UI for discovering and installing plugins; managed via the UI with per-plugin configuration, encrypted secret storage, and enable/disable toggles
+- **Plugin system** — extend KinBot with community or custom plugins; plugins can register tools, hooks, AI providers, and channels; install from Git repos or npm packages; hot reload during development; community registry with a built-in marketplace UI for discovering and installing plugins; managed via the UI with per-plugin configuration, encrypted secret storage, and enable/disable toggles; health monitoring with circuit breaker auto-disable; dependency management between plugins; version compatibility checking
 - **Custom tools** — Kins can create, register, and run their own scripts from their workspace
 - **Mini Apps** — Kins can build and deploy interactive web apps (HTML/CSS/JS) that live in the sidebar; auto-injected design system + JavaScript SDK with theme sync, toasts, inter-app navigation (`openApp`), dialogs (`confirm`/`prompt`), window title & badge control, persistent key-value storage (`get`/`set`/`delete`/`list`/`clear`), starter templates, parent-child event communication, and an App Gallery to browse and clone community apps
 - **Contacts** — manage contacts that Kins can reference and interact with
@@ -110,7 +110,7 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 
 **Multi-Agent** — `spawn_self`, `spawn_kin`, `send_message`, `reply`, `list_kins`, `report_to_parent`, `request_input`, task management, `create_kin`, `update_kin`, `delete_kin`, `get_kin_details`
 
-**Automation** — `create_cron`, `update_cron`, `delete_cron`, `list_crons`, `trigger_cron`, `get_cron_journal`, `wake_me_in`, `cancel_wakeup`, `list_wakeups`, webhooks (CRUD)
+**Automation** — `create_cron`, `update_cron`, `delete_cron`, `list_crons`, `trigger_cron`, `get_cron_journal`, `wake_me_in`, `wake_me_every`, `cancel_wakeup`, `list_wakeups`, webhooks (CRUD)
 
 **Mini Apps** — create, update, delete, read/write files, snapshots, rollback, persistent key-value storage, browse & clone from the App Gallery, templates, docs, icon generation
 

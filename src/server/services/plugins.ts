@@ -247,6 +247,141 @@ export function validateConfig(
   return errors
 }
 
+// ─── Valid hook names (must match HookName type) ─────────────────────────────
+
+const VALID_HOOK_NAMES = new Set([
+  'beforeChat', 'afterChat',
+  'beforeToolCall', 'afterToolCall',
+  'beforeCompacting', 'afterCompacting',
+  'onTaskSpawn', 'onCronTrigger',
+])
+
+/**
+ * Validate the exports object returned by a plugin's init function.
+ * Returns warnings (non-fatal) for individual invalid entries, and errors (fatal) for structural issues.
+ */
+export function validatePluginExports(
+  exports: unknown,
+  pluginName: string,
+): { valid: boolean; errors: string[]; warnings: string[] } {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  if (exports === null || exports === undefined) {
+    return { valid: false, errors: ['Plugin init function returned null/undefined — must return an exports object'], warnings }
+  }
+
+  if (typeof exports !== 'object' || Array.isArray(exports)) {
+    return { valid: false, errors: ['Plugin init function must return a plain object'], warnings }
+  }
+
+  const ex = exports as Record<string, unknown>
+
+  // Validate tools
+  if (ex.tools !== undefined) {
+    if (typeof ex.tools !== 'object' || ex.tools === null || Array.isArray(ex.tools)) {
+      errors.push('"tools" must be a Record<string, ToolRegistration>')
+    } else {
+      for (const [toolName, toolReg] of Object.entries(ex.tools as Record<string, unknown>)) {
+        if (!toolReg || typeof toolReg !== 'object') {
+          warnings.push(`tools.${toolName}: must be an object with { availability, create }`)
+          continue
+        }
+        const reg = toolReg as Record<string, unknown>
+        if (!Array.isArray(reg.availability)) {
+          warnings.push(`tools.${toolName}: missing or invalid "availability" array`)
+        } else {
+          const validAvail = ['main', 'sub-kin']
+          for (const a of reg.availability) {
+            if (!validAvail.includes(a as string)) {
+              warnings.push(`tools.${toolName}: unknown availability "${a}" (expected: ${validAvail.join(', ')})`)
+            }
+          }
+        }
+        if (typeof reg.create !== 'function') {
+          warnings.push(`tools.${toolName}: missing "create" function`)
+        }
+      }
+    }
+  }
+
+  // Validate hooks
+  if (ex.hooks !== undefined) {
+    if (typeof ex.hooks !== 'object' || ex.hooks === null || Array.isArray(ex.hooks)) {
+      errors.push('"hooks" must be a Record<HookName, HookHandler>')
+    } else {
+      for (const [hookName, handler] of Object.entries(ex.hooks as Record<string, unknown>)) {
+        if (!VALID_HOOK_NAMES.has(hookName)) {
+          warnings.push(`hooks.${hookName}: unknown hook name (valid: ${[...VALID_HOOK_NAMES].join(', ')})`)
+        }
+        if (handler !== undefined && handler !== null && typeof handler !== 'function') {
+          warnings.push(`hooks.${hookName}: handler must be a function`)
+        }
+      }
+    }
+  }
+
+  // Validate providers
+  if (ex.providers !== undefined) {
+    if (typeof ex.providers !== 'object' || ex.providers === null || Array.isArray(ex.providers)) {
+      errors.push('"providers" must be a Record<string, PluginProviderRegistration>')
+    } else {
+      for (const [provName, provReg] of Object.entries(ex.providers as Record<string, unknown>)) {
+        if (!provReg || typeof provReg !== 'object') {
+          warnings.push(`providers.${provName}: must be an object`)
+          continue
+        }
+        const reg = provReg as Record<string, unknown>
+        if (!reg.definition || typeof reg.definition !== 'object') {
+          warnings.push(`providers.${provName}: missing "definition" object`)
+        }
+        if (typeof reg.displayName !== 'string') {
+          warnings.push(`providers.${provName}: missing "displayName" string`)
+        }
+        if (!Array.isArray(reg.capabilities)) {
+          warnings.push(`providers.${provName}: missing "capabilities" array`)
+        }
+      }
+    }
+  }
+
+  // Validate channels
+  if (ex.channels !== undefined) {
+    if (typeof ex.channels !== 'object' || ex.channels === null || Array.isArray(ex.channels)) {
+      errors.push('"channels" must be a Record<string, ChannelAdapter>')
+    } else {
+      for (const [chanName, adapter] of Object.entries(ex.channels as Record<string, unknown>)) {
+        if (!adapter || typeof adapter !== 'object') {
+          warnings.push(`channels.${chanName}: must be an object implementing ChannelAdapter`)
+          continue
+        }
+        const a = adapter as Record<string, unknown>
+        if (typeof a.platform !== 'string') {
+          warnings.push(`channels.${chanName}: missing "platform" string`)
+        }
+      }
+    }
+  }
+
+  // Validate lifecycle functions
+  if (ex.activate !== undefined && typeof ex.activate !== 'function') {
+    errors.push('"activate" must be a function or undefined')
+  }
+  if (ex.deactivate !== undefined && typeof ex.deactivate !== 'function') {
+    errors.push('"deactivate" must be a function or undefined')
+  }
+
+  // Warn about unknown top-level keys
+  const knownKeys = new Set(['tools', 'hooks', 'providers', 'channels', 'activate', 'deactivate'])
+  for (const key of Object.keys(ex)) {
+    if (!knownKeys.has(key)) {
+      warnings.push(`Unknown export key "${key}" — will be ignored`)
+    }
+  }
+
+  return { valid: errors.length === 0, errors, warnings }
+}
+
 // ─── Plugin Manager ──────────────────────────────────────────────────────────
 
 /** Max consecutive hook/tool errors before a plugin is auto-disabled */
@@ -458,6 +593,16 @@ class PluginManager {
       const result = initFn(ctx)
       // Support both sync and async init functions
       const exports: PluginExports = result instanceof Promise ? await result : result
+
+      // Validate exports structure before registration
+      const validation = validatePluginExports(exports, name)
+      if (!validation.valid) {
+        throw new Error(`Invalid plugin exports: ${validation.errors.join('; ')}`)
+      }
+      for (const warning of validation.warnings) {
+        log.warn({ plugin: name }, `Plugin export warning: ${warning}`)
+      }
+
       plugin.exports = exports
 
       // Register tools

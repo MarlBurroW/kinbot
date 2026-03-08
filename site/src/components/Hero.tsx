@@ -257,7 +257,7 @@ export function Hero() {
         <div className="flex items-center justify-center gap-4 mb-6">
           <img src="/kinbot/kinbot.svg" alt="KinBot" className="size-16 sm:size-20 lg:size-24 rounded-2xl drop-shadow-xl" fetchPriority="high" />
           <h1 className="text-6xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-none">
-            <span className="gradient-text animate-gradient">KinBot</span>
+            <span className="gradient-text-shimmer animate-gradient" data-text="KinBot">KinBot</span>
           </h1>
         </div>
         <p className="text-2xl sm:text-3xl font-semibold mb-4" style={{ color: 'var(--color-foreground)', minHeight: '4.5rem' }}>

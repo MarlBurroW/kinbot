@@ -1043,3 +1043,67 @@
 ### Next run
 - Area 3 (revisit): Conversations
 - Area 4 (revisit): Tasks/Crons
+
+## 2026-03-08 12:40 UTC
+### Area tested: Conversations (Area 3 - revisit)
+- **Pages visited:** Code review of ChatPage.tsx, ChatPanel.tsx, MessageInput.tsx, MessageBubble.tsx, ConversationHeader.tsx, ChatEmptyState.tsx, useChat.ts, useReactions.ts, useFileUpload.ts, messages.ts (routes), reactions.ts (routes), queue.ts (service)
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 3 (issues created: #164, #165, #167)
+  - #164: Redacted messages have no visual indicator in chat UI - isRedacted flag tracked but never rendered
+  - #165: Reaction toggle lacks optimistic update and error handling - bare await with no try/catch
+  - #167: Streaming message promoted with hardcoded sourceType "kin", loses real source metadata until fetchMessages
+
+- **UX suggestions:** 1 (issues created: #166)
+  - #166: Clear conversation orphans uploaded files on disk - files nullified but not deleted
+
+#### All clear:
+- Chat panel: clean layout with messages area, tool calls side panel, mini-app panel
+- Message input: formatting toolbar (bold, italic, strikethrough, code, code block) with keyboard shortcuts
+- @mention autocomplete with proper keyboard navigation (Up/Down/Enter/Tab/Escape)
+- File upload: drag-and-drop (both on input area and full panel), paste from clipboard, file picker button
+- Pending file chips with thumbnail preview, upload spinner, error state, remove button
+- Character count with progressive color warning (50%/75%/100% of 32k limit)
+- Input history navigation (Up/Down arrows at cursor position 0)
+- Optimistic user message rendering with rollback on API error
+- Draft message persistence per Kin (survives navigation, cleared on send)
+- Message streaming with 50ms batched UI updates for smooth rendering
+- Streaming message promoted in-place (same React key) to avoid re-mount animation flash
+- Stop streaming button with server-side abort support
+- Infinite scroll: IntersectionObserver on top sentinel, scroll position restoration after prepend
+- Auto-scroll toggle (pinned bottom-right) with localStorage persistence
+- Scroll-to-bottom button with new message count badge
+- Scroll-to-top button (appears when scrolled past 300px)
+- Message grouping: consecutive same-sender messages within 2min window, tighter spacing, hidden avatar
+- Date separators between messages on different days
+- Time gap indicator between non-consecutive messages
+- Message context menu: copy, quote reply, edit & resend (user), read aloud (assistant), regenerate
+- Conversation search (Ctrl+F) with highlight navigation and match scrolling
+- Empty state with Kin avatar, greeting, suggestion chips, hint text
+- Conversation header: model picker, context usage bar (tokens/window), tool calls toggle, quick session, search, date navigator, stats
+- Clear conversation with confirmation dialog and comprehensive cascade cleanup
+- Export as Markdown or JSON
+- Force compact button in more actions dropdown
+- Reading time estimate for long messages (>100 words)
+- Read aloud via Web Speech API with play/stop toggle
+- Copy message button (hover, positioned outside bubble)
+- Edit & resend button for user messages
+- Regenerate button on last assistant message
+- Reaction system: preset emoji picker, toggle behavior, grouped display with count
+- Image lightbox for attached images
+- Inline tool calls with interleaved text/tool display
+- Task result cards (live + persisted) with detail modal
+- Compacting cards (live + persisted) with memory extraction count
+- Human prompt cards for interactive responses
+- File attachments: image thumbnails (max 48x48), non-image chips with download
+- Injected memories indicator (collapsible, shows category + content)
+- Platform icon for channel messages (telegram, discord, etc.)
+- Connection banner for SSE disconnection
+- Onboarding progress banner when setup incomplete
+- Keyboard shortcuts: Cmd+1-9 kin switch, Cmd+Shift+N create kin, Cmd+, settings, Escape refocus input
+- Unread count in browser tab title + favicon badge
+- Lazy loading of modals (KinFormModal, SettingsModal, AccountDialog, TaskDetailModal, QuickChatPanel, QuickSessionHistory, ConversationSearch, MiniAppViewer)
+
+### Next run
+- Area 4 (revisit): Tasks/Crons
+- Area 5 (revisit): Provider settings

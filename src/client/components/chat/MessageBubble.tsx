@@ -17,7 +17,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from '@/client/components/ui/context-menu'
-import { FileIcon, Download, Brain, ChevronDown, Copy, Check, RefreshCw, Quote, Pencil, Volume2, VolumeX, BookOpen, SmilePlus } from 'lucide-react'
+import { FileIcon, Download, Brain, ChevronDown, Copy, Check, RefreshCw, Quote, Pencil, Volume2, VolumeX, BookOpen, SmilePlus, EyeOff } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
 import { useRelativeTime } from '@/client/hooks/useRelativeTime'
 import type { MessageFile } from '@/shared/types'
@@ -43,6 +43,8 @@ interface MessageBubbleProps {
   files?: MessageFile[]
   reactions?: MessageReaction[]
   currentUserId?: string
+  /** When true, the message content has been redacted. */
+  isRedacted?: boolean
   /** When true, the message is part of a consecutive group from the same sender — avatar and name are hidden, spacing is tighter. */
   isGrouped?: boolean
   messageId?: string
@@ -652,6 +654,7 @@ export const MessageBubble = memo(function MessageBubble({
   currentUserId,
   messageId,
   resolvedTaskId,
+  isRedacted = false,
   isGrouped = false,
   onOpenTaskDetail,
   onRegenerate,
@@ -670,6 +673,7 @@ export const MessageBubble = memo(function MessageBubble({
   const isUser = role === 'user' && sourceType === 'user'
   const isFromOtherKin = sourceType === 'kin' && role === 'user'
   const isFromChannel = sourceType === 'channel'
+  const { t } = useTranslation()
   // Extract platform from content prefix [telegram:Name] or [discord:Name]
   const channelPlatform = isFromChannel ? content.match(/^\[(\w+):/)?.[1] ?? 'channel' : null
   const isTaskResult = sourceType === 'task'
@@ -698,6 +702,14 @@ export const MessageBubble = memo(function MessageBubble({
       </div>
     )
   }
+
+  // Redacted content placeholder
+  const redactedContent = isRedacted ? (
+    <div className="flex items-center gap-1.5 text-muted-foreground italic">
+      <EyeOff className="size-3.5 shrink-0" />
+      <span className="text-sm">{t('chat.messageRedacted', 'This message was redacted')}</span>
+    </div>
+  ) : null
 
   const initials = senderName?.slice(0, 2).toUpperCase() ?? (isUser ? 'U' : 'K')
 
@@ -730,7 +742,7 @@ export const MessageBubble = memo(function MessageBubble({
                 key={`text-${i}`}
                 className={cn('rounded-2xl px-4 py-2.5', bubbleClass, i === 0 && 'rounded-tl-md')}
               >
-                <MarkdownContent content={part.text} isUser={false} />
+                {isRedacted ? redactedContent : <MarkdownContent content={part.text} isUser={false} />}
               </div>
             ) : (
               <div key={`tools-${i}`} className="space-y-1">
@@ -809,12 +821,12 @@ export const MessageBubble = memo(function MessageBubble({
           </p>
         )}
 
-        <MarkdownContent content={content} isUser={isUser} />
+        {isRedacted ? redactedContent : <MarkdownContent content={content} isUser={isUser} />}
 
-        {hasFiles && <MessageFiles files={files} isUser={isUser} />}
+        {!isRedacted && hasFiles && <MessageFiles files={files} isUser={isUser} />}
 
         {/* Injected memories indicator */}
-        {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
+        {!isRedacted && hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
 
         <ReactionDisplay reactions={reactions ?? []} currentUserId={currentUserId} onToggle={handleToggleReaction} />
 
