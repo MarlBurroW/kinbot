@@ -336,6 +336,18 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       if (rafId !== null) return // coalesce multiple mutations into one rAF
       rafId = requestAnimationFrame(() => {
         rafId = null
+        const shouldScroll = autoScrollRef.current && (isNearBottomRef.current || isStreamingRef.current)
+        console.log('[auto-scroll]', {
+          autoScroll: autoScrollRef.current,
+          isNearBottom: isNearBottomRef.current,
+          isStreaming: isStreamingRef.current,
+          needsInstant: needsInstantScrollRef.current,
+          shouldScroll,
+          scrollTop: viewport.scrollTop,
+          scrollHeight: viewport.scrollHeight,
+          clientHeight: viewport.clientHeight,
+          gap: viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight,
+        })
         if (!autoScrollRef.current) return
         // During active streaming, always scroll (don't rely on isNearBottom
         // which can flip to false between batched token updates)
