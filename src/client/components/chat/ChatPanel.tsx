@@ -214,24 +214,40 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     }
   }, [messages])
 
+  const checkNearBottom = useCallback(() => {
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea) return
+    const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
+    if (!viewport) return
+    const { scrollTop, scrollHeight, clientHeight } = viewport
+    const nearBottom = scrollHeight - scrollTop - clientHeight < 100
+    isNearBottomRef.current = nearBottom
+    startTransition(() => {
+      setShowScrollBottom(!nearBottom)
+      setShowScrollTop(scrollTop > 300)
+    })
+    if (nearBottom) setNewMessageCount(0)
+  }, [])
+
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
     if (!scrollArea) return
     const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
     if (!viewport) return
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = viewport
-      const nearBottom = scrollHeight - scrollTop - clientHeight < 100
-      isNearBottomRef.current = nearBottom
-      startTransition(() => {
-        setShowScrollBottom(!nearBottom)
-        setShowScrollTop(scrollTop > 300)
-      })
-      if (nearBottom) setNewMessageCount(0)
-    }
-    viewport.addEventListener('scroll', handleScroll)
-    return () => viewport.removeEventListener('scroll', handleScroll)
-  }, [])
+    viewport.addEventListener('scroll', checkNearBottom)
+    return () => viewport.removeEventListener('scroll', checkNearBottom)
+  }, [checkNearBottom])
+
+  // Re-evaluate nearBottom when the viewport resizes (e.g. queue preview appearing/disappearing)
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea) return
+    const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
+    if (!viewport) return
+    const observer = new ResizeObserver(() => checkNearBottom())
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [checkNearBottom])
 
   // IntersectionObserver — trigger loading older messages when top sentinel is visible
   useEffect(() => {
@@ -301,7 +317,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     if (autoScroll && isNearBottomRef.current) {
       bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
     }
-  }, [messages.length, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts, autoScroll])
+  }, [messages.length, streamingMessage, isStreaming, isProcessing, liveTasks, liveCompacting, pendingPrompts, autoScroll, queueItems.length])
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
