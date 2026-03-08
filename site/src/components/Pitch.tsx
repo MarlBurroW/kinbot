@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { Server, Brain, Users, Shield, Puzzle, MessageSquare } from 'lucide-react'
+import { TiltCard } from './TiltCard'
 
 const points = [
   {
@@ -80,34 +81,45 @@ function PitchCard({
   return (
     <div
       ref={ref}
-      className="glass-strong rounded-xl p-5 transition-all duration-300 hover:scale-[1.02]"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
-        border: `1px solid color-mix(in oklch, ${color} ${hovered ? '40%' : '20%'}, transparent)`,
-        boxShadow: hovered
-          ? `0 0 24px color-mix(in oklch, ${color} 15%, transparent), 0 0 48px color-mix(in oklch, ${color} 8%, transparent)`
-          : 'none',
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(24px)',
-        transition: `opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.08}s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.08}s, border-color 0.3s ease, box-shadow 0.3s ease`,
+        transition: `opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.08}s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.08}s`,
       }}
     >
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all duration-300"
+      <TiltCard
+        className="glass-strong rounded-xl p-5 transition-[border-color,box-shadow] duration-300"
+        glowColor={color}
+        glowIntensity={0.12}
+        maxTilt={8}
         style={{
-          background: `color-mix(in oklch, ${color} ${hovered ? '22%' : '14%'}, transparent)`,
-          border: `1px solid color-mix(in oklch, ${color} ${hovered ? '40%' : '28%'}, transparent)`,
+          border: `1px solid color-mix(in oklch, ${color} ${hovered ? '40%' : '20%'}, transparent)`,
+          boxShadow: hovered
+            ? `0 0 24px color-mix(in oklch, ${color} 15%, transparent), 0 0 48px color-mix(in oklch, ${color} 8%, transparent)`
+            : 'none',
         }}
       >
-        <Icon size={18} style={{ color }} />
-      </div>
-      <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--color-foreground)' }}>
-        {title}
-      </h3>
-      <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-        {desc}
-      </p>
+        <div
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all duration-300"
+            style={{
+              background: `color-mix(in oklch, ${color} ${hovered ? '22%' : '14%'}, transparent)`,
+              border: `1px solid color-mix(in oklch, ${color} ${hovered ? '40%' : '28%'}, transparent)`,
+            }}
+          >
+            <Icon size={18} style={{ color }} />
+          </div>
+          <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--color-foreground)' }}>
+            {title}
+          </h3>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
+            {desc}
+          </p>
+        </div>
+      </TiltCard>
     </div>
   )
 }
