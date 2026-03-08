@@ -13,33 +13,33 @@ import { useKinBot, useStorage, useTheme, ... } from "@kinbot/react";
 
 ### useKinBot()
 
-The primary hook. Must be called at the root of your app.
+The primary hook. Provides the full SDK instance with reactive theme and app updates.
 
 ```jsx
-const { app, ready, theme, locale, isFullPage, api } = useKinBot();
+const { kinbot, app, theme, ready } = useKinBot();
 ```
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `app` | `object` | App metadata (id, name, slug) |
-| `ready` | `boolean` | `true` when SDK bridge is initialized |
-| `theme` | `{ mode, palette }` | Current theme (light/dark) |
-| `locale` | `string` | User's locale |
-| `isFullPage` | `boolean` | Whether app is in full-page mode |
-| `api` | `object` | Backend API client (use after `ready`) |
+| `kinbot` | `KinBot` | The full SDK instance (access `.api`, `.storage`, `.locale`, etc.) |
+| `app` | `KinBotAppMeta \| null` | Reactive app metadata (id, name, slug, kinId, locale, user) |
+| `theme` | `{ mode, palette }` | Reactive theme (light/dark) |
+| `ready` | `() => void` | Call this to signal your app has finished loading |
 
-**Always wait for `ready`** before rendering content or calling APIs.
+**Call `ready()`** once your app is mounted to dismiss the loading state. Access other SDK features via `kinbot` (e.g. `kinbot.api`, `kinbot.storage`, `kinbot.locale`).
 
 ### useStorage(key, defaultValue)
 
 Persistent key-value storage, like `useState` but survives page reloads and sessions.
 
 ```jsx
-const [value, setValue, loading] = useStorage("myKey", defaultValue);
+const [value, setValue, { loading, error, remove }] = useStorage("myKey", defaultValue);
 ```
 
-- `setValue` accepts a value or an updater function (like `useState`)
+- `setValue(newValue)` persists the value server-side
 - `loading` is `true` while fetching the initial value
+- `error` contains any storage error (or `null`)
+- `remove()` deletes the key from storage
 - Data is stored in KinBot's server-side storage
 
 ### useTheme()
@@ -66,7 +66,7 @@ Access current user information.
 
 ```jsx
 const { user, loading } = useUser();
-// user: { id, name, locale, timezone, avatarUrl }
+// user: { id, name, pseudonym, locale, timezone, avatarUrl }
 ```
 
 ## Data Hooks
@@ -256,12 +256,13 @@ const isOnline = useOnline();
 
 ### useClipboard()
 
-Reactive clipboard access.
+Clipboard access with copied state feedback.
 
 ```jsx
-const { copy, paste, copied, loading } = useClipboard();
+const { copy, read, copied } = useClipboard();
 await copy("Hello!");
-// copied is true for 2 seconds
+// copied is true briefly after copying
+const text = await read();
 ```
 
 ### useNotification()
@@ -269,7 +270,7 @@ await copy("Hello!");
 Send browser notifications via the parent window.
 
 ```jsx
-const { notify, lastSent } = useNotification();
+const { notify, sending } = useNotification();
 await notify("Timer Done", "Your pomodoro session is complete!");
 ```
 
