@@ -68,8 +68,10 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
     'miniapp:deleted': (data) => {
       const appId = data.appId as string
       if (appId === activeAppId) {
-        setActiveAppId(null)
+        closePanel()
       }
+      // Clean up badge for deleted app
+      setBadge(appId, null)
     },
   })
 
