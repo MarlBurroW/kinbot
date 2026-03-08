@@ -10,7 +10,7 @@ const PREVIEW_LIGHT = '/kinbot/showcase/preview-light.mp4'
 const INSTALL_CMD = 'curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash'
 
 const TERMINAL_LINES = [
-  { text: '$ curl -fsSL .../install.sh | bash', color: 'var(--color-foreground)', delay: 0 },
+  { text: '$ curl -fsSL https://raw.githubusercontent.com/MarlBurroW/kinbot/main/install.sh | bash', color: 'var(--color-foreground)', delay: 0 },
   { text: '', delay: 400 },
   { text: '  ╭──────────────────────────────────╮', color: 'var(--color-primary)', delay: 600 },
   { text: '  │        🤖 KinBot Installer        │', color: 'var(--color-primary)', delay: 700 },
@@ -273,8 +273,9 @@ export function Hero() {
           />
         </p>
         <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-          Create AI agents that live on your server, remember everything, and work together.
-          One process, one file, zero cloud.
+          A self-hosted platform for running AI agents on your own hardware.
+          Each agent has persistent memory, its own identity, and they can collaborate.
+          One process, one SQLite file, zero cloud dependency. Bring your own LLM.
         </p>
       </div>
 
@@ -313,13 +314,13 @@ export function Hero() {
           View on GitHub
           <ArrowRight size={16} />
         </a>
-        <a
-          href="#install"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95 glass"
+        <button
+          onClick={() => document.getElementById('install')?.scrollIntoView({ behavior: 'smooth' })}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95 glass cursor-pointer"
           style={{ color: 'var(--color-foreground)' }}
         >
           Quick install
-        </a>
+        </button>
       </div>
 
       {/* Install command */}
