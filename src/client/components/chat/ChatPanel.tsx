@@ -252,12 +252,16 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       const newHeight = viewport.clientHeight
       const delta = prevHeight - newHeight // positive when viewport shrinks
       prevHeight = newHeight
-      if (isNearBottomRef.current) {
+      // Check if user was near bottom BEFORE the resize using the old viewport height.
+      // The scroll event listener may have already flipped isNearBottomRef to false
+      // (because the viewport shrank, increasing distance-from-bottom), so we can't
+      // rely on it alone. Compute the pre-resize distance instead.
+      const { scrollTop, scrollHeight } = viewport
+      const wasNearBottom = scrollHeight - scrollTop - (newHeight + delta) < 100
+      if (wasNearBottom || isNearBottomRef.current) {
         // Viewport resized while user was near bottom — snap to bottom to stay pinned.
-        // Using scrollHeight (not += delta) is more robust: it handles both shrink
-        // (QueuePreview appearing) and grow (QueuePreview disappearing) correctly,
-        // and avoids drift from multiple rapid resizes.
         viewport.scrollTop = viewport.scrollHeight
+        isNearBottomRef.current = true
       }
       checkNearBottom()
     })
@@ -332,14 +336,27 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     if (!viewport) return
 
     let rafId: number | null = null
+    let pendingNearBottom = false
+    let pendingStreaming = false
     const scrollToEnd = () => {
-      if (rafId !== null) return // coalesce multiple mutations into one rAF
+      // Capture scroll state synchronously at mutation time, before a scroll
+      // event can flip isNearBottomRef to false due to increased scrollHeight.
+      const nearNow = isNearBottomRef.current
+      const streamNow = isStreamingRef.current
+      if (rafId !== null) {
+        // Already coalescing — keep the most permissive state
+        pendingNearBottom = pendingNearBottom || nearNow
+        pendingStreaming = pendingStreaming || streamNow
+        return
+      }
+      pendingNearBottom = nearNow
+      pendingStreaming = streamNow
       rafId = requestAnimationFrame(() => {
         rafId = null
         if (!autoScrollRef.current) return
         // During active streaming, always scroll (don't rely on isNearBottom
         // which can flip to false between batched token updates)
-        if (!isNearBottomRef.current && !isStreamingRef.current) return
+        if (!pendingNearBottom && !pendingStreaming) return
         if (needsInstantScrollRef.current) return
         viewport.scrollTop = viewport.scrollHeight
         isNearBottomRef.current = true
