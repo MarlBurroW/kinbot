@@ -36,6 +36,7 @@ import {
 import { getHubKinId, setHubKinId } from '@/server/services/app-settings'
 import { createLogger } from '@/server/logger'
 import { deleteChannel } from '@/server/services/channels'
+import { stopJob } from '@/server/services/crons'
 import type { KinToolConfig } from '@/shared/types'
 
 const log = createLogger('services:kins')
@@ -347,6 +348,10 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   await db.delete(tasks).where(eq(tasks.parentKinId, kinId))
   await db.update(tasks).set({ sourceKinId: null }).where(eq(tasks.sourceKinId, kinId))
   await db.update(crons).set({ targetKinId: null }).where(eq(crons.targetKinId, kinId))
+  // Stop in-memory cron scheduler jobs before deleting from DB (fixes #168)
+  for (const cronId of kinCronIds) {
+    stopJob(cronId)
+  }
   await db.delete(crons).where(eq(crons.kinId, kinId))
   await db.update(contacts).set({ linkedKinId: null }).where(eq(contacts.linkedKinId, kinId))
   await db.delete(contactNotes).where(eq(contactNotes.kinId, kinId))

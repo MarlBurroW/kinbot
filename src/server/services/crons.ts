@@ -228,7 +228,7 @@ function scheduleJob(cron: typeof crons.$inferSelect) {
 
   const cronArg = _parseCronArg(cron.schedule)
 
-  const job = new Cron(cronArg as string, async () => {
+  const job = new Cron(cronArg, async () => {
     try {
       await triggerCron(cron.id)
       // Auto-deactivate after first fire for one-shot crons
@@ -257,7 +257,7 @@ function scheduleJob(cron: typeof crons.$inferSelect) {
   )
 }
 
-function stopJob(cronId: string) {
+export function stopJob(cronId: string) {
   const job = scheduledJobs.get(cronId)
   if (job) {
     job.stop()
@@ -322,8 +322,6 @@ async function triggerCron(cronId: string) {
     .update(crons)
     .set({ lastTriggeredAt: new Date(), updatedAt: new Date() })
     .where(eq(crons.id, cronId))
-
-  const targetKinId = cron.targetKinId ?? cron.kinId
 
   // Spawn sub-Kin task — async mode (result is informational, no LLM turn)
   const { taskId } = await spawnTask({
