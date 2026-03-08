@@ -12,45 +12,77 @@ After the SDK loads, the `KinBot` global is available.
 ### Lifecycle
 
 ```javascript
-KinBot.ready       // boolean — true when bridge is initialized
-KinBot.on("ready", () => { ... })  // listen for ready event
+KinBot.ready()  // Signal that the app has finished loading
 ```
+
+:::note
+`ready()` is a method you call once your app is initialized, not a boolean property. The parent waits for this signal before showing the app.
+:::
 
 ### App Info
 
 ```javascript
-KinBot.app         // { id, name, slug, description, icon, version }
-KinBot.kin         // { id, name, avatarUrl }
-KinBot.user        // { id, name, pseudonym, locale, timezone, avatarUrl }
+KinBot.app
+// { id, name, slug, kinId, kinName, kinAvatarUrl, isFullPage, locale, user }
+
+KinBot.kin       // { id, name, avatarUrl }
+KinBot.user      // { id, name, pseudonym, locale, timezone, avatarUrl }
+KinBot.locale    // string — current UI language code (e.g. 'en', 'fr')
+KinBot.version   // string — SDK version
+KinBot.isFullPage // boolean — whether the app is in full-page mode
 ```
 
 ### Theme
 
 ```javascript
-KinBot.theme       // { mode: "light"|"dark", palette: {...} }
-KinBot.on("theme", ({ mode, palette }) => { ... })
+KinBot.theme       // { mode: "light"|"dark", palette: string }
+KinBot.on("theme-changed", ({ mode, palette }) => { ... })
 ```
+
+### Events
+
+Listen for parent events or emit your own:
+
+```javascript
+KinBot.on(eventName, callback)   // Listen for events from the parent
+KinBot.emit(eventName, data?)    // Send events to the parent
+```
+
+**Built-in event names:**
+
+| Event | Description |
+|---|---|
+| `theme-changed` | Theme mode or palette changed |
+| `app-meta` | App metadata updated |
+| `locale-changed` | UI language changed |
+| `fullpage-changed` | Full-page mode toggled |
+| `shared-data` | Data received from another mini-app |
 
 ## Storage
 
 Persistent key-value storage (server-side, max 64KB per value, 500 keys per app).
 
 ```javascript
-await KinBot.storage.get(key)          // → value | null
-await KinBot.storage.set(key, value)   // JSON-serializable
-await KinBot.storage.delete(key)
-await KinBot.storage.list(prefix?)     // → string[]
-await KinBot.storage.clear()
+await KinBot.storage.get(key)      // → value | null
+await KinBot.storage.set(key, value)  // JSON-serializable
+await KinBot.storage.delete(key)   // → boolean (true if deleted)
+await KinBot.storage.list()        // → [{ key, size }]
+await KinBot.storage.clear()       // → number (keys cleared)
 ```
+
+:::note
+`list()` takes no arguments and returns objects with `key` and `size` (bytes), not just key strings.
+:::
 
 ## Navigation & Display
 
 ```javascript
-KinBot.navigate(path)          // Navigate the app to a path
-KinBot.fullpage(bool)          // Toggle full-page mode
-KinBot.setTitle(title)         // Set the panel title
-KinBot.setBadge(value)         // Set sidebar badge (number or string)
+KinBot.navigate(path)          // Navigate the parent KinBot UI to a path
+KinBot.fullpage(bool)          // Toggle full-page or side-panel mode
+KinBot.setTitle(title)         // Dynamically update the panel header title
+KinBot.setBadge(value)         // Set sidebar badge (number, string, or null to clear)
 KinBot.resize(width?, height?) // Request panel resize (320-1200px width, 200-2000px height)
+KinBot.openApp(slug)           // Open another mini-app from the same Kin by slug
 ```
 
 ## Messaging
@@ -80,13 +112,14 @@ await KinBot.memory.store(content, { category?, subject? })
 // Store a new memory
 // category: "fact" | "preference" | "decision" | "knowledge" (default)
 // Max 2000 chars
+// Returns: { id, content, category, subject }
 ```
 
 ## Clipboard
 
 ```javascript
-await KinBot.clipboard.write(text)  // → boolean
-await KinBot.clipboard.read()       // → string | null
+await KinBot.clipboard.write(text)  // Copy text to system clipboard (bypasses iframe restrictions)
+await KinBot.clipboard.read()       // Read text from system clipboard (may require permission)
 ```
 
 ## Notifications
@@ -96,11 +129,40 @@ await KinBot.notification(title, body?)  // → boolean
 // Shows a browser notification via the parent window
 ```
 
+## Toast & Dialogs
+
+These are methods on the `KinBot` object directly:
+
+```javascript
+KinBot.toast("Saved!", "success")
+// type: "info" (default) | "success" | "warning" | "error"
+
+const ok = await KinBot.confirm("Delete this item?", {
+  title: "Confirm",
+  confirmText: "Delete",
+  cancelText: "Cancel",
+})
+// Returns: boolean
+
+const name = await KinBot.prompt("Enter your name", {
+  title: "Input",
+  placeholder: "John Doe",
+  defaultValue: "",
+  confirmText: "OK",
+  cancelText: "Cancel",
+})
+// Returns: string | null
+```
+
+:::note
+In the React layer (`@kinbot/react`), `toast`, `confirm`, and `prompt` are re-exported as standalone functions for convenience. Under the hood they call these same SDK methods.
+:::
+
 ## Keyboard Shortcuts
 
 ```javascript
 const unregister = KinBot.shortcut("ctrl+k", callback)
-// Returns unregister function. Pass null to remove.
+// Returns unregister function. Pass null callback to remove.
 // Examples: "ctrl+k", "meta+shift+p", "escape"
 ```
 
@@ -115,14 +177,16 @@ await KinBot.download(filename, content, mimeType?)
 ## Inter-App Communication
 
 ```javascript
-await KinBot.share(targetSlug, data)
+KinBot.share(targetSlug, data)
 // Share JSON data with another mini-app and open it
+// Note: this is synchronous (fire-and-forget)
 
 KinBot.on("shared-data", ({ from, fromName, data, ts }) => { ... })
 // Receive shared data from another app
 
 await KinBot.apps.list()     // List all mini-apps from the same Kin
 await KinBot.apps.get(appId) // Get details of a specific app
+// Returns: { id, name, slug, description, icon, version }
 ```
 
 ## HTTP Proxy
@@ -140,46 +204,24 @@ const data = await KinBot.http.post(url, body)
 Call routes defined in `_server.js`:
 
 ```javascript
-const data = await KinBot.api.get("/path")        // GET → JSON
-const data = await KinBot.api.post("/path", body)  // POST → JSON
-const data = await KinBot.api.put("/path", body)   // PUT → JSON
-const data = await KinBot.api.patch("/path", body)  // PATCH → JSON
-await KinBot.api.delete("/path")                    // DELETE
-const data = await KinBot.api.json("/path", opts?)  // Any method + JSON parse
-const res = await KinBot.api("/path", opts?)         // Raw Response
+const data = await KinBot.api.get("/path")         // GET → JSON
+const data = await KinBot.api.post("/path", body)   // POST → JSON
+const data = await KinBot.api.put("/path", body)     // PUT → JSON
+const data = await KinBot.api.patch("/path", body)   // PATCH → JSON
+const data = await KinBot.api.delete("/path")        // DELETE → JSON
+const data = await KinBot.api.json("/path", headers?) // GET + JSON parse
+const res = await KinBot.api("/path", opts?)          // Raw Response
 ```
 
 ## Server-Sent Events
 
-Subscribe to real-time events from the backend.
+Subscribe to real-time events from the backend (`_server.js` using `ctx.events.emit()`).
 
 ```javascript
 KinBot.events.on("eventName", (data) => { ... })
-KinBot.events.subscribe((event, data) => { ... })  // all events
+KinBot.events.subscribe((event) => { ... })  // all events — { event, data }
 KinBot.events.close()
 KinBot.events.connected  // boolean
-```
-
-## Toast & Dialogs
-
-Convenience functions re-exported from `@kinbot/react`:
-
-```javascript
-import { toast, confirm, prompt } from "@kinbot/react";
-
-toast("Saved!", "success")
-// type: "info" | "success" | "warning" | "error"
-
-const ok = await confirm("Delete this item?", {
-  title: "Confirm",
-  confirmLabel: "Delete",
-  variant: "destructive",
-})
-
-const name = await prompt("Enter your name", {
-  placeholder: "John Doe",
-  defaultValue: "",
-})
 ```
 
 ## CSS Design System
@@ -189,13 +231,42 @@ A design system CSS is auto-injected into every mini-app.
 ### CSS Variables
 
 ```css
+/* Core */
 var(--color-primary)
 var(--color-background)
 var(--color-foreground)
 var(--color-muted)
 var(--color-card)
 var(--color-border)
+
+/* Semantic */
+var(--color-secondary)
+var(--color-accent)
+var(--color-destructive)
+var(--color-success)
+var(--color-warning)
+var(--color-info)
+
+/* Charts */
 var(--color-chart-1) through var(--color-chart-5)
+
+/* Gradients & effects */
+var(--color-gradient-start)
+var(--color-gradient-mid)
+var(--color-gradient-end)
+var(--color-glow-1) through var(--color-glow-3)
+var(--color-glass-bg)
+var(--color-glass-strong-bg)
+
+/* Typography */
+var(--font-sans)
+var(--font-mono)
+
+/* Radius */
+var(--radius-sm) through var(--radius-full)
+
+/* Shadows */
+var(--shadow-xs) through var(--shadow-xl)
 ```
 
 ### Utility Classes
