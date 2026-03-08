@@ -632,4 +632,70 @@ describe('buildSystemPrompt', () => {
     expect(result).toContain('Always sign off with a smiley.')
     expect(result).toContain('## Quick session')
   })
+
+  // --- Team context ---
+
+  it('includes team context block for hub kin', () => {
+    const result = buildSystemPrompt(makeParams({
+      teamContext: [{
+        teamId: 'team-1',
+        teamName: 'Research Team',
+        teamSlug: 'research-team',
+        teamDescription: 'A team focused on research tasks.',
+        role: 'hub',
+        members: [
+          { kinName: 'TestBot', kinSlug: 'test-bot', kinRole: 'coordinator', teamRole: 'hub', expertiseSummary: 'General coordination.' },
+          { kinName: 'Researcher', kinSlug: 'researcher', kinRole: 'research specialist', teamRole: 'member', expertiseSummary: 'Deep research and analysis.' },
+        ],
+      }],
+    }))
+    expect(result).toContain('## Team: Research Team')
+    expect(result).toContain('You are the **Hub** of this team')
+    expect(result).toContain('A team focused on research tasks.')
+    expect(result).toContain('**Researcher** (slug: researcher)')
+    expect(result).toContain('Deep research and analysis.')
+    expect(result).toContain('### Team routing')
+  })
+
+  it('includes team context block for regular member', () => {
+    const result = buildSystemPrompt(makeParams({
+      teamContext: [{
+        teamId: 'team-1',
+        teamName: 'Dev Team',
+        teamSlug: 'dev-team',
+        teamDescription: null,
+        role: 'member',
+        members: [
+          { kinName: 'HubBot', kinSlug: 'hub-bot', kinRole: 'coordinator', teamRole: 'hub', expertiseSummary: 'Coordination.' },
+          { kinName: 'TestBot', kinSlug: 'test-bot', kinRole: 'a helpful assistant', teamRole: 'member', expertiseSummary: 'General knowledge.' },
+        ],
+      }],
+    }))
+    expect(result).toContain('## Team: Dev Team')
+    expect(result).toContain('You are a member of this team')
+    expect(result).toContain('Team Hub: **HubBot** (slug: hub-bot)')
+    expect(result).toContain('HubBot (slug: hub-bot) - coordinator [Hub]')
+    expect(result).not.toContain('### Team routing')
+  })
+
+  it('omits team context when not provided', () => {
+    const result = buildSystemPrompt(makeParams())
+    expect(result).not.toContain('## Team:')
+  })
+
+  it('hub excludes self from member list', () => {
+    const result = buildSystemPrompt(makeParams({
+      teamContext: [{
+        teamId: 'team-1',
+        teamName: 'Solo Hub Team',
+        teamSlug: 'solo',
+        teamDescription: null,
+        role: 'hub',
+        members: [
+          { kinName: 'TestBot', kinSlug: 'test-bot', kinRole: 'coordinator', teamRole: 'hub', expertiseSummary: 'Coordination.' },
+        ],
+      }],
+    }))
+    expect(result).toContain('(no other members yet)')
+  })
 })

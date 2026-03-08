@@ -13,7 +13,7 @@ const log = createLogger('inter-kin')
 
 const rateLimitMap = new Map<string, number[]>()
 
-function checkRateLimit(senderKinId: string, targetKinId: string): boolean {
+function checkRateLimit(senderKinId: string, targetKinId: string, isIntraTeam = false): boolean {
   const key = `${senderKinId}→${targetKinId}`
   const now = Date.now()
   const windowMs = 60_000
@@ -23,7 +23,12 @@ function checkRateLimit(senderKinId: string, targetKinId: string): boolean {
   timestamps = timestamps.filter((t) => now - t < windowMs)
   rateLimitMap.set(key, timestamps)
 
-  if (timestamps.length >= config.interKin.rateLimitPerMinute) {
+  // Intra-team messages get a 2x rate limit boost
+  const limit = isIntraTeam
+    ? config.interKin.rateLimitPerMinute * 2
+    : config.interKin.rateLimitPerMinute
+
+  if (timestamps.length >= limit) {
     return false
   }
 
@@ -86,8 +91,20 @@ export async function sendInterKinMessage(params: SendMessageParams) {
     throw new Error('Cannot send a message to yourself')
   }
 
+  // Check if sender and target share a team (intra-team gets relaxed rate limits)
+  let isIntraTeam = false
+  try {
+    const { getTeamsForKin } = await import('@/server/services/teams')
+    const senderTeams = await getTeamsForKin(senderKinId)
+    const targetTeams = await getTeamsForKin(targetKinId)
+    const senderTeamIds = new Set(senderTeams.map((t) => t.id))
+    isIntraTeam = targetTeams.some((t) => senderTeamIds.has(t.id))
+  } catch {
+    // Non-fatal, fall back to standard rate limits
+  }
+
   // Rate limit check
-  if (!checkRateLimit(senderKinId, targetKinId)) {
+  if (!checkRateLimit(senderKinId, targetKinId, isIntraTeam)) {
     log.warn({ senderKinId, targetKinId }, 'Inter-kin rate limit exceeded')
     throw new Error(
       `Rate limit exceeded: max ${config.interKin.rateLimitPerMinute} messages/minute to this Kin`,
@@ -219,10 +236,22 @@ export async function listAvailableKins(excludeKinId?: string) {
     .from(kins)
     .all()
 
+  // Enrich with team membership info
+  const { getTeamsForKin } = await import('@/server/services/teams')
+  const enrichedKins = await Promise.all(
+    allKins.map(async (k) => {
+      const kinTeams = await getTeamsForKin(k.id)
+      return {
+        ...k,
+        teams: kinTeams.map((t) => ({ teamId: t.id, teamName: t.name, teamRole: t.memberRole })),
+      }
+    }),
+  )
+
   // Exclude self from the list
   if (excludeKinId) {
-    return allKins.filter((k) => k.id !== excludeKinId)
+    return enrichedKins.filter((k) => k.id !== excludeKinId)
   }
 
-  return allKins
+  return enrichedKins
 }

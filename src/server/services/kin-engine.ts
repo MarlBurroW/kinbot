@@ -30,6 +30,7 @@ import { resolveMCPTools, getMCPToolsSummary } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
 import type { KinToolConfig } from '@/shared/types'
 import { listAvailableKins } from '@/server/services/inter-kin'
+import { getTeamsForKin, getTeamMembers } from '@/server/services/teams'
 import { listContactsForPrompt } from '@/server/services/contacts'
 import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
 import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel } from '@/server/services/channels'
@@ -333,6 +334,54 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       currentMessageSource = { platform: 'web' }
     }
 
+    // Fetch team context for this Kin
+    let teamContext: Array<{
+      teamId: string
+      teamName: string
+      teamSlug: string | null
+      teamDescription: string | null
+      role: string
+      members: Array<{
+        kinName: string
+        kinSlug: string | null
+        kinRole: string
+        teamRole: string
+        expertiseSummary: string
+      }>
+    }> = []
+    try {
+      const kinTeams = await getTeamsForKin(kinId)
+      if (kinTeams.length > 0) {
+        teamContext = await Promise.all(
+          kinTeams.map(async (t) => {
+            const members = await getTeamMembers(t.id)
+            const otherKins = members.map((m) => {
+              // Fetch expertise for each member
+              const kinData = db.select({ expertise: kins.expertise }).from(kins).where(eq(kins.id, m.kinId)).get()
+              const expertise = kinData?.expertise ?? ''
+              return {
+                kinName: m.kinName,
+                kinSlug: m.kinSlug,
+                kinRole: m.kinRole,
+                teamRole: m.teamRole,
+                expertiseSummary: expertise.length > 300 ? expertise.slice(0, 300) + '...' : expertise,
+              }
+            })
+            return {
+              teamId: t.id,
+              teamName: t.name,
+              teamSlug: t.slug,
+              teamDescription: t.description,
+              role: t.memberRole,
+              members: otherKins,
+            }
+          }),
+        )
+      }
+    } catch (err) {
+      log.warn({ kinId, err }, 'Failed to fetch team context')
+    }
+
     const systemPrompt = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: contactsWithSlug,
@@ -346,6 +395,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       userLanguage,
       isHub,
       hubKinDirectory,
+      teamContext: teamContext.length > 0 ? teamContext : undefined,
       compactingSummary,
       compactedUpTo,
       participants: participants.length > 0 ? participants : undefined,

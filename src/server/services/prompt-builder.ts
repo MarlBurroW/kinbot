@@ -44,6 +44,21 @@ interface CronRunSummary {
   updatedAt: Date
 }
 
+interface TeamContextEntry {
+  teamId: string
+  teamName: string
+  teamSlug: string | null
+  teamDescription: string | null
+  role: string  // 'hub' | 'member'
+  members: Array<{
+    kinName: string
+    kinSlug: string | null
+    kinRole: string
+    teamRole: string  // 'hub' | 'member'
+    expertiseSummary: string
+  }>
+}
+
 interface PromptParams {
   kin: {
     name: string
@@ -66,6 +81,7 @@ interface PromptParams {
   userLanguage: 'fr' | 'en'
   isHub?: boolean
   hubKinDirectory?: HubKinDirectoryEntry[]
+  teamContext?: TeamContextEntry[]
   compactingSummary?: string | null
   compactedUpTo?: Date | null
   participants?: Array<{ name: string; platform: string | null; messageCount: number; lastSeenAt: Date }>
@@ -586,6 +602,51 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- Use type "request" when you need a response back, "inform" for one-way notifications.\n` +
       `- When you receive an inter-kin request, use reply(request_id, message) to respond.`,
     )
+  }
+
+  // [4.7] Team context
+  if (params.teamContext && params.teamContext.length > 0) {
+    for (const team of params.teamContext) {
+      const isTeamHub = team.role === 'hub'
+      const otherMembers = team.members.filter((m) => m.kinSlug !== params.kin.slug)
+
+      if (isTeamHub) {
+        // Hub Kin: full routing instructions for this team
+        const memberLines = otherMembers
+          .map((m) => `- **${m.kinName}** (slug: ${m.kinSlug}) - ${m.kinRole}\n  Expertise: ${m.expertiseSummary}`)
+          .join('\n\n')
+        blocks.push(
+          `## Team: ${team.teamName}\n\n` +
+          `You are the **Hub** of this team - the central coordinator.` +
+          (team.teamDescription ? ` ${team.teamDescription}` : '') + `\n\n` +
+          `### Team members\n\n` +
+          (otherMembers.length > 0 ? memberLines : '(no other members yet)') + `\n\n` +
+          `### Team routing\n` +
+          `- When a request matches a team member's expertise, delegate via send_message(slug, message, "request").\n` +
+          `- When a request spans multiple members, coordinate by breaking it into parts.\n` +
+          `- For general conversation or requests outside team scope, handle directly.\n` +
+          `- Always acknowledge the user before delegating.\n` +
+          `- Synthesize team member replies before presenting to the user.`,
+        )
+      } else {
+        // Regular member: awareness of team and hub
+        const hubMember = team.members.find((m) => m.teamRole === 'hub')
+        const peerLines = otherMembers
+          .map((m) => {
+            const hubTag = m.teamRole === 'hub' ? ' [Hub]' : ''
+            return `- ${m.kinName} (slug: ${m.kinSlug}) - ${m.kinRole}${hubTag}`
+          })
+          .join('\n')
+        blocks.push(
+          `## Team: ${team.teamName}\n\n` +
+          `You are a member of this team.` +
+          (team.teamDescription ? ` ${team.teamDescription}` : '') +
+          (hubMember ? `\nTeam Hub: **${hubMember.kinName}** (slug: ${hubMember.kinSlug}) - route complex cross-domain requests to the Hub.` : '') + `\n\n` +
+          `### Teammates\n\n` +
+          (otherMembers.length > 0 ? peerLines : '(no other members)'),
+        )
+      }
+    }
   }
 
   // [5] Relevant memories
