@@ -28,6 +28,7 @@ import {
   deleteKin,
   getKinDetails,
   kinAvatarUrl,
+  validateKinFields,
 } from '@/server/services/kins'
 import { getHubKinId } from '@/server/services/app-settings'
 import { listModelsForProvider } from '@/server/providers/index'
@@ -432,6 +433,11 @@ kinRoutes.post('/', async (c) => {
     mcpServerIds?: string[]
   }
 
+  const validationError = validateKinFields({ name, role, character, expertise, model, providerId }, 'create')
+  if (validationError) {
+    return c.json({ error: { code: validationError.code, message: validationError.message } }, 400)
+  }
+
   const newKin = await createKin({
     name,
     slug,
@@ -475,6 +481,19 @@ kinRoutes.patch('/:id', async (c) => {
   }
 
   const body = await c.req.json()
+
+  const validationError = validateKinFields({
+    name: body.name,
+    role: body.role,
+    character: body.character,
+    expertise: body.expertise,
+    model: body.model,
+    providerId: body.providerId,
+  }, 'update')
+  if (validationError) {
+    return c.json({ error: { code: validationError.code, message: validationError.message } }, 400)
+  }
+
   const result = await updateKin(existing.id, {
     name: body.name,
     role: body.role,
@@ -935,7 +954,7 @@ kinRoutes.get('/:id/export', async (c) => {
             .where(eq(mcpServers.id, row.serverId))
             .limit(1)
           return server
-            ? { name: server.name, command: server.command, args: server.args, env: server.env }
+            ? { name: server.name, command: server.command, args: server.args }
             : null
         }),
       ).then((results) => results.filter(Boolean))
@@ -990,6 +1009,27 @@ kinRoutes.post('/import', async (c) => {
     )
   }
 
+  // Check if model is available in configured providers
+  const warnings: string[] = []
+  const allProviders = await db.select().from(providers).all()
+  let modelFound = false
+  for (const p of allProviders) {
+    if (!p.isValid) continue
+    try {
+      const pConfig = JSON.parse(await decrypt(p.configEncrypted))
+      const pModels = await listModelsForProvider(p.type, pConfig)
+      if (pModels.some((m) => m.id === model)) {
+        modelFound = true
+        break
+      }
+    } catch {
+      // Skip provider on error
+    }
+  }
+  if (!modelFound) {
+    warnings.push(`Model '${model}' is not available in your configured providers. You may need to update the Kin's model after import.`)
+  }
+
   const newKin = await createKin({
     name,
     role,
@@ -1022,6 +1062,7 @@ kinRoutes.post('/import', async (c) => {
         isProcessing: false,
         createdAt: newKin.createdAt,
       },
+      ...(warnings.length > 0 ? { warnings } : {}),
     },
     201,
   )

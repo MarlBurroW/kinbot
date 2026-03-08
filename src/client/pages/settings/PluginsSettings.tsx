@@ -267,6 +267,17 @@ export function PluginsSettings() {
                         {plugin.compatibilityError ?? t('settings.plugins.incompatible', 'Incompatible')}
                       </Badge>
                     )}
+                    {plugin.health?.autoDisabled && (
+                      <Badge variant="destructive" className="text-xs">
+                        <AlertTriangle className="size-3 mr-1" />
+                        {t('settings.plugins.autoDisabled', 'Auto-disabled')}
+                      </Badge>
+                    )}
+                    {plugin.health?.totalErrors > 0 && !plugin.health?.autoDisabled && (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
+                        {plugin.health.totalErrors} {t('settings.plugins.errors', 'errors')}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
                     {plugin.description}
@@ -364,6 +375,21 @@ export function PluginsSettings() {
 
                   {plugin.error && (
                     <p className="text-xs text-destructive mt-2">{plugin.error}</p>
+                  )}
+
+                  {/* Health details */}
+                  {plugin.health?.totalErrors > 0 && (
+                    <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
+                      {plugin.health.autoDisabled && (
+                        <p className="text-destructive font-medium">
+                          {t('settings.plugins.autoDisabledMsg', 'Auto-disabled after {{count}} consecutive errors', { count: plugin.health.consecutiveErrors })}
+                        </p>
+                      )}
+                      {plugin.health.lastError && (
+                        <p>{t('settings.plugins.lastError', 'Last error')}: {plugin.health.lastError}</p>
+                      )}
+                      <p>{t('settings.plugins.totalErrors', 'Total errors')}: {plugin.health.totalErrors}</p>
+                    </div>
                   )}
                 </div>
 

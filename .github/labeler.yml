@@ -169,4 +169,45 @@
       - any-glob-to-any-file:
           - "src/server/auth/**"
           - "src/server/services/vault*"
+          - "src/server/services/encryption*"
           - "SECURITY.md"
+
+"wakeups":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/wakeup*"
+          - "src/server/tools/wakeup*"
+
+"compacting":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/compacting*"
+          - "src/server/services/consolidation*"
+
+"web-browsing":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/web-browse*"
+          - "src/server/services/browser-pool*"
+          - "src/server/tools/browse*"
+
+"vault":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/vault*"
+          - "src/server/tools/vault*"
+          - "src/server/routes/vault*"
+          - "src/client/**/vault*"
+          - "src/client/**/*Vault*"
+
+"quick-sessions":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/services/quick-session*"
+          - "src/server/routes/quick-session*"
+          - "src/client/**/quick-session*"
+          - "src/client/**/*QuickSession*"
+
+"installer":
+  - changed-files:
+      - any-glob-to-any-file: "install.sh"

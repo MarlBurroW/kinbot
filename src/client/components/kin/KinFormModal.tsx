@@ -310,6 +310,8 @@ export function KinFormModal({
         config.enableOptInToolDomains ?? [],
       ))
     }
+
+    markDirty()
   }
 
   /** Trigger background avatar generation from config fields */

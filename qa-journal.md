@@ -999,3 +999,47 @@
 ### Next run
 - Area 2 (revisit): Kin management
 - Area 3 (revisit): Conversations
+
+## 2026-03-08 08:40 UTC
+### Area tested: Kin Management (Area 2 - revisit)
+- **Pages visited:** Code review of KinFormModal.tsx, KinCard.tsx, KinToolsTab.tsx, KinList.tsx, SortableKinCard.tsx, useKins.ts, useKinTools.ts, kins.ts (routes), kins.ts (services), slug.ts, db/schema.ts (kins table)
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 4 (issues created: #157, #158, #161, #162)
+  - #157: No server-side validation on Kin create/update fields (name, role, character, expertise, model) - accepts empty strings, unlimited length
+  - #158: Kin PATCH allows setting providerId to non-existent provider, resulting in 500 instead of 400
+  - #161: Kin form wizard-generated character/expertise don't call markDirty(), unsaved changes guard doesn't fire
+  - #162: Kin delete cascade doesn't clean up quick sessions referencing deleted Kin
+
+- **UX suggestions:** 2 (issues created: #159, #160)
+  - #159: Kin export leaks MCP server env var key names
+  - #160: Kin import doesn't verify model ID exists, no warning or suggestion
+
+#### All clear:
+- Kin CRUD with proper SSE real-time updates across clients
+- Kin list with drag-and-drop reorder (dnd-kit), order persisted per user
+- Hub Kin pinned at top of sidebar, outside drag zone
+- Kin card: clean layout with avatar, name, role, model name, processing state, queue size badge
+- Kin card context menu: edit, export, set as hub, delete (with confirmation dialog)
+- Keyboard shortcuts (Cmd/Ctrl+1-9) for quick Kin selection
+- Kin search filter in sidebar (appears when >= 5 Kins)
+- Kin form: tabbed layout (General, Tools, Memory) with left sidebar navigation
+- AI wizard: describe -> generate -> refine flow, clean UX
+- Wizard: Import from .kinbot.json file with proper error handling
+- Avatar picker: upload with crop, AI generation (auto/prompt), per-provider image model selection
+- Avatar generation runs in background during wizard, cancellable via AbortController
+- Slug generation: auto from name, unique collision handling (-2, -3 suffix)
+- Slug validation: regex with proper format rules, checked on update
+- Tool config: dual model (deny-list for standard tools, opt-in allow-list for admin tools)
+- Tool domains: collapsible groups with bulk toggle and per-tool switches
+- MCP tool access: per-server granular control with wildcard support
+- Search provider override per Kin
+- Memory tab: embedded MemoryList component for edit mode
+- Unsaved changes guard with confirmation dialog
+- Model unavailable warning with visual indicators (dimmed card, alert icon)
+- Kin deletion: comprehensive cascade delete with SSE notifications for all affected entities
+- Export: full .kinbot.json with version metadata, downloadable
+
+### Next run
+- Area 3 (revisit): Conversations
+- Area 4 (revisit): Tasks/Crons

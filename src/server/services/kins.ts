@@ -23,6 +23,8 @@ import {
   vaultSecrets,
   scheduledWakeups,
   miniApps,
+  quickSessions,
+  providers,
 } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { generateSlug, ensureUniqueSlug, isValidSlug } from '@/server/utils/slug'
@@ -84,6 +86,57 @@ export interface KinRecord {
 export interface KinDetails extends KinRecord {
   avatarUrl: string | null
   mcpServers: Array<{ id: string; name: string }>
+}
+
+// ─── Validation ─────────────────────────────────────────────────────────────
+
+const MAX_NAME_LENGTH = 100
+const MAX_ROLE_LENGTH = 200
+const MAX_TEXT_LENGTH = 50_000
+
+export interface ValidationError {
+  code: string
+  message: string
+  field: string
+}
+
+export function validateKinFields(
+  fields: Partial<CreateKinInput>,
+  mode: 'create' | 'update',
+): ValidationError | null {
+  const { name, role, character, expertise, model, providerId } = fields
+
+  if (mode === 'create') {
+    if (!name || !name.trim()) return { code: 'INVALID_NAME', message: 'Name is required', field: 'name' }
+    if (!role || !role.trim()) return { code: 'INVALID_ROLE', message: 'Role is required', field: 'role' }
+    if (!model || !model.trim()) return { code: 'INVALID_MODEL', message: 'Model is required', field: 'model' }
+  }
+
+  if (name !== undefined) {
+    if (typeof name !== 'string' || !name.trim()) return { code: 'INVALID_NAME', message: 'Name cannot be empty', field: 'name' }
+    if (name.length > MAX_NAME_LENGTH) return { code: 'INVALID_NAME', message: `Name must be under ${MAX_NAME_LENGTH} characters`, field: 'name' }
+  }
+  if (role !== undefined) {
+    if (typeof role !== 'string' || !role.trim()) return { code: 'INVALID_ROLE', message: 'Role cannot be empty', field: 'role' }
+    if (role.length > MAX_ROLE_LENGTH) return { code: 'INVALID_ROLE', message: `Role must be under ${MAX_ROLE_LENGTH} characters`, field: 'role' }
+  }
+  if (character !== undefined && typeof character === 'string' && character.length > MAX_TEXT_LENGTH) {
+    return { code: 'INVALID_CHARACTER', message: `Character must be under ${MAX_TEXT_LENGTH} characters`, field: 'character' }
+  }
+  if (expertise !== undefined && typeof expertise === 'string' && expertise.length > MAX_TEXT_LENGTH) {
+    return { code: 'INVALID_EXPERTISE', message: `Expertise must be under ${MAX_TEXT_LENGTH} characters`, field: 'expertise' }
+  }
+  if (model !== undefined && (typeof model !== 'string' || !model.trim())) {
+    return { code: 'INVALID_MODEL', message: 'Model cannot be empty', field: 'model' }
+  }
+
+  // Validate providerId exists if specified
+  if (providerId !== undefined && providerId !== null) {
+    const provider = db.select({ id: providers.id }).from(providers).where(eq(providers.id, providerId)).get()
+    if (!provider) return { code: 'INVALID_PROVIDER', message: 'Provider not found', field: 'providerId' }
+  }
+
+  return null
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -280,7 +333,16 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   }
 
   await db.delete(queueItems).where(eq(queueItems.kinId, kinId))
+
+  // Clean up quick sessions referencing this kin
+  const kinQuickSessionIds = db.select({ id: quickSessions.id }).from(quickSessions).where(eq(quickSessions.kinId, kinId)).all().map((s) => s.id)
+  if (kinQuickSessionIds.length > 0) {
+    // Null out session references in messages (including other kins' messages)
+    await db.update(messages).set({ sessionId: null }).where(inArray(messages.sessionId, kinQuickSessionIds))
+  }
+
   await db.delete(messages).where(eq(messages.kinId, kinId))
+  await db.delete(quickSessions).where(eq(quickSessions.kinId, kinId))
   await db.update(tasks).set({ parentTaskId: null }).where(eq(tasks.parentKinId, kinId))
   await db.delete(tasks).where(eq(tasks.parentKinId, kinId))
   await db.update(tasks).set({ sourceKinId: null }).where(eq(tasks.sourceKinId, kinId))

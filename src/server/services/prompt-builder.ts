@@ -271,6 +271,14 @@ function formatMemoryLineCompact(m: Memory): string {
  * Subject grouping mirrors how humans organize knowledge: "what do I know
  * about X?" is more natural than "what facts vs preferences do I have?"
  */
+/**
+ * Rough token estimation: ~3.5 chars per token for English/French mixed content.
+ * Conservative to avoid over-trimming.
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 3.5)
+}
+
 function buildMemoriesBlock(memories: Memory[]): string {
   const header = `## Memories\n\nRelevant information from your past interactions (★ = high importance, ⬤ = highly relevant, ◉ = relevant, ○ = loosely related):`
 
@@ -280,6 +288,30 @@ function buildMemoriesBlock(memories: Memory[]): string {
     for (const m of memories) {
       if (m.score != null) m.score = m.score / topScore
     }
+  }
+
+  // Token budget enforcement: trim lowest-relevance memories if budget is set
+  const budget = config.memory?.tokenBudget ?? 0
+  if (budget > 0 && memories.length > 1) {
+    // Sort by normalized score descending (preserve order for display later)
+    const scored = memories.map((m, i) => ({ m, i, score: m.score ?? 0 }))
+    scored.sort((a, b) => b.score - a.score)
+
+    let totalTokens = estimateTokens(header)
+    const kept: typeof scored = []
+
+    for (const entry of scored) {
+      const lineTokens = estimateTokens(formatMemoryLine(entry.m)) + 1 // +1 for newline
+      if (totalTokens + lineTokens > budget && kept.length >= 1) {
+        break // Budget exceeded, stop adding memories
+      }
+      totalTokens += lineTokens
+      kept.push(entry)
+    }
+
+    // Restore original order for display
+    kept.sort((a, b) => a.i - b.i)
+    memories = kept.map((k) => k.m)
   }
 
   if (memories.length <= 3) {

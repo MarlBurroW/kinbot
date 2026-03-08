@@ -11,7 +11,7 @@ import { hookRegistry } from '@/server/hooks/index'
 import { sseManager } from '@/server/sse/index'
 import type { ToolRegistration } from '@/server/tools/types'
 import type { HookName, HookHandler } from '@/server/hooks/types'
-import type { PluginManifest, PluginConfigField, PluginSummary, PluginProviderMeta, PluginChannelMeta, PluginInstallSource, PluginInstallMeta } from '@/shared/types/plugin'
+import type { PluginManifest, PluginConfigField, PluginSummary, PluginHealthStats, PluginProviderMeta, PluginChannelMeta, PluginInstallSource, PluginInstallMeta } from '@/shared/types/plugin'
 import { satisfiesSemver } from '@/shared/semver'
 import type { ProviderDefinition } from '@/server/providers/types'
 import type { ChannelAdapter } from '@/server/channels/adapter'
@@ -81,6 +81,7 @@ interface LoadedPlugin {
   registeredChannels: PluginChannelMeta[]
   installSource?: PluginInstallSource
   installMeta?: PluginInstallMeta
+  health: PluginHealthStats
 }
 
 // ─── Manifest validation ─────────────────────────────────────────────────────
@@ -248,6 +249,9 @@ export function validateConfig(
 
 // ─── Plugin Manager ──────────────────────────────────────────────────────────
 
+/** Max consecutive hook/tool errors before a plugin is auto-disabled */
+const MAX_CONSECUTIVE_ERRORS = 10
+
 class PluginManager {
   private plugins = new Map<string, LoadedPlugin>()
   private pluginsDir: string
@@ -360,6 +364,7 @@ class PluginManager {
             registeredHooks: [],
             registeredProviders: [],
             registeredChannels: [],
+            health: { totalErrors: 0, consecutiveErrors: 0, autoDisabled: false },
           })
           continue
         }
@@ -382,6 +387,7 @@ class PluginManager {
           registeredHooks: [],
           registeredProviders: [],
           registeredChannels: [],
+            health: { totalErrors: 0, consecutiveErrors: 0, autoDisabled: false },
           installSource: (state?.installSource as PluginInstallSource) ?? 'local',
           installMeta: state?.installMeta ? JSON.parse(state.installMeta) : undefined,
         })
@@ -403,6 +409,7 @@ class PluginManager {
           registeredHooks: [],
             registeredProviders: [],
             registeredChannels: [],
+            health: { totalErrors: 0, consecutiveErrors: 0, autoDisabled: false },
         })
       }
     }
@@ -448,7 +455,9 @@ class PluginManager {
         throw new Error(`Plugin "${name}" main file must default-export a function`)
       }
 
-      const exports: PluginExports = initFn(ctx)
+      const result = initFn(ctx)
+      // Support both sync and async init functions
+      const exports: PluginExports = result instanceof Promise ? await result : result
       plugin.exports = exports
 
       // Register tools
@@ -478,9 +487,12 @@ class PluginManager {
           if (handler) {
             const wrappedHandler: HookHandler = async (ctx) => {
               try {
-                return await handler(ctx)
+                const result = await handler(ctx)
+                // Successful execution resets consecutive error count
+                plugin.health.consecutiveErrors = 0
+                return result
               } catch (err) {
-                log.error({ plugin: name, hook: hookName, err }, 'Plugin hook error')
+                this.recordPluginError(name, err instanceof Error ? err.message : 'Hook error', `hook:${hookName}`)
                 return ctx
               }
             }
@@ -683,6 +695,43 @@ class PluginManager {
 
   // ─── State management ──────────────────────────────────────────────────────
 
+  /** Record an error for a plugin and auto-disable if threshold exceeded */
+  private recordPluginError(name: string, message: string, source: string): void {
+    const plugin = this.plugins.get(name)
+    if (!plugin) return
+
+    plugin.health.totalErrors++
+    plugin.health.consecutiveErrors++
+    plugin.health.lastError = `[${source}] ${message}`
+    plugin.health.lastErrorAt = new Date().toISOString()
+
+    log.error({ plugin: name, source, error: message, consecutive: plugin.health.consecutiveErrors }, 'Plugin error')
+
+    // Circuit breaker: auto-disable after too many consecutive errors
+    if (plugin.health.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS && plugin.enabled) {
+      plugin.health.autoDisabled = true
+      plugin.health.autoDisabledAt = new Date().toISOString()
+      log.warn({ plugin: name, errors: plugin.health.consecutiveErrors }, 'Plugin auto-disabled due to repeated errors')
+
+      // Disable async (don't await in error handler)
+      this.disablePlugin(name).catch(err => {
+        log.error({ plugin: name, err }, 'Failed to auto-disable plugin')
+      })
+
+      sseManager.broadcast({
+        type: 'plugin:autoDisabled',
+        data: { name, reason: `${plugin.health.consecutiveErrors} consecutive errors`, lastError: message },
+      })
+    }
+  }
+
+  /** Reset health stats for a plugin (e.g. after manual re-enable) */
+  resetPluginHealth(name: string): void {
+    const plugin = this.plugins.get(name)
+    if (!plugin) return
+    plugin.health = { totalErrors: 0, consecutiveErrors: 0, autoDisabled: false }
+  }
+
   private async getState(name: string) {
     return db.select().from(pluginStates).where(eq(pluginStates.name, name)).get()
   }
@@ -792,6 +841,9 @@ class PluginManager {
     const plugin = this.plugins.get(name)
     if (!plugin) throw new Error(`Plugin "${name}" not found`)
 
+    // Reset health stats on manual enable (fresh start after auto-disable)
+    this.resetPluginHealth(name)
+
     await this.setState(name, true)
     await this.activatePlugin(name)
 
@@ -849,6 +901,7 @@ class PluginManager {
       compatibilityError: p.manifest.kinbot && !satisfiesSemver(version, p.manifest.kinbot)
         ? `Requires KinBot ${p.manifest.kinbot} (current: ${version})`
         : undefined,
+      health: { ...p.health },
     }))
   }
 
@@ -984,6 +1037,7 @@ class PluginManager {
         registeredHooks: [],
         registeredProviders: [],
         registeredChannels: [],
+            health: { totalErrors: 0, consecutiveErrors: 0, autoDisabled: false },
         installSource: 'git',
         installMeta,
       })
@@ -1106,6 +1160,7 @@ class PluginManager {
         registeredHooks: [],
         registeredProviders: [],
         registeredChannels: [],
+            health: { totalErrors: 0, consecutiveErrors: 0, autoDisabled: false },
         installSource: 'npm',
         installMeta,
       })
@@ -1208,6 +1263,7 @@ class PluginManager {
       registeredHooks: [],
       registeredProviders: [],
       registeredChannels: [],
+            health: { totalErrors: 0, consecutiveErrors: 0, autoDisabled: false },
       installSource: 'store',
       installMeta,
     })

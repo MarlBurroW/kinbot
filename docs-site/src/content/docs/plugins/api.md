@@ -184,6 +184,7 @@ Plugin management is also available via the REST API:
 | `DELETE` | `/api/plugins/:name` | Uninstall a plugin |
 | `POST` | `/api/plugins/:name/update` | Update an installed plugin |
 | `POST` | `/api/plugins/reload` | Reload all plugins |
+| `POST` | `/api/plugins/:name/health/reset` | Reset plugin health stats |
 
 **Built-in store:**
 
@@ -201,6 +202,31 @@ Plugin management is also available via the REST API:
 | `GET` | `/api/plugins/registry/search` | Search registry (`?q=...&tag=...`) |
 | `GET` | `/api/plugins/registry/readme` | Fetch a plugin's README (`?repo=<github-url>`) |
 | `GET` | `/api/plugins/version` | Get KinBot version for compatibility checks |
+
+## Plugin Health Monitoring
+
+KinBot tracks error statistics for each plugin. If a plugin's hooks or tools throw errors repeatedly, it is automatically disabled to protect system stability.
+
+**Health stats** are included in every plugin summary (`GET /api/plugins`):
+
+```typescript
+interface PluginHealthStats {
+  totalErrors: number        // Total errors since last reset
+  consecutiveErrors: number  // Errors in a row (resets on success)
+  lastError?: string         // Last error message with source
+  lastErrorAt?: string       // ISO timestamp
+  autoDisabled: boolean      // Whether circuit breaker triggered
+  autoDisabledAt?: string    // When it was auto-disabled
+}
+```
+
+**Circuit breaker:** After 10 consecutive hook errors, the plugin is automatically disabled and a `plugin:autoDisabled` SSE event is broadcast. To re-enable, use the UI toggle or `POST /api/plugins/:name/enable` (this resets health stats).
+
+**Reset health stats** without disabling/re-enabling:
+
+```bash
+curl -X POST http://localhost:3000/api/plugins/my-plugin/health/reset
+```
 
 ### Install from Git
 

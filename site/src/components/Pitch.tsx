@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from 'react'
 import { Server, Brain, Users, Shield, Puzzle, MessageSquare } from 'lucide-react'
 
 const points = [
@@ -39,6 +40,78 @@ const points = [
   },
 ]
 
+function PitchCard({
+  icon: Icon,
+  title,
+  desc,
+  color,
+  index,
+}: {
+  icon: React.ComponentType<{ size: number; style?: React.CSSProperties }>
+  title: string
+  desc: string
+  color: string
+  index: number
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+  const [hovered, setHovered] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setVisible(true)
+      return
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          observer.unobserve(el)
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div
+      ref={ref}
+      className="glass-strong rounded-xl p-5 transition-all duration-300 hover:scale-[1.02]"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        border: `1px solid color-mix(in oklch, ${color} ${hovered ? '40%' : '20%'}, transparent)`,
+        boxShadow: hovered
+          ? `0 0 24px color-mix(in oklch, ${color} 15%, transparent), 0 0 48px color-mix(in oklch, ${color} 8%, transparent)`
+          : 'none',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(24px)',
+        transition: `opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.08}s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.08}s, border-color 0.3s ease, box-shadow 0.3s ease`,
+      }}
+    >
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all duration-300"
+        style={{
+          background: `color-mix(in oklch, ${color} ${hovered ? '22%' : '14%'}, transparent)`,
+          border: `1px solid color-mix(in oklch, ${color} ${hovered ? '40%' : '28%'}, transparent)`,
+        }}
+      >
+        <Icon size={18} style={{ color }} />
+      </div>
+      <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--color-foreground)' }}>
+        {title}
+      </h3>
+      <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
+        {desc}
+      </p>
+    </div>
+  )
+}
+
 export function Pitch() {
   return (
     <section className="px-6 py-24 max-w-5xl mx-auto">
@@ -53,30 +126,8 @@ export function Pitch() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {points.map(({ icon: Icon, title, desc, color }) => (
-          <div
-            key={title}
-            className="glass-strong rounded-xl p-5 transition-all duration-200 hover:scale-[1.02]"
-            style={{
-              border: `1px solid color-mix(in oklch, ${color} 20%, transparent)`,
-            }}
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-              style={{
-                background: `color-mix(in oklch, ${color} 14%, transparent)`,
-                border: `1px solid color-mix(in oklch, ${color} 28%, transparent)`,
-              }}
-            >
-              <Icon size={18} style={{ color }} />
-            </div>
-            <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--color-foreground)' }}>
-              {title}
-            </h3>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-              {desc}
-            </p>
-          </div>
+        {points.map(({ icon: Icon, title, desc, color }, i) => (
+          <PitchCard key={title} icon={Icon} title={title} desc={desc} color={color} index={i} />
         ))}
       </div>
     </section>

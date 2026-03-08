@@ -70,6 +70,7 @@ export type SSEEventType =
   | 'team:deleted'
   | 'team:member_added'
   | 'team:member_removed'
+  | 'plugin:autoDisabled'
   | 'settings:hub-changed'
   | 'version:update-available'
   | 'connected'

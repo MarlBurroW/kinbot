@@ -68,6 +68,15 @@ export interface RegistryPlugin {
   readme_url?: string
 }
 
+export interface PluginHealthStats {
+  totalErrors: number
+  consecutiveErrors: number
+  lastError?: string
+  lastErrorAt?: string  // ISO date
+  autoDisabled: boolean
+  autoDisabledAt?: string  // ISO date
+}
+
 export interface PluginSummary {
   name: string
   version: string
@@ -92,4 +101,5 @@ export interface PluginSummary {
   dependents: string[]  // plugins that depend on this one
   compatible?: boolean
   compatibilityError?: string
+  health: PluginHealthStats
 }

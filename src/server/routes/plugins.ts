@@ -184,6 +184,31 @@ pluginRoutes.get('/', async (c) => {
   return c.json(plugins)
 })
 
+// GET /api/plugins/:name — get a single plugin's details
+pluginRoutes.get('/:name', async (c) => {
+  const { name } = c.req.param()
+  // Avoid matching sub-routes like "registry", "store", "version", "reload"
+  if (['registry', 'store', 'version', 'reload'].includes(name)) return c.notFound()
+  const plugins = pluginManager.listPlugins()
+  const plugin = plugins.find(p => p.name === name)
+  if (!plugin) {
+    return c.json({ error: { code: 'PLUGIN_NOT_FOUND', message: `Plugin "${name}" not found` } }, 404)
+  }
+  return c.json(plugin)
+})
+
+// GET /api/plugins/:name/readme — get a plugin's README
+pluginRoutes.get('/:name/readme', async (c) => {
+  const { name } = c.req.param()
+  try {
+    const pluginDir = resolve(process.cwd(), 'plugins', name)
+    const readme = await readFile(join(pluginDir, 'README.md'), 'utf-8')
+    return c.json({ readme })
+  } catch {
+    return c.json({ readme: null })
+  }
+})
+
 // POST /api/plugins/:name/enable
 pluginRoutes.post('/:name/enable', requireAdmin, async (c) => {
   const { name } = c.req.param()
@@ -229,6 +254,17 @@ pluginRoutes.put('/:name/config', requireAdmin, async (c) => {
   } catch (err) {
     log.error({ plugin: name, err }, 'Failed to update plugin config')
     return c.json({ error: { code: 'PLUGIN_CONFIG_FAILED', message: err instanceof Error ? err.message : 'Failed to update config' } }, 400)
+  }
+})
+
+// POST /api/plugins/:name/health/reset — reset a plugin's health stats (admin only)
+pluginRoutes.post('/:name/health/reset', requireAdmin, async (c) => {
+  const { name } = c.req.param()
+  try {
+    pluginManager.resetPluginHealth(name)
+    return c.json({ success: true })
+  } catch (err) {
+    return c.json({ error: { code: 'HEALTH_RESET_FAILED', message: err instanceof Error ? err.message : 'Failed to reset health' } }, 400)
   }
 })
 
