@@ -191,7 +191,7 @@ describe('wakeup-tools', () => {
 
     it('schedules without expiry', async () => {
       mockScheduleRecurringWakeup.mockImplementation(() =>
-        Promise.resolve({ id: 'wk-r2', fireAt: new Date('2026-03-05T04:00:00Z'), expiresAt: null }),
+        Promise.resolve({ id: 'wk-r2', fireAt: new Date('2026-03-05T04:00:00Z'), expiresAt: null as unknown as Date }),
       )
       const execute = getExecute(wakeMeEveryTool)
       const result = await execute({ interval_seconds: 60 })

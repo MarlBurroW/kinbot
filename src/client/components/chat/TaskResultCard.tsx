@@ -201,7 +201,7 @@ export const TaskResultCard = memo(function TaskResultCard(props: TaskResultCard
           isActive ? 'border-primary/30' : 'border-border',
         )}>
           <div className="flex items-center gap-3">
-            <ChatAvatar avatarUrl={avatarUrl} name={senderName} fallbackClassName="text-[10px] bg-secondary" />
+            <ChatAvatar avatarUrl={avatarUrl ?? undefined} name={senderName ?? undefined} fallbackClassName="text-[10px] bg-secondary" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{task.taskName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">

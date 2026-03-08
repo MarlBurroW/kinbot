@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { eq, and, asc, desc } from 'drizzle-orm'
+import { eq, and, asc, desc, inArray, sql } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db } from '@/server/db/index'
 import { quickSessions, messages, kins, memories } from '@/server/db/schema'
@@ -119,13 +119,14 @@ kinScopedRoutes.get('/', async (c) => {
   const messageCounts = new Map<string, number>()
 
   if (sessionIds.length > 0) {
-    for (const sid of sessionIds) {
-      const result = await db
-        .select({ count: messages.id })
-        .from(messages)
-        .where(eq(messages.sessionId, sid))
-        .all()
-      messageCounts.set(sid, result.length)
+    const counts = await db
+      .select({ sessionId: messages.sessionId, count: sql<number>`count(*)` })
+      .from(messages)
+      .where(inArray(messages.sessionId, sessionIds))
+      .groupBy(messages.sessionId)
+      .all()
+    for (const row of counts) {
+      if (row.sessionId) messageCounts.set(row.sessionId, row.count)
     }
   }
 
@@ -242,6 +243,20 @@ sessionRoutes.post('/:id/messages', async (c) => {
 
   if (!content?.trim() && !hasFiles) {
     return c.json({ error: { code: 'EMPTY_MESSAGE', message: 'Message content or files required' } }, 400)
+  }
+
+  if (content && content.length > 100_000) {
+    return c.json({ error: { code: 'CONTENT_TOO_LONG', message: 'Message content must be 100,000 characters or less' } }, 400)
+  }
+
+  if (fileIds) {
+    if (fileIds.length > 10) {
+      return c.json({ error: { code: 'TOO_MANY_FILES', message: 'Maximum 10 files per message' } }, 400)
+    }
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (fileIds.some((id: string) => typeof id !== 'string' || !uuidRegex.test(id))) {
+      return c.json({ error: { code: 'INVALID_FILE_ID', message: 'Each fileId must be a valid UUID' } }, 400)
+    }
   }
 
   const { id, queuePosition } = await enqueueMessage({

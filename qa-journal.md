@@ -925,3 +925,44 @@
 ### Next run
 - Area 15: Quick chat / Ephemeral sessions
 - Area 1 (revisit): Onboarding / First run (rotate back to start)
+
+## 2026-03-08 00:40 UTC
+### Area tested: Quick Chat / Ephemeral Sessions (Area 15)
+- **Pages visited:** Code review of QuickChatPanel.tsx, useQuickChat.ts, useQuickSession.ts, QuickSessionHistory.tsx, useQuickSessionHistory.ts, quick-sessions.ts (routes), quick-session-cleanup.ts, ChatPanel.tsx (quick session integration), config.ts (quickSessions config)
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 3 (issues created: #146, #147, #148)
+  - #146: N+1 query for message counts in quick session listing (fetches all rows per session, uses .length instead of COUNT(*))
+  - #147: No server-side message content length limit on quick session messages
+  - #148: No fileIds array length or format validation on quick session messages
+
+- **UX suggestions:** 3 (issues created: #149, #150, #151)
+  - #149: Close dialog memory checkbox and summary text not reset between cancel/reopen
+  - #150: No pagination or infinite scroll in quick session history (hard-capped at 20)
+  - #151: Quick chat side panel width may overflow on small tablets (500px fixed width)
+
+#### All clear:
+- Quick session CRUD with proper SSE real-time updates
+- Session creation with title validation (200 char max) and max active sessions limit
+- Session ownership verification (loadSession helper, 403 on mismatch)
+- Session close flow with optional memory save (summary validated at 5000 chars)
+- Memory creation uses createMemory with embedding + vector index
+- Idempotent close (already-closed returns ok)
+- Expiration check before accepting messages (409 SESSION_EXPIRED)
+- Streaming with batched UI updates (50ms debounce) for smooth rendering
+- Stop streaming with abort support
+- Quick session cleanup job: closes expired sessions, deletes stale closed sessions after retention period
+- SSE notifications for session closure (UI auto-updates)
+- Quick chat panel: clean header with Kin avatar, history button, end session button, hide button
+- Empty state with icon and message
+- Optimistic user message rendering with rollback on error
+- Draft message persistence per session (useDraftMessage with quick- prefix)
+- File upload support with optimistic file display
+- Quick session history: session list with title, date, message count, click to view messages
+- History message viewing with back navigation
+- Lazy loading of QuickChatPanel and QuickSessionHistory components
+- Quick chat accessible from conversation header (desktop button + mobile dropdown menu)
+
+### Next run
+- Area 1 (revisit): Onboarding / First run (rotate back to beginning)
+- Area 2 (revisit): Kin management
