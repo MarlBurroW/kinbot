@@ -159,17 +159,17 @@ describe('subtask-tools', () => {
     })
 
     it('returns error from requestInput when not successful', async () => {
-      mockRequestInput.mockResolvedValue({ success: false, error: 'max requests exceeded' })
+      mockRequestInput.mockResolvedValue({ success: false, error: 'max requests exceeded' } as any)
       const tool = createTool(requestInputTool, { kinId: 'kin-1', taskId: 'task-99' })
       const result = await tool.execute({ question: 'help?' }, {} as any)
-      expect(result).toEqual({ error: 'max requests exceeded' })
+      expect(result).toEqual({ error: 'max requests exceeded' } as any)
     })
 
     it('returns error undefined when requestInput fails without error message', async () => {
       mockRequestInput.mockResolvedValue({ success: false })
       const tool = createTool(requestInputTool, { kinId: 'kin-1', taskId: 'task-99' })
       const result = await tool.execute({ question: 'help?' }, {} as any)
-      expect(result).toEqual({ error: undefined })
+      expect(result).toEqual({ error: undefined } as any)
     })
 
     it('has a description mentioning clarification', () => {
