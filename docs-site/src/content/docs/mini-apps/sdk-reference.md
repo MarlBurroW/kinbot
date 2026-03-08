@@ -7,50 +7,105 @@ The KinBot SDK (`kinbot-sdk.js`) is the low-level API that powers the React hook
 
 ## KinBot Global Object
 
-After the SDK loads, the `KinBot` global is available.
+After the SDK loads, the `KinBot` global is available on `window`.
+
+### Top-Level Properties
+
+```javascript
+KinBot.version    // string — SDK version (e.g. "1.16.0")
+KinBot.locale     // string — current UI language code ("en", "fr", etc.)
+KinBot.isFullPage // boolean — whether app is in full-page mode
+KinBot.theme      // { mode: "light"|"dark", palette: string }
+KinBot.app        // KinBotAppMeta | null (see below)
+KinBot.kin        // { id, name, avatarUrl } (all nullable)
+KinBot.user       // { id, name, pseudonym, locale, timezone, avatarUrl } (all nullable)
+```
+
+#### `KinBot.app` (AppMeta)
+
+```typescript
+{
+  id: string;
+  name: string;
+  slug: string;
+  kinId: string;
+  kinName: string;
+  kinAvatarUrl: string | null;
+  isFullPage: boolean;
+  locale: string;
+  user: KinBotUser;
+}
+```
 
 ### Lifecycle
 
 ```javascript
-KinBot.ready       // boolean — true when bridge is initialized
-KinBot.on("ready", () => { ... })  // listen for ready event
+KinBot.ready()                    // Signal that the app has finished loading
+KinBot.fullpage(true)             // Request full-page mode (or false for side-panel)
+KinBot.resize(width?, height?)    // Request panel resize (320-1200px width, 200-2000px height)
 ```
 
-### App Info
+:::caution
+`ready()` is a **function**, not a boolean property. Call it once your app has finished initializing.
+:::
+
+### Events
 
 ```javascript
-KinBot.app         // { id, name, slug, description, icon, version }
-KinBot.kin         // { id, name, avatarUrl }
-KinBot.user        // { id, name, pseudonym, locale, timezone, avatarUrl }
+KinBot.on(event, callback)    // Listen for events from the parent
+KinBot.emit(event, data?)     // Send events to the parent
 ```
 
-### Theme
-
-```javascript
-KinBot.theme       // { mode: "light"|"dark", palette: {...} }
-KinBot.on("theme", ({ mode, palette }) => { ... })
-```
+Built-in event names: `theme-changed`, `app-meta`, `locale-changed`, `fullpage-changed`, `shared-data`.
 
 ## Storage
 
 Persistent key-value storage (server-side, max 64KB per value, 500 keys per app).
 
 ```javascript
-await KinBot.storage.get(key)          // → value | null
-await KinBot.storage.set(key, value)   // JSON-serializable
-await KinBot.storage.delete(key)
-await KinBot.storage.list(prefix?)     // → string[]
-await KinBot.storage.clear()
+await KinBot.storage.get(key)      // → value | null
+await KinBot.storage.set(key, value)  // JSON-serializable
+await KinBot.storage.delete(key)   // → boolean (true if deleted)
+await KinBot.storage.list()        // → Array<{ key: string, size: number }>
+await KinBot.storage.clear()       // → number (keys cleared)
 ```
 
-## Navigation & Display
+:::note
+`list()` returns objects with `key` and `size` (bytes), not just key strings. There is no prefix filter parameter.
+:::
+
+## UI
+
+### Toast & Dialogs
+
+These are called directly on the `KinBot` object:
 
 ```javascript
-KinBot.navigate(path)          // Navigate the app to a path
-KinBot.fullpage(bool)          // Toggle full-page mode
-KinBot.setTitle(title)         // Set the panel title
-KinBot.setBadge(value)         // Set sidebar badge (number or string)
-KinBot.resize(width?, height?) // Request panel resize (320-1200px width, 200-2000px height)
+KinBot.toast("Saved!", "success")
+// type: "info" | "success" | "warning" | "error"
+
+const ok = await KinBot.confirm("Delete this item?", {
+  title: "Confirm",
+  confirmText: "Delete",
+  cancelText: "Cancel",
+})
+
+const name = await KinBot.prompt("Enter your name", {
+  title: "Input",
+  defaultValue: "",
+  placeholder: "John Doe",
+  confirmText: "OK",
+  cancelText: "Cancel",
+})
+```
+
+### Navigation & Display
+
+```javascript
+KinBot.navigate(path)          // Navigate the parent KinBot UI to a path
+KinBot.setTitle(title)         // Dynamically update the panel header title
+KinBot.setBadge(value)         // Set sidebar badge (number, string, or null to clear)
+KinBot.openApp(slug)           // Open another mini-app from the same Kin by slug
 ```
 
 ## Messaging
@@ -59,7 +114,6 @@ KinBot.resize(width?, height?) // Request panel resize (320-1200px width, 200-20
 await KinBot.sendMessage(text, options?)
 // Send a message to the Kin's conversation
 // options: { silent?: boolean }
-// Rate limited: 5 per 30s
 
 await KinBot.conversation.history(limit?)
 // Get recent messages (default 20, max 100)
@@ -79,14 +133,15 @@ await KinBot.memory.search(query, limit?)
 await KinBot.memory.store(content, { category?, subject? })
 // Store a new memory
 // category: "fact" | "preference" | "decision" | "knowledge" (default)
+// Returns: { id, content, category, subject }
 // Max 2000 chars
 ```
 
 ## Clipboard
 
 ```javascript
-await KinBot.clipboard.write(text)  // → boolean
-await KinBot.clipboard.read()       // → string | null
+await KinBot.clipboard.write(text)  // → void
+await KinBot.clipboard.read()       // → string
 ```
 
 ## Notifications
@@ -100,7 +155,7 @@ await KinBot.notification(title, body?)  // → boolean
 
 ```javascript
 const unregister = KinBot.shortcut("ctrl+k", callback)
-// Returns unregister function. Pass null to remove.
+// Returns unregister function. Pass null callback to remove.
 // Examples: "ctrl+k", "meta+shift+p", "escape"
 ```
 
@@ -115,7 +170,7 @@ await KinBot.download(filename, content, mimeType?)
 ## Inter-App Communication
 
 ```javascript
-await KinBot.share(targetSlug, data)
+KinBot.share(targetSlug, data)
 // Share JSON data with another mini-app and open it
 
 KinBot.on("shared-data", ({ from, fromName, data, ts }) => { ... })
@@ -123,6 +178,7 @@ KinBot.on("shared-data", ({ from, fromName, data, ts }) => { ... })
 
 await KinBot.apps.list()     // List all mini-apps from the same Kin
 await KinBot.apps.get(appId) // Get details of a specific app
+// Returns: { id, name, slug, description, icon, version }
 ```
 
 ## HTTP Proxy
@@ -131,8 +187,8 @@ Make external HTTP requests via KinBot's server (bypasses CORS). Rate limited: 6
 
 ```javascript
 const res = await KinBot.http(url, options?)
-const data = await KinBot.http.json(url)
-const data = await KinBot.http.post(url, body)
+const data = await KinBot.http.json(url, headers?)
+const data = await KinBot.http.post(url, body, headers?)
 ```
 
 ## Backend API Client
@@ -140,46 +196,24 @@ const data = await KinBot.http.post(url, body)
 Call routes defined in `_server.js`:
 
 ```javascript
-const data = await KinBot.api.get("/path")        // GET → JSON
-const data = await KinBot.api.post("/path", body)  // POST → JSON
-const data = await KinBot.api.put("/path", body)   // PUT → JSON
-const data = await KinBot.api.patch("/path", body)  // PATCH → JSON
-await KinBot.api.delete("/path")                    // DELETE
-const data = await KinBot.api.json("/path", opts?)  // Any method + JSON parse
-const res = await KinBot.api("/path", opts?)         // Raw Response
+const data = await KinBot.api.get("/path", headers?)    // GET → JSON
+const data = await KinBot.api.post("/path", body)       // POST → JSON
+const data = await KinBot.api.put("/path", body)        // PUT → JSON
+const data = await KinBot.api.patch("/path", body)      // PATCH → JSON
+const data = await KinBot.api.delete("/path")           // DELETE → JSON
+const data = await KinBot.api.json("/path", headers?)   // GET → JSON (alias)
+const res = await KinBot.api("/path", opts?)             // Raw Response
 ```
 
 ## Server-Sent Events
 
-Subscribe to real-time events from the backend.
+Subscribe to real-time events from the backend (`ctx.events.emit()` in `_server.js`).
 
 ```javascript
 KinBot.events.on("eventName", (data) => { ... })
-KinBot.events.subscribe((event, data) => { ... })  // all events
+KinBot.events.subscribe(({ event, data }) => { ... })  // all events
 KinBot.events.close()
 KinBot.events.connected  // boolean
-```
-
-## Toast & Dialogs
-
-Convenience functions re-exported from `@kinbot/react`:
-
-```javascript
-import { toast, confirm, prompt } from "@kinbot/react";
-
-toast("Saved!", "success")
-// type: "info" | "success" | "warning" | "error"
-
-const ok = await confirm("Delete this item?", {
-  title: "Confirm",
-  confirmLabel: "Delete",
-  variant: "destructive",
-})
-
-const name = await prompt("Enter your name", {
-  placeholder: "John Doe",
-  defaultValue: "",
-})
 ```
 
 ## CSS Design System
