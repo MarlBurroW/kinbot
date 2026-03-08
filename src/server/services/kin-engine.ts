@@ -531,7 +531,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
                   sourceType: 'kin',
                   sourceId: kinId,
                   sourceName: kin.name,
-                  sourceAvatarUrl: kin.avatarUrl,
+                  sourceAvatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${kin.avatarPath.split('.').pop()}` : null,
                 }),
               },
             })
@@ -631,7 +631,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         sourceType: 'kin',
         sourceId: kinId,
         sourceName: kin.name,
-        sourceAvatarUrl: kin.avatarUrl,
+        sourceAvatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${kin.avatarPath.split('.').pop()}` : null,
       },
     })
 

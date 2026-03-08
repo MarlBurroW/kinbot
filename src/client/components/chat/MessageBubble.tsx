@@ -673,6 +673,7 @@ export const MessageBubble = memo(function MessageBubble({
   const isUser = role === 'user' && sourceType === 'user'
   const isFromOtherKin = sourceType === 'kin' && role === 'user'
   const isFromChannel = sourceType === 'channel'
+  const { t } = useTranslation()
   // Extract platform from content prefix [telegram:Name] or [discord:Name]
   const channelPlatform = isFromChannel ? content.match(/^\[(\w+):/)?.[1] ?? 'channel' : null
   const isTaskResult = sourceType === 'task'
