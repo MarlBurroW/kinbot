@@ -548,6 +548,12 @@
       "showMore": "Voir plus",
       "showLess": "Voir moins"
     },
+    "queue": {
+      "title_one": "{{count}} message en file d'attente",
+      "title_other": "{{count}} messages en file d'attente",
+      "remove": "Retirer de la file",
+      "filesOnly": "(fichiers uniquement)"
+    },
     "charCount": "{{count}} caractères",
     "messageTooLong": "{{count}} / {{max}} — message trop long",
     "mention": {

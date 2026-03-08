@@ -548,6 +548,12 @@
       "showMore": "Show more",
       "showLess": "Show less"
     },
+    "queue": {
+      "title_one": "{{count}} message queued",
+      "title_other": "{{count}} messages queued",
+      "remove": "Remove from queue",
+      "filesOnly": "(files only)"
+    },
     "charCount": "{{count}} characters",
     "messageTooLong": "{{count}} / {{max}} — message too long",
     "mention": {

@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { eq, and, isNull, lt, desc, inArray } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { messages, kins, compactingSnapshots, memories as kinMemories, files, humanPrompts, messageReactions } from '@/server/db/schema'
-import { enqueueMessage } from '@/server/services/queue'
+import { enqueueMessage, getPendingQueueItems, removeQueueItem } from '@/server/services/queue'
 import { abortKinStream } from '@/server/services/kin-engine'
 import { sseManager } from '@/server/sse/index'
 import { getFilesForMessages, serializeFile } from '@/server/services/files'
@@ -256,6 +256,35 @@ messageRoutes.delete('/', async (c) => {
       500,
     )
   }
+})
+
+// GET /api/kins/:kinId/messages/queue — list pending queue items
+messageRoutes.get('/queue', async (c) => {
+  const kinIdParam = c.req.param('kinId')
+  const kinId = kinIdParam ? resolveKinId(kinIdParam) : null
+  if (!kinId) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  const items = await getPendingQueueItems(kinId)
+  return c.json({ items })
+})
+
+// DELETE /api/kins/:kinId/messages/queue/:itemId — remove a pending queue item
+messageRoutes.delete('/queue/:itemId', async (c) => {
+  const kinIdParam = c.req.param('kinId')
+  const kinId = kinIdParam ? resolveKinId(kinIdParam) : null
+  if (!kinId) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  const itemId = c.req.param('itemId')
+  const removed = await removeQueueItem(kinId, itemId)
+  if (!removed) {
+    return c.json({ error: { code: 'QUEUE_ITEM_NOT_FOUND', message: 'Queue item not found or already processing' } }, 404)
+  }
+
+  return c.json({ ok: true })
 })
 
 export { messageRoutes }

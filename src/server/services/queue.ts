@@ -182,6 +182,58 @@ export async function getQueueSize(kinId: string): Promise<number> {
 }
 
 /**
+ * List pending queue items for a Kin (ordered by priority DESC, creation time ASC).
+ */
+export async function getPendingQueueItems(kinId: string) {
+  const rows = await db
+    .select()
+    .from(queueItems)
+    .where(and(eq(queueItems.kinId, kinId), eq(queueItems.status, 'pending')))
+    .orderBy(desc(queueItems.priority), asc(queueItems.createdAt))
+    .all()
+
+  return rows.map((r) => ({
+    id: r.id,
+    kinId: r.kinId,
+    messageType: r.messageType,
+    content: r.content,
+    sourceType: r.sourceType,
+    sourceId: r.sourceId,
+    priority: r.priority,
+    createdAt: r.createdAt,
+  }))
+}
+
+/**
+ * Remove a pending queue item. Returns true if removed, false if not found or not pending.
+ */
+export async function removeQueueItem(kinId: string, itemId: string): Promise<boolean> {
+  const result = sqlite.run(
+    `DELETE FROM queue_items WHERE id = ? AND kin_id = ? AND status = 'pending'`,
+    [itemId, kinId],
+  )
+
+  if (result.changes > 0) {
+    // Also clean up any sideband file IDs
+    queueFileIds.delete(itemId)
+
+    // Emit updated queue state
+    const size = await getQueueSize(kinId)
+    const processing = await isKinProcessing(kinId)
+    sseManager.sendToKin(kinId, {
+      type: 'queue:update',
+      kinId,
+      data: { kinId, queueSize: size, isProcessing: processing },
+    })
+
+    log.debug({ kinId, itemId }, 'Queue item removed')
+    return true
+  }
+
+  return false
+}
+
+/**
  * Recover orphaned queue items stuck in 'processing' status.
  * This can happen after a crash or restart. Called once at worker startup.
  * Resets them to 'pending' so they get re-processed.

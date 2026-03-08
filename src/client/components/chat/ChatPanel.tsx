@@ -22,9 +22,11 @@ import { useQuickSession } from '@/client/hooks/useQuickSession'
 import { useAuth } from '@/client/hooks/useAuth'
 import { useReactions } from '@/client/hooks/useReactions'
 import { useDraftMessage } from '@/client/hooks/useDraftMessage'
+import { useQueueItems } from '@/client/hooks/useQueueItems'
 import { useFileUpload } from '@/client/hooks/useFileUpload'
 import { useExportConversation } from '@/client/hooks/useExportConversation'
 const ConversationSearch = lazy(() => import('@/client/components/chat/ConversationSearch').then(m => ({ default: m.ConversationSearch })))
+import { QueuePreview } from '@/client/components/chat/QueuePreview'
 import { ChatEmptyState } from '@/client/components/chat/ChatEmptyState'
 import { DateSeparator } from '@/client/components/chat/DateSeparator'
 import { TimeGapIndicator } from '@/client/components/chat/TimeGapIndicator'
@@ -68,6 +70,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
+  const { items: queueItems, removeItem: removeQueueItem, isRemoving: isRemovingQueueItem } = useQueueItems(kin.id)
   const { pendingFiles, addFiles, removeFile, clearFiles, isUploading } = useFileUpload(kin.id)
   const { activeSession, isOpen: isQuickOpen, setIsOpen: setQuickOpen, createSession, closeSession } = useQuickSession(kin.id)
   const [showQuickHistory, setShowQuickHistory] = useState(false)
@@ -724,6 +727,13 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
           <MiniAppViewer />
         </Suspense>
       </div>
+
+      {/* Queue preview */}
+      <QueuePreview
+        items={queueItems}
+        isRemoving={isRemovingQueueItem}
+        onRemove={removeQueueItem}
+      />
 
       {/* Input */}
       <MessageInput
