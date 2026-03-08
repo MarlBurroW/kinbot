@@ -238,8 +238,9 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     return () => viewport.removeEventListener('scroll', checkNearBottom)
   }, [checkNearBottom])
 
-  // Re-evaluate nearBottom when the viewport resizes (e.g. queue preview appearing/disappearing)
-  // If the user was at the bottom before the resize, keep them there.
+  // Re-evaluate nearBottom when the viewport resizes (e.g. queue preview appearing/disappearing).
+  // If the user was at the bottom before the resize, preserve that status so the normal
+  // auto-scroll effect (which uses smooth scrolling) keeps working correctly.
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
     if (!scrollArea) return
@@ -249,7 +250,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       const wasNearBottom = isNearBottomRef.current
       checkNearBottom()
       if (wasNearBottom && autoScroll) {
-        bottomRef.current?.scrollIntoView({ block: 'end' })
+        // The viewport shrank (e.g. queue preview appeared) but the user was at the bottom —
+        // keep the ref true so auto-scroll continues to work, and scroll to stay pinned.
+        isNearBottomRef.current = true
+        viewport.scrollTop = viewport.scrollHeight
       }
     })
     observer.observe(viewport)
