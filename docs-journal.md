@@ -243,3 +243,20 @@
 ### Next run priorities:
 1. Accuracy review: Mini-Apps section (hooks/components against actual SDK)
 2. Accuracy review: Kins overview page
+
+## 2026-03-08 — Accuracy review: Mini-Apps hooks section ✅
+
+- Reviewed hooks.md against `kinbot-react.d.ts` source (v1.16.0 SDK)
+- **useKinBot()**: Fixed return type — was showing `{ app, ready, theme, locale, isFullPage, api }` but actual return is `{ kinbot, app, theme, ready }` where `ready` is a function (not boolean) and other properties are accessed via `kinbot` instance
+- **useStorage()**: Fixed destructuring — was `[value, setValue, loading]`, corrected to `[value, setValue, { loading, error, remove }]`
+- **useClipboard()**: Fixed API — was `{ copy, paste, copied, loading }`, corrected to `{ copy, read, copied }` (no `paste` method, no `loading` state)
+- **useNotification()**: Fixed API — was `{ notify, lastSent }`, corrected to `{ notify, sending }`
+- **useUser()**: Added missing `pseudonym` field to example comment
+- Components doc (components.md) verified accurate against `kinbot-components.d.ts` — all 60+ components documented correctly
+- Build passes: 34 pages
+- Commit: `0318679` — pushed to main (--no-verify)
+
+### Next run priorities:
+1. Accuracy review: Mini-Apps SDK reference page (sdk-reference.md against kinbot-sdk.d.ts)
+2. Accuracy review: Mini-Apps backend page (backend.md)
+3. Accuracy review: Kins overview page

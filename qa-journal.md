@@ -966,3 +966,36 @@
 ### Next run
 - Area 1 (revisit): Onboarding / First run (rotate back to beginning)
 - Area 2 (revisit): Kin management
+
+## 2026-03-08 04:40 UTC
+### Area tested: Onboarding / First Run (Area 1 - revisit)
+- **Pages visited:** Code review of OnboardingPage.tsx, StepIdentity.tsx, StepPreferences.tsx, StepProviders.tsx, StepMemory.tsx, StepSearchProviders.tsx, onboarding.ts (routes), auth/index.ts, auth/middleware.ts, App.tsx
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 4 (issues created: #153, #154, #155, #156)
+  - #153: Language preference selected in Step 2 never saved to profile (Step 1 hardcodes 'en')
+  - #154: Progress bar formula never reaches 100% (maxes out at 80% on step 5)
+  - #155: No server-side length/format validation on onboarding profile fields (firstName, lastName, pseudonym, language)
+  - #156: If registration succeeds but profile creation fails, user is permanently locked out (can't re-register, can't access app)
+
+- **UX suggestions:** 0
+
+#### All clear:
+- Onboarding step flow (5 steps: Identity, Preferences, Providers, Memory, Search Providers)
+- Provider capability cards showing LLM/Embedding/Image coverage status
+- Quick Finish option when LLM + Embedding are covered (skips Memory + Search)
+- Resume onboarding at step 3 if admin exists but providers missing
+- Backend-unreachable error screen with retry button
+- Avatar upload with preview and camera overlay
+- Password confirmation check (client-side)
+- Provider guidance cards for new users (OpenAI, Gemini, Ollama with "Get Key" links)
+- Auth middleware correctly blocks profile-less users from accessing protected routes
+- Invitation token flow for non-first users (handled via InvitePage)
+- MemoryModelConfig with non-blocking save (optional step)
+- Search provider step properly optional (skip button available)
+- Lazy loading of all page components
+- Decorative aurora orbs for visual polish
+
+### Next run
+- Area 2 (revisit): Kin management
+- Area 3 (revisit): Conversations
