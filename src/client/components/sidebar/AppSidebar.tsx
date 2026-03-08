@@ -16,6 +16,7 @@ import { MiniAppList } from '@/client/components/sidebar/MiniAppList'
 import { SidebarFooterContent } from '@/client/components/sidebar/SidebarFooterContent'
 import { SystemHealthBar } from '@/client/components/sidebar/SystemHealthBar'
 import { useTasks } from '@/client/hooks/useTasks'
+import { useTeams } from '@/client/hooks/useTeams'
 import { cn } from '@/client/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { ListTodo, CalendarClock, Blocks } from 'lucide-react'
@@ -67,6 +68,7 @@ export function AppSidebar({
   const navigate = useNavigate()
   const { t } = useTranslation()
   const taskData = useTasks()
+  const { teams } = useTeams()
   const activeCount = taskData.activeTasks.length
   const hasAwaiting = taskData.activeTasks.some((t) => t.status === 'awaiting_human_input')
 
@@ -126,6 +128,7 @@ export function AppSidebar({
           onDeleteKin={onDeleteKin}
           onSetAsHub={onSetAsHub}
           onReorderKins={onReorderKins}
+          teams={teams}
         />
 
         <SidebarSeparator />

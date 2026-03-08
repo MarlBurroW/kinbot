@@ -33,6 +33,7 @@ import { UsersSettings } from '@/client/pages/settings/UsersSettings'
 import { NotificationPreferences } from '@/client/components/notifications/NotificationPreferences'
 import { PluginsSettings } from '@/client/pages/settings/PluginsSettings'
 import { PluginMarketplace } from '@/client/pages/settings/PluginMarketplace'
+import { TeamsSettings } from '@/client/pages/settings/TeamsSettings'
 import {
   Bell,
   Brain,
@@ -52,6 +53,7 @@ import {
   Timer,
   Contact,
   ShoppingBag,
+  UsersRound,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/client/components/ui/tooltip'
 import { api } from '@/client/lib/api'
@@ -74,6 +76,12 @@ const sectionGroups: SectionGroup[] = [
       { id: 'general', icon: Settings2, labelKey: 'settings.general.title' },
       { id: 'providers', icon: BrainCircuit, labelKey: 'settings.providers.title' },
       { id: 'search', icon: Search, labelKey: 'settings.searchProviders.title' },
+    ],
+  },
+  {
+    groupKey: 'settings.groups.kins',
+    items: [
+      { id: 'teams', icon: UsersRound, labelKey: 'teams.title' },
     ],
   },
   {
@@ -123,6 +131,7 @@ const sectionComponents: Record<string, React.FC> = {
   plugins: PluginsSettings,
   marketplace: PluginMarketplace,
   notifications: NotificationPreferences,
+  teams: TeamsSettings,
 }
 
 interface SettingsModalProps {

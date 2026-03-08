@@ -1237,7 +1237,8 @@
       "core": "Core",
       "extensions": "Extensions",
       "connections": "Connections",
-      "access": "Access"
+      "access": "Access",
+      "kins": "Kins"
     },
     "info": {
       "version": "Version",
@@ -1754,7 +1755,11 @@
     "deleted": "Team deleted",
     "memberAdded": "Member added to team",
     "memberRemoved": "Member removed from team",
-    "cannotRemoveHub": "Cannot remove the Hub Kin. Change the Hub first."
+    "cannotRemoveHub": "Cannot remove the Hub Kin. Change the Hub first.",
+    "settingsDescription": "Group your Kins into teams with a Hub coordinator.",
+    "emptyDescription": "Create a team to group Kins together with a Hub coordinator.",
+    "noOtherKins": "No other Kins available",
+    "selectHubFirst": "Select a Hub Kin first"
   },
   "knowledge": {
     "title": "Knowledge Base",

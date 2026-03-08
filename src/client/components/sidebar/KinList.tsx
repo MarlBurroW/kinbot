@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { SortableKinCard } from '@/client/components/kin/SortableKinCard'
 import { KinCard } from '@/client/components/kin/KinCard'
+import { TeamSection } from '@/client/components/sidebar/TeamSection'
 import {
   SidebarGroup,
   SidebarGroupAction,
@@ -26,6 +27,7 @@ import {
 } from '@/client/components/ui/sidebar'
 import { Plus, Bot, Download } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
+import type { Team } from '@/client/hooks/useTeams'
 
 interface KinSummary {
   id: string
@@ -43,6 +45,7 @@ interface KinListProps {
   selectedKinSlug: string | null
   unavailableKinIds: Set<string>
   kinQueueState: Map<string, { isProcessing: boolean; queueSize: number }>
+  teams: Team[]
   onSelectKin: (slug: string) => void
   onCreateKin: () => void
   onEditKin: (id: string) => void
@@ -53,13 +56,27 @@ interface KinListProps {
 
 const KIN_SEARCH_THRESHOLD = 5
 
-export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onSetAsHub, onReorderKins }: KinListProps) {
+export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, teams, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onSetAsHub, onReorderKins }: KinListProps) {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Separate hub from regular kins
-  const hubKin = useMemo(() => kins.find((k) => k.isHub), [kins])
-  const regularKins = useMemo(() => kins.filter((k) => !k.isHub), [kins])
+  // Compute which kins belong to teams
+  const teamedKinIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const team of teams) {
+      for (const member of team.members) {
+        ids.add(member.kinId)
+      }
+    }
+    return ids
+  }, [teams])
+
+  // Kins NOT in any team (ungrouped)
+  const ungroupedKins = useMemo(() => kins.filter((k) => !teamedKinIds.has(k.id)), [kins, teamedKinIds])
+
+  // Separate hub from ungrouped kins (global hub)
+  const hubKin = useMemo(() => ungroupedKins.find((k) => k.isHub), [ungroupedKins])
+  const regularKins = useMemo(() => ungroupedKins.filter((k) => !k.isHub), [ungroupedKins])
 
   const filteredKins = useMemo(() => {
     if (!searchQuery.trim()) return regularKins
@@ -68,6 +85,16 @@ export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug,
       (k) => k.name.toLowerCase().includes(q) || k.role.toLowerCase().includes(q),
     )
   }, [regularKins, searchQuery])
+
+  // Filter teams by search too
+  const filteredTeams = useMemo(() => {
+    if (!searchQuery.trim()) return teams
+    const q = searchQuery.toLowerCase()
+    return teams.filter((team) => {
+      if (team.name.toLowerCase().includes(q)) return true
+      return team.members.some((m) => m.kinName.toLowerCase().includes(q))
+    })
+  }, [teams, searchQuery])
 
   const showSearch = kins.length >= KIN_SEARCH_THRESHOLD
 
@@ -87,7 +114,6 @@ export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug,
     const newKins = [...regularKins]
     const [moved] = newKins.splice(oldIndex, 1)
     newKins.splice(newIndex, 0, moved!)
-    // Preserve hub at the beginning of the order if it exists
     const allIds = hubKin ? [hubKin.id, ...newKins.map((k) => k.id)] : newKins.map((k) => k.id)
     onReorderKins(allIds)
   }, [regularKins, hubKin, onReorderKins])
@@ -145,13 +171,13 @@ export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug,
                 </div>
               </div>
             )}
-            {searchQuery && filteredKins.length === 0 ? (
+            {searchQuery && filteredKins.length === 0 && filteredTeams.length === 0 ? (
               <p className="px-3 py-4 text-center text-xs text-muted-foreground">
                 {t('sidebar.kins.noResults')}
               </p>
             ) : (
           <div className="max-h-[40vh] overflow-y-auto">
-            {/* Hub kin pinned at top (outside drag-and-drop) */}
+            {/* Global Hub kin pinned at top (only if ungrouped) */}
             {hubKin && (!searchQuery.trim() || hubKin.name.toLowerCase().includes(searchQuery.toLowerCase()) || hubKin.role.toLowerCase().includes(searchQuery.toLowerCase())) && (
               <div className="px-1 pb-1">
                 <KinCard
@@ -172,11 +198,37 @@ export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug,
                   onExport={() => handleExportKin(hubKin.id)}
                   onSetAsHub={onSetAsHub ? () => onSetAsHub(hubKin.id) : undefined}
                 />
+                {(filteredKins.length > 0 || filteredTeams.length > 0) && (
+                  <div className="mx-2 mt-1 border-t border-border/40" />
+                )}
+              </div>
+            )}
+
+            {/* Team sections */}
+            {filteredTeams.length > 0 && (
+              <div className="px-1">
+                {filteredTeams.map((team) => (
+                  <TeamSection
+                    key={team.id}
+                    team={team}
+                    kins={kins}
+                    selectedKinSlug={selectedKinSlug}
+                    unavailableKinIds={unavailableKinIds}
+                    kinQueueState={kinQueueState}
+                    llmModels={llmModels}
+                    onSelectKin={onSelectKin}
+                    onEditKin={onEditKin}
+                    onDeleteKin={onDeleteKin}
+                    onExportKin={handleExportKin}
+                  />
+                ))}
                 {filteredKins.length > 0 && (
                   <div className="mx-2 mt-1 border-t border-border/40" />
                 )}
               </div>
             )}
+
+            {/* Ungrouped kins (drag-and-drop) */}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={regularKinIds} strategy={verticalListSortingStrategy}>
               <div className="space-y-0.5 px-1">
