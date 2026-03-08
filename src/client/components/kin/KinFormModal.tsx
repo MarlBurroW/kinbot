@@ -23,14 +23,14 @@ import { KinToolsTab } from '@/client/components/kin/KinToolsTab'
 import { KinKnowledgeTab } from '@/client/components/kin/KinKnowledgeTab'
 import { MemoryList } from '@/client/components/memory/MemoryList'
 import { Switch } from '@/client/components/ui/switch'
-import { ArrowLeft, BookOpen, Bot, Brain, Camera, Loader2, Network, Settings, ShieldCheck, Sparkles, Trash2, Upload, User, Wrench } from 'lucide-react'
+import { Archive, ArrowLeft, BookOpen, Bot, Brain, Camera, Loader2, Network, Settings, ShieldCheck, Sparkles, Trash2, Upload, User, Wrench } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
 import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
 import { cn } from '@/client/lib/utils'
 import { getErrorMessage } from '@/client/lib/api'
 import { TOOL_DOMAIN_MAP } from '@/shared/constants'
-import type { KinToolConfig } from '@/shared/types'
+import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
 import type { GeneratedKinConfig } from '@/client/hooks/useKins'
 
 interface Model {
@@ -53,6 +53,7 @@ interface KinDetail {
   model: string
   providerId?: string | null
   toolConfig?: KinToolConfig | null
+  compactingConfig?: KinCompactingConfig | null
   isHub?: boolean
 }
 
@@ -194,6 +195,7 @@ export function KinFormModal({
   const [model, setModel] = useState('')
   const [providerId, setProviderId] = useState<string | null>(null)
   const [toolConfig, setToolConfig] = useState<KinToolConfig | null>(null)
+  const [compactingConfig, setCompactingConfig] = useState<KinCompactingConfig | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
@@ -240,6 +242,7 @@ export function KinFormModal({
       setModel(kin.model)
       setProviderId(kin.providerId ?? null)
       setToolConfig(kin.toolConfig ?? null)
+      setCompactingConfig(kin.compactingConfig ?? null)
       setAvatarPreview(kin.avatarUrl)
       setWizardStep('form')
       setWasAiGenerated(false)
@@ -252,6 +255,7 @@ export function KinFormModal({
       setModel('')
       setProviderId(null)
       setToolConfig(null)
+      setCompactingConfig(null)
       setAvatarPreview(null)
       setWizardStep('describe')
       setWasAiGenerated(false)
@@ -418,7 +422,11 @@ export function KinFormModal({
 
     try {
       if (isEdit && onUpdateKin) {
-        await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig })
+        // Normalize compactingConfig: if both fields are empty, send null to clear the override
+        const effectiveCompactingConfig = (compactingConfig?.messageThreshold != null || compactingConfig?.tokenThreshold != null)
+          ? compactingConfig
+          : null
+        await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig, compactingConfig: effectiveCompactingConfig })
         if (avatarFile) await onUploadAvatar(kin.id, avatarFile)
       } else if (onCreateKin) {
         const created = await onCreateKin({ name, slug: slug || undefined, role, character, expertise, model, providerId })
@@ -843,6 +851,7 @@ export function KinFormModal({
                               <span>{t('kin.create.totalPromptTokens', { tokens: Math.ceil((character.length + expertise.length) / 4) })}</span>
                             </div>
                           )}
+
                         </div>
                       )}
 
@@ -860,7 +869,51 @@ export function KinFormModal({
                       )}
 
                       {activeTab === 'memory' && isEdit && (
-                        <MemoryList kinId={kin.id} compact />
+                        <div className="space-y-6">
+                          <MemoryList kinId={kin.id} compact />
+
+                          {/* Compacting thresholds */}
+                          <div className="space-y-3 border-t border-border/40 pt-4">
+                            <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
+                              <Archive className="size-4" />
+                              {t('kin.compacting.title')}
+                            </Label>
+                            <p className="text-xs text-muted-foreground">{t('kin.compacting.overrideHint')}</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs">{t('kin.compacting.messageThreshold')}</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  placeholder={t('kin.compacting.messageThresholdPlaceholder', { default: 50 })}
+                                  value={compactingConfig?.messageThreshold ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value ? Number(e.target.value) : null
+                                    setCompactingConfig({ ...compactingConfig, messageThreshold: val, tokenThreshold: compactingConfig?.tokenThreshold ?? null })
+                                    markDirty()
+                                  }}
+                                />
+                                <p className="text-[10px] text-muted-foreground">{t('kin.compacting.messageThresholdHint', { default: 50 })}</p>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs">{t('kin.compacting.tokenThreshold')}</Label>
+                                <Input
+                                  type="number"
+                                  min={1000}
+                                  step={1000}
+                                  placeholder={t('kin.compacting.tokenThresholdPlaceholder', { default: '30k' })}
+                                  value={compactingConfig?.tokenThreshold ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value ? Number(e.target.value) : null
+                                    setCompactingConfig({ ...compactingConfig, tokenThreshold: val, messageThreshold: compactingConfig?.messageThreshold ?? null })
+                                    markDirty()
+                                  }}
+                                />
+                                <p className="text-[10px] text-muted-foreground">{t('kin.compacting.tokenThresholdHint', { default: '30k' })}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       )}
 
                       {activeTab === 'memory' && !isEdit && (

@@ -14,7 +14,7 @@ import { config } from '@/server/config'
 import { getExtractionModel } from '@/server/services/app-settings'
 import { createMemory, updateMemory, isDuplicateMemory } from '@/server/services/memory'
 import { sseManager } from '@/server/sse/index'
-import type { MemoryCategory } from '@/shared/types'
+import type { MemoryCategory, KinCompactingConfig } from '@/shared/types'
 
 const log = createLogger('compacting')
 
@@ -23,21 +23,36 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4)
 }
 
-// ─── Threshold Evaluation ────────────────────────────────────────────────────
+// ─── Per-Kin Threshold Resolution ────────────────────────────────────────────
 
-/**
- * Evaluate whether compacting should trigger for a Kin.
- * Returns true if message count or token count exceeds thresholds.
- */
-async function shouldCompact(kinId: string): Promise<boolean> {
+/** Resolve effective compacting thresholds: per-Kin overrides > global defaults */
+async function getEffectiveThresholds(kinId: string): Promise<{ messageThreshold: number; tokenThreshold: number }> {
+  const kin = await db
+    .select({ compactingConfig: kins.compactingConfig })
+    .from(kins)
+    .where(eq(kins.id, kinId))
+    .get()
+
+  let kinConfig: KinCompactingConfig | null = null
+  if (kin?.compactingConfig) {
+    try { kinConfig = JSON.parse(kin.compactingConfig) as KinCompactingConfig } catch { /* use defaults */ }
+  }
+
+  return {
+    messageThreshold: kinConfig?.messageThreshold ?? config.compacting.messageThreshold,
+    tokenThreshold: kinConfig?.tokenThreshold ?? config.compacting.tokenThreshold,
+  }
+}
+
+/** Get non-compacted message stats for a Kin (shared by shouldCompact + getCompactingProximity) */
+async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; currentMessages: number }> {
   const activeSnapshot = await db
     .select()
     .from(compactingSnapshots)
     .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
     .get()
 
-  // Get non-compacted messages (after snapshot, excluding redact_pending, quick sessions, and compacting traces)
-  let query = db
+  const allMessages = await db
     .select({ content: messages.content, createdAt: messages.createdAt })
     .from(messages)
     .where(
@@ -50,26 +65,60 @@ async function shouldCompact(kinId: string): Promise<boolean> {
       ),
     )
     .orderBy(asc(messages.createdAt))
-
-  const allMessages = await query.all()
+    .all()
 
   const nonCompacted = activeSnapshot
     ? allMessages.filter((m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt)
     : allMessages
 
-  if (nonCompacted.length === 0) return false
-
-  // Check message count threshold
-  if (nonCompacted.length > config.compacting.messageThreshold) return true
-
-  // Check token threshold
-  const totalTokens = nonCompacted.reduce(
+  const currentTokens = nonCompacted.reduce(
     (sum, m) => sum + estimateTokens(m.content ?? ''),
     0,
   )
-  if (totalTokens > config.compacting.tokenThreshold) return true
 
+  return { currentTokens, currentMessages: nonCompacted.length }
+}
+
+// ─── Threshold Evaluation ────────────────────────────────────────────────────
+
+/**
+ * Evaluate whether compacting should trigger for a Kin.
+ * Returns true if message count or token count exceeds thresholds.
+ */
+async function shouldCompact(kinId: string): Promise<boolean> {
+  const [stats, thresholds] = await Promise.all([
+    getNonCompactedStats(kinId),
+    getEffectiveThresholds(kinId),
+  ])
+
+  if (stats.currentMessages === 0) return false
+  if (stats.currentMessages > thresholds.messageThreshold) return true
+  if (stats.currentTokens > thresholds.tokenThreshold) return true
   return false
+}
+
+// ─── Public: compacting proximity for UI ─────────────────────────────────────
+
+export interface CompactingProximity {
+  currentTokens: number
+  tokenThreshold: number
+  currentMessages: number
+  messageThreshold: number
+}
+
+/** Get compacting proximity data for display in the chat UI */
+export async function getCompactingProximity(kinId: string): Promise<CompactingProximity> {
+  const [stats, thresholds] = await Promise.all([
+    getNonCompactedStats(kinId),
+    getEffectiveThresholds(kinId),
+  ])
+
+  return {
+    currentTokens: stats.currentTokens,
+    tokenThreshold: thresholds.tokenThreshold,
+    currentMessages: stats.currentMessages,
+    messageThreshold: thresholds.messageThreshold,
+  }
 }
 
 // ─── Core Compacting ─────────────────────────────────────────────────────────

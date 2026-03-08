@@ -1,0 +1,1 @@
+ALTER TABLE `kins` ADD `compacting_config` text;

@@ -71,6 +71,9 @@ export function getLastContextUsage(kinId: string) {
   return lastContextUsage.get(kinId) ?? null
 }
 
+// Cache of last computed compacting proximity per Kin
+const lastCompactingProximity = new Map<string, { compactingTokens: number; compactingThreshold: number; compactingMessages: number; compactingMessageThreshold: number }>()
+
 /**
  * Extract a human-readable message from a raw API error object.
  * Handles nested structures like { error: { message: "..." } } from Anthropic/OpenAI.
@@ -563,12 +566,25 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     setLastContextUsage(kinId, contextTokens, contextWindow)
     log.debug({ kinId, toolCount: Object.keys(tools).length, modelId: kin.model, contextTokens, contextWindow }, 'Starting LLM stream')
 
+    // Compute compacting proximity and cache it for lightweight SSE events
+    const { getCompactingProximity } = await import('@/server/services/compacting')
+    const compactingData = await getCompactingProximity(kinId)
+    lastCompactingProximity.set(kinId, {
+      compactingTokens: compactingData.currentTokens,
+      compactingThreshold: compactingData.tokenThreshold,
+      compactingMessages: compactingData.currentMessages,
+      compactingMessageThreshold: compactingData.messageThreshold,
+    })
+
     // Update the queue event with real context usage (the initial queue:update
     // was sent before system prompt/tools were built — now we have the full picture)
     sseManager.sendToKin(kinId, {
       type: 'queue:update',
       kinId,
-      data: { kinId, queueSize: 0, isProcessing: true, contextTokens, contextWindow },
+      data: {
+        kinId, queueSize: 0, isProcessing: true, contextTokens, contextWindow,
+        ...lastCompactingProximity.get(kinId),
+      },
     })
 
     // Send typing indicator on the channel when LLM processing starts (fire-and-forget)

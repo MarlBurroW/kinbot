@@ -61,6 +61,10 @@ interface ConversationHeaderProps {
   onExportJSON?: () => void
   onSearch?: () => void
   onClearConversation?: () => void
+  compactingTokens?: number
+  compactingThreshold?: number
+  compactingMessages?: number
+  compactingMessageThreshold?: number
   messages?: ChatMessage[]
   scrollViewportRef?: React.RefObject<HTMLElement | null>
 }
@@ -93,6 +97,10 @@ export const ConversationHeader = memo(function ConversationHeader({
   onExportJSON,
   onSearch,
   onClearConversation,
+  compactingTokens,
+  compactingThreshold,
+  compactingMessages,
+  compactingMessageThreshold,
   messages,
   scrollViewportRef,
 }: ConversationHeaderProps) {
@@ -108,6 +116,12 @@ export const ConversationHeader = memo(function ConversationHeader({
   const contextLabel = hasContextData
     ? `${formatTokenCount(estimatedTokens)} / ${formatTokenCount(maxTokens)}`
     : '— / —'
+
+  const hasCompactingData = (compactingThreshold ?? 0) > 0
+  const compactingRemaining = hasCompactingData ? Math.max(0, compactingThreshold! - (compactingTokens ?? 0)) : 0
+  const compactingPercent = hasCompactingData ? Math.min(100, Math.round(((compactingTokens ?? 0) / compactingThreshold!) * 100)) : 0
+  // Position of the compacting threshold marker on the context bar (as % of context window)
+  const compactingMarkerPercent = (hasCompactingData && hasContextData) ? Math.min(100, Math.round((compactingThreshold! / maxTokens) * 100)) : null
 
   const selectedModelName = llmModels.find((m) => m.id === model)?.name ?? model
 
@@ -194,11 +208,19 @@ export const ConversationHeader = memo(function ConversationHeader({
                 </span>
                 <span>{contextLabel}</span>
               </div>
-              <Progress
-                value={contextPercent}
-                variant={contextPercent > 80 ? 'glow' : 'default'}
-                className="h-2"
-              />
+              <div className="relative">
+                <Progress
+                  value={contextPercent}
+                  variant={contextPercent > 80 ? 'glow' : 'default'}
+                  className="h-2"
+                />
+                {compactingMarkerPercent != null && (
+                  <div
+                    className="absolute top-0 h-full w-px bg-foreground/50"
+                    style={{ left: `${compactingMarkerPercent}%` }}
+                  />
+                )}
+              </div>
               <p className="text-[10px] text-muted-foreground/70">
                 {hasContextData
                   ? t('chat.contextUsage', {
@@ -209,6 +231,16 @@ export const ConversationHeader = memo(function ConversationHeader({
                   : t('chat.contextNoData')}
               </p>
             </div>
+            {/* Compacting proximity */}
+            {hasCompactingData && (
+              <p className="text-[10px] text-muted-foreground/70">
+                {t('chat.compactingProximity', {
+                  tokens: formatTokenCount(compactingRemaining),
+                  messages: compactingMessages ?? 0,
+                  maxMessages: compactingMessageThreshold ?? 0,
+                })}
+              </p>
+            )}
           </PopoverContent>
         </Popover>
       </div>
@@ -223,7 +255,7 @@ export const ConversationHeader = memo(function ConversationHeader({
           className="h-7 w-auto max-w-[280px] text-xs"
         />
 
-        {/* Context usage */}
+        {/* Context usage + compacting proximity */}
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex w-28 flex-col gap-1">
@@ -234,21 +266,83 @@ export const ConversationHeader = memo(function ConversationHeader({
                 </span>
                 <span>{contextLabel}</span>
               </div>
-              <Progress
-                value={contextPercent}
-                variant={contextPercent > 80 ? 'glow' : 'default'}
-                className="h-1.5"
-              />
+              <div className="relative">
+                <Progress
+                  value={contextPercent}
+                  variant={contextPercent > 80 ? 'glow' : 'default'}
+                  className="h-1.5"
+                />
+                {compactingMarkerPercent != null && (
+                  <div
+                    className="absolute top-0 h-full w-px bg-foreground/50"
+                    style={{ left: `${compactingMarkerPercent}%` }}
+                    title={t('chat.compactingMarker')}
+                  />
+                )}
+              </div>
+              {hasCompactingData && (
+                <p className="truncate text-[9px] text-muted-foreground">
+                  {t('chat.compactingProximity', {
+                    tokens: formatTokenCount(compactingRemaining),
+                    messages: compactingMessages ?? 0,
+                    maxMessages: compactingMessageThreshold ?? 0,
+                  })}
+                </p>
+              )}
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {hasContextData
-              ? t('chat.contextUsage', {
-                  tokens: formatTokenCount(estimatedTokens),
-                  max: formatTokenCount(maxTokens),
-                  percent: contextPercent,
-                })
-              : t('chat.contextNoData')}
+          <TooltipContent side="bottom" className="w-64 space-y-3 p-3">
+            {/* Context window */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-medium">{t('chat.tooltipContext')}</span>
+                <span className="text-muted-foreground">{contextLabel}</span>
+              </div>
+              <div className="relative">
+                <Progress
+                  value={contextPercent}
+                  variant={contextPercent > 80 ? 'glow' : 'default'}
+                  className="h-2.5"
+                />
+                {compactingMarkerPercent != null && (
+                  <div
+                    className="absolute top-0 h-full w-0.5 rounded-full bg-foreground/60"
+                    style={{ left: `${compactingMarkerPercent}%` }}
+                  />
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {hasContextData
+                  ? t('chat.contextUsage', {
+                      tokens: formatTokenCount(estimatedTokens),
+                      max: formatTokenCount(maxTokens),
+                      percent: contextPercent,
+                    })
+                  : t('chat.contextNoData')}
+              </p>
+            </div>
+
+            {/* Compacting proximity */}
+            {hasCompactingData && (
+              <div className="space-y-1.5 border-t border-border/40 pt-2.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-medium">{t('chat.tooltipCompacting')}</span>
+                  <span className="text-muted-foreground">{compactingPercent}%</span>
+                </div>
+                <Progress
+                  value={compactingPercent}
+                  variant={compactingPercent > 80 ? 'glow' : 'default'}
+                  className="h-2.5"
+                />
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span>{t('chat.compactingProximity', {
+                    tokens: formatTokenCount(compactingRemaining),
+                    messages: compactingMessages ?? 0,
+                    maxMessages: compactingMessageThreshold ?? 0,
+                  })}</span>
+                </div>
+              </div>
+            )}
           </TooltipContent>
         </Tooltip>
       </div>

@@ -337,6 +337,16 @@
       "character": "You are a friendly, thoughtful, and versatile assistant. You communicate clearly and adapt your tone to the context - casual when appropriate, precise when needed.\n\nYou are patient, curious, and genuinely enjoy helping. When you don't know something, you say so honestly. You ask clarifying questions when the request is ambiguous.\n\nYou keep your responses concise unless the user explicitly asks for detail.",
       "expertise": "You have broad general knowledge and can help with a wide range of topics:\n- Writing, editing, and summarizing text\n- Research, analysis, and problem-solving\n- Brainstorming and creative tasks\n- Explaining complex concepts simply\n- Planning and organizing\n\nYou adapt your level of detail and technicality based on what the user needs."
     },
+    "compacting": {
+      "title": "Compacting thresholds",
+      "overrideHint": "Leave empty to use the global defaults. Only fill in to override for this Kin.",
+      "messageThreshold": "Message threshold",
+      "tokenThreshold": "Token threshold",
+      "messageThresholdPlaceholder": "Default: {{default}}",
+      "tokenThresholdPlaceholder": "Default: {{default}}",
+      "messageThresholdHint": "Global default: {{default}}",
+      "tokenThresholdHint": "Global default: {{default}}"
+    },
     "avatar": {
       "title": "Choose avatar",
       "upload": "Upload",
@@ -460,6 +470,10 @@
     "contextUsage": "Context: ~{{tokens}} / {{max}} tokens ({{percent}}%), includes system prompt, history & tools",
     "contextNoData": "Context usage will appear after the first message is processed",
     "forceCompact": "Force compaction",
+    "tooltipContext": "Context window",
+    "tooltipCompacting": "Compaction",
+    "compactingProximity": "Compaction in ~{{tokens}} tokens ({{messages}}/{{maxMessages}} msgs)",
+    "compactingMarker": "Compaction threshold",
     "moreActions": "More actions",
     "compacting": {
       "title": "Compacting conversation",

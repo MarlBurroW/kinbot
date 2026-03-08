@@ -37,7 +37,7 @@ import { getHubKinId, setHubKinId } from '@/server/services/app-settings'
 import { createLogger } from '@/server/logger'
 import { deleteChannel } from '@/server/services/channels'
 import { stopJob } from '@/server/services/crons'
-import type { KinToolConfig } from '@/shared/types'
+import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
 
 const log = createLogger('services:kins')
 
@@ -64,6 +64,7 @@ export interface UpdateKinInput {
   providerId?: string | null
   slug?: string
   toolConfig?: KinToolConfig | null
+  compactingConfig?: KinCompactingConfig | null
   mcpServerIds?: string[]
 }
 
@@ -228,6 +229,7 @@ export async function updateKin(
   if (input.model !== undefined) updates.model = input.model
   if (input.providerId !== undefined) updates.providerId = input.providerId
   if (input.toolConfig !== undefined) updates.toolConfig = JSON.stringify(input.toolConfig)
+  if (input.compactingConfig !== undefined) updates.compactingConfig = input.compactingConfig ? JSON.stringify(input.compactingConfig) : null
 
   // Handle slug update
   if (input.slug !== undefined) {

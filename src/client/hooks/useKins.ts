@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { useSSE, useSSEStatus } from '@/client/hooks/useSSE'
 import { useModels, type ProviderModel } from '@/client/hooks/useModels'
-import type { KinToolConfig } from '@/shared/types'
+import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
 
 interface KinSummary {
   id: string
@@ -21,6 +21,7 @@ interface KinDetail extends KinSummary {
   expertise: string
   workspacePath: string
   toolConfig: KinToolConfig | null
+  compactingConfig: KinCompactingConfig | null
   mcpServers: { id: string; name: string }[]
   queueSize: number
   isProcessing: boolean
@@ -58,6 +59,7 @@ interface UpdateKinData {
   model?: string
   providerId?: string | null
   toolConfig?: KinToolConfig | null
+  compactingConfig?: KinCompactingConfig | null
 }
 
 interface UserProfile {
@@ -112,7 +114,7 @@ export function useKins() {
   }, [sseStatus, fetchKins])
 
   // Track which kins are currently processing (queue state from SSE)
-  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number }>>(new Map())
+  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; compactingTokens?: number; compactingThreshold?: number; compactingMessages?: number; compactingMessageThreshold?: number }>>(new Map())
 
   // Listen for kin lifecycle and queue updates via SSE to keep the list in sync
   useSSE({
@@ -174,6 +176,10 @@ export function useKins() {
           // Keep previous context info when not provided (end-of-processing events omit it)
           contextTokens: (data.contextTokens as number | undefined) ?? existing?.contextTokens,
           contextWindow: (data.contextWindow as number | undefined) ?? existing?.contextWindow,
+          compactingTokens: (data.compactingTokens as number | undefined) ?? existing?.compactingTokens,
+          compactingThreshold: (data.compactingThreshold as number | undefined) ?? existing?.compactingThreshold,
+          compactingMessages: (data.compactingMessages as number | undefined) ?? existing?.compactingMessages,
+          compactingMessageThreshold: (data.compactingMessageThreshold as number | undefined) ?? existing?.compactingMessageThreshold,
         })
         return next
       })
@@ -210,7 +216,7 @@ export function useKins() {
   // Fetch initial context usage for a kin (so the counter doesn't show "— / —")
   const fetchContextUsage = useCallback(async (kinId: string) => {
     try {
-      const data = await api.get<{ contextTokens: number; contextWindow: number }>(`/kins/${kinId}/context-usage`)
+      const data = await api.get<{ contextTokens: number; contextWindow: number; compactingTokens?: number; compactingThreshold?: number; compactingMessages?: number; compactingMessageThreshold?: number }>(`/kins/${kinId}/context-usage`)
       setKinQueueState((prev) => {
         const existing = prev.get(kinId)
         // Don't overwrite if SSE already provided fresh data
@@ -221,6 +227,10 @@ export function useKins() {
           queueSize: existing?.queueSize ?? 0,
           contextTokens: data.contextTokens,
           contextWindow: data.contextWindow,
+          compactingTokens: data.compactingTokens,
+          compactingThreshold: data.compactingThreshold,
+          compactingMessages: data.compactingMessages,
+          compactingMessageThreshold: data.compactingMessageThreshold,
         })
         return next
       })

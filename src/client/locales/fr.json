@@ -337,6 +337,16 @@
       "character": "Tu es un assistant amical, réfléchi et polyvalent. Tu communiques clairement et tu adaptes ton ton au contexte - décontracté quand c'est approprié, précis quand c'est nécessaire.\n\nTu es patient, curieux et tu prends plaisir à aider. Quand tu ne sais pas quelque chose, tu le dis honnêtement. Tu poses des questions de clarification quand la demande est ambiguë.\n\nTu gardes tes réponses concises sauf si l'utilisateur demande explicitement plus de détails.",
       "expertise": "Tu as des connaissances générales étendues et tu peux aider sur un large éventail de sujets :\n- Rédaction, édition et synthèse de texte\n- Recherche, analyse et résolution de problèmes\n- Brainstorming et tâches créatives\n- Explication de concepts complexes de manière simple\n- Planification et organisation\n\nTu adaptes ton niveau de détail et de technicité en fonction des besoins de l'utilisateur."
     },
+    "compacting": {
+      "title": "Seuils de compaction",
+      "overrideHint": "Laisser vide pour utiliser les défauts globaux. Remplir uniquement pour personnaliser ce Kin.",
+      "messageThreshold": "Seuil de messages",
+      "tokenThreshold": "Seuil de tokens",
+      "messageThresholdPlaceholder": "Défaut : {{default}}",
+      "tokenThresholdPlaceholder": "Défaut : {{default}}",
+      "messageThresholdHint": "Défaut global : {{default}}",
+      "tokenThresholdHint": "Défaut global : {{default}}"
+    },
     "avatar": {
       "title": "Choisir l'avatar",
       "upload": "Importer",
@@ -460,6 +470,10 @@
     "contextUsage": "Contexte : ~{{tokens}} / {{max}} tokens ({{percent}} %), inclut prompt système, historique et outils",
     "contextNoData": "L'utilisation du contexte apparaîtra après le premier message traité",
     "forceCompact": "Forcer la compaction",
+    "tooltipContext": "Fenêtre de contexte",
+    "tooltipCompacting": "Compaction",
+    "compactingProximity": "Compaction dans ~{{tokens}} tokens ({{messages}}/{{maxMessages}} msgs)",
+    "compactingMarker": "Seuil de compaction",
     "moreActions": "Plus d'actions",
     "compacting": {
       "title": "Compaction de la conversation",

@@ -81,6 +81,7 @@ export const kins = sqliteTable('kins', {
   providerId: text('provider_id').references(() => providers.id, { onDelete: 'set null' }),
   workspacePath: text('workspace_path').notNull(),
   toolConfig: text('tool_config'), // JSON: KinToolConfig
+  compactingConfig: text('compacting_config'), // JSON: KinCompactingConfig
   createdBy: text('created_by').references(() => user.id),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),

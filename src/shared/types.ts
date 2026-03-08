@@ -128,6 +128,14 @@ export interface KinToolConfig {
   searchProviderId?: string
 }
 
+/** Per-Kin compacting configuration (stored as JSON in kins.compacting_config) */
+export interface KinCompactingConfig {
+  /** Message count threshold before compacting triggers (null = use global default) */
+  messageThreshold?: number | null
+  /** Token count threshold before compacting triggers (null = use global default) */
+  tokenThreshold?: number | null
+}
+
 /** Task summary as returned by GET /api/tasks */
 export interface TaskSummary {
   id: string

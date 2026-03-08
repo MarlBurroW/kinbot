@@ -329,10 +329,21 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
   }
 
+  // Compute compacting proximity (always fresh)
+  const { getCompactingProximity } = await import('@/server/services/compacting')
+  const compacting = await getCompactingProximity(kin.id)
+
   // Use cached context usage from the last LLM call if available
   const cached = getLastContextUsage(kin.id)
   if (cached) {
-    return c.json({ contextTokens: cached.contextTokens, contextWindow: cached.contextWindow })
+    return c.json({
+      contextTokens: cached.contextTokens,
+      contextWindow: cached.contextWindow,
+      compactingTokens: compacting.currentTokens,
+      compactingThreshold: compacting.tokenThreshold,
+      compactingMessages: compacting.currentMessages,
+      compactingMessageThreshold: compacting.messageThreshold,
+    })
   }
 
   // Fallback: rough estimation for kins that haven't processed a message yet
@@ -376,7 +387,14 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     if (msg.content) contextTokens += estimateTokens(msg.content)
   }
 
-  return c.json({ contextTokens, contextWindow })
+  return c.json({
+    contextTokens,
+    contextWindow,
+    compactingTokens: compacting.currentTokens,
+    compactingThreshold: compacting.tokenThreshold,
+    compactingMessages: compacting.currentMessages,
+    compactingMessageThreshold: compacting.messageThreshold,
+  })
 })
 
 // ─── Kin CRUD (parameterized routes) ───────────────────────────────────────
@@ -415,6 +433,7 @@ kinRoutes.get('/:id', async (c) => {
     providerId: details.providerId ?? null,
     workspacePath: details.workspacePath,
     toolConfig: details.toolConfig ? JSON.parse(details.toolConfig) : null,
+    compactingConfig: details.compactingConfig ? JSON.parse(details.compactingConfig) : null,
     mcpServers: details.mcpServers,
     queueSize,
     isProcessing,
@@ -507,6 +526,7 @@ kinRoutes.patch('/:id', async (c) => {
     providerId: body.providerId,
     slug: body.slug,
     toolConfig: body.toolConfig,
+    compactingConfig: body.compactingConfig,
     mcpServerIds: body.mcpServerIds,
   })
 
@@ -529,6 +549,7 @@ kinRoutes.patch('/:id', async (c) => {
       providerId: details.providerId ?? null,
       workspacePath: details.workspacePath,
       toolConfig: details.toolConfig ? JSON.parse(details.toolConfig) : null,
+      compactingConfig: details.compactingConfig ? JSON.parse(details.compactingConfig) : null,
       mcpServers: details.mcpServers,
       queueSize: 0,
       isProcessing: false,
@@ -975,6 +996,7 @@ kinRoutes.get('/:id/export', async (c) => {
     expertise: details.expertise,
     model: details.model,
     toolConfig: details.toolConfig ? JSON.parse(details.toolConfig) : null,
+    compactingConfig: details.compactingConfig ? JSON.parse(details.compactingConfig) : null,
     mcpServers: mcpServerDetails,
   }
 
