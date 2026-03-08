@@ -340,6 +340,9 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
         if (viewport) {
           viewport.scrollTop = viewport.scrollHeight
+          // Re-affirm near-bottom so the scroll listener doesn't race and
+          // flip isNearBottomRef to false between batched streaming updates.
+          isNearBottomRef.current = true
         }
       })
     }
