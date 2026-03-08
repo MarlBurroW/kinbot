@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import {
-  listContacts,
+  listContactsWithDetails,
   getContactWithDetails,
   createContact,
   updateContact,
@@ -24,14 +24,8 @@ const contactRoutes = new Hono()
 
 // GET /api/contacts — list all contacts with identifiers and notes (admin view)
 contactRoutes.get('/', async (c) => {
-  const allContacts = await listContacts()
-
-  // Attach full details for each contact (admin view = all notes)
-  const contactsWithDetails = await Promise.all(
-    allContacts.map((contact) => getContactWithDetails(contact.id)),
-  )
-
-  return c.json({ contacts: contactsWithDetails.filter(Boolean) })
+  const contactsWithDetails = await listContactsWithDetails()
+  return c.json({ contacts: contactsWithDetails })
 })
 
 // GET /api/contacts/:id — full contact detail (identifiers + all notes for admin view)
@@ -170,6 +164,7 @@ contactRoutes.post('/:id/identifiers', async (c) => {
 
 // PATCH /api/contacts/:id/identifiers/:identifierId — update an identifier
 contactRoutes.patch('/:id/identifiers/:identifierId', async (c) => {
+  const contactId = c.req.param('id')
   const identifierId = c.req.param('identifierId')
   const body = (await c.req.json()) as { label?: string; value?: string }
 
@@ -195,7 +190,7 @@ contactRoutes.patch('/:id/identifiers/:identifierId', async (c) => {
     body.value = trimmed
   }
 
-  const updated = updateContactIdentifier(identifierId, body)
+  const updated = updateContactIdentifier(identifierId, body, contactId)
   if (!updated) {
     return c.json({ error: { code: 'IDENTIFIER_NOT_FOUND', message: 'Identifier not found' } }, 404)
   }
@@ -205,9 +200,10 @@ contactRoutes.patch('/:id/identifiers/:identifierId', async (c) => {
 
 // DELETE /api/contacts/:id/identifiers/:identifierId — remove an identifier
 contactRoutes.delete('/:id/identifiers/:identifierId', async (c) => {
+  const contactId = c.req.param('id')
   const identifierId = c.req.param('identifierId')
 
-  const removed = removeContactIdentifier(identifierId)
+  const removed = removeContactIdentifier(identifierId, contactId)
   if (!removed) {
     return c.json(
       { error: { code: 'IDENTIFIER_NOT_FOUND', message: 'Identifier not found' } },
@@ -260,9 +256,10 @@ contactRoutes.post('/:id/platform-ids', async (c) => {
 
 // DELETE /api/contacts/:id/platform-ids/:pidId — remove a platform ID (revoke access)
 contactRoutes.delete('/:id/platform-ids/:pidId', async (c) => {
+  const contactId = c.req.param('id')
   const pidId = c.req.param('pidId')
 
-  const removed = removeContactPlatformId(pidId)
+  const removed = removeContactPlatformId(pidId, contactId)
   if (!removed) {
     return c.json(
       { error: { code: 'NOT_FOUND', message: 'Platform ID not found' } },
@@ -305,6 +302,7 @@ contactRoutes.post('/:id/notes', async (c) => {
 
 // PATCH /api/contacts/:id/notes/:noteId — update a note's content
 contactRoutes.patch('/:id/notes/:noteId', async (c) => {
+  const contactId = c.req.param('id')
   const noteId = c.req.param('noteId')
   const { content } = (await c.req.json()) as { content: string }
 
@@ -323,7 +321,7 @@ contactRoutes.patch('/:id/notes/:noteId', async (c) => {
     )
   }
 
-  const updated = updateContactNote(noteId, trimmedContent)
+  const updated = updateContactNote(noteId, trimmedContent, contactId)
   if (!updated) {
     return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
   }
@@ -333,9 +331,10 @@ contactRoutes.patch('/:id/notes/:noteId', async (c) => {
 
 // DELETE /api/contacts/:id/notes/:noteId — delete a note
 contactRoutes.delete('/:id/notes/:noteId', async (c) => {
+  const contactId = c.req.param('id')
   const noteId = c.req.param('noteId')
 
-  const deleted = deleteContactNote(noteId)
+  const deleted = deleteContactNote(noteId, contactId)
   if (!deleted) {
     return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
   }

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test'
-import { validateManifest, validateConfig, validatePluginExports } from '@/server/services/plugins'
+import { validateManifest, validateConfig, validatePluginExports, topologicalSortPlugins } from '@/server/services/plugins'
 
 describe('validateManifest', () => {
   test('accepts a valid minimal manifest', () => {
@@ -486,5 +486,80 @@ describe('validatePluginExports', () => {
     }, 'test')
     expect(valid).toBe(true)
     expect(warnings).toHaveLength(0)
+  })
+})
+
+describe('topologicalSortPlugins', () => {
+  const noDeps = () => [] as string[]
+
+  test('returns empty for empty input', () => {
+    const { sorted, cycles } = topologicalSortPlugins([], noDeps)
+    expect(sorted).toEqual([])
+    expect(cycles).toEqual([])
+  })
+
+  test('returns single plugin', () => {
+    const { sorted, cycles } = topologicalSortPlugins(['a'], noDeps)
+    expect(sorted).toEqual(['a'])
+    expect(cycles).toEqual([])
+  })
+
+  test('preserves order when no dependencies', () => {
+    const { sorted, cycles } = topologicalSortPlugins(['a', 'b', 'c'], noDeps)
+    expect(sorted).toEqual(['a', 'b', 'c'])
+    expect(cycles).toEqual([])
+  })
+
+  test('sorts dependencies before dependents', () => {
+    const deps: Record<string, string[]> = {
+      'app': ['core', 'utils'],
+      'utils': ['core'],
+      'core': [],
+    }
+    const { sorted, cycles } = topologicalSortPlugins(['app', 'utils', 'core'], (n) => deps[n] ?? [])
+    expect(cycles).toEqual([])
+    // core must come before utils, utils before app
+    expect(sorted.indexOf('core')).toBeLessThan(sorted.indexOf('utils'))
+    expect(sorted.indexOf('utils')).toBeLessThan(sorted.indexOf('app'))
+  })
+
+  test('handles diamond dependencies', () => {
+    // d -> b, c; b -> a; c -> a
+    const deps: Record<string, string[]> = {
+      'd': ['b', 'c'],
+      'b': ['a'],
+      'c': ['a'],
+      'a': [],
+    }
+    const { sorted, cycles } = topologicalSortPlugins(['d', 'c', 'b', 'a'], (n) => deps[n] ?? [])
+    expect(cycles).toEqual([])
+    expect(sorted.indexOf('a')).toBeLessThan(sorted.indexOf('b'))
+    expect(sorted.indexOf('a')).toBeLessThan(sorted.indexOf('c'))
+    expect(sorted.indexOf('b')).toBeLessThan(sorted.indexOf('d'))
+    expect(sorted.indexOf('c')).toBeLessThan(sorted.indexOf('d'))
+  })
+
+  test('detects simple cycle', () => {
+    const deps: Record<string, string[]> = {
+      'a': ['b'],
+      'b': ['a'],
+    }
+    const { cycles } = topologicalSortPlugins(['a', 'b'], (n) => deps[n] ?? [])
+    expect(cycles.length).toBeGreaterThan(0)
+  })
+
+  test('detects self-cycle', () => {
+    const deps: Record<string, string[]> = { 'a': ['a'] }
+    const { cycles } = topologicalSortPlugins(['a'], (n) => deps[n] ?? [])
+    expect(cycles).toContain('a')
+  })
+
+  test('ignores dependencies not in the input set', () => {
+    // 'a' depends on 'external' which is not in the list
+    const deps: Record<string, string[]> = { 'a': ['external'], 'b': [] }
+    const { sorted, cycles } = topologicalSortPlugins(['a', 'b'], (n) => deps[n] ?? [])
+    expect(cycles).toEqual([])
+    expect(sorted).toContain('a')
+    expect(sorted).toContain('b')
   })
 })

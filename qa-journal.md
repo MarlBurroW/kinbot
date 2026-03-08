@@ -1150,3 +1150,38 @@
 ### Next run
 - Area 11: Contacts
 - Area 12: Webhooks
+
+## 2026-03-08 20:40 UTC
+### Area tested: Contacts (Area 11)
+- **Pages visited:** Code review of ContactsSettings.tsx, ContactCard.tsx, ContactFormDialog.tsx, ContactNotes.tsx, ContactPlatformIds.tsx, contacts.ts (routes), contacts.ts (service), contact-tools.ts
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 2 (issues created: #174, #175)
+  - #174: Identifier, note, and platform-id sub-resource routes ignore parent contactId URL parameter (can update/delete resources across contacts)
+  - #175: update_contact Kin tool allows duplicate identifiers (no uniqueness check before insert)
+
+- **UX suggestions:** 2 (issues created: #176, #177)
+  - #176: Platform ID revoke button has no confirmation dialog, risks accidental access loss
+  - #177: Contacts list API has N+1 query problem (4N+1 queries for N contacts)
+
+#### All clear:
+- Contact CRUD: clean create/edit/delete flow with proper validation
+- Contact form: name, type selector (human/kin), linked user/kin selector, identifier management with label combo (suggestions + custom), proper empty/edit state handling
+- Contact card: clean layout with type badge, linked user badge, identifier badges, notes section, platform IDs section
+- Search filter: works on name and identifier label/value
+- Empty state: proper icon, description, and CTA button
+- SSE real-time updates: contact:created, contact:updated, contact:deleted events properly handled
+- Delete cascade: FK cascade on identifiers, notes, and platform IDs with proper confirmation dialog
+- Delete warning: shows platform count and names in confirmation when platform IDs exist
+- Notes: inline create/edit/delete with Kin selector, scope selector (global/private), textarea
+- Notes visibility: admin view shows all notes, Kin view shows global + own private
+- Platform IDs: inline add with platform picker (8 platforms) and ID input, revoke with X button
+- Identifier suggestions: predefined labels (email, phone, etc.) with custom entry support via LabelCombo
+- Input validation: name required and max 200 chars, identifier labels max 100, values max 500, note content max 10000
+- Duplicate user-contact link prevention (409 response)
+- Contact tools (Kin-side): get, search, create, update, delete, set_note, find_by_identifier - comprehensive tooling
+- User contact backfill: ensureUserContactsExist() auto-creates contacts for all users on startup
+- Prompt helpers: listContactsForPrompt() provides summary with linked kin slugs and identifier labels
+
+### Next run
+- Area 12: Webhooks

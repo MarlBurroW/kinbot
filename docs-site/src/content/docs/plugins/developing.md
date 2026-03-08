@@ -321,7 +321,7 @@ Plugins can declare dependencies on other plugins using the `dependencies` field
 
 ### Dependency Order
 
-During initial scan, plugins are activated in filesystem order. If plugin A depends on plugin B, ensure B's name sorts before A, or rely on the system's retry: plugins that fail dependency checks on first scan will show an error but can be manually re-enabled once dependencies are satisfied.
+KinBot automatically resolves plugin activation order using topological sorting. Dependencies are always activated before the plugins that need them, regardless of filesystem order. Circular dependencies are detected and reported as errors.
 
 ## Security
 

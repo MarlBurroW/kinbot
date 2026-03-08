@@ -23,6 +23,7 @@ import {
   generateMiniAppIcon,
 } from '@/server/services/mini-apps'
 import { ImageGenerationError } from '@/server/services/image-generation'
+import { getConsoleEntries, clearConsoleEntries } from '@/server/services/mini-app-console'
 import { getTemplateById } from '@/server/tools/mini-app-templates'
 import { sseManager } from '@/server/sse/index'
 import type { ToolRegistration } from '@/server/tools/types'
@@ -646,6 +647,54 @@ export const generateMiniAppIconTool: ToolRegistration = {
           const message = err instanceof Error ? err.message : 'Failed to generate icon'
           log.warn({ kinId: ctx.kinId, appId: app_id, error: message }, 'generate_mini_app_icon failed')
           return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── get_mini_app_console ───────────────────────────────────────────────────
+
+export const getMiniAppConsoleTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Get recent console output (logs, warnings, errors) from a running mini app. ' +
+        'Console entries are captured from the iframe and forwarded to the server when a user has the app open. ' +
+        'Use this to debug runtime errors in mini apps you created or updated. ' +
+        'You can filter by level (log, warn, error) and optionally clear the buffer after reading.',
+      inputSchema: z.object({
+        app_id: z.string().describe('ID of the mini app'),
+        level: z.enum(['log', 'warn', 'error']).optional().describe('Filter by log level (default: all levels)'),
+        clear: z.boolean().optional().describe('Clear the console buffer after reading (default: false)'),
+      }),
+      execute: async ({ app_id, level, clear }) => {
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only access your own apps' }
+
+        const entries = getConsoleEntries(app_id, level)
+        if (clear) clearConsoleEntries(app_id)
+
+        const errorCount = entries.filter((e) => e.level === 'error').length
+        const warnCount = entries.filter((e) => e.level === 'warn').length
+
+        return {
+          entries: entries.map((e) => ({
+            level: e.level,
+            message: e.args.join(' '),
+            stack: e.stack,
+            timestamp: new Date(e.timestamp).toISOString(),
+          })),
+          summary: {
+            total: entries.length,
+            errors: errorCount,
+            warnings: warnCount,
+            logs: entries.length - errorCount - warnCount,
+          },
+          note: entries.length === 0
+            ? 'No console entries. The app may not be open in any browser, or it has no console output yet.'
+            : undefined,
         }
       },
     }),

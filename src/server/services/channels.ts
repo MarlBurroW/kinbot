@@ -746,9 +746,10 @@ export function listContactPlatformIds(contactId: string) {
     .all()
 }
 
-export function removeContactPlatformId(id: string): boolean {
+export function removeContactPlatformId(id: string, contactId?: string): boolean {
   const existing = db.select().from(contactPlatformIds).where(eq(contactPlatformIds.id, id)).get()
   if (!existing) return false
+  if (contactId && existing.contactId !== contactId) return false
   db.delete(contactPlatformIds).where(eq(contactPlatformIds.id, id)).run()
   log.info({ id, contactId: existing.contactId, platform: existing.platform, platformId: existing.platformId }, 'Contact platform ID removed (access revoked)')
 

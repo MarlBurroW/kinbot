@@ -130,6 +130,75 @@ export async function getContactWithDetails(
   }
 }
 
+export async function listContactsWithDetails(): Promise<ContactWithDetails[]> {
+  const allContacts = db.select().from(contacts).all()
+  if (allContacts.length === 0) return []
+
+  // Batch fetch all sub-resources
+  const allIdentifiers = db
+    .select({ id: contactIdentifiers.id, contactId: contactIdentifiers.contactId, label: contactIdentifiers.label, value: contactIdentifiers.value })
+    .from(contactIdentifiers)
+    .all()
+
+  const allNotes = db.select().from(contactNotes).all()
+
+  const allPids = db
+    .select({
+      id: contactPlatformIds.id,
+      contactId: contactPlatformIds.contactId,
+      platform: contactPlatformIds.platform,
+      platformId: contactPlatformIds.platformId,
+      createdAt: contactPlatformIds.createdAt,
+    })
+    .from(contactPlatformIds)
+    .all()
+
+  // Resolve all linked user names in one query
+  const linkedUserIds = allContacts.map((c) => c.linkedUserId).filter(Boolean) as string[]
+  const userNames = new Map<string, string>()
+  if (linkedUserIds.length > 0) {
+    for (const uid of linkedUserIds) {
+      const u = db.select({ name: user.name }).from(user).where(eq(user.id, uid)).get()
+      if (u?.name) userNames.set(uid, u.name)
+    }
+  }
+
+  // Group by contactId
+  const identifiersByContact = new Map<string, typeof allIdentifiers>()
+  for (const i of allIdentifiers) {
+    const list = identifiersByContact.get(i.contactId) ?? []
+    list.push(i)
+    identifiersByContact.set(i.contactId, list)
+  }
+
+  const notesByContact = new Map<string, typeof allNotes>()
+  for (const n of allNotes) {
+    const list = notesByContact.get(n.contactId) ?? []
+    list.push(n)
+    notesByContact.set(n.contactId, list)
+  }
+
+  const pidsByContact = new Map<string, typeof allPids>()
+  for (const p of allPids) {
+    const list = pidsByContact.get(p.contactId) ?? []
+    list.push(p)
+    pidsByContact.set(p.contactId, list)
+  }
+
+  return allContacts.map((contact) => ({
+    ...contact,
+    linkedUserName: contact.linkedUserId ? (userNames.get(contact.linkedUserId) ?? null) : null,
+    identifiers: (identifiersByContact.get(contact.id) ?? []).map((i) => ({ id: i.id, label: i.label, value: i.value })),
+    notes: (notesByContact.get(contact.id) ?? []).map((n) => ({
+      id: n.id, kinId: n.kinId, scope: n.scope, content: n.content, createdAt: n.createdAt, updatedAt: n.updatedAt,
+    })),
+    platformIds: (pidsByContact.get(contact.id) ?? []).map((p) => ({
+      id: p.id, contactId: p.contactId, platform: p.platform, platformId: p.platformId,
+      createdAt: new Date(p.createdAt).getTime(),
+    })),
+  }))
+}
+
 export async function createContact(input: CreateContactInput) {
   // Prevent duplicate user-contact links
   if (input.linkedUserId) {
@@ -287,6 +356,15 @@ export async function searchContacts(
 // ─── Identifiers ─────────────────────────────────────────────────────────────
 
 export function addContactIdentifier(contactId: string, label: string, value: string) {
+  // Check for duplicate (same contactId + label + value)
+  const existing = db.select().from(contactIdentifiers)
+    .where(and(
+      eq(contactIdentifiers.contactId, contactId),
+      eq(contactIdentifiers.label, label),
+      eq(contactIdentifiers.value, value),
+    )).get()
+  if (existing) return existing // already exists, skip
+
   const now = new Date()
   const id = uuid()
   db.insert(contactIdentifiers).values({
@@ -306,9 +384,10 @@ export function addContactIdentifier(contactId: string, label: string, value: st
   return { id, contactId, label, value, createdAt: now, updatedAt: now }
 }
 
-export function updateContactIdentifier(identifierId: string, updates: { label?: string; value?: string }) {
+export function updateContactIdentifier(identifierId: string, updates: { label?: string; value?: string }, contactId?: string) {
   const existing = db.select().from(contactIdentifiers).where(eq(contactIdentifiers.id, identifierId)).get()
   if (!existing) return null
+  if (contactId && existing.contactId !== contactId) return null
 
   db.update(contactIdentifiers)
     .set({
@@ -327,9 +406,10 @@ export function updateContactIdentifier(identifierId: string, updates: { label?:
   return db.select().from(contactIdentifiers).where(eq(contactIdentifiers.id, identifierId)).get()!
 }
 
-export function removeContactIdentifier(identifierId: string): boolean {
+export function removeContactIdentifier(identifierId: string, contactId?: string): boolean {
   const existing = db.select().from(contactIdentifiers).where(eq(contactIdentifiers.id, identifierId)).get()
   if (!existing) return false
+  if (contactId && existing.contactId !== contactId) return false
 
   db.delete(contactIdentifiers).where(eq(contactIdentifiers.id, identifierId)).run()
 
@@ -412,10 +492,11 @@ export function setContactNote(contactId: string, kinId: string, scope: NoteScop
   return { id, contactId, kinId, scope, content, createdAt: now, updatedAt: now }
 }
 
-export function updateContactNote(noteId: string, content: string) {
+export function updateContactNote(noteId: string, content: string, contactId?: string) {
   const now = new Date()
   const existing = db.select().from(contactNotes).where(eq(contactNotes.id, noteId)).get()
   if (!existing) return null
+  if (contactId && existing.contactId !== contactId) return null
   db.update(contactNotes).set({ content, updatedAt: now }).where(eq(contactNotes.id, noteId)).run()
 
   sseManager.broadcast({
@@ -426,9 +507,10 @@ export function updateContactNote(noteId: string, content: string) {
   return { ...existing, content, updatedAt: now }
 }
 
-export function deleteContactNote(noteId: string) {
+export function deleteContactNote(noteId: string, contactId?: string) {
   const existing = db.select().from(contactNotes).where(eq(contactNotes.id, noteId)).get()
   if (!existing) return false
+  if (contactId && existing.contactId !== contactId) return false
   db.delete(contactNotes).where(eq(contactNotes.id, noteId)).run()
 
   sseManager.broadcast({

@@ -6,6 +6,7 @@ import { Button } from '@/client/components/ui/button'
 import { Input } from '@/client/components/ui/input'
 import { PlatformIcon } from '@/client/components/common/PlatformIcon'
 import { X, Plus, Check } from 'lucide-react'
+import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { api, toastError } from '@/client/lib/api'
 import type { ContactPlatformId } from '@/shared/types'
 
@@ -74,12 +75,21 @@ export function ContactPlatformIds({ contactId, initialPlatformIds }: ContactPla
           <Badge key={pid.id} variant="outline" size="xs" className="font-normal gap-1 group">
             <PlatformIcon platform={pid.platform} variant="color" className="size-3" />
             <span className="capitalize">{pid.platform}</span>: {pid.platformId}
-            <button
-              onClick={() => revokePlatformId(pid.id)}
-              className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-            >
-              <X className="size-2.5" />
-            </button>
+            <ConfirmDeleteButton
+              onConfirm={() => revokePlatformId(pid.id)}
+              description={t('settings.contacts.revokePlatformIdConfirm', {
+                platform: pid.platform,
+                defaultValue: `This will revoke access via ${pid.platform}. Messages from this platform ID will no longer be recognized as this contact.`,
+              })}
+              confirmLabel={t('settings.contacts.revoke', 'Revoke')}
+              trigger={
+                <button
+                  className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                >
+                  <X className="size-2.5" />
+                </button>
+              }
+            />
           </Badge>
         ))}
       </div>
