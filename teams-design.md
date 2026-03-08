@@ -391,3 +391,19 @@ Phases 1→3 sont le **MVP** : teams visibles, Hub fonctionnel, routage intra-te
 Phases 4→6 sont des **enrichissements** : mémoire partagée, knowledge, polish. Livrable en 3 crons supplémentaires.
 
 Le MVP (phases 1-3) apporte déjà 80% de la valeur : l'utilisateur peut créer des teams, voir les groupements dans la sidebar, et parler à un Hub qui connaît ses membres.
+
+---
+
+## Progress Notes
+
+### Phase 1 - DONE (2026-03-08, cron run #1)
+- Added `teams` and `team_members` tables to Drizzle schema
+- Generated migration `0039_absurd_madame_hydra.sql`
+- Created `src/server/services/teams.ts`: full CRUD (create/update/delete teams, add/remove members, queries by ID/slug/kin)
+- Created `src/server/routes/teams.ts`: REST API at `/api/teams` (GET list, GET by id, POST create, PATCH update, DELETE, POST members, DELETE members)
+- Added 5 SSE event types: `team:created`, `team:updated`, `team:deleted`, `team:member_added`, `team:member_removed`
+- Added i18n keys (en + fr) for all team UI strings
+- 12 unit tests passing (slug generation, validation, role logic)
+- Build passes, all 2360 tests pass
+- Commit: `6346e5f` on `feat/teams`
+- **Next: Phase 2 (Frontend sidebar + navigation)**
