@@ -41,7 +41,7 @@ KinBot is different. You create **Kins** — AI agents with:
 ## ✨ Features
 
 ### 🧠 Intelligence
-Persistent memory (vector + full-text) · Session compacting · Sub-agents · Inter-Kin communication · Continuous sessions that never reset
+Persistent memory (vector + full-text) · Knowledge base / RAG · Session compacting · Sub-agents · Inter-Kin communication · Continuous sessions that never reset
 
 ### 🔧 Automation & Extensibility
 Cron jobs · Webhooks · HTTP requests · 6 channels (Telegram, Discord, Slack, WhatsApp, Signal, Matrix) · MCP servers · Custom tools · Mini Apps · **Plugin system** · Contacts · Notifications · Human-in-the-loop prompts · 23 AI providers (incl. Ollama) · Multi-provider auto-detection
@@ -62,6 +62,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 
 #### Intelligence
 - **Long-term memory** — dual-channel: automatic extraction pipeline on every LLM turn + explicit `remember()` tool; hybrid search (vector similarity + full-text); query intent detection with category-aware score boosting; token-budgeted memory block in prompt
+- **Knowledge base / RAG** — upload documents and texts as reference material; hybrid search (vector + full-text) retrieves relevant chunks at query time
 - **Session compacting** — automatic summarization to stay within token limits; original messages are always preserved, snapshots are rollback-able
 - **Sub-Kins (tasks)** — Kins can delegate work to ephemeral sub-agents; `await` mode re-enters the parent queue with the result, `async` mode deposits it as informational
 - **Inter-Kin communication** — request/reply pattern with correlation IDs; rate-limited; replies are always informational (no ping-pong)
@@ -153,7 +154,7 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 | Custom tools (agent-created) | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ⚠️ |
 | Mini Apps (agent-built UIs) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Plugin system (hot-reload) | ✅ | ❌ | ⚠️ | ✅ | ⚠️ | ⚠️ | ❌ |
-| RAG / document embedding | ❌ | ⚠️ | ✅ | ⚠️ | ✅ | ❌ | ⚠️ |
+| RAG / document embedding | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ❌ | ⚠️ |
 | Multi-user with roles | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ | ❌ |
 | Web UI | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Zero-infra (no Postgres/Redis) | ✅ | ❌ | ❌ | ⚠️ | ❌ | ✅ | ✅ |
