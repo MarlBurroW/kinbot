@@ -63,6 +63,83 @@
   var _kinInfo = null // { id, name, avatarUrl }
   var _userInfo = null // { id, name, pseudonym, locale, timezone, avatarUrl }
 
+  // ─── Console interception ─────────────────────────────────────────────
+
+  var _consoleBuffer = [] // ring buffer, max 50 entries
+  var CONSOLE_BUFFER_MAX = 50
+
+  function _pushConsoleEntry(entry) {
+    _consoleBuffer.push(entry)
+    if (_consoleBuffer.length > CONSOLE_BUFFER_MAX) _consoleBuffer.shift()
+    try {
+      parent.postMessage({
+        source: 'kinbot-sdk',
+        type: 'console',
+        level: entry.level,
+        args: entry.args,
+        stack: entry.stack || null,
+        timestamp: entry.timestamp,
+      }, '*')
+    } catch (e) { /* ignore */ }
+  }
+
+  // Patch console.log/warn/error
+  ;['log', 'warn', 'error'].forEach(function (level) {
+    var original = console[level]
+    console[level] = function () {
+      // Call the original so devtools still work
+      original.apply(console, arguments)
+      // Serialize arguments safely
+      var args = []
+      for (var i = 0; i < arguments.length; i++) {
+        try {
+          var a = arguments[i]
+          if (a instanceof Error) {
+            args.push(a.message)
+          } else if (typeof a === 'object') {
+            args.push(JSON.stringify(a))
+          } else {
+            args.push(String(a))
+          }
+        } catch (e) {
+          args.push('[unserializable]')
+        }
+      }
+      _pushConsoleEntry({ level: level, args: args, timestamp: Date.now() })
+    }
+  })
+
+  // Catch uncaught errors
+  window.addEventListener('error', function (ev) {
+    _pushConsoleEntry({
+      level: 'error',
+      args: [ev.message || 'Unknown error'],
+      stack: ev.error && ev.error.stack ? ev.error.stack : (ev.filename + ':' + ev.lineno + ':' + ev.colno),
+      timestamp: Date.now(),
+    })
+  })
+
+  // Catch unhandled promise rejections
+  window.addEventListener('unhandledrejection', function (ev) {
+    var reason = ev.reason
+    var msg = 'Unhandled promise rejection'
+    var stack = null
+    if (reason instanceof Error) {
+      msg = reason.message
+      stack = reason.stack || null
+    } else if (typeof reason === 'string') {
+      msg = reason
+    } else {
+      try { msg = JSON.stringify(reason) } catch (e) { /* keep default */ }
+    }
+    _pushConsoleEntry({
+      level: 'error',
+      args: ['Unhandled promise rejection: ' + msg],
+      stack: stack,
+      timestamp: Date.now(),
+    })
+  })
+
   // ─── Theme ──────────────────────────────────────────────────────────────
 
   function getTheme() {

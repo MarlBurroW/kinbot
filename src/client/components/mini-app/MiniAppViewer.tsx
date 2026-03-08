@@ -13,7 +13,7 @@ import {
   AlertDialogAction,
 } from '@/client/components/ui/alert-dialog'
 import { Input } from '@/client/components/ui/input'
-import { X, RotateCw, Maximize2, Minimize2, Sparkles, Loader2 } from 'lucide-react'
+import { X, RotateCw, Maximize2, Minimize2, Sparkles, Loader2, AlertTriangle } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { toast } from 'sonner'
@@ -22,6 +22,24 @@ import type { MiniAppSummary } from '@/shared/types'
 
 /** Rate limiter for sendMessage: max 5 messages per 30 seconds per app */
 const messageCooldowns = new Map<string, number[]>()
+
+/** Console entries from mini-app iframes, keyed by appId */
+export interface MiniAppConsoleEntry {
+  level: 'log' | 'warn' | 'error'
+  args: string[]
+  stack: string | null
+  timestamp: number
+}
+const consoleBuffers = new Map<string, MiniAppConsoleEntry[]>()
+const CONSOLE_BUFFER_MAX = 50
+
+/** Get console entries for a specific app (used by tools via window.__kinbot_getConsole) */
+function getConsoleEntries(appId: string): MiniAppConsoleEntry[] {
+  return consoleBuffers.get(appId) ?? []
+}
+
+// Expose globally so the server-side tool can read console entries via SSE/API
+;(window as unknown as Record<string, unknown>).__kinbot_getConsole = getConsoleEntries
 
 export function MiniAppViewer() {
   const { t, i18n } = useTranslation()
@@ -47,6 +65,7 @@ export function MiniAppViewer() {
   } | null>(null)
   const [promptValue, setPromptValue] = useState('')
   const [generatingIcon, setGeneratingIcon] = useState(false)
+  const [errorCount, setErrorCount] = useState(0)
 
   const sendDialogResult = useCallback((callbackId: string, value: unknown) => {
     if (!iframeRef.current?.contentWindow) return
@@ -77,8 +96,10 @@ export function MiniAppViewer() {
   useEffect(() => {
     if (!activeAppId) {
       setApp(null)
+      setErrorCount(0)
       return
     }
+    setErrorCount(0)
     let cancelled = false
     api.get<{ app: MiniAppSummary }>(`/mini-apps/${activeAppId}`).then((data) => {
       if (!cancelled) setApp(data.app)
@@ -152,6 +173,30 @@ export function MiniAppViewer() {
       if (!msg || msg.source !== 'kinbot-sdk') return
 
       switch (msg.type) {
+        case 'console': {
+          const entry: MiniAppConsoleEntry = {
+            level: msg.level as 'log' | 'warn' | 'error',
+            args: Array.isArray(msg.args) ? msg.args.map(String) : [String(msg.args)],
+            stack: msg.stack ? String(msg.stack) : null,
+            timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
+          }
+          if (activeAppId) {
+            const buf = consoleBuffers.get(activeAppId) ?? []
+            buf.push(entry)
+            if (buf.length > CONSOLE_BUFFER_MAX) buf.shift()
+            consoleBuffers.set(activeAppId, buf)
+            if (entry.level === 'error') {
+              setErrorCount((c) => c + 1)
+            }
+            // Forward to server for Kin tool access
+            fetch(`/api/mini-apps/${activeAppId}/console`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(entry),
+            }).catch(() => { /* best effort */ })
+          }
+          break
+        }
         case 'toast': {
           const text = String(msg.message || '').slice(0, 500)
           const toastType = msg.toastType as string
@@ -454,6 +499,13 @@ export function MiniAppViewer() {
     sendAppMeta()
   }, [sendAppMeta])
 
+  const errorBadge = errorCount > 0 ? (
+    <div className="flex items-center gap-1 rounded-md bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive" title={`${errorCount} error${errorCount > 1 ? 's' : ''} in console`}>
+      <AlertTriangle className="size-3" />
+      <span>{errorCount}</span>
+    </div>
+  ) : null
+
   const iframeSrc = activeAppId
     ? `/api/mini-apps/${activeAppId}/serve?v=${activeAppVersion}`
     : ''
@@ -518,6 +570,7 @@ export function MiniAppViewer() {
           <span className="flex-1 truncate text-sm font-medium">
             {customTitle || (app?.name ?? '...')}
           </span>
+          {errorBadge}
           <Button
             variant="ghost"
             size="icon"
@@ -590,6 +643,7 @@ export function MiniAppViewer() {
           <span className="flex-1 truncate text-sm font-medium">
             {customTitle || (app?.name ?? '...')}
           </span>
+          {errorBadge}
           <Button
             variant="ghost"
             size="icon"

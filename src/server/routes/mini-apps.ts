@@ -28,6 +28,7 @@ import {
 } from '@/server/services/mini-apps'
 import { ImageGenerationError } from '@/server/services/image-generation'
 import { handleBackendRequest, invalidateBackend, getAppEmitter } from '@/server/services/mini-app-backend'
+import { pushConsoleEntry, getConsoleEntries, clearConsoleEntries } from '@/server/services/mini-app-console'
 import { searchMemories, createMemory } from '@/server/services/memory'
 import { sseManager } from '@/server/sse/index'
 
@@ -1029,4 +1030,38 @@ miniAppSdkRoutes.get('/kinbot-sdk.css', async (c) => {
   return new Response(css, {
     headers: { 'Content-Type': 'text/css', 'Cache-Control': 'public, max-age=3600' },
   })
+})
+
+// ─── Console entries ────────────────────────────────────────────────────────
+
+// POST console entry from the parent UI (MiniAppViewer forwards SDK console messages here)
+miniAppRoutes.post('/:id/console', async (c) => {
+  const { id } = c.req.param()
+  const body = await c.req.json<{ level: string; args: string[]; stack?: string; timestamp?: number }>()
+  const level = body.level as 'log' | 'warn' | 'error'
+  if (!['log', 'warn', 'error'].includes(level)) {
+    return c.json({ error: { code: 'BAD_REQUEST', message: 'Invalid level' } }, 400)
+  }
+  pushConsoleEntry(id, {
+    level,
+    args: Array.isArray(body.args) ? body.args.map(String).slice(0, 20) : [String(body.args)],
+    stack: body.stack ? String(body.stack).slice(0, 2000) : null,
+    timestamp: typeof body.timestamp === 'number' ? body.timestamp : Date.now(),
+  })
+  return c.json({ ok: true })
+})
+
+// GET console entries for a mini-app (used by the get_mini_app_console tool)
+miniAppRoutes.get('/:id/console', async (c) => {
+  const { id } = c.req.param()
+  const level = c.req.query('level')
+  const entries = getConsoleEntries(id, level)
+  return c.json({ entries })
+})
+
+// DELETE console entries for a mini-app
+miniAppRoutes.delete('/:id/console', async (c) => {
+  const { id } = c.req.param()
+  clearConsoleEntries(id)
+  return c.json({ ok: true })
 })
