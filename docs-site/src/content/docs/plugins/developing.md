@@ -486,6 +486,26 @@ export default function(ctx) {
 }
 ```
 
+## Export Validation
+
+KinBot validates the object returned by your plugin's init function before registering any tools, hooks, providers, or channels. This catches common mistakes early:
+
+**Errors (fatal — plugin won't activate):**
+- Returning `null`, `undefined`, or a non-object
+- `tools`, `hooks`, `providers`, or `channels` not being plain objects
+- `activate` or `deactivate` not being functions
+
+**Warnings (logged, plugin still activates):**
+- Tool missing `availability` array or `create` function
+- Unknown availability values (must be `'main'` or `'sub-kin'`)
+- Unknown hook names (e.g. `onFoo` instead of `afterChat`)
+- Hook handler that isn't a function
+- Provider missing `definition`, `displayName`, or `capabilities`
+- Channel missing `platform`
+- Unknown top-level export keys
+
+If your plugin fails to activate, check the logs for validation messages — they'll tell you exactly what's wrong.
+
 ## Best Practices
 
 - **Keep plugins focused** — one plugin, one purpose

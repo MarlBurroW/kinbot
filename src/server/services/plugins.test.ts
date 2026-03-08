@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test'
-import { validateManifest, validateConfig } from '@/server/services/plugins'
+import { validateManifest, validateConfig, validatePluginExports } from '@/server/services/plugins'
 
 describe('validateManifest', () => {
   test('accepts a valid minimal manifest', () => {
@@ -316,5 +316,175 @@ describe('validateManifest — dependencies', () => {
   test('rejects non-string dependency range', () => {
     const { errors } = validateManifest({ ...base, dependencies: { 'foo': 123 } })
     expect(errors.some(e => e.includes('non-empty semver range'))).toBe(true)
+  })
+})
+
+describe('validatePluginExports', () => {
+  test('accepts a valid minimal exports object', () => {
+    const { valid, errors, warnings } = validatePluginExports({}, 'test')
+    expect(valid).toBe(true)
+    expect(errors).toHaveLength(0)
+    expect(warnings).toHaveLength(0)
+  })
+
+  test('accepts a full valid exports object', () => {
+    const { valid, errors } = validatePluginExports({
+      tools: {
+        my_tool: {
+          availability: ['main', 'sub-kin'],
+          create: () => ({}),
+        },
+      },
+      hooks: {
+        afterToolCall: async () => {},
+      },
+      activate: async () => {},
+      deactivate: async () => {},
+    }, 'test')
+    expect(valid).toBe(true)
+    expect(errors).toHaveLength(0)
+  })
+
+  test('rejects null', () => {
+    const { valid, errors } = validatePluginExports(null, 'test')
+    expect(valid).toBe(false)
+    expect(errors[0]).toContain('null/undefined')
+  })
+
+  test('rejects undefined', () => {
+    const { valid } = validatePluginExports(undefined, 'test')
+    expect(valid).toBe(false)
+  })
+
+  test('rejects array', () => {
+    const { valid, errors } = validatePluginExports([], 'test')
+    expect(valid).toBe(false)
+    expect(errors[0]).toContain('plain object')
+  })
+
+  test('rejects non-object tools', () => {
+    const { valid, errors } = validatePluginExports({ tools: 'bad' }, 'test')
+    expect(valid).toBe(false)
+    expect(errors.some(e => e.includes('tools'))).toBe(true)
+  })
+
+  test('warns about tool missing availability', () => {
+    const { valid, warnings } = validatePluginExports({
+      tools: { my_tool: { create: () => ({}) } },
+    }, 'test')
+    expect(valid).toBe(true)
+    expect(warnings.some(w => w.includes('availability'))).toBe(true)
+  })
+
+  test('warns about tool missing create function', () => {
+    const { valid, warnings } = validatePluginExports({
+      tools: { my_tool: { availability: ['main'] } },
+    }, 'test')
+    expect(valid).toBe(true)
+    expect(warnings.some(w => w.includes('create'))).toBe(true)
+  })
+
+  test('warns about unknown availability value', () => {
+    const { warnings } = validatePluginExports({
+      tools: { my_tool: { availability: ['main', 'unknown'], create: () => ({}) } },
+    }, 'test')
+    expect(warnings.some(w => w.includes('unknown availability'))).toBe(true)
+  })
+
+  test('warns about unknown hook name', () => {
+    const { valid, warnings } = validatePluginExports({
+      hooks: { onFoo: async () => {} },
+    }, 'test')
+    expect(valid).toBe(true)
+    expect(warnings.some(w => w.includes('unknown hook name'))).toBe(true)
+  })
+
+  test('warns about non-function hook handler', () => {
+    const { warnings } = validatePluginExports({
+      hooks: { afterChat: 'not a function' },
+    }, 'test')
+    expect(warnings.some(w => w.includes('must be a function'))).toBe(true)
+  })
+
+  test('accepts valid hook names', () => {
+    const { valid, warnings } = validatePluginExports({
+      hooks: {
+        beforeChat: async () => {},
+        afterChat: async () => {},
+        beforeToolCall: async () => {},
+        afterToolCall: async () => {},
+        onTaskSpawn: async () => {},
+      },
+    }, 'test')
+    expect(valid).toBe(true)
+    expect(warnings).toHaveLength(0)
+  })
+
+  test('rejects non-function activate', () => {
+    const { valid, errors } = validatePluginExports({ activate: 'bad' }, 'test')
+    expect(valid).toBe(false)
+    expect(errors.some(e => e.includes('activate'))).toBe(true)
+  })
+
+  test('rejects non-function deactivate', () => {
+    const { valid, errors } = validatePluginExports({ deactivate: 42 }, 'test')
+    expect(valid).toBe(false)
+    expect(errors.some(e => e.includes('deactivate'))).toBe(true)
+  })
+
+  test('warns about unknown top-level keys', () => {
+    const { valid, warnings } = validatePluginExports({ foo: 'bar', baz: 123 }, 'test')
+    expect(valid).toBe(true)
+    expect(warnings.some(w => w.includes('foo'))).toBe(true)
+    expect(warnings.some(w => w.includes('baz'))).toBe(true)
+  })
+
+  test('warns about provider missing definition', () => {
+    const { warnings } = validatePluginExports({
+      providers: { my_llm: { displayName: 'Test', capabilities: ['llm'] } },
+    }, 'test')
+    expect(warnings.some(w => w.includes('definition'))).toBe(true)
+  })
+
+  test('warns about provider missing displayName', () => {
+    const { warnings } = validatePluginExports({
+      providers: { my_llm: { definition: {}, capabilities: ['llm'] } },
+    }, 'test')
+    expect(warnings.some(w => w.includes('displayName'))).toBe(true)
+  })
+
+  test('warns about provider missing capabilities', () => {
+    const { warnings } = validatePluginExports({
+      providers: { my_llm: { definition: {}, displayName: 'Test' } },
+    }, 'test')
+    expect(warnings.some(w => w.includes('capabilities'))).toBe(true)
+  })
+
+  test('warns about channel missing platform', () => {
+    const { warnings } = validatePluginExports({
+      channels: { my_chan: { send: () => {} } },
+    }, 'test')
+    expect(warnings.some(w => w.includes('platform'))).toBe(true)
+  })
+
+  test('rejects non-object channels', () => {
+    const { valid, errors } = validatePluginExports({ channels: [] }, 'test')
+    expect(valid).toBe(false)
+    expect(errors.some(e => e.includes('channels'))).toBe(true)
+  })
+
+  test('warns about non-object tool registration', () => {
+    const { warnings } = validatePluginExports({
+      tools: { bad: 'string' },
+    }, 'test')
+    expect(warnings.some(w => w.includes('bad'))).toBe(true)
+  })
+
+  test('allows null/undefined hook handlers without warning', () => {
+    const { valid, warnings } = validatePluginExports({
+      hooks: { afterChat: null, beforeChat: undefined },
+    }, 'test')
+    expect(valid).toBe(true)
+    expect(warnings).toHaveLength(0)
   })
 })
