@@ -239,15 +239,22 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   }, [checkNearBottom])
 
   // Re-evaluate nearBottom when the viewport resizes (e.g. queue preview appearing/disappearing)
+  // If the user was at the bottom before the resize, keep them there.
   useEffect(() => {
     const scrollArea = scrollAreaRef.current
     if (!scrollArea) return
     const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null
     if (!viewport) return
-    const observer = new ResizeObserver(() => checkNearBottom())
+    const observer = new ResizeObserver(() => {
+      const wasNearBottom = isNearBottomRef.current
+      checkNearBottom()
+      if (wasNearBottom && autoScroll) {
+        bottomRef.current?.scrollIntoView({ block: 'end' })
+      }
+    })
     observer.observe(viewport)
     return () => observer.disconnect()
-  }, [checkNearBottom])
+  }, [checkNearBottom, autoScroll])
 
   // IntersectionObserver — trigger loading older messages when top sentinel is visible
   useEffect(() => {
