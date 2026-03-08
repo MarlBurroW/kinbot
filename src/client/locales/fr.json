@@ -617,7 +617,9 @@
       "hoursMinutes": "{{hours}}h {{minutes}}min plus tard"
     },
     "quickChat": "Chat rapide",
-    "react": "Réagir"
+    "react": "Réagir",
+    "messageRedacted": "Ce message a été supprimé",
+    "reactionFailed": "Impossible de modifier la réaction"
   },
   "quickChat": {
     "title": "Session rapide",

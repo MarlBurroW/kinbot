@@ -617,7 +617,9 @@
       "hoursMinutes": "{{hours}}h {{minutes}}min later"
     },
     "quickChat": "Quick Chat",
-    "react": "React"
+    "react": "React",
+    "messageRedacted": "This message was redacted",
+    "reactionFailed": "Failed to toggle reaction"
   },
   "quickChat": {
     "title": "Quick Session",

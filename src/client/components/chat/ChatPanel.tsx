@@ -613,6 +613,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       timestamp={msg.createdAt}
                       toolCalls={toolCallsByMessage.get(msg.id)}
                       injectedMemories={msg.injectedMemories}
+                      isRedacted={msg.isRedacted}
                       isGrouped={isGrouped}
                       messageId={msg.id}
                       resolvedTaskId={msg.resolvedTaskId}
