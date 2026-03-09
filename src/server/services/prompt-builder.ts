@@ -13,6 +13,7 @@ interface Memory {
   category: string
   content: string
   subject: string | null
+  sourceContext?: string | null
   importance?: number | null
   updatedAt?: Date | null
   score?: number | null
@@ -125,6 +126,9 @@ function formatMemoryLine(m: Memory): string {
   parts.push(m.content)
   if (m.subject) {
     parts.push(`(subject: ${m.subject})`)
+  }
+  if (m.sourceContext) {
+    parts.push(`[context: ${m.sourceContext}]`)
   }
   const relTime = formatRelativeTime(m.updatedAt)
   if (relTime) {

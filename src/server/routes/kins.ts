@@ -843,6 +843,7 @@ kinRoutes.get('/:id/memories', async (c) => {
       category: memories.category,
       subject: memories.subject,
       sourceChannel: memories.sourceChannel,
+      sourceContext: memories.sourceContext,
       createdAt: memories.createdAt,
       updatedAt: memories.updatedAt,
     })
@@ -907,6 +908,7 @@ kinRoutes.post('/:id/memories', async (c) => {
       category: memory!.category,
       subject: memory!.subject,
       sourceChannel: memory!.sourceChannel,
+      sourceContext: memory!.sourceContext,
       createdAt: memory!.createdAt,
       updatedAt: memory!.updatedAt,
     },
@@ -945,6 +947,7 @@ kinRoutes.patch('/:id/memories/:memoryId', async (c) => {
       category: updated.category,
       subject: updated.subject,
       sourceChannel: updated.sourceChannel,
+      sourceContext: updated.sourceContext,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
     },

@@ -151,6 +151,7 @@ export const memories = sqliteTable('memories', {
   subject: text('subject'),
   sourceMessageId: text('source_message_id').references(() => messages.id),
   sourceChannel: text('source_channel').notNull().default('automatic'), // 'automatic' | 'explicit'
+  sourceContext: text('source_context'), // Brief conversational context around the extracted memory
   importance: real('importance'), // 1-10 scale, null = unscored (treated as 5)
   retrievalCount: integer('retrieval_count').notNull().default(0), // How many times this memory has been retrieved
   lastRetrievedAt: integer('last_retrieved_at', { mode: 'timestamp_ms' }), // When it was last retrieved

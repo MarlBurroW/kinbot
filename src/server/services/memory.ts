@@ -17,6 +17,7 @@ interface CreateMemoryInput {
   content: string
   category: MemoryCategory
   subject?: string | null
+  sourceContext?: string | null
   importance?: number | null
   sourceMessageId?: string | null
   sourceChannel?: 'automatic' | 'explicit'
@@ -26,6 +27,7 @@ interface UpdateMemoryInput {
   content?: string
   category?: MemoryCategory
   subject?: string | null
+  sourceContext?: string | null
   importance?: number | null
 }
 
@@ -34,6 +36,7 @@ interface MemorySearchResult {
   content: string
   category: string
   subject: string | null
+  sourceContext: string | null
   importance: number | null
   score: number
   updatedAt: Date | null
@@ -129,6 +132,7 @@ export async function createMemory(kinId: string, input: CreateMemoryInput) {
     embedding: embeddingBuf,
     category: input.category,
     subject: input.subject ?? null,
+    sourceContext: input.sourceContext ?? null,
     importance: input.importance ?? null,
     sourceMessageId: input.sourceMessageId ?? null,
     sourceChannel: input.sourceChannel ?? 'explicit',
@@ -169,6 +173,7 @@ export async function updateMemory(memoryId: string, kinId: string, updates: Upd
   if (updates.content !== undefined) setValues.content = updates.content
   if (updates.category !== undefined) setValues.category = updates.category
   if (updates.subject !== undefined) setValues.subject = updates.subject
+  if (updates.sourceContext !== undefined) setValues.sourceContext = updates.sourceContext
   if (updates.importance !== undefined) setValues.importance = updates.importance
 
   // Re-generate embedding if content changed
@@ -480,7 +485,7 @@ function detectQueryIntentCategories(query: string): Set<string> {
 
 // ─── Hybrid Search (FTS5 + sqlite-vec rank fusion) ───────────────────────────
 
-type ScoreMapEntry = { score: number; content: string; category: string; subject: string | null; importance: number | null; retrievalCount: number; updatedAt: Date | null }
+type ScoreMapEntry = { score: number; content: string; category: string; subject: string | null; sourceContext: string | null; importance: number | null; retrievalCount: number; updatedAt: Date | null }
 
 /**
  * Run hybrid search for a single query and accumulate RRF scores into a shared score map.
@@ -505,7 +510,7 @@ async function hybridSearchSingleQuery(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, retrievalCount: r.retrievalCount, updatedAt: r.updatedAt })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, sourceContext: r.sourceContext, importance: r.importance, retrievalCount: r.retrievalCount, updatedAt: r.updatedAt })
     }
   }
   for (let i = 0; i < ftsResults.length; i++) {
@@ -516,7 +521,7 @@ async function hybridSearchSingleQuery(
     if (existing) {
       existing.score += rrfScore
     } else {
-      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, importance: r.importance, retrievalCount: r.retrievalCount, updatedAt: r.updatedAt })
+      scoreMap.set(r.id, { score: rrfScore, content: r.content, category: r.category, subject: r.subject, sourceContext: r.sourceContext, importance: r.importance, retrievalCount: r.retrievalCount, updatedAt: r.updatedAt })
     }
   }
 }
@@ -589,7 +594,7 @@ export async function searchMemories(
 
   // Sort by weighted score descending
   const sorted = Array.from(scoreMap.entries())
-    .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, importance: data.importance, score: data.score, updatedAt: data.updatedAt }))
+    .map(([id, data]) => ({ id, content: data.content, category: data.category, subject: data.subject, sourceContext: data.sourceContext, importance: data.importance, score: data.score, updatedAt: data.updatedAt }))
     .sort((a, b) => b.score - a.score)
     .slice(0, fetchLimit)
 
@@ -609,7 +614,7 @@ async function searchByVector(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; retrievalCount: number; distance: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; sourceContext: string | null; importance: number | null; retrievalCount: number; distance: number; updatedAt: Date | null }>> {
   try {
     const queryEmbedding = await generateEmbedding(query)
     const queryBuf = Buffer.from(new Float32Array(queryEmbedding).buffer)
@@ -635,10 +640,10 @@ async function searchByVector(
     const placeholders = matchingIds.map(() => '?').join(', ')
     const memRows = sqlite
       .query<
-        { id: string; content: string; category: string; subject: string | null; importance: number | null; retrieval_count: number; updated_at: string | null },
+        { id: string; content: string; category: string; subject: string | null; source_context: string | null; importance: number | null; retrieval_count: number; updated_at: string | null },
         string[]
       >(
-        `SELECT id, content, category, subject, importance, retrieval_count, updated_at FROM memories
+        `SELECT id, content, category, subject, source_context, importance, retrieval_count, updated_at FROM memories
          WHERE id IN (${placeholders}) AND kin_id = ?`,
       )
       .all(...matchingIds, kinId)
@@ -649,7 +654,7 @@ async function searchByVector(
       .filter((r) => memMap.has(r.memory_id))
       .map((r) => {
         const m = memMap.get(r.memory_id)!
-        return { id: m.id, content: m.content, category: m.category, subject: m.subject, importance: m.importance, retrievalCount: m.retrieval_count, distance: r.distance, updatedAt: m.updated_at ? new Date(m.updated_at) : null }
+        return { id: m.id, content: m.content, category: m.category, subject: m.subject, sourceContext: m.source_context, importance: m.importance, retrievalCount: m.retrieval_count, distance: r.distance, updatedAt: m.updated_at ? new Date(m.updated_at) : null }
       })
   } catch {
     // sqlite-vec or embedding provider not available
@@ -664,7 +669,7 @@ function searchByFTS(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; importance: number | null; retrievalCount: number; rank: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; sourceContext: string | null; importance: number | null; retrievalCount: number; rank: number; updatedAt: Date | null }>> {
   try {
     // Escape FTS5 special characters, filter noise, build query with prefix matching
     const terms = query
@@ -682,10 +687,10 @@ function searchByFTS(
     const ftsQueryOr = terms.map((term) => `"${term}"*`).join(' OR ')
 
     const stmt = sqlite.query<
-      { id: string; content: string; category: string; subject: string | null; importance: number | null; retrieval_count: number; rank: number; updated_at: string | null },
+      { id: string; content: string; category: string; subject: string | null; source_context: string | null; importance: number | null; retrieval_count: number; rank: number; updated_at: string | null },
       [string, string, number]
     >(
-      `SELECT m.id, m.content, m.category, m.subject, m.importance, m.retrieval_count, fts.rank, m.updated_at
+      `SELECT m.id, m.content, m.category, m.subject, m.source_context, m.importance, m.retrieval_count, fts.rank, m.updated_at
        FROM memories_fts fts
        JOIN memories m ON m.rowid = fts.rowid
        WHERE memories_fts MATCH ? AND m.kin_id = ?
@@ -699,7 +704,7 @@ function searchByFTS(
       rows = stmt.all(ftsQueryOr, kinId, limit)
     }
 
-    return Promise.resolve(rows.map((r) => ({ ...r, retrievalCount: r.retrieval_count, updatedAt: r.updated_at ? new Date(r.updated_at) : null })))
+    return Promise.resolve(rows.map((r) => ({ ...r, sourceContext: r.source_context, retrievalCount: r.retrieval_count, updatedAt: r.updated_at ? new Date(r.updated_at) : null })))
   } catch {
     return Promise.resolve([])
   }

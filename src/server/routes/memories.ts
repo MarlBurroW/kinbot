@@ -31,6 +31,7 @@ memoryRoutes.get('/', async (c) => {
       lastRetrievedAt: memories.lastRetrievedAt,
       consolidationGeneration: memories.consolidationGeneration,
       sourceChannel: memories.sourceChannel,
+      sourceContext: memories.sourceContext,
       createdAt: memories.createdAt,
       updatedAt: memories.updatedAt,
     })

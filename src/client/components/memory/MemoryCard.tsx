@@ -67,6 +67,11 @@ export function MemoryCard({ memory, kinName, kinAvatarUrl, showKinName, onEdit,
             <p className="text-sm text-foreground mt-1 line-clamp-2 whitespace-pre-wrap">
               {memory.content}
             </p>
+            {memory.sourceContext && (
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 italic">
+                {memory.sourceContext}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0 mt-0.5">

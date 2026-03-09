@@ -377,7 +377,7 @@ async function cleanupSnapshots(kinId: string) {
 
 async function addIfNotDuplicate(
   kinId: string,
-  item: { content: string; category: string; subject?: string | null },
+  item: { content: string; category: string; subject?: string | null; sourceContext?: string | null },
   importance: number | null,
   lastMessageId: string,
 ): Promise<boolean> {
@@ -387,6 +387,7 @@ async function addIfNotDuplicate(
     content: item.content,
     category: item.category as MemoryCategory,
     subject: item.subject || null,
+    sourceContext: item.sourceContext || null,
     importance,
     sourceMessageId: lastMessageId,
     sourceChannel: 'automatic',
@@ -441,6 +442,7 @@ async function extractMemories(
     `- "subject": the person or context concerned (name or "general")\n` +
     `- "importance": a number from 1 to 10\n` +
     `  1 = mundane/trivial, 5 = moderately useful, 10 = critical/life-changing\n` +
+    `- "sourceContext": a brief 1-2 sentence summary of the conversational context in which this fact was mentioned (e.g. "While discussing weekend plans, user mentioned...")\n` +
     `- "updateIndex": (only for "update" action) the index number [N] of the existing memory to update\n\n` +
     `Rules:\n` +
     `- Only extract **durable** information (not ephemeral details)\n` +
@@ -485,6 +487,7 @@ async function extractMemories(
       category: string
       subject: string
       importance?: number
+      sourceContext?: string
       updateIndex?: number
     }>
 
@@ -507,6 +510,7 @@ async function extractMemories(
             content: item.content,
             category: item.category as MemoryCategory,
             subject: item.subject || null,
+            sourceContext: item.sourceContext || null,
             importance,
           })
           count++

@@ -1,0 +1,1 @@
+ALTER TABLE `memories` ADD `source_context` text;
