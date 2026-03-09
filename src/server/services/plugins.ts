@@ -439,6 +439,9 @@ export function validatePluginExports(
 /** Max consecutive hook/tool errors before a plugin is auto-disabled */
 const MAX_CONSECUTIVE_ERRORS = 10
 
+/** Max time (ms) for a plugin's activate() or deactivate() to complete */
+const LIFECYCLE_TIMEOUT_MS = 30_000
+
 class PluginManager {
   private plugins = new Map<string, LoadedPlugin>()
   private pluginsDir: string
@@ -779,9 +782,14 @@ class PluginManager {
         }
       }
 
-      // Call activate
+      // Call activate (with timeout to prevent hanging)
       if (exports.activate) {
-        await exports.activate()
+        await Promise.race([
+          exports.activate(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Plugin "${name}" activate() timed out after ${LIFECYCLE_TIMEOUT_MS / 1000}s`)), LIFECYCLE_TIMEOUT_MS)
+          ),
+        ])
       }
 
       plugin.enabled = true
@@ -797,6 +805,10 @@ class PluginManager {
       plugin.error = err instanceof Error ? err.message : 'Activation failed'
       plugin.enabled = false
       log.error({ plugin: name, err }, 'Plugin activation failed')
+
+      // Clean up any partial registrations (tools/hooks/providers/channels
+      // that were registered before the error occurred)
+      await this.deactivatePlugin(name)
     }
   }
 
@@ -805,10 +817,15 @@ class PluginManager {
     const plugin = this.plugins.get(name)
     if (!plugin) return
 
-    // Call deactivate
+    // Call deactivate (with timeout to prevent hanging)
     if (plugin.exports?.deactivate) {
       try {
-        await plugin.exports.deactivate()
+        await Promise.race([
+          plugin.exports.deactivate(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Plugin "${name}" deactivate() timed out after ${LIFECYCLE_TIMEOUT_MS / 1000}s`)), LIFECYCLE_TIMEOUT_MS)
+          ),
+        ])
       } catch (err) {
         log.error({ plugin: name, err }, 'Plugin deactivate() error')
       }
