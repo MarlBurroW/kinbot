@@ -58,7 +58,7 @@ try {
 }
 
 // Import after mocks — may fail if mock.module didn't intercept (CI/standalone)
-let webSearch: typeof import('./search')['webSearch'] | undefined
+let webSearch: Awaited<typeof import('./search')>['webSearch']
 let _mocksWorking = false
 try {
   const mod = await import('./search')
