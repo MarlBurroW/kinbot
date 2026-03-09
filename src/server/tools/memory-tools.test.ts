@@ -10,6 +10,11 @@ const mockMemory = {
   deleteMemory: mock(() => Promise.resolve(false)),
   listMemories: mock(() => Promise.resolve([] as any[])),
   isDuplicateMemory: mock(() => Promise.resolve(false)),
+  getMemory: mock(() => Promise.resolve(null as any)),
+  rewriteQueryWithContext: mock(() => Promise.resolve('')),
+  getRelevantMemories: mock(() => Promise.resolve([] as any[])),
+  reembedAllMemories: mock(() => Promise.resolve(0)),
+  recalibrateImportance: mock(() => Promise.resolve(0)),
 }
 
 mock.module('@/server/services/memory', () => mockMemory)
