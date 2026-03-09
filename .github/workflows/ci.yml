@@ -54,20 +54,7 @@ jobs:
           # Run tests without coverage first — this is the correctness gate.
           # Bun's --coverage flag has known issues with mock.module (ESM caching)
           # that cause false failures in tests relying on module-level mocks.
-          # Run tests and on failure, re-run each file individually to find failures
-          bun test 2>&1 | tee test-output.txt; test_exit=${PIPESTATUS[0]}
-          if [ $test_exit -ne 0 ]; then
-            echo "::group::Identifying failing test files"
-            for f in $(find src -name '*.test.ts' -o -name '*.test.tsx' | sort); do
-              if ! bun test "$f" >/dev/null 2>&1; then
-                echo "FAIL: $f"
-                bun test "$f" 2>&1 | tail -30
-                echo "---"
-              fi
-            done
-            echo "::endgroup::"
-          fi
-          exit $test_exit
+          bun test
 
       - name: Coverage report
         if: always()
