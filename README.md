@@ -117,7 +117,7 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 
 **Channels** — `list_channels`, `list_channel_conversations`, `send_channel_message`
 
-**Plugins** — `list_installed_plugins`, `browse_plugin_store`, `install_plugin`, `uninstall_plugin`, `enable_plugin`, `disable_plugin`, `configure_plugin`, `get_plugin_details`
+**Plugins** — `list_installed_plugins`, `browse_plugin_store`, `install_plugin`, `uninstall_plugin`, `enable_plugin`, `disable_plugin`, `configure_plugin`, `get_plugin_details`, `check_plugin_updates`, `update_plugin`
 
 **Custom Tools** — `register_tool`, `run_custom_tool`, `list_custom_tools` (Kins write and run their own scripts)
 
