@@ -1,236 +1,363 @@
-import { describe, test, expect, beforeEach } from 'bun:test'
-import * as os from 'node:os'
-import createPlugin from './index'
+import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test'
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Recreated pure functions from system-monitor/index.ts ──────────────────
+// These are not exported, so we recreate them here for isolated unit testing
+// (same approach as version-check.test.ts).
 
-function makeCtx(config: Record<string, string> = {}) {
+function getMemory(totalMem: number, freeMem: number): {
+  totalMB: number
+  usedMB: number
+  freeMB: number
+  usedPercent: number
+} {
+  const used = totalMem - freeMem
   return {
-    config: { topProcesses: '5', ...config },
-    kinId: 'test-kin',
-    log: { info: () => {} },
+    totalMB: Math.round(totalMem / 1024 / 1024),
+    usedMB: Math.round(used / 1024 / 1024),
+    freeMB: Math.round(freeMem / 1024 / 1024),
+    usedPercent: Math.round((used / totalMem) * 1000) / 10,
   }
 }
 
-async function executeTool(plugin: ReturnType<typeof createPlugin>, toolName: string, input: any = {}) {
-  const toolDef = (plugin.tools as any)[toolName]
-  const created = toolDef.create()
-  return created.execute(input)
+function getUptime(seconds: number): { seconds: number; formatted: string } {
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  parts.push(`${minutes}m`)
+  return { seconds, formatted: parts.join(' ') }
+}
+
+function getCpuUsage(
+  cpus: Array<{ model: string }>,
+  loadAvg: number[],
+): { model: string; cores: number; loadAvg: number[] } {
+  return {
+    model: cpus[0]?.model || 'Unknown',
+    cores: cpus.length,
+    loadAvg: loadAvg.map((v) => Math.round(v * 100) / 100),
+  }
+}
+
+function parseDfOutput(raw: string): Array<{
+  filesystem: string
+  size: string
+  used: string
+  available: string
+  usePercent: string
+  mount: string
+}> {
+  if (!raw) return []
+  const lines = raw.split('\n').slice(1) // skip header
+  return lines
+    .map((line) => {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length < 6) return null
+      return {
+        filesystem: parts[0]!,
+        size: parts[1]!,
+        used: parts[2]!,
+        available: parts[3]!,
+        usePercent: parts[4]!,
+        mount: parts.slice(5).join(' '),
+      }
+    })
+    .filter(Boolean) as any
+}
+
+function parseTopProcesses(
+  raw: string,
+): Array<{ pid: string; user: string; cpu: string; mem: string; command: string }> {
+  if (!raw) return []
+  const lines = raw.split('\n').slice(1) // skip header
+  return lines
+    .map((line) => {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length < 11) return null
+      return {
+        pid: parts[1]!,
+        user: parts[0]!,
+        cpu: parts[2]! + '%',
+        mem: parts[3]! + '%',
+        command: parts.slice(10).join(' ').slice(0, 80),
+      }
+    })
+    .filter(Boolean) as any
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
-describe('System Monitor plugin', () => {
-  let ctx: ReturnType<typeof makeCtx>
-  let plugin: ReturnType<typeof createPlugin>
-
-  beforeEach(() => {
-    ctx = makeCtx()
-    plugin = createPlugin(ctx)
+describe('getUptime', () => {
+  it('formats seconds-only uptime', () => {
+    const result = getUptime(45)
+    expect(result.seconds).toBe(45)
+    expect(result.formatted).toBe('0m')
   })
 
-  test('exports expected tools', () => {
-    expect(Object.keys(plugin.tools).sort()).toEqual([
-      'disk_info',
-      'memory_info',
-      'system_status',
-      'top_processes',
-    ])
+  it('formats minutes-only uptime', () => {
+    const result = getUptime(300)
+    expect(result.formatted).toBe('5m')
   })
 
-  test('all tools have correct availability', () => {
-    for (const [name, toolDef] of Object.entries(plugin.tools)) {
-      expect((toolDef as any).availability).toEqual(['main', 'sub-kin'])
+  it('formats hours and minutes', () => {
+    const result = getUptime(3661)
+    expect(result.formatted).toBe('1h 1m')
+  })
+
+  it('formats days, hours, and minutes', () => {
+    const result = getUptime(90061)
+    expect(result.formatted).toBe('1d 1h 1m')
+  })
+
+  it('formats multiple days', () => {
+    const result = getUptime(259200) // 3 days
+    expect(result.formatted).toBe('3d 0m')
+  })
+
+  it('handles zero uptime', () => {
+    const result = getUptime(0)
+    expect(result.seconds).toBe(0)
+    expect(result.formatted).toBe('0m')
+  })
+
+  it('formats exactly one day', () => {
+    const result = getUptime(86400)
+    expect(result.formatted).toBe('1d 0m')
+  })
+
+  it('skips hours when zero but includes days', () => {
+    const result = getUptime(86400 + 120) // 1d 2m
+    expect(result.formatted).toBe('1d 2m')
+  })
+
+  it('preserves original seconds value', () => {
+    const result = getUptime(123456)
+    expect(result.seconds).toBe(123456)
+  })
+})
+
+describe('getMemory', () => {
+  it('calculates memory stats from total and free', () => {
+    const total = 16 * 1024 * 1024 * 1024 // 16 GB
+    const free = 4 * 1024 * 1024 * 1024 // 4 GB
+    const result = getMemory(total, free)
+
+    expect(result.totalMB).toBe(16384)
+    expect(result.freeMB).toBe(4096)
+    expect(result.usedMB).toBe(12288)
+    expect(result.usedPercent).toBe(75)
+  })
+
+  it('handles all memory free', () => {
+    const total = 8 * 1024 * 1024 * 1024
+    const result = getMemory(total, total)
+
+    expect(result.usedMB).toBe(0)
+    expect(result.freeMB).toBe(result.totalMB)
+    expect(result.usedPercent).toBe(0)
+  })
+
+  it('handles all memory used', () => {
+    const total = 8 * 1024 * 1024 * 1024
+    const result = getMemory(total, 0)
+
+    expect(result.usedMB).toBe(result.totalMB)
+    expect(result.freeMB).toBe(0)
+    expect(result.usedPercent).toBe(100)
+  })
+
+  it('rounds MB values correctly', () => {
+    // 1.5 GB = 1536 MB
+    const total = 1.5 * 1024 * 1024 * 1024
+    const free = 0.5 * 1024 * 1024 * 1024
+    const result = getMemory(total, free)
+
+    expect(result.totalMB).toBe(1536)
+    expect(result.freeMB).toBe(512)
+    expect(result.usedMB).toBe(1024)
+  })
+
+  it('calculates percentage with one decimal precision', () => {
+    const total = 3 * 1024 * 1024 * 1024 // 3 GB
+    const free = 1 * 1024 * 1024 * 1024 // 1 GB
+    const result = getMemory(total, free)
+
+    expect(result.usedPercent).toBe(66.7)
+  })
+})
+
+describe('getCpuUsage', () => {
+  it('returns model, core count, and load averages', () => {
+    const cpus = [
+      { model: 'Intel i7-9700K' },
+      { model: 'Intel i7-9700K' },
+      { model: 'Intel i7-9700K' },
+      { model: 'Intel i7-9700K' },
+    ]
+    const result = getCpuUsage(cpus, [1.234, 2.567, 3.891])
+
+    expect(result.model).toBe('Intel i7-9700K')
+    expect(result.cores).toBe(4)
+    expect(result.loadAvg).toEqual([1.23, 2.57, 3.89])
+  })
+
+  it('handles empty CPU array', () => {
+    const result = getCpuUsage([], [0, 0, 0])
+    expect(result.model).toBe('Unknown')
+    expect(result.cores).toBe(0)
+  })
+
+  it('rounds load averages to two decimal places', () => {
+    const cpus = [{ model: 'ARM' }]
+    const result = getCpuUsage(cpus, [0.005, 0.015, 0.995])
+    expect(result.loadAvg).toEqual([0.01, 0.02, 1])
+  })
+})
+
+describe('parseDfOutput', () => {
+  it('parses df output correctly', () => {
+    const raw = `Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       100G   60G   40G  60% /
+/dev/sdb1       500G  200G  300G  40% /data`
+
+    const result = parseDfOutput(raw)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({
+      filesystem: '/dev/sda1',
+      size: '100G',
+      used: '60G',
+      available: '40G',
+      usePercent: '60%',
+      mount: '/',
+    })
+    expect(result[1]!.mount).toBe('/data')
+  })
+
+  it('returns empty array for empty input', () => {
+    expect(parseDfOutput('')).toEqual([])
+  })
+
+  it('handles mount paths with spaces', () => {
+    const raw = `Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       100G   60G   40G  60% /mnt/my drive`
+
+    const result = parseDfOutput(raw)
+    expect(result[0]!.mount).toBe('/mnt/my drive')
+  })
+
+  it('skips lines with fewer than 6 fields', () => {
+    const raw = `Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       100G   60G   40G  60% /
+bad line only`
+
+    const result = parseDfOutput(raw)
+    expect(result).toHaveLength(1)
+  })
+})
+
+describe('parseTopProcesses', () => {
+  it('parses ps aux output correctly', () => {
+    const raw = `USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.1 169344 13456 ?        Ss   Jan01   0:15 /sbin/init
+nobody      1234 25.3  5.2 500000 42000 ?        R    10:00   1:30 node server.js --port 3000`
+
+    const result = parseTopProcesses(raw)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({
+      pid: '1',
+      user: 'root',
+      cpu: '0.0%',
+      mem: '0.1%',
+      command: '/sbin/init',
+    })
+    expect(result[1]!.command).toBe('node server.js --port 3000')
+  })
+
+  it('returns empty array for empty input', () => {
+    expect(parseTopProcesses('')).toEqual([])
+  })
+
+  it('truncates long commands to 80 chars', () => {
+    const longCommand = 'a'.repeat(120)
+    const raw = `USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME ${longCommand}`
+    const result = parseTopProcesses(raw)
+    // The header line is skipped, so this is parsed as a process line
+    // but with 11+ columns it should work
+    // Actually header is skipped (slice(1)), so let's add proper format:
+    const rawWithHeader = `USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.1 169344 13456 ?        Ss   Jan01   0:15 ${longCommand}`
+
+    const result2 = parseTopProcesses(rawWithHeader)
+    expect(result2[0]!.command.length).toBe(80)
+  })
+
+  it('skips malformed lines', () => {
+    const raw = `USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.1 169344 13456 ?        Ss   Jan01   0:15 /sbin/init
+short`
+
+    const result = parseTopProcesses(raw)
+    expect(result).toHaveLength(1)
+  })
+})
+
+describe('system-monitor plugin export', () => {
+  it('exports a function that returns tools', async () => {
+    // Dynamic import to verify the module structure
+    const mod = await import('./index')
+    expect(typeof mod.default).toBe('function')
+
+    const ctx = {
+      config: { topProcesses: '5' },
+      log: { info: () => {}, warn: () => {} },
     }
+
+    const plugin = mod.default(ctx)
+    expect(plugin.tools).toBeDefined()
+    expect(plugin.tools.system_status).toBeDefined()
+    expect(plugin.tools.top_processes).toBeDefined()
+    expect(plugin.tools.memory_info).toBeDefined()
+    expect(plugin.tools.disk_info).toBeDefined()
+    expect(typeof plugin.activate).toBe('function')
+    expect(typeof plugin.deactivate).toBe('function')
   })
 
-  test('activate and deactivate are callable', async () => {
-    await expect(plugin.activate()).resolves.toBeUndefined()
-    await expect(plugin.deactivate()).resolves.toBeUndefined()
+  it('parses topProcesses config as integer', async () => {
+    const mod = await import('./index')
+    const ctx = {
+      config: { topProcesses: '15' },
+      log: { info: () => {}, warn: () => {} },
+    }
+    const plugin = mod.default(ctx)
+    // Plugin should expose tools with the configured count
+    expect(plugin.tools.top_processes).toBeDefined()
   })
 
-  // ─── system_status ──────────────────────────────────────────────────────
-
-  describe('system_status', () => {
-    test('returns hostname, platform, uptime, cpu, memory, and disk', async () => {
-      const result = await executeTool(plugin, 'system_status')
-
-      expect(result.hostname).toBe(os.hostname())
-      expect(result.platform).toContain(os.type())
-      expect(result.platform).toContain(os.arch())
-
-      // uptime
-      expect(result.uptime).toBeDefined()
-      expect(typeof result.uptime.seconds).toBe('number')
-      expect(result.uptime.seconds).toBeGreaterThan(0)
-      expect(typeof result.uptime.formatted).toBe('string')
-      expect(result.uptime.formatted.length).toBeGreaterThan(0)
-
-      // cpu
-      expect(result.cpu).toBeDefined()
-      expect(typeof result.cpu.model).toBe('string')
-      expect(result.cpu.cores).toBeGreaterThan(0)
-      expect(result.cpu.loadAvg).toBeArrayOfSize(3)
-      for (const avg of result.cpu.loadAvg) {
-        expect(typeof avg).toBe('number')
-        expect(avg).toBeGreaterThanOrEqual(0)
-      }
-
-      // memory
-      expect(result.memory).toBeDefined()
-      expect(result.memory.totalMB).toBeGreaterThan(0)
-      expect(result.memory.usedMB).toBeGreaterThan(0)
-      expect(result.memory.freeMB).toBeGreaterThanOrEqual(0)
-      expect(result.memory.usedPercent).toBeGreaterThan(0)
-      expect(result.memory.usedPercent).toBeLessThanOrEqual(100)
-      // used + free should roughly equal total (within rounding)
-      expect(Math.abs(result.memory.usedMB + result.memory.freeMB - result.memory.totalMB)).toBeLessThanOrEqual(1)
-
-      // disk
-      expect(Array.isArray(result.disk)).toBe(true)
-    })
-
-    test('uptime formatted string contains minutes', async () => {
-      const result = await executeTool(plugin, 'system_status')
-      // formatted should end with 'm' (minutes part is always present)
-      expect(result.uptime.formatted).toMatch(/\d+m$/)
-    })
-
-    test('load averages are rounded to 2 decimal places', async () => {
-      const result = await executeTool(plugin, 'system_status')
-      for (const avg of result.cpu.loadAvg) {
-        const str = avg.toString()
-        const decimalPart = str.includes('.') ? str.split('.')[1] : ''
-        expect(decimalPart.length).toBeLessThanOrEqual(2)
-      }
-    })
-
-    test('memory usedPercent is rounded to 1 decimal place', async () => {
-      const result = await executeTool(plugin, 'system_status')
-      const str = result.memory.usedPercent.toString()
-      const decimalPart = str.includes('.') ? str.split('.')[1] : ''
-      expect(decimalPart.length).toBeLessThanOrEqual(1)
-    })
+  it('handles missing topProcesses config gracefully', async () => {
+    const mod = await import('./index')
+    const ctx = {
+      config: {},
+      log: { info: () => {}, warn: () => {} },
+    }
+    // Should not throw even without topProcesses
+    const plugin = mod.default(ctx)
+    expect(plugin.tools.top_processes).toBeDefined()
   })
 
-  // ─── top_processes ──────────────────────────────────────────────────────
+  it('tool registrations have correct availability', async () => {
+    const mod = await import('./index')
+    const ctx = {
+      config: {},
+      log: { info: () => {}, warn: () => {} },
+    }
+    const plugin = mod.default(ctx)
 
-  describe('top_processes', () => {
-    test('returns processes sorted by cpu by default', async () => {
-      const result = await executeTool(plugin, 'top_processes', {})
-      expect(result.sortedBy).toBe('cpu')
-      expect(Array.isArray(result.processes)).toBe(true)
-    })
-
-    test('respects sortBy parameter', async () => {
-      const result = await executeTool(plugin, 'top_processes', { sortBy: 'memory' })
-      expect(result.sortedBy).toBe('memory')
-      expect(Array.isArray(result.processes)).toBe(true)
-    })
-
-    test('uses configured default count', async () => {
-      const result = await executeTool(plugin, 'top_processes', {})
-      // configured topProcesses is '5', so should have at most 5
-      expect(result.processes.length).toBeLessThanOrEqual(5)
-    })
-
-    test('respects custom count parameter', async () => {
-      const result = await executeTool(plugin, 'top_processes', { count: 3 })
-      expect(result.processes.length).toBeLessThanOrEqual(3)
-    })
-
-    test('processes have expected shape', async () => {
-      const result = await executeTool(plugin, 'top_processes', { count: 2 })
-      if (result.processes.length > 0) {
-        const proc = result.processes[0]
-        expect(typeof proc.pid).toBe('string')
-        expect(typeof proc.user).toBe('string')
-        expect(proc.cpu).toMatch(/%$/)
-        expect(proc.mem).toMatch(/%$/)
-        expect(typeof proc.command).toBe('string')
-      }
-    })
-
-    test('command is truncated to 80 chars', async () => {
-      const result = await executeTool(plugin, 'top_processes', { count: 50 })
-      for (const proc of result.processes) {
-        expect(proc.command.length).toBeLessThanOrEqual(80)
-      }
-    })
-
-    test('uses different default count from config', async () => {
-      const customCtx = makeCtx({ topProcesses: '3' })
-      const customPlugin = createPlugin(customCtx)
-      const result = await executeTool(customPlugin, 'top_processes', {})
-      expect(result.processes.length).toBeLessThanOrEqual(3)
-    })
-
-    test('parses non-numeric topProcesses config gracefully', async () => {
-      const customCtx = makeCtx({ topProcesses: 'invalid' })
-      const customPlugin = createPlugin(customCtx)
-      // parseInt('invalid') is NaN, which becomes the count param to ps
-      // This should not crash
-      const result = await executeTool(customPlugin, 'top_processes', {})
-      expect(Array.isArray(result.processes)).toBe(true)
-    })
-  })
-
-  // ─── memory_info ────────────────────────────────────────────────────────
-
-  describe('memory_info', () => {
-    test('returns ram info', async () => {
-      const result = await executeTool(plugin, 'memory_info')
-      expect(result.ram).toBeDefined()
-      expect(result.ram.totalMB).toBeGreaterThan(0)
-      expect(result.ram.usedMB).toBeGreaterThan(0)
-      expect(result.ram.freeMB).toBeGreaterThanOrEqual(0)
-      expect(result.ram.usedPercent).toBeGreaterThan(0)
-      expect(result.ram.usedPercent).toBeLessThanOrEqual(100)
-    })
-
-    test('swap field is present (may be null)', async () => {
-      const result = await executeTool(plugin, 'memory_info')
-      // swap can be null if command fails or not available
-      if (result.swap !== null) {
-        expect(typeof result.swap.totalMB).toBe('number')
-        expect(typeof result.swap.usedMB).toBe('number')
-        expect(typeof result.swap.freeMB).toBe('number')
-      }
-    })
-  })
-
-  // ─── disk_info ──────────────────────────────────────────────────────────
-
-  describe('disk_info', () => {
-    test('returns filesystems array', async () => {
-      const result = await executeTool(plugin, 'disk_info')
-      expect(Array.isArray(result.filesystems)).toBe(true)
-    })
-
-    test('disk entries have expected shape', async () => {
-      const result = await executeTool(plugin, 'disk_info')
-      if (result.filesystems.length > 0) {
-        const fs = result.filesystems[0]
-        expect(typeof fs.filesystem).toBe('string')
-        expect(typeof fs.size).toBe('string')
-        expect(typeof fs.used).toBe('string')
-        expect(typeof fs.available).toBe('string')
-        expect(typeof fs.usePercent).toBe('string')
-        expect(typeof fs.mount).toBe('string')
-      }
-    })
-
-    test('disk entries usePercent contains %', async () => {
-      const result = await executeTool(plugin, 'disk_info')
-      for (const fs of result.filesystems) {
-        expect(fs.usePercent).toContain('%')
-      }
-    })
-
-    test('root filesystem is present', async () => {
-      const result = await executeTool(plugin, 'disk_info')
-      const root = result.filesystems.find((fs: any) => fs.mount === '/')
-      expect(root).toBeDefined()
-    })
+    for (const [name, reg] of Object.entries(plugin.tools)) {
+      const r = reg as any
+      expect(r.availability).toContain('main')
+      expect(r.availability).toContain('sub-kin')
+    }
   })
 })

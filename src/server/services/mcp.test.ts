@@ -6,7 +6,25 @@ import { z } from 'zod'
 // for converting JSON Schema to Zod and sanitizing MCP server/tool names.
 
 function sanitizeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+  const transliterated = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  const result = transliterated
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+
+  if (result === '') {
+    if (name === '') return ''
+    let hash = 0
+    for (let i = 0; i < name.length; i++) {
+      hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0
+    }
+    return `u${Math.abs(hash).toString(36)}`
+  }
+
+  return result
 }
 
 function jsonSchemaPropertyToZod(prop: Record<string, unknown>): z.ZodType {
@@ -90,8 +108,13 @@ describe('sanitizeName', () => {
     expect(sanitizeName('123')).toBe('123')
   })
 
-  it('handles unicode characters', () => {
-    expect(sanitizeName('café')).toBe('caf')
+  it('handles unicode characters with diacritics', () => {
+    expect(sanitizeName('café')).toBe('cafe')
+  })
+
+  it('handles fully non-Latin names with hash fallback', () => {
+    const result = sanitizeName('서버')
+    expect(result).toMatch(/^u[a-z0-9]+$/)
   })
 })
 

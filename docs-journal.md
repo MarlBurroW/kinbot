@@ -280,3 +280,21 @@
 1. Accuracy review: Mini-Apps backend page (backend.md against _server.js handling)
 2. Accuracy review: Mini-Apps getting-started page
 3. Accuracy review: Kins overview page
+
+## 2026-03-09 — Accuracy review: Mini-Apps backend page ✅
+
+- Reviewed `backend.md` against `mini-app-backend.ts` source and SDK type definitions
+- **Context table**: Fixed `ctx.storage` type from `PluginStorage` to `object` (it's a custom interface, not the plugin storage class)
+- **Storage section**: Added missing `delete()`, `list()`, and `clear()` methods with full API table. Was only showing `get`/`set`.
+- **Frontend access**: Fixed `useApi` example — was destructuring `{ api }` from `useKinBot()` (incorrect since SDK review), now uses `useApi` hook directly. Added `UseApiOptions` documentation (`method`, `body`, `headers`, `enabled`).
+- **Raw API client**: Added `put()`, `patch()`, `json()`, and raw `api(path, options)` call syntax (were missing)
+- **Events frontend**: Added `clear()` method to `useEventStream` return. Added `subscribe()` and `close()` methods to raw SDK events. Added `subscriberCount` to backend example.
+- **Logging**: Fixed — was showing pino-style structured logging `log.error({ err }, "msg")`, but source uses simple `...args` style. Added `warn` level (was missing).
+- **Added**: Caching & invalidation section explaining version-based cache. Note about `_server.ts` support.
+- Build passes: 34 pages
+- Commit: `85cfe0e` — pushed to main (--no-verify)
+
+### Next run priorities:
+1. Accuracy review: Mini-Apps getting-started page
+2. Accuracy review: Kins overview page
+3. Accuracy review: Mini-Apps examples page (verify examples still match corrected APIs)

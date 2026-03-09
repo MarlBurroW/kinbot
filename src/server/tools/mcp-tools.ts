@@ -111,7 +111,7 @@ export const updateMcpServerTool: ToolRegistration = {
         name: z.string().optional().describe('New display name'),
         command: z.string().optional().describe('New executable command'),
         args: z.array(z.string()).optional().describe('New command-line arguments'),
-        env: z.record(z.string(), z.string()).optional().describe('New environment variables (replaces all existing)'),
+        env: z.record(z.string(), z.string()).optional().describe('Environment variables to set (merged with existing; pass null to clear all)'),
       }),
       execute: async ({ server_id, name, command, args, env }) => {
         try {
@@ -122,7 +122,16 @@ export const updateMcpServerTool: ToolRegistration = {
           if (name !== undefined) updates.name = name
           if (command !== undefined) updates.command = command
           if (args !== undefined) updates.args = JSON.stringify(args)
-          if (env !== undefined) updates.env = env ? JSON.stringify(env) : null
+          if (env !== undefined) {
+            if (env) {
+              // Merge: preserve existing env vars not included in the update
+              const existingEnv = existing.env ? JSON.parse(existing.env) as Record<string, string> : {}
+              const merged: Record<string, string> = { ...existingEnv, ...env }
+              updates.env = JSON.stringify(merged)
+            } else {
+              updates.env = null
+            }
+          }
 
           await db.update(mcpServers).set(updates).where(eq(mcpServers.id, server_id))
 

@@ -1224,3 +1224,39 @@
 ### Next run
 - Area 13: MCP servers
 - Area 14: Account settings
+
+## 2026-03-09 04:40 UTC
+### Area tested: MCP Servers (Area 13)
+- **Pages visited:** Code review of mcp-servers.ts (routes), mcp.ts (service), mcp.test.ts, mcp-tools.ts (Kin tools), McpServersSettings.tsx, McpServerCard.tsx, McpServerFormDialog.tsx, 14-mcp-servers.spec.ts, schema.ts (mcpServers/kinMcpServers tables), kins.ts (cascade/links)
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 2 (issues created: #193, #194)
+  - #193: Unit test sanitizeName is stale copy, diverges from real implementation (misses NFD normalization and hash fallback)
+  - #194: update_mcp_server Kin tool replaces all env vars instead of merging (unlike HTTP PATCH route which merges secrets)
+
+- **UX suggestions:** 1 (issues created: #195)
+  - #195: MCP form silently drops new env vars with empty values, no validation feedback
+
+#### All clear:
+- MCP CRUD: clean create/edit/delete flow with proper validation (name max 200, command max 500, args max 50 with 1000 char limit each, env max 50 vars with key/value limits)
+- Env security: values never exposed to frontend (serialize masks with empty strings), PasswordInput for values, merge logic in HTTP PATCH preserves existing secrets
+- Connection management: lazy connect with 30s timeout, auto-reconnect on tool call failure, proper disconnect on config change or deletion
+- Connection status UI: green/red dot indicator, tool count badge, error tooltip, manual test button with loading spinner
+- Approval flow: pending_approval status, approve button, notification creation, config flag (mcp.requireApproval)
+- Kin auto-assignment: servers created by Kins auto-linked via kinMcpServers junction table
+- Tool resolution: per-Kin mcpAccess config with wildcard ('*') support, auto-enabled for self-created servers
+- Tool naming: sanitizeName with NFD normalization and hash fallback for non-Latin characters, prefixed mcp_{server}_{tool}
+- JSON Schema to Zod: comprehensive conversion supporting string/number/integer/boolean/array/object/enum/nested with descriptions
+- PATH augmentation: auto-detects NVM and common system paths for child processes (handles Snap sandboxing)
+- Cascade delete: Kin deletion sets createdByKinId to null, kinMcpServers cascade via FK, disconnects active connections and emits SSE events
+- SSE real-time updates: mcp-server:created/updated/deleted all properly emitted and consumed
+- Empty state: proper icon, description, and CTA button
+- Help panel: collapsible with 4 bullet points explaining MCP usage
+- E2E tests: comprehensive Playwright tests covering full CRUD lifecycle, env vars, edit, delete confirmation, empty state
+- Unit tests: sanitizeName edge cases and jsonSchemaToZod with complex nested schemas (though sanitizeName tests need sync with source)
+- Kin tools: add, update, remove, list MCP servers with proper ownership and SSE events
+- Config for tools tab: getMCPToolsForConfig shows all servers with per-tool enabled/disabled state for Kin configuration UI
+
+### Next run
+- Area 14: Account settings
+- Area 15: Quick chat / Ephemeral sessions

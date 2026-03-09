@@ -648,8 +648,8 @@ class PluginManager {
       const config = await this.getResolvedConfig(name)
       const ctx = this.createContext(plugin.manifest, config)
 
-      // Load entry point
-      const mod = await import(entryPath)
+      // Load entry point (append cache-busting query to force re-import on hot-reload)
+      const mod = await import(`${entryPath}?t=${Date.now()}`)
       const initFn = mod.default || mod
       if (typeof initFn !== 'function') {
         throw new Error(`Plugin "${name}" main file must default-export a function`)

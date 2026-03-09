@@ -23,16 +23,20 @@ export default function(ctx) {
 
 The file must default-export a function that receives a context object and returns a [Hono](https://hono.dev) app (or any object with a `.fetch()` method).
 
+:::note
+`_server.ts` is also supported. KinBot will use whichever exists.
+:::
+
 ## Backend Context
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `ctx.Hono` | `class` | Hono constructor (no import needed) |
+| `ctx.storage` | `object` | Key-value storage scoped to this app (see [Storage](#storage)) |
+| `ctx.events` | `object` | SSE event emitter (see [Real-Time Events](#real-time-events-sse)) |
 | `ctx.appId` | `string` | The mini-app's ID |
 | `ctx.kinId` | `string` | The parent Kin's ID |
 | `ctx.appName` | `string` | The mini-app's display name |
-| `ctx.storage` | `object` | Key-value storage scoped to this app (see [Storage](#storage)) |
-| `ctx.events` | `object` | SSE event emitter (see [Real-Time Events](#real-time-events-sse)) |
 | `ctx.log` | `object` | Scoped logger (see [Logging](#logging)) |
 
 ## Routes
@@ -75,9 +79,7 @@ export default function(ctx) {
 
 ## Frontend Access
 
-### React Hook
-
-Use the `useApi` hook for declarative data fetching from your backend:
+From React, use the `useApi` hook:
 
 ```jsx
 import { useApi } from "@kinbot/react";
@@ -86,34 +88,17 @@ function ItemList() {
   const { data: items, loading, error, refetch } = useApi("/items");
 
   const addItem = async (name) => {
-    // Use the SDK api object for mutations
     await KinBot.api.post("/items", { name });
     refetch();
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error.message}</p>;
-
-  return (
-    <ul>
-      {items?.map(item => <li key={item.id}>{item.name}</li>)}
-    </ul>
-  );
+  // ...
 }
 ```
 
-`useApi` options:
+The `useApi` hook accepts an optional second argument with `method`, `body`, `headers`, and `enabled` options. Pass `null` as the path to skip fetching.
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `method` | `string` | HTTP method (default: `"GET"`) |
-| `body` | `unknown` | Request body (JSON-serialized) |
-| `headers` | `Record<string, string>` | Extra headers |
-| `enabled` | `boolean` | Set to `false` to skip fetching (pass `null` as path also works) |
-
-### Raw SDK
-
-The `KinBot.api` object provides full CRUD methods:
+Or use the raw API client directly:
 
 ```javascript
 // GET + parse JSON
@@ -122,28 +107,18 @@ const items = await KinBot.api.get("/items");
 // POST JSON
 await KinBot.api.post("/items", { name: "New item" });
 
-// PUT / PATCH / DELETE
+// PUT, PATCH, DELETE
 await KinBot.api.put("/items/123", { name: "Updated" });
-await KinBot.api.patch("/items/123", { done: true });
+await KinBot.api.patch("/items/123", { name: "Patched" });
 await KinBot.api.delete("/items/123");
 
-// Raw fetch (returns Response)
-const res = await KinBot.api("/items", { method: "GET" });
+// Raw fetch (returns Response object)
+const response = await KinBot.api("/items", { method: "GET" });
 ```
-
-| Method | Signature | Returns |
-|--------|-----------|---------|
-| `api(path, options?)` | `(string, RequestInit?) => Promise<Response>` | Raw `Response` |
-| `api.get(path)` | `(string) => Promise<T>` | Parsed JSON |
-| `api.json(path)` | `(string) => Promise<T>` | Parsed JSON (alias for `get`) |
-| `api.post(path, data?)` | `(string, unknown?) => Promise<T>` | Parsed JSON |
-| `api.put(path, data?)` | `(string, unknown?) => Promise<T>` | Parsed JSON |
-| `api.patch(path, data?)` | `(string, unknown?) => Promise<T>` | Parsed JSON |
-| `api.delete(path)` | `(string) => Promise<T>` | Parsed JSON |
 
 ## Real-Time Events (SSE)
 
-The backend can push events to the frontend in real-time using the `ctx.events` emitter.
+The backend can push events to the frontend in real-time using `ctx.events`.
 
 ### Backend: Emit Events
 
@@ -154,10 +129,12 @@ export default function(ctx) {
   app.post("/process", async (c) => {
     const body = await c.req.json();
 
+    // Emit progress events to all connected clients
     ctx.events.emit("progress", { step: 1, total: 3 });
     // ... do work ...
     ctx.events.emit("progress", { step: 2, total: 3 });
     // ... more work ...
+    ctx.events.emit("progress", { step: 3, total: 3 });
     ctx.events.emit("done", { result: "Complete!" });
 
     return c.json({ success: true });
@@ -172,44 +149,33 @@ export default function(ctx) {
 }
 ```
 
-| Method | Description |
-|--------|-------------|
-| `ctx.events.emit(event, data?)` | Push a named event to all connected SSE clients |
-| `ctx.events.subscriberCount` | Number of currently connected clients (read-only) |
-
-### Frontend: React Hook
+### Frontend: Subscribe with Hook
 
 ```jsx
 import { useEventStream } from "@kinbot/react";
 
 function ProcessMonitor() {
-  // Accumulate all "progress" events
   const { messages, connected, clear } = useEventStream("progress");
 
-  // Or filter with a callback (no accumulation):
+  // Or with a callback (no accumulation):
   useEventStream("done", (data) => {
-    console.log("Done!", data.result);
+    KinBot.toast(data.result, "success");
   });
 
   return (
     <div>
-      <p>Connected: {connected ? "yes" : "no"}</p>
       {messages.map((msg, i) => (
         <p key={i}>Step {msg.data.step}/{msg.data.total}</p>
       ))}
-      <button onClick={clear}>Clear</button>
+      <button onClick={clear}>Clear messages</button>
     </div>
   );
 }
 ```
 
-Each message in the `messages` array has the shape:
+Each message in `messages` has the shape `{ event, data, ts }`.
 
-```typescript
-{ event: string; data: unknown; ts: number }
-```
-
-### Frontend: Raw SDK
+### Frontend: Subscribe with SDK
 
 ```javascript
 // Listen for a specific event
@@ -217,24 +183,17 @@ KinBot.events.on("progress", (data) => {
   console.log(`Step ${data.step}/${data.total}`);
 });
 
-// Subscribe to all events
-KinBot.events.subscribe((event) => {
-  console.log(event.event, event.data);
+// Listen for all events
+KinBot.events.subscribe(({ event, data }) => {
+  console.log(event, data);
 });
 
 // Check connection status
 console.log(KinBot.events.connected);
 
-// Disconnect when done
+// Disconnect
 KinBot.events.close();
 ```
-
-| Method | Description |
-|--------|-------------|
-| `events.on(name, callback)` | Listen for a specific named event |
-| `events.subscribe(callback)` | Receive all events `{ event, data }` |
-| `events.connected` | Whether the SSE connection is active (read-only) |
-| `events.close()` | Disconnect the SSE stream |
 
 ## Storage
 
@@ -242,50 +201,36 @@ The backend shares the same storage namespace as the frontend. Data written by o
 
 ### Backend Storage API
 
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `ctx.storage.get(key)` | `Promise<unknown \| null>` | Get a value (auto JSON-parsed) |
+| `ctx.storage.set(key, value)` | `Promise<void>` | Set a value (auto JSON-serialized) |
+| `ctx.storage.delete(key)` | `Promise<boolean>` | Delete a key |
+| `ctx.storage.list()` | `Promise<{ key, size }[]>` | List all keys with sizes |
+| `ctx.storage.clear()` | `Promise<number>` | Delete all keys, returns count |
+
 ```javascript
-// Read
-const items = await ctx.storage.get("items");    // null if not set
+// Backend
+await ctx.storage.set("config", { theme: "dark" });
+const keys = await ctx.storage.list();
+// [{ key: "config", size: 22 }]
 
-// Write
-await ctx.storage.set("items", [{ id: 1, name: "Test" }]);
-
-// Delete a single key
-await ctx.storage.delete("items");               // returns boolean
-
-// List all keys
-const keys = await ctx.storage.list();           // [{ key, size }]
-
-// Clear all storage for this app
-const count = await ctx.storage.clear();         // returns number deleted
+// Frontend
+const [config] = useStorage("config");
+// config === { theme: "dark" }
 ```
 
-| Method | Signature | Returns |
-|--------|-----------|---------|
-| `get(key)` | `(string) => Promise<unknown \| null>` | Parsed JSON value or `null` |
-| `set(key, value)` | `(string, unknown) => Promise<void>` | Stores as JSON |
-| `delete(key)` | `(string) => Promise<boolean>` | `true` if key existed |
-| `list()` | `() => Promise<{ key, size }[]>` | All keys with byte sizes |
-| `clear()` | `() => Promise<number>` | Number of keys deleted |
+## Caching & Invalidation
 
-### Frontend reads backend data
-
-```jsx
-import { useStorage } from "@kinbot/react";
-
-function ConfigPanel() {
-  // Reads the same key the backend wrote
-  const [config] = useStorage("config");
-  // config === { theme: "dark" } if backend did ctx.storage.set("config", { theme: "dark" })
-}
-```
+Backends are cached by version number. When you update `_server.js` via `write_mini_app_file`, the version increments and KinBot automatically reloads the backend on the next request. No manual restart needed.
 
 ## Logging
 
 ```javascript
 ctx.log.info("Processing request");
-ctx.log.warn("Deprecated endpoint called");
-ctx.log.error("Something went wrong", errorDetails);
-ctx.log.debug("Received data", payload);
+ctx.log.warn("Something looks off");
+ctx.log.error("Something went wrong:", err.message);
+ctx.log.debug("Received data:", data);
 ```
 
-Logs appear in KinBot's server logs, scoped to the app ID. Each method accepts variadic arguments (the first argument is used as the log message).
+Logs appear in KinBot's server logs tagged with the app ID. The logger accepts simple string arguments (not structured objects like pino).

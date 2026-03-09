@@ -284,7 +284,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     let relevantKnowledge: Array<{ content: string; sourceId: string; score: number }> = []
     try {
       const { searchKnowledge } = await import('@/server/services/knowledge')
-      relevantKnowledge = await searchKnowledge(kinId, queueItem.content, 5)
+      relevantKnowledge = await searchKnowledge(kinId, queueItem!.content, 5)
     } catch {
       // Knowledge retrieval failure is non-fatal
     }
@@ -409,7 +409,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         const { getRelevantTeamMemories } = await import('@/server/services/team-memory')
         const teamMemResults = await Promise.all(
           teamContext.map(async (t) => {
-            const memories = await getRelevantTeamMemories(t.teamId, queueItem.content, 5)
+            const memories = await getRelevantTeamMemories(t.teamId, queueItem!.content, 5)
             return { teamId: t.teamId, teamName: t.teamName, memories }
           }),
         )
@@ -430,7 +430,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         const { searchTeamKnowledge } = await import('@/server/services/team-knowledge')
         const teamKnowledgeResults = await Promise.all(
           teamContext.map(async (t) => {
-            const chunks = await searchTeamKnowledge(t.teamId, queueItem.content, 5)
+            const chunks = await searchTeamKnowledge(t.teamId, queueItem!.content, 5)
             return { teamId: t.teamId, teamName: t.teamName, chunks }
           }),
         )
@@ -980,7 +980,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     let relevantKnowledge: Array<{ content: string; sourceId: string; score: number }> = []
     try {
       const { searchKnowledge } = await import('@/server/services/knowledge')
-      relevantKnowledge = await searchKnowledge(kinId, queueItem.content, 5)
+      relevantKnowledge = await searchKnowledge(kinId, queueItem!.content, 5)
     } catch {
       // Non-fatal
     }

@@ -108,7 +108,7 @@ export async function createTeamMemory(
   const created = db.select().from(teamMemories).where(eq(teamMemories.id, id)).get()!
 
   sseManager.broadcast({
-    type: 'team_memory:created',
+    type: 'team:memory_created',
     data: { memoryId: id, teamId, authorKinId, category: input.category, content: input.content, subject: input.subject ?? null },
   })
 
@@ -157,7 +157,7 @@ export async function updateTeamMemory(
   const updated = db.select().from(teamMemories).where(eq(teamMemories.id, memoryId)).get()!
 
   sseManager.broadcast({
-    type: 'team_memory:updated',
+    type: 'team:memory_updated',
     data: { memoryId, teamId, ...(updates.content !== undefined && { content: updates.content }) },
   })
 
@@ -178,7 +178,7 @@ export async function deleteTeamMemory(memoryId: string, teamId: string) {
   log.debug({ memoryId, teamId }, 'Team memory deleted')
 
   sseManager.broadcast({
-    type: 'team_memory:deleted',
+    type: 'team:memory_deleted',
     data: { memoryId, teamId },
   })
 

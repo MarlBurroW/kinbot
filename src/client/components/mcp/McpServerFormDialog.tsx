@@ -97,7 +97,10 @@ export function McpServerFormDialog({
           result[v.key.trim()] = v.value
         } else if (server?.env) {
           const existing = server.env[v.key.trim()]
-          if (existing) result[v.key.trim()] = existing
+          if (existing !== undefined) result[v.key.trim()] = existing
+          else result[v.key.trim()] = ''
+        } else {
+          result[v.key.trim()] = ''
         }
       }
       return Object.keys(result).length > 0 ? result : undefined
@@ -105,7 +108,7 @@ export function McpServerFormDialog({
 
     const result: Record<string, string> = {}
     for (const v of filtered) {
-      if (v.value) result[v.key.trim()] = v.value
+      result[v.key.trim()] = v.value ?? ''
     }
     return Object.keys(result).length > 0 ? result : undefined
   }
