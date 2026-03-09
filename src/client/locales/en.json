@@ -1264,7 +1264,8 @@
       "core": "Core",
       "extensions": "Extensions",
       "connections": "Connections",
-      "access": "Access"
+      "access": "Access",
+      "system": "System"
     },
     "info": {
       "version": "Version",
@@ -1357,6 +1358,21 @@
       },
       "curated": "Curated",
       "permissions": "Permissions"
+    },
+    "logs": {
+      "title": "Logs",
+      "description": "View backend logs in real-time",
+      "level": "Level",
+      "module": "Module",
+      "search": "Search...",
+      "allLevels": "All levels",
+      "allModules": "All modules",
+      "autoScroll": "Auto-scroll",
+      "pause": "Pause",
+      "resume": "Resume",
+      "clear": "Clear",
+      "noLogs": "No log entries",
+      "entries": "{{count}} entries"
     }
   },
   "notifications": {

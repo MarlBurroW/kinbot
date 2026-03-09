@@ -45,9 +45,24 @@ const EXCLUDED_KEYS = new Set([
 class LogStore {
   private buffer: LogEntry[] = []
   private maxSize: number
+  private onEntry?: (entry: LogEntry) => void
 
   constructor(maxSize?: number) {
     this.maxSize = maxSize ?? DEFAULT_MAX_SIZE
+  }
+
+  /** Register a callback invoked on every new entry (used for SSE broadcast). */
+  setOnEntry(cb: (entry: LogEntry) => void): void {
+    this.onEntry = cb
+  }
+
+  /** Return unique module names currently in the buffer. */
+  getModules(): string[] {
+    const modules = new Set<string>()
+    for (const e of this.buffer) {
+      modules.add(e.module)
+    }
+    return Array.from(modules).sort()
   }
 
   /** Push a raw Pino JSON log line into the buffer. */
@@ -77,6 +92,10 @@ class LogStore {
       this.buffer.push(entry)
       if (this.buffer.length > this.maxSize) {
         this.buffer.splice(0, this.buffer.length - this.maxSize)
+      }
+
+      if (this.onEntry) {
+        try { this.onEntry(entry) } catch { /* ignore */ }
       }
     } catch {
       // Ignore unparseable lines (e.g. pino startup)

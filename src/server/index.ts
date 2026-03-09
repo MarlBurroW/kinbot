@@ -22,8 +22,15 @@ import { MatrixAdapter } from '@/server/channels/matrix'
 import { restoreActiveChannels } from '@/server/services/channels'
 import { ensureUserContactsExist } from '@/server/services/contacts'
 import { pluginManager } from '@/server/services/plugins'
+import { logStore } from '@/server/services/log-store'
+import { sseManager } from '@/server/sse/index'
 
 const log = createLogger('server')
+
+// Wire log entries to SSE broadcast for real-time frontend viewer
+logStore.setOnEntry((entry) => {
+  sseManager.broadcast({ type: 'log:entry', data: entry as unknown as Record<string, unknown> })
+})
 
 // Run Drizzle migrations (creates tables if DB is fresh)
 log.info('Running database migrations...')
