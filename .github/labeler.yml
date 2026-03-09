@@ -120,6 +120,7 @@
           - "src/server/routes/plugin*"
           - "src/client/**/plugin*"
           - "src/client/**/*Plugin*"
+          - "plugins/**"
 
 "store":
   - changed-files:
@@ -207,6 +208,11 @@
           - "src/server/routes/quick-session*"
           - "src/client/**/quick-session*"
           - "src/client/**/*QuickSession*"
+
+"http":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/tools/http*"
 
 "installer":
   - changed-files:

@@ -43,6 +43,7 @@ categories:
       - 'mcp'
       - 'image-generation'
       - 'web-browsing'
+      - 'http'
   - title: '🔒 Security & Vault'
     labels:
       - 'security'
@@ -66,6 +67,15 @@ categories:
   - title: '🏗️ CI & Infrastructure'
     labels:
       - 'ci'
+      - 'installer'
+  - title: '🎨 Frontend & UX'
+    labels:
+      - 'frontend'
+  - title: '⚙️ Backend'
+    labels:
+      - 'backend'
+      - 'compacting'
+      - 'quick-sessions'
   - title: '📦 Dependencies'
     labels:
       - 'dependencies'
