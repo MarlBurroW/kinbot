@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Check, Copy, Github, ArrowRight, Star, GitFork, Tag } from 'lucide-react'
 import { useGitHubData } from './GitHubDataProvider'
 import ElectricBorder from './ElectricBorder'
+import { FloatingParticles } from './FloatingParticles'
 import previewFallback from '/preview1.mp4'
 
 const PREVIEW_DARK = '/kinbot/showcase/preview-dark.mp4'
@@ -187,6 +188,9 @@ export function Hero() {
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 overflow-hidden">
+
+      {/* Floating particles */}
+      <FloatingParticles count={25} />
 
       {/* Dot grid background */}
       <div
