@@ -160,6 +160,8 @@ import {
   disablePluginTool,
   configurePluginTool,
   getPluginDetailsTool,
+  checkPluginUpdatesTool,
+  updatePluginTool,
 } from '@/server/tools/plugin-tools'
 
 const log = createLogger('tools')
@@ -336,6 +338,8 @@ export function registerAllTools(): void {
   toolRegistry.register('disable_plugin', disablePluginTool)
   toolRegistry.register('configure_plugin', configurePluginTool)
   toolRegistry.register('get_plugin_details', getPluginDetailsTool)
+  toolRegistry.register('check_plugin_updates', checkPluginUpdatesTool)
+  toolRegistry.register('update_plugin', updatePluginTool)
 
   // Filesystem tools (main + sub-kin)
   toolRegistry.register('read_file', readFileTool)

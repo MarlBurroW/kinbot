@@ -184,6 +184,8 @@ Plugin management is also available via the REST API:
 | `DELETE` | `/api/plugins/:name` | Uninstall a plugin |
 | `POST` | `/api/plugins/:name/update` | Update an installed plugin |
 | `POST` | `/api/plugins/reload` | Reload all plugins |
+| `GET` | `/api/plugins/updates` | Check for available plugin updates |
+| `POST` | `/api/plugins/:name/update` | Update a plugin to latest version |
 | `POST` | `/api/plugins/:name/health/reset` | Reset plugin health stats |
 
 **Built-in store:**

@@ -291,3 +291,76 @@ export const getPluginDetailsTool: ToolRegistration = {
       },
     }),
 }
+
+/**
+ * check_plugin_updates — check for available plugin updates.
+ * Available to main agents only.
+ */
+export const checkPluginUpdatesTool: ToolRegistration = {
+  availability: ['main'],
+  defaultDisabled: true,
+  create: () =>
+    tool({
+      description:
+        'Check if any installed plugins have updates available. ' +
+        'Returns a list of plugins with their current and available versions.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        log.debug('Checking for plugin updates')
+        try {
+          const updates = await pluginManager.checkUpdates()
+          return {
+            count: updates.length,
+            updates: updates.map((u) => ({
+              name: u.name,
+              currentVersion: u.currentVersion,
+              availableVersion: u.availableVersion,
+              source: u.source,
+            })),
+            message: updates.length > 0
+              ? `${updates.length} plugin(s) have updates available. Use update_plugin to update them.`
+              : 'All plugins are up to date.',
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Unknown error'
+          log.error({ err }, 'Failed to check plugin updates')
+          return { error: `Failed to check for updates: ${msg}` }
+        }
+      },
+    }),
+}
+
+/**
+ * update_plugin — update an installed plugin to the latest version.
+ * Available to main agents only.
+ */
+export const updatePluginTool: ToolRegistration = {
+  availability: ['main'],
+  defaultDisabled: true,
+  create: () =>
+    tool({
+      description:
+        'Update an installed plugin to the latest version. The plugin will be briefly ' +
+        'deactivated during the update and re-activated with the new version. ' +
+        'IMPORTANT: only update plugins the user explicitly asked to update.',
+      inputSchema: z.object({
+        name: z.string().describe('The plugin name to update'),
+      }),
+      execute: async ({ name }) => {
+        log.info({ name }, 'Updating plugin')
+        try {
+          await pluginManager.updatePlugin(name)
+          const plugin = pluginManager.getPlugin(name)
+          return {
+            success: true,
+            message: `Plugin "${name}" updated successfully.`,
+            newVersion: plugin?.manifest.version ?? 'unknown',
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Unknown error'
+          log.error({ err, name }, 'Failed to update plugin')
+          return { error: `Failed to update plugin: ${msg}` }
+        }
+      },
+    }),
+}

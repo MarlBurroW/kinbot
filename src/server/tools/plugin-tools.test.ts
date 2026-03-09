@@ -14,6 +14,8 @@ const mockPluginManager = {
   installFromGit: mock(() => Promise.resolve({ name: 'test-plugin' })),
   installFromNpm: mock(() => Promise.resolve({ name: 'test-plugin' })),
   uninstallPlugin: mock(() => Promise.resolve()),
+  updatePlugin: mock(() => Promise.resolve()),
+  checkUpdates: mock(() => Promise.resolve([] as any[])),
 }
 
 // Use require to get real exports, then override only what we need
@@ -50,6 +52,8 @@ const {
   disablePluginTool,
   configurePluginTool,
   getPluginDetailsTool,
+  checkPluginUpdatesTool,
+  updatePluginTool,
 } = await import('@/server/tools/plugin-tools')
 
 const ctx: ToolExecutionContext = { kinId: 'kin-1', isSubKin: false }
@@ -284,6 +288,56 @@ describe('plugin-tools', () => {
       expect(result.tools).toContain('plugin:weather:get_weather')
       expect(result.hooks).toContain('beforeToolCall')
       expect(result.currentConfig).toEqual({ apiKey: '***' })
+    })
+  })
+
+  describe('check_plugin_updates', () => {
+    it('returns empty when no updates available', async () => {
+      mockPluginManager.checkUpdates.mockResolvedValue([])
+      const tool = checkPluginUpdatesTool.create(ctx)
+      const result = await (tool as any).execute({})
+      expect(result.count).toBe(0)
+      expect(result.updates).toEqual([])
+      expect(result.message).toContain('up to date')
+    })
+
+    it('returns available updates', async () => {
+      mockPluginManager.checkUpdates.mockResolvedValue([
+        { name: 'weather', currentVersion: '1.0.0', availableVersion: '1.1.0', source: 'git' },
+      ])
+      const tool = checkPluginUpdatesTool.create(ctx)
+      const result = await (tool as any).execute({})
+      expect(result.count).toBe(1)
+      expect(result.updates[0].name).toBe('weather')
+      expect(result.updates[0].availableVersion).toBe('1.1.0')
+    })
+
+    it('handles errors gracefully', async () => {
+      mockPluginManager.checkUpdates.mockRejectedValue(new Error('Network error'))
+      const tool = checkPluginUpdatesTool.create(ctx)
+      const result = await (tool as any).execute({})
+      expect(result.error).toContain('Network error')
+    })
+  })
+
+  describe('update_plugin', () => {
+    it('updates a plugin successfully', async () => {
+      mockPluginManager.updatePlugin.mockResolvedValue(undefined)
+      mockPluginManager.getPlugin.mockReturnValue({
+        manifest: { name: 'weather', version: '1.1.0' },
+      })
+      const tool = updatePluginTool.create(ctx)
+      const result = await (tool as any).execute({ name: 'weather' })
+      expect(result.success).toBe(true)
+      expect(result.newVersion).toBe('1.1.0')
+      expect(mockPluginManager.updatePlugin).toHaveBeenCalledWith('weather')
+    })
+
+    it('handles update errors', async () => {
+      mockPluginManager.updatePlugin.mockRejectedValue(new Error('Not a git plugin'))
+      const tool = updatePluginTool.create(ctx)
+      const result = await (tool as any).execute({ name: 'weather' })
+      expect(result.error).toContain('Not a git plugin')
     })
   })
 })
