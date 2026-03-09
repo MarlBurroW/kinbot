@@ -9,6 +9,7 @@ const mockMemory = {
   updateMemory: mock(() => Promise.resolve(null as any)),
   deleteMemory: mock(() => Promise.resolve(false)),
   listMemories: mock(() => Promise.resolve([] as any[])),
+  isDuplicateMemory: mock(() => Promise.resolve(false)),
 }
 
 mock.module('@/server/services/memory', () => mockMemory)
