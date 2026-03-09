@@ -91,7 +91,7 @@ A dashboard showing stats and charts with mock data.
 <script type="text/jsx">
 import { createRoot } from "react-dom/client";
 import { useKinBot } from "@kinbot/react";
-import { Card, Stat, Grid, BarChart, LineChart, PieChart, SparkLine, Stack } from "@kinbot/components";
+import { Card, Stat, Grid, BarChart, LineChart, PieChart, Stack } from "@kinbot/components";
 
 function App() {
   const { ready } = useKinBot();
