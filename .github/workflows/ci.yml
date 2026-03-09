@@ -54,7 +54,13 @@ jobs:
           # Run tests without coverage first — this is the correctness gate.
           # Bun's --coverage flag has known issues with mock.module (ESM caching)
           # that cause false failures in tests relying on module-level mocks.
-          bun test
+          bun test 2>&1 | tee test-output.txt; test_exit=${PIPESTATUS[0]}
+          if [ $test_exit -ne 0 ]; then
+            echo "::group::Error markers in full-suite output"
+            grep -n -B2 -A5 'Unhandled error\|SyntaxError\|TypeError.*undefined\|# error' test-output.txt || echo "(none found)"
+            echo "::endgroup::"
+          fi
+          exit $test_exit
 
       - name: Coverage report
         if: always()
