@@ -47,7 +47,7 @@ const { sendMessageTool, replyTool, listKinsTool } = await import(
 const mocksWorking = await (async () => {
   try {
     const t = sendMessageTool.create({ kinId: 'test', userId: 'test', isSubKin: false })
-    const result = await t.execute(
+    const result = await t.execute!(
       { slug: 'test', message: 'probe', type: 'request' as const },
       { toolCallId: 'probe', messages: [], abortSignal: new AbortController().signal },
     )
@@ -74,7 +74,7 @@ const ctx: ToolExecutionContext = {
 
 function execute(registration: any, args: any) {
   const t = registration.create(ctx)
-  return t.execute(args, { toolCallId: 'tc-1', messages: [], abortSignal: new AbortController().signal })
+  return t.execute!(args, { toolCallId: 'tc-1', messages: [], abortSignal: new AbortController().signal })
 }
 
 // ─── sendMessageTool ─────────────────────────────────────────────────────────
