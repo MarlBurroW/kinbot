@@ -1265,7 +1265,7 @@
       "extensions": "Extensions",
       "connections": "Connexions",
       "access": "Accès",
-      "system": "Systeme"
+      "system": "Système"
     },
     "info": {
       "version": "Version",
@@ -1361,18 +1361,18 @@
     },
     "logs": {
       "title": "Logs",
-      "description": "Voir les logs du serveur en temps reel",
+      "description": "Voir les logs du serveur en temps réel",
       "level": "Niveau",
       "module": "Module",
       "search": "Rechercher...",
       "allLevels": "Tous les niveaux",
       "allModules": "Tous les modules",
-      "autoScroll": "Defilement auto",
+      "autoScroll": "Défilement auto",
       "pause": "Pause",
       "resume": "Reprendre",
       "clear": "Effacer",
-      "noLogs": "Aucune entree de log",
-      "entries": "{{count}} entrees"
+      "noLogs": "Aucune entrée de log",
+      "entries": "{{count}} entrées"
     }
   },
   "notifications": {
