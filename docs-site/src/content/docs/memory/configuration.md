@@ -51,6 +51,8 @@ For LLM enhancement models, use a fast/cheap model (e.g. `gpt-4.1-mini`) since t
 | `MEMORY_CONSOLIDATION_SIMILARITY` | `0.85` | Cosine similarity threshold for considering two memories as candidates for consolidation |
 | `MEMORY_CONSOLIDATION_MAX_GEN` | `5` | Maximum number of consolidated memories generated per run |
 
+Consolidation clusters are capped at 3 memories to preserve detail. Larger groups are split and merged incrementally across runs. The LLM can also abort a merge if it determines the memories are about different topics.
+
 ## Compacting Settings
 
 Session compacting summarizes long conversations to stay within token limits.

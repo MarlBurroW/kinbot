@@ -110,6 +110,17 @@ Every time memories are injected into a Kin's context, their retrieval count and
 - **Retrieval frequency boost** during search scoring
 - **Importance recalibration** — a periodic process that nudges importance scores based on retrieval patterns (frequently retrieved = bump up, never retrieved after 30+ days = slight decrease)
 
+## Memory Consolidation
+
+When enabled, KinBot periodically consolidates similar memories to reduce redundancy:
+
+1. **Pair detection** — memories with cosine similarity above the threshold (default `0.85`) are flagged as candidates
+2. **Clustering** — overlapping pairs are grouped into clusters, capped at **3 memories per cluster** to avoid information loss in large merges (larger clusters are split and handled across multiple runs)
+3. **LLM merge** — each cluster is sent to an LLM that either merges them into a single richer memory or **aborts** if the memories are about genuinely different topics (preventing false merges)
+4. **Quality guardrails** — the LLM preserves all unique details, picks the most appropriate category/subject, and keeps the highest importance rating from the sources
+
+Consolidation is disabled by default. Enable it by setting `MEMORY_CONSOLIDATION_MODEL` to a model identifier. See [configuration](/kinbot/docs/memory/configuration/#memory-consolidation) for all settings.
+
 ## Session Compacting
 
 When conversations grow long, KinBot automatically **compacts** them:
