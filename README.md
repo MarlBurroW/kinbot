@@ -15,7 +15,7 @@ Self-hosted. Persistent memory. Real collaboration.
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/MarlBurroW/kinbot/pkgs/container/kinbot)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/MarlBurroW/kinbot/pulls)
 
-[Website](https://marlburrow.github.io/kinbot/) · [Quick Start](#-quick-start) · [Features](#-features) · [Compare](#-how-does-kinbot-compare) · [Architecture](#-architecture) · [E2E Report](https://marlburrow.github.io/kinbot/e2e-report/) · [Discussions](https://github.com/MarlBurroW/kinbot/discussions) · [Troubleshooting](TROUBLESHOOTING.md) · [Changelog](CHANGELOG.md) · [Contributing](#contributing)
+[Website](https://marlburrow.github.io/kinbot/) · [Documentation](https://marlburrow.github.io/kinbot/docs/) · [Quick Start](#-quick-start) · [Features](#-features) · [Compare](#-how-does-kinbot-compare) · [Architecture](#-architecture) · [E2E Report](https://marlburrow.github.io/kinbot/e2e-report/) · [Discussions](https://github.com/MarlBurroW/kinbot/discussions) · [Troubleshooting](TROUBLESHOOTING.md) · [Changelog](CHANGELOG.md) · [Contributing](#contributing)
 
 </div>
 
