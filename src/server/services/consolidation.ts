@@ -113,13 +113,15 @@ async function mergeCluster(
     `You are merging near-duplicate memories into a single, richer memory.\n\n` +
     `## Memories to merge\n\n${memoriesText}\n\n` +
     `Rules:\n` +
-    `- Combine all information into ONE clear, standalone sentence (or two if truly needed)\n` +
-    `- Preserve ALL unique details from each memory — don't lose information\n` +
+    `- First, verify these memories are TRULY about the same topic. If they describe genuinely different facts or subjects, return {"abort": true}\n` +
+    `- Combine all information into a clear, standalone statement (1-3 sentences as needed to preserve all details)\n` +
+    `- Preserve ALL unique details from each memory — information loss is worse than a slightly longer result\n` +
     `- If memories contradict, keep the most specific/recent version\n` +
     `- Pick the most appropriate category and subject\n` +
     `- Rate importance 1-10 (use the max importance from the sources, or higher if the merged result is richer)\n\n` +
     `Return exactly one JSON object:\n` +
-    `{"content": "...", "category": "fact|preference|decision|knowledge", "subject": "...", "importance": N}`
+    `{"content": "...", "category": "fact|preference|decision|knowledge", "subject": "...", "importance": N}\n` +
+    `Or if memories should NOT be merged: {"abort": true}`
 
   try {
     const result = await generateText({
@@ -131,10 +133,17 @@ async function mergeCluster(
     if (!jsonMatch) return null
 
     const parsed = JSON.parse(jsonMatch[0]) as {
-      content: string
-      category: string
-      subject: string
-      importance: number
+      content?: string
+      category?: string
+      subject?: string
+      importance?: number
+      abort?: boolean
+    }
+
+    // LLM determined these memories are about different topics — skip merge
+    if (parsed.abort) {
+      log.info({ clusterSize: cluster.length, ids: cluster.map(m => m.id) }, 'LLM aborted merge — memories not truly duplicates')
+      return null
     }
 
     if (!parsed.content || !parsed.category) return null
@@ -222,8 +231,26 @@ export async function consolidateMemories(kinId: string): Promise<number> {
   }
 
   // Group overlapping pairs into clusters
-  const clusters = clusterPairs(pairs)
-  log.info({ kinId, clusters: clusters.length, pairs: pairs.length }, 'Found memory clusters')
+  const rawClusters = clusterPairs(pairs)
+
+  // Cap cluster size at 3 to avoid information loss in large merges.
+  // Larger clusters will be partially merged; subsequent runs handle the rest.
+  const MAX_CLUSTER_SIZE = 3
+  const clusters: MemoryRow[][] = []
+  for (const cluster of rawClusters) {
+    if (cluster.length <= MAX_CLUSTER_SIZE) {
+      clusters.push(cluster)
+    } else {
+      // Sort by importance (desc) so we merge the most related first
+      cluster.sort((a, b) => (b.importance ?? 5) - (a.importance ?? 5))
+      for (let i = 0; i < cluster.length; i += MAX_CLUSTER_SIZE) {
+        const chunk = cluster.slice(i, i + MAX_CLUSTER_SIZE)
+        if (chunk.length >= 2) clusters.push(chunk)
+      }
+    }
+  }
+
+  log.info({ kinId, rawClusters: rawClusters.length, clusters: clusters.length, pairs: pairs.length }, 'Found memory clusters')
 
   // Phase 2: Merge each cluster via LLM
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
