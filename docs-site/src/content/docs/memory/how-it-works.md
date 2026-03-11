@@ -121,6 +121,19 @@ When enabled, KinBot periodically consolidates similar memories to reduce redund
 
 Consolidation is disabled by default. Enable it by setting `MEMORY_CONSOLIDATION_MODEL` to a model identifier. See [configuration](/kinbot/docs/memory/configuration/#memory-consolidation) for all settings.
 
+## Stale Memory Pruning
+
+After importance recalibration runs during compacting, KinBot automatically prunes memories that have decayed to very low importance and are never retrieved. This completes the importance lifecycle: extraction → recalibration → pruning.
+
+The pruning is purely heuristic-based, no LLM calls needed:
+
+| Condition | Threshold |
+|-----------|-----------|
+| Importance ≤ 1, never retrieved | Older than **60 days** |
+| Importance ≤ 2, never retrieved | Older than **90 days** |
+
+Pruned memories are permanently deleted. The number of pruned memories is recorded in the compacting system message metadata alongside extraction and consolidation counts.
+
 ## Session Compacting
 
 When conversations grow long, KinBot automatically **compacts** them:
@@ -143,4 +156,11 @@ User message
   → Extraction pipeline analyzes the turn
   → New memories stored as embeddings
   → Retrieval counts updated
+
+Compacting cycle (periodic):
+  → Summarize long conversations
+  → Extract new memories
+  → Consolidate similar memories
+  → Recalibrate importance scores
+  → Prune stale memories (low importance, never retrieved, old)
 ```
