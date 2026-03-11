@@ -25,6 +25,193 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.19.3] - 2026-03-11
+
+### Added
+- **Memory** — automated stale memory pruning after compacting
+- **Memory** — improve consolidation quality: abort false merges, cap cluster size, preserve details
+- **Sessions** — client-side session expiry awareness (#201)
+
+### Fixed
+- **Chat** — replace undefined `handleQuickStart` with `createSession` in ChatPanel
+- **Chat** — show fallback UI when quick session closes via SSE (#200)
+- **Chat** — show loading skeleton instead of empty state when switching kins
+- **Memory** — prevent save-as-memory with empty summary (#199)
+- **Tests** — add missing `pruneStaleMemories` to memory mock
+
+### Changed
+- **CI** — add Bun dependency caching to migrations and store-plugins workflows
+- **Docs** — add stale memory pruning documentation
+- **Docs** — add session expiry details to Quick Sessions API reference
+- **Docs** — add memory consolidation section with abort/cluster-cap details
+
+---
+
+## [0.19.2] - 2026-03-10
+
+### Added
+- **Memory** — add `sourceContext` field for conversational context
+
+### Fixed
+- **i18n** — fix missing accents in French logs translations
+
+### Changed
+- **CI** — increase E2E CI timeout from 15 to 30 minutes
+- **Docs** — document `sourceContext` field in memory extraction
+- **Docs** — add Documentation link to README nav bar
+- **Docs** — fix Kins overview accuracy: priority queue, compacting, provider field
+
+---
+
+## [0.19.1] - 2026-03-09
+
+### Added
+- **E2E** — add conversation search spec (27-conversation-search)
+
+### Fixed
+- **Plugins** — clean up partial registrations on activation failure, add lifecycle timeouts
+- **Security** — server-side validation for password length, avatar size, and order arrays (#196, #197, #198)
+- **Docs** — fix unused SparkLine import in examples page
+- **Docs** — fix getting-started `useKinBot`/`useStorage` accuracy vs actual JS SDK
+
+---
+
+## [0.19.0] - 2026-03-09
+
+### Added
+- **Logs** — backend logs viewer in settings UI (#179)
+- **Mini Apps** — forward console/errors to Kin for debugging (#178)
+- **Crons** — one-shot (`run_once`) support in cron form UI (#171)
+- **Kins** — per-Kin compacting thresholds + compaction proximity UI (#173)
+- **Plugins** — `check_plugin_updates` and `update_plugin` AI tools
+- **Plugins** — topological sort for plugin activation order
+- **E2E** — add conversation statistics popover spec (26-conversation-stats)
+- **Tests** — add tests for home-automation, system-monitor store plugins, knowledge `chunkText`
+
+### Fixed
+- **Chat** — resolve auto-scroll race conditions with queued messages (#172)
+- **Crons** — stop cron jobs on kin delete (#168, #169, #170)
+- **MCP** — env merge in Kin tool, allow empty env values in form (#193, #194, #195)
+- **Plugins** — bust import cache on hot-reload; track tool errors in health system
+- **Plugins** — add missing `compactingConfig` to KinRecord interface
+- **Contacts** — sub-resource validation, duplicate identifiers, N+1 queries, revoke confirmation
+- **Security** — webhooks security and reliability fixes
+- **Tests** — multiple mock and type fixes for CI stability
+
+### Changed
+- **Deps** — bump docker actions (buildx v4, qemu v4, login v4, metadata v6, setup-node v6)
+- **Deps** — bump `@lobehub/icons` to 5.0.1, `lucide-react` to 0.577.0
+
+---
+
+## [0.18.0] - 2026-03-08
+
+### Added
+- **Plugins** — integrate remote registry into marketplace with tabbed UI
+- **Plugins** — export validation for plugin init return values
+- **Chat** — display message queue above input with delete support
+- **E2E** — add keyboard shortcuts dialog spec (25-keyboard-shortcuts)
+- **Tests** — add tests for notification-delivery service
+
+### Fixed
+- **Chat** — restore auto-scroll when queue preview resizes the viewport
+- **Chat** — use cached context tokens from last LLM call for accurate display
+- **Mini Apps** — properly close panel when app is deleted via SSE
+- **Messages** — include source metadata in streaming SSE events (#167)
+- **Messages** — add redacted message visual indicator and reaction error handling (#164, #165)
+- **Files** — delete orphaned files from disk when clearing conversation (#166)
+- **Plugins** — add health reset button and uninstall for store plugins
+- **Plugins** — improve update checks for git and npm sources
+- **Providers** — support OpenRouter, DeepSeek, and other OpenAI-compatible providers for LLM resolution
+
+### Changed
+- **Memory** — use raw vector distance for dedup instead of full search pipeline
+- **Installer** — skip rebuild when nothing changed (fast re-run)
+- **Docs** — add knowledge base/RAG to features, fix comparison table
+- **Docs** — fix SDK reference accuracy against `kinbot-sdk.d.ts`
+
+---
+
+## [0.17.0] - 2026-03-08
+
+### Added
+- **Memory** — query intent detection for category-aware score boosting
+- **Memory** — surface retrieval relevance score in prompt context
+- **Tools** — `wake_me_every` tool for recurring wakeups
+- **Tools** — filesystem tools (read, write, edit, list) with custom renderers (#130)
+- **Plugins** — dependency management, version compatibility checking, config value validation
+- **Contacts** — UI to manually add platform IDs (#135)
+- **Contacts** — search/filter UI for contacts and webhooks lists (#136, #137)
+- **Crons** — show running indicator on cards and jobs tab (#152)
+- **Sessions** — pagination for quick session history (#150)
+- **Chat** — enlarge avatars with clickable preview
+- **Store** — add currency-converter plugin
+- **E2E** — add command palette spec (23-command-palette)
+- **Installer** — add `--health` command for monitoring integration
+- **Tests** — add tests for system-info, filesystem, world-clock, calendar, currency-converter, history tools
+
+### Fixed
+- **Onboarding** — progress bar, language persistence, validation, recovery (#153-#156)
+- **Plugins** — `await` async init functions; update always re-activates disabled plugins; SSE events for enable/disable/config
+- **MCP** — double `/api` prefix, error handling, length limits, env hints, account counters (#139-#143)
+- **Sessions** — N+1 query, content length limit, `fileIds` validation (#146-#148)
+- **Sessions** — reset close dialog state, responsive quick chat width (#149, #151)
+- **Memory** — normalize relevance scores relative to top result
+- **Contacts** — server-side validation limits, surface fetch errors in UI (#131-#134)
+- **Providers** — update capabilities on successful test
+- **Avatar** — raise upload limit to 10MB safety net (#144)
+- **Context** — fetch token usage on kin selection
+
+### Changed
+- **Sidebar** — enlarge kin items for better usability
+- **Refactor** — extract shared `toastError` utility, deduplicate 39 call sites
+- **i18n** — translate hardcoded strings in tool result renderers
+- **Docs** — update built-in tools list to 120+ tools, fix hooks accuracy, add plugin system to architecture
+- **CI** — add missing PR labeler rules and release-drafter categories
+
+---
+
+## [0.15.0] - 2026-03-07
+
+### Added
+- **Knowledge** — knowledge base / RAG backend (#110)
+- **Memory** — tune hybrid search defaults (ftsBoost 1.2→0.5, decay floor 0.3→0.7)
+- **Tools** — limit `prompt_human` to 1 call per LLM turn (#112)
+- **Store** — add dictionary plugin (define, synonyms, antonyms)
+- **Sessions** — quick session history to view past conversations (#72)
+- **Chat** — persist message drafts to localStorage (#82)
+- **Contacts** — warn about cascading platform access revocation on delete (#87)
+- **Contacts** — add Kin selector in contact form for kin-type contacts (#84)
+- **Crons** — show target Kin info in detail modal (#75), next 3 run times in form (#77)
+- **Webhooks** — rate limiting on incoming endpoint (#91), visual distinction for inactive webhooks (#93)
+- **MCP** — connection status indicator and test button (#97)
+- **Account** — password change (#103), member since date (#104)
+- **Hub** — Hub Kin designation UI and sidebar search improvements
+- **E2E** — expand general settings spec with hub kin, help panel, escape close tests
+- **CI** — add migration test workflow (fresh DB + idempotency + FK check), release-drafter
+- **Tests** — add tests for inter-kin, webhook, kin-management, image, browse, human-prompt, pomodoro tools
+
+### Fixed
+- **Security** — admin check on user deletion, avatar upload validation, profile input validation, token masking (#100-#102, #105)
+- **Security** — hardening + settings UX improvements (#118-#122)
+- **MCP** — unicode sanitization and connection pool resilience (#98, #99)
+- **Providers** — support OpenAI-compatible providers (OpenRouter, etc.) for config generation and avatar prompts (#106)
+- **Contacts** — return 409 conflict for already-linked user (#86); include `platformIds` in detail response (#88)
+- **Mini Apps** — inherit reduced contrast mode from parent (#108)
+- **Avatar** — show feedback on upload failure (#107)
+- **Webhooks** — log retention and periodic cleanup (#90)
+- **Chat** — server-side message length validation (#83)
+- **Sessions** — cascade FK, validation, expiration check, error handling for quick sessions
+- **Tests** — fix `mock.module` pollution, mini-app gallery text mismatch
+
+### Changed
+- **Mini Apps** — remove clone feature (#111)
+- **Installer** — resilient build with auto-cleanup on failure
+- **Docs** — rewrite API Reference with complete REST endpoints and accurate SSE events
+- **Docs** — accuracy review: providers section, plugin registration example
+
+---
+
 ## [0.14.0] - 2026-03-06
 
 ### Added
