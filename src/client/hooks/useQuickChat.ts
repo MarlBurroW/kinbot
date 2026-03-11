@@ -197,10 +197,15 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
           content,
           fileIds,
         })
-      } catch {
+      } catch (err: unknown) {
         setMessages((prev) => prev.filter((m) => m.id !== tempId))
         setIsProcessing(false)
-        toast.error(t('quickSession.errors.sendFailed', 'Failed to send message'))
+        const apiErr = err as { code?: string; status?: number } | undefined
+        if (apiErr?.code === 'SESSION_EXPIRED' || apiErr?.status === 409) {
+          toast.error(t('quickSession.errors.sessionExpired', 'Session expired. Please start a new one.'))
+        } else {
+          toast.error(t('quickSession.errors.sendFailed', 'Failed to send message'))
+        }
       }
     },
     [sessionId],

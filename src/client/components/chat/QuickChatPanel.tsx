@@ -42,13 +42,14 @@ interface QuickChatPanelProps {
   kinModel?: string
   llmModels?: LLMModel[]
   sessionId: string
+  expiresAt?: number | null
   onHide: () => void
   onEnd: (saveMemory?: boolean, memorySummary?: string) => void
   onModelChange?: (model: string) => void
   onShowHistory?: () => void
 }
 
-export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, onHide, onEnd, onShowHistory }: QuickChatPanelProps) {
+export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expiresAt, onHide, onEnd, onShowHistory }: QuickChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { messages, streamingMessage, isProcessing, isStreaming, sendMessage, stopStreaming } = useQuickChat(sessionId, kinId)
@@ -59,6 +60,22 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, onHide
   const [saveAsMemory, setSaveAsMemory] = useState(false)
   const [memorySummary, setMemorySummary] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const [timeLeft, setTimeLeft] = useState<string | null>(null)
+
+  // Update remaining time display
+  useEffect(() => {
+    if (!expiresAt) return
+    const update = () => {
+      const remaining = expiresAt - Date.now()
+      if (remaining <= 0) { setTimeLeft(null); return }
+      const hours = Math.floor(remaining / 3600000)
+      const mins = Math.floor((remaining % 3600000) / 60000)
+      setTimeLeft(hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`)
+    }
+    update()
+    const interval = setInterval(update, 60000)
+    return () => clearInterval(interval)
+  }, [expiresAt])
 
   // Auto-scroll
   useEffect(() => {
@@ -111,7 +128,10 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, onHide
           />
           <div className="min-w-0">
             <p className="text-sm font-semibold leading-tight">{t('quickChat.title')}</p>
-            <p className="text-xs text-muted-foreground truncate">{kinName}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {kinName}
+              {timeLeft && <span className="ml-1.5 opacity-60">· {timeLeft}</span>}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">

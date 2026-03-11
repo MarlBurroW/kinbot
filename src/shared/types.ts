@@ -253,6 +253,7 @@ export interface QuickSessionSummary {
   status: QuickSessionStatus
   createdAt: number
   closedAt: number | null
+  expiresAt: number | null
   messageCount?: number
 }
 

@@ -903,6 +903,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                 kinModel={kin.model}
                 llmModels={llmModels}
                 sessionId={activeSession.id}
+                expiresAt={activeSession.expiresAt}
                 onHide={() => setQuickOpen(false)}
                 onEnd={handleQuickClose}
                 onModelChange={onModelChange}

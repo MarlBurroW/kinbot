@@ -78,6 +78,7 @@ kinScopedRoutes.post('/', async (c) => {
     status: session.status,
     createdAt: session.createdAt.getTime(),
     closedAt: null,
+    expiresAt: session.expiresAt ? (session.expiresAt as Date).getTime() : null,
   } satisfies QuickSessionSummary, 201)
 })
 
@@ -143,6 +144,7 @@ kinScopedRoutes.get('/', async (c) => {
       status: s.status as QuickSessionStatus,
       createdAt: (s.createdAt as Date).getTime(),
       closedAt: s.closedAt ? (s.closedAt as Date).getTime() : null,
+      expiresAt: s.expiresAt ? (s.expiresAt as Date).getTime() : null,
       messageCount: messageCounts.get(s.id) ?? undefined,
     })),
     hasMore,
@@ -203,6 +205,7 @@ sessionRoutes.get('/:id', async (c) => {
       status: session!.status as QuickSessionStatus,
       createdAt: (session!.createdAt as Date).getTime(),
       closedAt: session!.closedAt ? (session!.closedAt as Date).getTime() : null,
+      expiresAt: session!.expiresAt ? (session!.expiresAt as Date).getTime() : null,
     } satisfies QuickSessionSummary,
     messages: sessionMessages.map((m) => {
       const meta = m.metadata ? JSON.parse(m.metadata as string) : null

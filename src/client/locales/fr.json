@@ -1773,6 +1773,7 @@
       "closeFailed": "Impossible de fermer la session. Veuillez réessayer.",
       "fetchMessagesFailed": "Impossible de charger les messages",
       "sendFailed": "Impossible d'envoyer le message",
+      "sessionExpired": "Session expirée. Veuillez en démarrer une nouvelle.",
       "stopFailed": "Impossible d'arrêter la génération",
       "fetchHistoryFailed": "Impossible de charger l'historique des sessions",
       "viewSessionFailed": "Impossible de charger les messages de la session"

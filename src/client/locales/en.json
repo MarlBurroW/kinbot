@@ -1773,6 +1773,7 @@
       "closeFailed": "Failed to close session. Please try again.",
       "fetchMessagesFailed": "Failed to load messages",
       "sendFailed": "Failed to send message",
+      "sessionExpired": "Session expired. Please start a new one.",
       "stopFailed": "Failed to stop generation",
       "fetchHistoryFailed": "Failed to load session history",
       "viewSessionFailed": "Failed to load session messages"
