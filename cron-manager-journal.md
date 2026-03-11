@@ -1,5 +1,56 @@
 # KinBot Cron Manager Journal
 
+## 2026-03-12 12:09 UTC
+### Audit summary
+- **Active KinBot crons:** 18 (unchanged)
+- **Non-KinBot active:** PinchChat, woodbrass-reply-check, reddit-token-refresh
+
+### Healthy (productive, no issues)
+- **kinbot-community** (8h, Opus) — 17s last run (nothing open). Working.
+- **kinbot-add-tests** (8h, Opus, 900s) — 284s. Steady.
+- **kinbot-plugin-improve** (8h, Opus) — 224s. Working.
+- **kinbot-docs-content** (6h, Opus, 600s) — 66s. Working.
+- **kinbot-memory-research** (12h, Opus, 600s) — 478s. Deep R&D.
+- **kinbot-github-maintenance** (12h, Opus) — 253s. Working.
+- **kinbot-improve-site** (12h, Opus, 600s) — 214s. Working.
+- **kinbot-qa-explorer** (12h, Opus, 900s) — 308s. Finding bugs.
+- **kinbot-release** (1x/day 17:00 UTC, Opus) — 215s. v0.19.2 shipped.
+- **kinbot-promo** (1x/day 14:00 Paris, Opus) — 169s. Working.
+- **kinbot-ci-watchdog** (6h, Opus) — 202s last run (fixed something). Usually 8s.
+- **kinbot-improve-cli** (24h, Opus, 600s) — 145s. Working.
+- **kinbot-sse-reactivity** (24h, Opus) — 277s. Working.
+- **kinbot-i18n-audit** (48h, Opus) — 259s. Working.
+- **kinbot-consistency-guardian** (48h, Opus) — 15s. Working.
+- **reddit-token-refresh** (12h, Flash) — 1.7s. Minimal.
+- **PinchChat** (2x/day, Opus) — 532s. Quality mode, still productive.
+
+### Issues found & actions taken
+
+1. **kinbot-e2e-tests: STILL timing out (3 consecutive, 900s each)** ⚠️
+   - Previous audit reduced timeout and added warnings. But the 900s timeout from before was still in effect for the last 3 runs (timeout change happened after).
+   - **Action:** Rewrote the prompt to be much shorter and more forceful. Added explicit allowlist of commands (git, cat, grep, gh, bun run build, bun test only). Removed all the detailed instructions that gave room for the agent to "just quickly check" by running Playwright. Timeout confirmed at 300s. Next run should be the real test.
+   - If it STILL times out after this: consider disabling and folding E2E test maintenance into kinbot-ci-watchdog (which already fixes CI failures including E2E).
+
+2. **woodbrass-reply-check: Still running, still nothing** — 4h on Flash, 1.4s. Cheap but pointless. Leaving it for Nicolas to decide.
+
+### Proposals (for Nicolas to decide)
+
+1. **Model downgrade: kinbot-ci-watchdog → Gemini Flash** (8th time proposing). 95%+ of runs are "CI green ✅" in 8s on Opus. The occasional fix runs (202s last) could likely work on Flash too. This is the easiest cost savings in the fleet.
+
+2. **Disable woodbrass-reply-check?** — Has never found anything. Nicolas was asked before, no decision. Low priority since it's on Flash (pennies).
+
+3. **Consider disabling kinbot-e2e-tests entirely** if the next run still times out. The kinbot-ci-watchdog already catches and fixes CI failures including E2E. Having a dedicated E2E cron that can't follow instructions is pure waste.
+
+### Cost analysis
+- 18 active KinBot crons, nearly all on Opus. The fleet is mature and productive.
+- Main waste: kinbot-e2e-tests (3 runs x 900s timeout on Opus = significant cost for zero output)
+- Secondary waste: kinbot-ci-watchdog on Opus for trivial checks (but occasionally fixes real issues)
+
+### Next audit focus
+- Verify kinbot-e2e-tests behaves with new prompt (300s timeout, shorter instructions)
+- Watch for cron coordination issues (multiple crons editing same files)
+- Check if any 12h crons could go to 24h without losing value
+
 ## 2026-03-09 13:02 UTC
 ### Audit summary
 - **Active KinBot crons:** 18

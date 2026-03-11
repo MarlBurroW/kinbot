@@ -397,3 +397,19 @@ All sections migrated and accuracy-reviewed:
 - Commit: `09c49fb` — pushed to main (--no-verify)
 
 ### Status: docs fully caught up with latest source changes
+
+## 2026-03-11 — Stale memory pruning docs ✅
+
+- New commit `5ce43cb` added automated stale memory pruning after compacting
+- **how-it-works.md**: Added "Stale Memory Pruning" section documenting the heuristic-based pruning (importance ≤1 + 60 days, importance ≤2 + 90 days, both requiring zero retrievals). Updated data flow diagram to include the full compacting cycle (summarize → extract → consolidate → recalibrate → prune).
+- Build passes: 34 pages
+- Commit: `3a21342` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes
+
+## 2026-03-11 — Maintenance check: no new changes needed
+
+- Checked source commits since last run: only test mock fix (`57d19be`) and UI bugfixes (`7ba32e5`, `85e5f73`, `433ab3c`, `696661f`) — none affect documentation
+- Previous run already covered `5ce43cb` (stale pruning) and `d9d413d` (session expiry)
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
