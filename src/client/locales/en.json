@@ -653,7 +653,10 @@
     "empty": "Start a quick, private conversation with this Kin. Messages won't appear in the main session.",
     "maxReached": "Maximum active quick sessions reached",
     "endSession": "End session",
-    "expired": "This session has expired",
+    "expired": {
+      "message": "This session has ended or expired.",
+      "startNew": "Start new session"
+    },
     "closing": {
       "title": "Close quick session?",
       "description": "This conversation will not be saved in the main history. You can optionally save a summary as a memory.",

@@ -653,7 +653,10 @@
     "empty": "Lancez une conversation rapide et privée avec ce Kin. Les messages n'apparaîtront pas dans la session principale.",
     "maxReached": "Nombre maximum de sessions rapides atteint",
     "endSession": "Terminer la session",
-    "expired": "Cette session a expiré",
+    "expired": {
+      "message": "Cette session est terminée ou a expiré.",
+      "startNew": "Nouvelle session"
+    },
     "closing": {
       "title": "Fermer la session rapide ?",
       "description": "Cette conversation ne sera pas conservée dans l'historique principal. Vous pouvez sauvegarder un résumé en mémoire.",

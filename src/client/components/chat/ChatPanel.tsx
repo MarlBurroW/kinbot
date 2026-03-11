@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useMemo, useState, useCallback, startTransition, Suspense } from 'react'
 import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
 import { useTranslation } from 'react-i18next'
+import { Button } from '@/client/components/ui/button'
 import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { MessageBubble } from '@/client/components/chat/MessageBubble'
 import { MessageInput, type MessageInputHandle } from '@/client/components/chat/MessageInput'
@@ -908,7 +909,14 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                 onShowHistory={() => setShowQuickHistory(true)}
               />
             </Suspense>
-          ) : null}
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
+              <p className="text-sm text-muted-foreground">{t('quickChat.expired.message')}</p>
+              <Button variant="outline" size="sm" onClick={() => { setQuickOpen(false); handleQuickStart() }}>
+                {t('quickChat.expired.startNew')}
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </div>
