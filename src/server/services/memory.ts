@@ -1037,3 +1037,60 @@ export async function recalibrateImportance(kinId: string): Promise<number> {
 
   return adjusted
 }
+
+// ─── Automated Stale Memory Pruning ─────────────────────────────────────────
+
+/**
+ * Prune memories that have decayed to very low importance and are never retrieved.
+ * This is the natural end of the importance recalibration lifecycle:
+ * recalibration gradually lowers scores → pruning removes the dead weight.
+ *
+ * Thresholds (conservative):
+ * - importance ≤ 1 AND never retrieved AND older than 60 days → prune
+ * - importance ≤ 2 AND never retrieved AND older than 90 days → prune
+ *
+ * Returns the number of memories pruned.
+ */
+export async function pruneStaleMemories(kinId: string): Promise<number> {
+  const now = Date.now()
+  const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000
+  const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000
+
+  // Find candidates: low importance, never retrieved, old enough
+  const candidates = sqlite.query<
+    { id: string; importance: number; retrieval_count: number; created_at: number; content: string },
+    [string]
+  >(
+    `SELECT id, importance, retrieval_count, created_at, content
+     FROM memories
+     WHERE kin_id = ?
+       AND importance IS NOT NULL
+       AND retrieval_count = 0`,
+  ).all(kinId)
+
+  let pruned = 0
+
+  for (const mem of candidates) {
+    const ageMs = now - mem.created_at
+
+    const shouldPrune =
+      (mem.importance <= 1 && ageMs > SIXTY_DAYS_MS) ||
+      (mem.importance <= 2 && ageMs > NINETY_DAYS_MS)
+
+    if (!shouldPrune) continue
+
+    log.info(
+      { kinId, memoryId: mem.id, importance: mem.importance, ageDays: Math.round(ageMs / (24 * 60 * 60 * 1000)), content: mem.content.slice(0, 100) },
+      'Pruning stale memory',
+    )
+
+    await deleteMemory(mem.id, kinId)
+    pruned++
+  }
+
+  if (pruned > 0) {
+    log.info({ kinId, pruned, candidates: candidates.length }, 'Stale memory pruning complete')
+  }
+
+  return pruned
+}

@@ -388,3 +388,12 @@ All sections migrated and accuracy-reviewed:
 - Commit: `ea95fd4` — pushed to main (--no-verify)
 
 ### Status: docs fully caught up with latest source changes
+
+## 2026-03-11 — Quick Sessions expiry docs update ✅
+
+- New commit `d9d413d` added `expiresAt` field to all Quick Session API responses + 409 SESSION_EXPIRED error
+- **rest.md**: Added note about `expiresAt` field (Unix timestamp ms or null) and 409 error on expired sessions
+- Build passes: 34 pages
+- Commit: `09c49fb` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes

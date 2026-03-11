@@ -12,7 +12,7 @@ import {
 } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { getExtractionModel } from '@/server/services/app-settings'
-import { createMemory, updateMemory, isDuplicateMemory } from '@/server/services/memory'
+import { createMemory, updateMemory, isDuplicateMemory, pruneStaleMemories } from '@/server/services/memory'
 import { sseManager } from '@/server/sse/index'
 import type { MemoryCategory, KinCompactingConfig } from '@/shared/types'
 
@@ -324,6 +324,17 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     log.error({ kinId, err }, 'Memory importance recalibration error')
   }
 
+  // Prune stale memories (low importance, never retrieved, old)
+  let memoriesPruned = 0
+  try {
+    memoriesPruned = await pruneStaleMemories(kinId)
+    if (memoriesPruned > 0) {
+      log.info({ kinId, memoriesPruned }, 'Stale memories pruned')
+    }
+  } catch (err) {
+    log.error({ kinId, err }, 'Stale memory pruning error')
+  }
+
   // Persist a system message so the compaction trace survives page refresh
   // role='system' is skipped by buildMessageHistory → won't pollute LLM context
   const compactingMessageId = uuid()
@@ -335,7 +346,7 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     sourceType: 'compacting',
     isRedacted: false,
     redactPending: false,
-    metadata: JSON.stringify({ memoriesExtracted, memoriesConsolidated }),
+    metadata: JSON.stringify({ memoriesExtracted, memoriesConsolidated, memoriesPruned }),
     createdAt: new Date(),
   })
 
