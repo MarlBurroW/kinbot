@@ -66,7 +66,7 @@ interface ChatPanelProps {
 export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin }: ChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, streamingMessage, liveTasks, liveCompacting, isStreaming, hasMore, isLoadingMore, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
+  const { messages, streamingMessage, liveTasks, liveCompacting, isLoading, isStreaming, hasMore, isLoadingMore, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
@@ -646,7 +646,19 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                 <span className="ml-2 text-xs text-muted-foreground">{t('chat.loadingOlder')}</span>
               </div>
             )}
-            {messages.length === 0 && liveTasks.length === 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col gap-4 py-8 animate-fade-in">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className={`flex gap-3 ${i % 2 === 0 ? '' : 'flex-row-reverse'}`}>
+                    <div className="size-8 shrink-0 rounded-full bg-muted animate-pulse" />
+                    <div className={`flex flex-col gap-1.5 ${i % 2 === 0 ? '' : 'items-end'}`}>
+                      <div className="h-4 rounded bg-muted animate-pulse" style={{ width: `${120 + (i * 37) % 160}px` }} />
+                      <div className="h-4 rounded bg-muted animate-pulse" style={{ width: `${80 + (i * 53) % 120}px` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : messages.length === 0 && liveTasks.length === 0 ? (
               <ChatEmptyState
                 kinName={kin.name}
                 kinRole={kin.role}
