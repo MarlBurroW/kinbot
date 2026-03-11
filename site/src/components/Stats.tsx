@@ -134,7 +134,23 @@ export function Stats() {
   }
 
   return (
-    <section className="px-6 py-16 max-w-5xl mx-auto">
+    <section className="relative px-6 py-16 overflow-hidden">
+      {/* Gradient mesh background */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background: `
+            radial-gradient(ellipse 50% 60% at 20% 50%, color-mix(in oklch, var(--color-glow-1) 8%, transparent), transparent),
+            radial-gradient(ellipse 40% 50% at 80% 40%, color-mix(in oklch, var(--color-glow-2) 6%, transparent), transparent),
+            radial-gradient(ellipse 60% 40% at 50% 80%, color-mix(in oklch, var(--color-glow-3) 5%, transparent), transparent)
+          `,
+        }}
+      />
+      <div className="relative max-w-5xl mx-auto">
+      <p className="text-center text-sm font-medium mb-8 tracking-wide uppercase" style={{ color: 'var(--color-muted-foreground)', letterSpacing: '0.1em' }}>
+        Making your LLM stack work
+      </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
         {/* GitHub stars (live) */}
         {gh.stars !== null && (
@@ -191,6 +207,7 @@ export function Stats() {
             label={label}
           />
         ))}
+      </div>
       </div>
     </section>
   )
