@@ -189,6 +189,8 @@ Platform-specific webhook endpoints (no auth required, verified by platform sign
 
 Ephemeral conversation sessions for quick interactions.
 
+All session responses include an `expiresAt` field (Unix timestamp in ms, or `null`). Sending a message to an expired session returns `409 SESSION_EXPIRED`.
+
 ### Kin-scoped
 
 | Method | Endpoint | Description |
