@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
+import { KinSelector } from '@/client/components/common/KinSelector'
 import { api, getErrorMessage, toastError } from '@/client/lib/api'
 import { Skeleton } from '@/client/components/ui/skeleton'
 import { InfoTip } from '@/client/components/common/InfoTip'
@@ -23,7 +23,7 @@ export function GeneralSettings() {
 
   // Hub Kin
   const [hubKinId, setHubKinId] = useState<string | null>(null)
-  const [allKins, setAllKins] = useState<{ id: string; name: string }[]>([])
+  const [allKins, setAllKins] = useState<{ id: string; name: string; role?: string; avatarUrl?: string | null }[]>([])
   const [savingHub, setSavingHub] = useState(false)
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export function GeneralSettings() {
     try {
       const [hubData, kinsData] = await Promise.all([
         api.get<{ hubKinId: string | null }>('/settings/hub'),
-        api.get<{ kins: { id: string; name: string }[] }>('/kins'),
+        api.get<{ kins: { id: string; name: string; role: string; avatarUrl: string | null }[] }>('/kins'),
       ])
       setHubKinId(hubData.hubKinId)
       setAllKins(kinsData.kins)
@@ -132,25 +132,15 @@ export function GeneralSettings() {
             {t('settings.general.hubKin')}
             <InfoTip content={t('settings.general.hubKinTip')} />
           </Label>
-          <Select
+          <KinSelector
             value={hubKinId ?? '__none__'}
             onValueChange={handleHubChange}
-            disabled={savingHub}
-          >
-            <SelectTrigger className="w-full max-w-sm">
-              <SelectValue placeholder={t('settings.general.hubKinPlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">
-                {t('settings.general.hubKinNone', 'None')}
-              </SelectItem>
-              {allKins.map((kin) => (
-                <SelectItem key={kin.id} value={kin.id}>
-                  {kin.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            kins={allKins}
+            placeholder={t('settings.general.hubKinPlaceholder')}
+            noneLabel={t('settings.general.hubKinNone', 'None')}
+            noneValue="__none__"
+            triggerClassName="w-full max-w-sm"
+          />
           <p className="text-xs text-muted-foreground">
             {t('settings.general.hubKinHint')}
           </p>
