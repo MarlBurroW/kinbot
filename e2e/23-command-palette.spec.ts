@@ -53,7 +53,7 @@ test.describe.serial('Command palette', () => {
   test('should display Settings section with entries', async ({ page }) => {
     const dialog = await openCommandPalette(page)
 
-    await expect(dialog.getByText('General')).toBeVisible({ timeout: 5_000 })
+    await expect(dialog.getByText('General', { exact: true })).toBeVisible({ timeout: 5_000 })
     await expect(dialog.getByText('AI Providers')).toBeVisible()
   })
 

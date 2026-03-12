@@ -145,6 +145,9 @@ test.describe.serial('Settings — General & Navigation', () => {
     await openSettings(page)
     await expect(page.getByRole('dialog')).toBeVisible()
 
+    // Click the dialog title to ensure focus is on the dialog itself
+    // (not on a Select or other inner element that may intercept Escape)
+    await page.getByRole('dialog').locator('h2').first().click()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 5_000 })
   })

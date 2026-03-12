@@ -77,27 +77,14 @@ test.describe.serial('Sidebar navigation & layout', () => {
     await page.waitForTimeout(300)
   })
 
-  test('should display App Gallery button in Apps tab', async ({ page }) => {
+  test('should display mini-apps in Apps tab', async ({ page }) => {
     const sidebar = page.locator('[data-slot="sidebar"]')
 
     // Navigate to Apps tab
     await sidebar.getByRole('tab', { name: 'Apps' }).click()
 
-    // Gallery button in Apps tab
-    const galleryButton = sidebar.getByRole('button', { name: 'App Gallery' })
-    await expect(galleryButton).toBeVisible()
-
-    // Click should open gallery dialog
-    await galleryButton.click()
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 })
-
-    // Close it
-    const closeButton = page.getByRole('dialog').locator('button:has(.lucide-x)').first()
-    if (await closeButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-      await closeButton.click()
-    } else {
-      await page.keyboard.press('Escape')
-    }
+    // Apps tab should be visible (gallery was removed, apps are listed inline)
+    await expect(sidebar.getByRole('tabpanel')).toBeVisible()
   })
 
   test('should display footer with version badge', async ({ page }) => {

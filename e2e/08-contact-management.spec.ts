@@ -132,7 +132,7 @@ test.describe.serial('Contact management', () => {
 
     await expect(page.locator('#contact-name')).toBeVisible()
     await expect(page.locator('#contact-type')).toBeVisible()
-    await expect(page.getByText('Identifiers')).toBeVisible()
+    await expect(page.getByText('Identifiers', { exact: true })).toBeVisible()
 
     // Close dialog
     await page.keyboard.press('Escape')

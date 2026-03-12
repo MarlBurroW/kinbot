@@ -1,5 +1,62 @@
 # KinBot Cron Manager Journal
 
+## 2026-03-12 13:05 UTC
+### Audit summary
+- **Active KinBot crons:** 18
+- **Non-KinBot active:** PinchChat, woodbrass-reply-check, reddit-token-refresh
+
+### Healthy (productive, no issues)
+- **kinbot-community** (8h, Opus) — 18s last run. Working.
+- **kinbot-add-tests** (8h, Opus, 900s) — 284s. Steady.
+- **kinbot-plugin-improve** (8h, Opus) — 224s. Working.
+- **kinbot-docs-content** (6h, Opus, 600s) — 145s. Working.
+- **kinbot-github-maintenance** (12h, Opus) — 349s. Working.
+- **kinbot-improve-site** (12h, Opus, 600s) — 200s. Working.
+- **kinbot-qa-explorer** (12h, Opus, 900s) — 220s. Finding bugs, filing issues.
+- **kinbot-release** (1x/day 17:00 UTC, Opus) — 150s. v0.19.3 shipped.
+- **kinbot-ci-watchdog** (6h, Opus) — 9s last run. CI green.
+- **kinbot-improve-cli** (24h, Opus, 600s) — 145s. Working.
+- **kinbot-sse-reactivity** (24h, Opus) — 277s. Working.
+- **kinbot-i18n-audit** (48h, Opus) — 231s. Working.
+- **kinbot-consistency-guardian** (48h, Opus) — 19s. Working.
+- **reddit-token-refresh** (12h, Flash) — 1.7s. Minimal.
+- **PinchChat** (2x/day, Opus) — 118s. Working.
+
+### Issues found & actions taken
+
+1. **kinbot-e2e-tests: 3 consecutive timeouts (900s), prompt rewritten, awaiting next run** ⚠️
+   - Last 3 runs all timed out at 900s. The prompt was completely rewritten with "⛔⛔⛔ YOU MUST NOT RUN PLAYWRIGHT ⛔⛔⛔" and explicit allowlist of commands. Timeout set to 300s.
+   - The prompt update happened AFTER the last 3 timeout runs (updatedAt > lastRunAt). Next scheduled run should test the new prompt.
+   - If it STILL times out: **disable it**. The kinbot-ci-watchdog already catches CI failures including E2E.
+
+2. **kinbot-promo: Timed out at 300s, now 2 consecutive errors** ⚠️
+   - GitHub PR workflows (fork, clone, edit, push, create PR) are slow. 300s was too tight.
+   - **Action: Bumped timeout from 300s to 600s.** Currently running right now.
+
+3. **kinbot-memory-research: 1 timeout (600s)** ⚠️
+   - Single timeout, not a pattern. This cron does deep R&D work and has been incredibly productive (cross-encoder rerank, stale pruning, consolidation improvements, source context enrichment). 600s is sometimes tight for research + implementation runs.
+   - **No action.** One timeout is acceptable. If it becomes 3 consecutive, will investigate.
+
+### Proposals (for Nicolas to decide)
+
+1. **Model downgrade: kinbot-ci-watchdog → Gemini Flash** (9th time proposing). 95%+ of runs are "CI green ✅" in 8-9s on Opus. This is the easiest cost savings in the fleet. The occasional fix runs could likely work on Flash too.
+
+2. **Disable woodbrass-reply-check?** Still running every 4h on Flash, still finding nothing (2s runs). Cheap but pointless. Same proposal as last 3 audits.
+
+3. **Consider disabling kinbot-e2e-tests** if next run still times out. Has been timing out for weeks. The kinbot-ci-watchdog already handles CI failures including E2E test breakages.
+
+### Cost analysis
+- 18 active KinBot crons, nearly all on Opus
+- kinbot-memory-research is the heaviest consumer but also the most productive (shipped ~20 features to the memory system)
+- kinbot-e2e-tests is pure waste if it keeps timing out (Opus tokens burned for zero output)
+- kinbot-ci-watchdog on Opus for 9s "CI green" checks remains the easiest savings
+
+### Next audit focus
+- Verify kinbot-e2e-tests behavior with new 300s timeout
+- Verify kinbot-promo works with 600s timeout
+- Watch memory-research for repeated timeouts
+- Check if kinbot-github-maintenance (349s on 300s timeout) is cutting it close — may need timeout bump
+
 ## 2026-03-12 12:09 UTC
 ### Audit summary
 - **Active KinBot crons:** 18 (unchanged)

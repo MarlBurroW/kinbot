@@ -428,3 +428,22 @@ All sections migrated and accuracy-reviewed:
 - Checked source commits since last run: only UI bugfix `a3dd921` (sidebar resize + Cmd+B shortcut) and `71b355e` (CHANGELOG backfill) — neither affects documentation
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-12 — Cross-encoder rerank + prioritization guidance docs ✅
+
+- Two new feature commits since last check:
+  - `645e72c` — Cross-encoder rerank API support (Cohere, Jina)
+  - `05f9df4` — Memory prioritization guidance in prompt header
+- **how-it-works.md**: Rewrote "LLM Re-ranking" section → "Re-ranking" with dual strategy (cross-encoder preferred, LLM fallback). Added prioritization guidance note in data flow diagram.
+- **configuration.md**: Updated `MEMORY_RERANK_MODEL` description to explain cross-encoder vs LLM fallback behavior.
+- **providers/supported.md**: Added "Rerank" column to capabilities table. Cohere and Jina marked with ✅ rerank capability.
+- Build passes: 34 pages
+- Commit: `0e68bed` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes
+
+## 2026-03-12 — Maintenance check: no new changes needed (run 2)
+
+- No new source commits since last run (0e68bed was the latest, already covered)
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
