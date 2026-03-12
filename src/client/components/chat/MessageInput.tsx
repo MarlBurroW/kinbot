@@ -195,11 +195,11 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
     // Formatting shortcuts
     const mod = e.ctrlKey || e.metaKey
     if (mod && !e.altKey) {
-      if (e.key === 'b') { e.preventDefault(); wrapSelection('**', '**') }
-      else if (e.key === 'i') { e.preventDefault(); wrapSelection('_', '_') }
-      else if (e.key === 'e' && e.shiftKey) { e.preventDefault(); wrapSelection('```\n', '\n```') }
-      else if (e.key === 'e') { e.preventDefault(); wrapSelection('`', '`') }
-      else if (e.key === 'x' && e.shiftKey) { e.preventDefault(); wrapSelection('~~', '~~') }
+      if (e.key === 'b') { e.preventDefault(); e.stopPropagation(); wrapSelection('**', '**') }
+      else if (e.key === 'i') { e.preventDefault(); e.stopPropagation(); wrapSelection('_', '_') }
+      else if (e.key === 'e' && e.shiftKey) { e.preventDefault(); e.stopPropagation(); wrapSelection('```\n', '\n```') }
+      else if (e.key === 'e') { e.preventDefault(); e.stopPropagation(); wrapSelection('`', '`') }
+      else if (e.key === 'x' && e.shiftKey) { e.preventDefault(); e.stopPropagation(); wrapSelection('~~', '~~') }
     }
   }
 

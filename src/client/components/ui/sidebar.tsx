@@ -109,6 +109,15 @@ function SidebarProvider({
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
         (event.metaKey || event.ctrlKey)
       ) {
+        // Skip if the user is typing in an input, textarea, or contenteditable element
+        const target = event.target as HTMLElement
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return
+        }
         event.preventDefault()
         toggleSidebar()
       }
@@ -335,7 +344,12 @@ function SidebarResizeHandle() {
     (e: React.MouseEvent) => {
       e.preventDefault()
       const startX = e.clientX
-      const startWidth = parseInt(sidebarWidth, 10) || parseFloat(sidebarWidth) * 16
+      const el = (e.target as HTMLElement).closest('[data-slot="sidebar"]')
+      const startWidth = el?.getBoundingClientRect().width ?? (
+        sidebarWidth.endsWith("rem")
+          ? parseFloat(sidebarWidth) * 16
+          : parseInt(sidebarWidth, 10) || 320
+      )
       // Find the sidebar root and disable transitions during drag
       const wrapper = (e.target as HTMLElement).closest('[data-slot="sidebar"]')
       wrapper?.setAttribute("data-resizing", "")
@@ -367,8 +381,10 @@ function SidebarResizeHandle() {
   return (
     <div
       onMouseDown={handleMouseDown}
-      className="absolute inset-y-0 right-0 z-20 w-1 cursor-col-resize transition-colors hover:bg-primary/20 active:bg-primary/30"
-    />
+      className="absolute inset-y-0 right-[-4px] z-20 w-2 cursor-col-resize group"
+    >
+      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 transition-colors group-hover:bg-primary/20 group-active:bg-primary/30" />
+    </div>
   )
 }
 
