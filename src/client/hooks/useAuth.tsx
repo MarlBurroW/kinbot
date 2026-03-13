@@ -9,7 +9,7 @@ interface UserProfile {
   firstName: string
   lastName: string
   pseudonym: string
-  language: 'en' | 'fr'
+  language: 'en' | 'fr' | 'de'
   role: 'admin' | 'member'
   avatarUrl: string | null
   kinOrder: string | null
