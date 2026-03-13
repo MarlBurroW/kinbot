@@ -164,16 +164,21 @@ test.describe.serial('Settings — General & Navigation', () => {
     ).toBeVisible()
 
     // Select trigger should show placeholder or a kin name
-    const selectTrigger = page.getByRole('dialog').locator('[data-slot="select-trigger"]').first()
-    await expect(selectTrigger).toBeVisible()
+    // Scroll to Hub Kin section first (may be below fold in CI viewports)
+    const hubKinLabel = page.getByText('Hub Kin', { exact: true })
+    await hubKinLabel.scrollIntoViewIfNeeded()
+    const selectTrigger = page.getByRole('dialog').getByRole('combobox').first()
+    await expect(selectTrigger).toBeVisible({ timeout: 10_000 })
   })
 
   test('should select a Hub Kin and see success toast', async ({ page }) => {
     await openSettings(page)
 
     // Open the Hub Kin dropdown
-    const selectTrigger = page.getByRole('dialog').locator('[data-slot="select-trigger"]').first()
-    await expect(selectTrigger).toBeVisible({ timeout: 5_000 })
+    const hubKinLabel = page.getByText('Hub Kin', { exact: true })
+    await hubKinLabel.scrollIntoViewIfNeeded()
+    const selectTrigger = page.getByRole('dialog').getByRole('combobox').first()
+    await expect(selectTrigger).toBeVisible({ timeout: 10_000 })
     await selectTrigger.click()
 
     // Pick the first available kin option

@@ -454,3 +454,9 @@ All sections migrated and accuracy-reviewed:
 - v0.19.4 release bundles features already documented (cross-encoder rerank, sourceContext, stale pruning, memory prioritization)
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-13 — Maintenance check: no changes needed (run 2)
+
+- Checked source commits: `d279ccd` (e2e test fixes), `7e9689b` (PR template cleanup) — neither affects documentation
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
