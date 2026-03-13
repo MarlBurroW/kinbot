@@ -36,4 +36,6 @@
 - [ ] I've added tests for new functionality (if applicable)
 - [ ] I've updated documentation if needed
 - [ ] User-facing strings use `useTranslation()` with keys in both `en.json` and `fr.json`
+- [ ] No hardcoded colors — uses semantic CSS variables or Tailwind tokens
+- [ ] Shared types in `src/shared/types.ts`, shared constants in `src/shared/constants.ts`
 - [ ] Breaking changes are noted above (if any)
