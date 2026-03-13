@@ -78,7 +78,7 @@ test.describe.serial('Command palette', () => {
   test('should navigate to settings when clicking General', async ({ page }) => {
     const dialog = await openCommandPalette(page)
 
-    await dialog.getByText('General').click()
+    await dialog.getByText('General', { exact: true }).click()
 
     // Settings dialog should open (command palette closes, settings dialog appears)
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 })

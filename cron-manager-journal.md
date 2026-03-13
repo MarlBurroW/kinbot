@@ -215,3 +215,68 @@
 - Monitor if any cron has become redundant now that docs site is complete
 - Check if kinbot-ci-watchdog really needs Opus
 - Verify rate limiting improves with one fewer active cron
+
+## 2026-03-13 13:03 UTC
+### Audit summary
+- **Active KinBot crons:** 17 (was 18, disabled kinbot-e2e-tests)
+- **Non-KinBot active:** PinchChat, woodbrass-reply-check, reddit-token-refresh
+
+### Healthy (productive, no issues)
+- **kinbot-community** (8h, Opus) — 13s last run. Working.
+- **kinbot-add-tests** (8h, Opus, 900s) — 284s. Steady.
+- **kinbot-plugin-improve** (8h, Opus) — 224s. Working.
+- **kinbot-docs-content** (6h, Opus, 600s) — 24s. Working.
+- **kinbot-github-maintenance** (12h, Opus) — 173s. Working.
+- **kinbot-improve-site** (12h, Opus, 600s) — 337s. Working.
+- **kinbot-qa-explorer** (12h, Opus, 900s) — 220s. Working.
+- **kinbot-release** (1x/day 17:00 UTC, Opus) — 195s. v0.19.4 shipped.
+- **kinbot-ci-watchdog** (6h, Opus) — 8s last run. CI green.
+- **kinbot-improve-cli** (24h, Opus, 600s) — 145s. Working.
+- **kinbot-sse-reactivity** (24h, Opus) — 277s. Working.
+- **kinbot-i18n-audit** (48h, Opus) — 231s. Working.
+- **kinbot-consistency-guardian** (48h, Opus) — 19s. Working.
+- **kinbot-memory-research** (12h, Opus, 600s) — 1 timeout (600s), not a pattern. Very productive.
+- **reddit-token-refresh** (12h, Flash) — 4s. Minimal.
+- **PinchChat** (2x/day, Opus) — 158s. Working.
+- **woodbrass-reply-check** (4h, Flash) — 1.3s. Still finding nothing.
+
+### Issues found & actions taken
+
+1. **kinbot-e2e-tests: DISABLED** ⛔
+   - 3 consecutive timeouts at 900s (before the 300s change could take effect).
+   - Has been timing out for WEEKS despite multiple prompt rewrites (giant "DO NOT RUN PLAYWRIGHT" warnings, allowlisted commands, etc.).
+   - The agent simply ignores the instructions and runs Playwright locally every time.
+   - **kinbot-ci-watchdog already catches E2E CI failures**, making this cron redundant.
+   - **Action: Disabled.** Pure waste of Opus tokens. If Nicolas wants E2E test maintenance, a fundamentally different approach is needed (maybe a simpler model that follows instructions better, or a completely different prompt structure).
+
+2. **kinbot-promo: 2 consecutive timeouts at 300s** ⚠️
+   - Timeout was already bumped to 600s (updatedAt shows recent change). Next run should be fine.
+   - No action needed, monitoring.
+
+3. **kinbot-cron-manager (this cron): timed out last run at 300s** ⚠️
+   - Auditing 40+ crons with run history takes time. 300s was too tight.
+   - **Action: Bumped timeout from 300s to 600s.**
+
+4. **kinbot-memory-research: 1 timeout (600s)**
+   - Single timeout, not a pattern. This cron does deep R&D and has been incredibly productive (cross-encoder rerank, stale pruning, consolidation, source context, etc.).
+   - No action.
+
+### Proposals (for Nicolas to decide)
+
+1. **Model downgrade: kinbot-ci-watchdog → Gemini Flash** (10th time proposing). 95%+ of runs are "CI green ✅" in 8s on Opus. This is the easiest, most obvious cost savings in the entire fleet.
+
+2. **Disable woodbrass-reply-check?** Still running every 4h on Flash, still finding nothing. Cheap but pointless.
+
+3. **kinbot-e2e-tests: needs a different approach.** The current agent simply cannot follow the "don't run Playwright" instruction regardless of how forcefully it's stated. Options:
+   - Try on a different model (Gemini Flash? Kimi K2.5?) that might follow instructions more literally
+   - Change the approach entirely: instead of E2E test maintenance, make it a "read CI logs and fix test code" cron with zero Playwright commands available
+
+### Cost analysis
+- 17 active KinBot crons, nearly all on Opus
+- Disabling kinbot-e2e-tests saves ~1 Opus run/day at 900s timeout = significant token savings
+- kinbot-ci-watchdog remains the lowest-hanging fruit for model downgrade
+
+### Next audit focus
+- Verify kinbot-promo works with 600s timeout
+- Watch memory-research for repeated timeouts
+- Check if any crons are doing duplicate/overlapping work on the same files

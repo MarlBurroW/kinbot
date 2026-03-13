@@ -13,19 +13,18 @@ test.describe.serial('Mini App Gallery', () => {
   })
 
   test('should show Mini-Apps section in Apps tab', async ({ page }) => {
-    // Navigate to Apps tab
-    const appsTab = page.getByRole('tab', { name: 'Apps' })
+    // Navigate to Mini-Apps tab
+    const appsTab = page.getByRole('tab', { name: 'Mini-Apps' })
     await appsTab.click()
 
-    // The Mini-Apps section should be visible in the sidebar
-    const miniAppsSection = page.getByRole('button', { name: 'Mini-Apps' })
-    await expect(miniAppsSection).toBeVisible()
+    // The tab content should be visible (Mini-Apps list renders inline)
+    await expect(appsTab).toHaveAttribute('data-state', 'active')
   })
 
   test('should show Mini-Apps empty state in sidebar when no apps exist', async ({ page }) => {
-    // Verify the sidebar shows the Mini-Apps section
-    const miniAppsSection = page.getByRole('button', { name: 'Mini-Apps' })
-    await expect(miniAppsSection).toBeVisible()
+    // Navigate to Mini-Apps tab
+    const appsTab = page.getByRole('tab', { name: 'Mini-Apps' })
+    await appsTab.click()
 
     // The empty state text depends on whether a Kin is selected:
     // - With a Kin selected: "No apps yet" / "Ask a Kin to create one"

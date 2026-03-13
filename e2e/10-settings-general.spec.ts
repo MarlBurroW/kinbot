@@ -156,7 +156,7 @@ test.describe.serial('Settings — General & Navigation', () => {
     await openSettings(page)
 
     // Hub Kin label should be visible (kins exist from onboarding)
-    await expect(page.getByText('Hub Kin')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('Hub Kin', { exact: true })).toBeVisible({ timeout: 5_000 })
 
     // Hint text should be visible
     await expect(

@@ -447,3 +447,10 @@ All sections migrated and accuracy-reviewed:
 - No new source commits since last run (0e68bed was the latest, already covered)
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-13 — Maintenance check: no changes needed
+
+- Checked source commits since last run: `7e9689b` (chore: PR template cleanup), `c499845` (site: cursor spotlight effect), `3c1c14a` (deps: devalue bump), `9d1f3e4` (release v0.19.4) — none affect documentation content
+- v0.19.4 release bundles features already documented (cross-encoder rerank, sourceContext, stale pruning, memory prioritization)
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
