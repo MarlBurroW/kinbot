@@ -67,7 +67,7 @@ interface ChatPanelProps {
 export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin }: ChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, streamingMessage, liveTasks, liveCompacting, isLoading, isStreaming, hasMore, isLoadingMore, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
+  const { messages, streamingMessage, liveTasks, liveCompacting, isLoading, isStreaming, hasMore, isLoadingMore, tokenStalled, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
@@ -671,7 +671,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                 <span className="ml-2 text-xs text-muted-foreground">{t('chat.loadingOlder')}</span>
               </div>
             )}
-            {isLoading ? (
+            {isLoading && messages.length === 0 ? (
               <div className="flex flex-col gap-4 py-8 animate-fade-in">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className={`flex gap-3 ${i % 2 === 0 ? '' : 'flex-row-reverse'}`}>
@@ -801,7 +801,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     isResponding={isResponding}
                   />
                 ))}
-                {((queueState?.isProcessing && !(streamingMessage && streamingMessage.content.length > 0)) || (isStreaming && !streamingMessage)) && (
+                {queueState?.isProcessing && !(streamingMessage && streamingMessage.content.length > 0 && !tokenStalled) && (
                   <TypingIndicator kinName={kin.name} kinAvatarUrl={kin.avatarUrl} />
                 )}
               </div>

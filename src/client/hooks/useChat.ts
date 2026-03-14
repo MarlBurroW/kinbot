@@ -58,6 +58,8 @@ interface MessagesResponse {
 }
 
 const STREAMING_BATCH_MS = 50
+/** After this many ms without a text token, consider the output "stalled" (e.g. tool call being generated) */
+const TOKEN_STALL_MS = 1500
 
 export function useChat(kinId: string | null) {
   const { t } = useTranslation()
@@ -69,9 +71,12 @@ export function useChat(kinId: string | null) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  /** True when text tokens haven't arrived for TOKEN_STALL_MS while still streaming */
+  const [tokenStalled, setTokenStalled] = useState(false)
   const streamingContentRef = useRef('')
   const streamingMessageIdRef = useRef<string | null>(null)
   const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tokenStallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Map task title → taskId, populated from SSE events so we can enrich
   // persisted messages that may lack resolvedTaskId in their server metadata.
@@ -102,7 +107,28 @@ export function useChat(kinId: string | null) {
         }
       }
 
-      setMessages(data.messages)
+      // Smart merge: preserve object references for messages that haven't changed.
+      // This prevents unnecessary re-renders of MessageBubble components (which are
+      // memo'd and compare props by reference).
+      setMessages((prev) => {
+        if (prev.length === 0) return data.messages
+        const prevById = new Map(prev.map((m) => [m.id, m]))
+        return data.messages.map((m) => {
+          const existing = prevById.get(m.id)
+          if (!existing) return m
+          // Keep old reference if content and key metadata are unchanged
+          if (
+            existing.content === m.content &&
+            existing.memoriesExtracted === m.memoriesExtracted &&
+            existing.isRedacted === m.isRedacted &&
+            (existing.toolCalls?.length ?? 0) === (m.toolCalls?.length ?? 0) &&
+            existing.reactions.length === m.reactions.length
+          ) {
+            return existing
+          }
+          return m
+        })
+      })
       setHasMore(data.hasMore)
 
       // Remove live tasks whose result already appears as a persisted message.
@@ -171,9 +197,14 @@ export function useChat(kinId: string | null) {
     streamingContentRef.current = ''
     streamingMessageIdRef.current = null
     taskIdByTitleRef.current.clear()
+    setTokenStalled(false)
     if (batchTimerRef.current) {
       clearTimeout(batchTimerRef.current)
       batchTimerRef.current = null
+    }
+    if (tokenStallTimerRef.current) {
+      clearTimeout(tokenStallTimerRef.current)
+      tokenStallTimerRef.current = null
     }
     // Restore live task cards for active tasks after clearing
     fetchActiveTasks()
@@ -234,6 +265,11 @@ export function useChat(kinId: string | null) {
       const token = data.token as string
       const messageId = data.messageId as string
 
+      // Reset token stall timer on every text token
+      setTokenStalled(false)
+      if (tokenStallTimerRef.current) clearTimeout(tokenStallTimerRef.current)
+      tokenStallTimerRef.current = setTimeout(() => setTokenStalled(true), TOKEN_STALL_MS)
+
       if (!streamingMessageIdRef.current) {
         // First token: create streaming message in separate state
         streamingMessageIdRef.current = messageId
@@ -278,10 +314,14 @@ export function useChat(kinId: string | null) {
       if (data.taskId) return // Ignore done events from sub-Kin tasks
       if (data.sessionId) return // Ignore done events from quick sessions
 
-      // Flush any pending batch timer
+      // Flush any pending timers
       if (batchTimerRef.current) {
         clearTimeout(batchTimerRef.current)
         batchTimerRef.current = null
+      }
+      if (tokenStallTimerRef.current) {
+        clearTimeout(tokenStallTimerRef.current)
+        tokenStallTimerRef.current = null
       }
 
       // Promote the streaming message into the messages array before clearing
@@ -306,7 +346,7 @@ export function useChat(kinId: string | null) {
             memoriesExtracted: null,
             files: [],
             reactions: [],
-          stepLimitReached: false,
+            stepLimitReached: (data.stepLimitReached as boolean) ?? false,
             createdAt: new Date().toISOString(),
           },
         ])
@@ -314,10 +354,13 @@ export function useChat(kinId: string | null) {
 
       setIsStreaming(false)
       setStreamingMessage(null)
+      setTokenStalled(false)
       streamingContentRef.current = ''
       streamingMessageIdRef.current = null
 
-      // Refresh to get the final message from DB (with tool calls, etc.)
+      // Refresh to get the final message from DB (with tool calls, memoriesExtracted, etc.)
+      // Use a smart merge to preserve object references for unchanged messages,
+      // avoiding unnecessary re-renders of the entire message list.
       fetchMessages()
     },
 
@@ -532,12 +575,11 @@ export function useChat(kinId: string | null) {
     }
   }, [kinId])
 
-  // Cleanup batch timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      if (batchTimerRef.current) {
-        clearTimeout(batchTimerRef.current)
-      }
+      if (batchTimerRef.current) clearTimeout(batchTimerRef.current)
+      if (tokenStallTimerRef.current) clearTimeout(tokenStallTimerRef.current)
     }
   }, [])
 
@@ -561,6 +603,7 @@ export function useChat(kinId: string | null) {
     isStreaming,
     hasMore,
     isLoadingMore,
+    tokenStalled,
     sendMessage,
     stopStreaming,
     clearConversation,
