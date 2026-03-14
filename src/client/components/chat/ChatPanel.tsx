@@ -621,6 +621,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         messageCount={messages.length}
         estimatedTokens={queueState?.contextTokens ?? 0}
         maxTokens={queueState?.contextWindow ?? 0}
+        contextBreakdown={queueState?.contextBreakdown}
         compactingTokens={queueState?.compactingTokens}
         compactingThreshold={queueState?.compactingThreshold}
         compactingMessages={queueState?.compactingMessages}

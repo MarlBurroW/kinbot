@@ -58,12 +58,20 @@ const activeAbortControllers = new Map<string, AbortController>()
 // AbortController registry for quick sessions — keyed by sessionId
 const quickAbortControllers = new Map<string, AbortController>()
 
+// Token breakdown by category
+export interface ContextTokenBreakdown {
+  systemPrompt: number
+  messages: number
+  tools: number
+  total: number
+}
+
 // Cache of last computed context usage per Kin (populated after each LLM call)
-const lastContextUsage = new Map<string, { contextTokens: number; contextWindow: number; updatedAt: number }>()
+const lastContextUsage = new Map<string, { contextTokens: number; contextWindow: number; updatedAt: number; breakdown?: ContextTokenBreakdown }>()
 
 /** Store the latest context usage for a Kin (called after LLM estimation). */
-export function setLastContextUsage(kinId: string, contextTokens: number, contextWindow: number) {
-  lastContextUsage.set(kinId, { contextTokens, contextWindow, updatedAt: Date.now() })
+export function setLastContextUsage(kinId: string, contextTokens: number, contextWindow: number, breakdown?: ContextTokenBreakdown) {
+  lastContextUsage.set(kinId, { contextTokens, contextWindow, updatedAt: Date.now(), breakdown })
 }
 
 /** Get the cached context usage for a Kin, if available. */
@@ -120,25 +128,29 @@ function estimateContextTokens(
   systemPrompt: string,
   messageHistory: ModelMessage[],
   tools: Record<string, unknown> | undefined,
-): number {
-  let total = estimateTokens(systemPrompt)
+): ContextTokenBreakdown {
+  const systemPromptTokens = estimateTokens(systemPrompt)
+  let messagesTokens = 0
   for (const msg of messageHistory) {
     if (typeof msg.content === 'string') {
-      total += estimateTokens(msg.content)
+      messagesTokens += estimateTokens(msg.content)
     } else if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
         if ('text' in part && typeof part.text === 'string') {
-          total += estimateTokens(part.text)
+          messagesTokens += estimateTokens(part.text)
         } else if ('type' in part && part.type === 'image') {
-          total += 85 // rough per-image overhead
+          messagesTokens += 85 // rough per-image overhead
         }
       }
     }
   }
-  if (tools && Object.keys(tools).length > 0) {
-    total += estimateTokens(JSON.stringify(tools))
+  const toolsTokens = (tools && Object.keys(tools).length > 0) ? estimateTokens(JSON.stringify(tools)) : 0
+  return {
+    systemPrompt: systemPromptTokens,
+    messages: messagesTokens,
+    tools: toolsTokens,
+    total: systemPromptTokens + messagesTokens + toolsTokens,
   }
-  return total
 }
 
 /**
@@ -471,9 +483,10 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const hasTools = Object.keys(tools).length > 0
 
     // Estimate total context tokens and resolve model context window
-    const contextTokens = estimateContextTokens(systemPrompt, messageHistory, hasTools ? tools : undefined)
+    const contextBreakdown = estimateContextTokens(systemPrompt, messageHistory, hasTools ? tools : undefined)
+    const contextTokens = contextBreakdown.total
     const contextWindow = getModelContextWindow(kin.model)
-    setLastContextUsage(kinId, contextTokens, contextWindow)
+    setLastContextUsage(kinId, contextTokens, contextWindow, contextBreakdown)
     log.debug({ kinId, toolCount: Object.keys(tools).length, modelId: kin.model, contextTokens, contextWindow }, 'Starting LLM stream')
 
     // Compute compacting proximity and cache it for lightweight SSE events
@@ -493,6 +506,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       kinId,
       data: {
         kinId, queueSize: 0, isProcessing: true, contextTokens, contextWindow,
+        contextBreakdown,
         ...lastCompactingProximity.get(kinId),
       },
     })

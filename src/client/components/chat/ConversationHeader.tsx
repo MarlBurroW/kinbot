@@ -61,6 +61,7 @@ interface ConversationHeaderProps {
   onExportJSON?: () => void
   onSearch?: () => void
   onClearConversation?: () => void
+  contextBreakdown?: { systemPrompt: number; messages: number; tools: number; total: number }
   compactingTokens?: number
   compactingThreshold?: number
   compactingMessages?: number
@@ -97,6 +98,7 @@ export const ConversationHeader = memo(function ConversationHeader({
   onExportJSON,
   onSearch,
   onClearConversation,
+  contextBreakdown,
   compactingTokens,
   compactingThreshold,
   compactingMessages,
@@ -267,11 +269,25 @@ export const ConversationHeader = memo(function ConversationHeader({
                 <span>{contextLabel}</span>
               </div>
               <div className="relative">
-                <Progress
-                  value={contextPercent}
-                  variant={contextPercent > 80 ? 'glow' : 'default'}
-                  className="h-1.5"
-                />
+                {contextBreakdown && hasContextData ? (
+                  <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
+                    {contextBreakdown.tools > 0 && (
+                      <div className="bg-blue-500" style={{ width: `${Math.max(0.5, (contextBreakdown.tools / maxTokens) * 100)}%` }} />
+                    )}
+                    {contextBreakdown.systemPrompt > 0 && (
+                      <div className="bg-purple-500" style={{ width: `${Math.max(0.5, (contextBreakdown.systemPrompt / maxTokens) * 100)}%` }} />
+                    )}
+                    {contextBreakdown.messages > 0 && (
+                      <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (contextBreakdown.messages / maxTokens) * 100)}%` }} />
+                    )}
+                  </div>
+                ) : (
+                  <Progress
+                    value={contextPercent}
+                    variant={contextPercent > 80 ? 'glow' : 'default'}
+                    className="h-1.5"
+                  />
+                )}
                 {compactingMarkerPercent != null && (
                   <div
                     className="absolute top-0 h-full w-px bg-foreground/50"
@@ -299,11 +315,25 @@ export const ConversationHeader = memo(function ConversationHeader({
                 <span className="text-muted-foreground">{contextLabel}</span>
               </div>
               <div className="relative">
-                <Progress
-                  value={contextPercent}
-                  variant={contextPercent > 80 ? 'glow' : 'default'}
-                  className="h-2.5"
-                />
+                {contextBreakdown && hasContextData ? (
+                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-primary/20">
+                    {contextBreakdown.tools > 0 && (
+                      <div className="bg-blue-500" style={{ width: `${Math.max(0.5, (contextBreakdown.tools / maxTokens) * 100)}%` }} />
+                    )}
+                    {contextBreakdown.systemPrompt > 0 && (
+                      <div className="bg-purple-500" style={{ width: `${Math.max(0.5, (contextBreakdown.systemPrompt / maxTokens) * 100)}%` }} />
+                    )}
+                    {contextBreakdown.messages > 0 && (
+                      <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (contextBreakdown.messages / maxTokens) * 100)}%` }} />
+                    )}
+                  </div>
+                ) : (
+                  <Progress
+                    value={contextPercent}
+                    variant={contextPercent > 80 ? 'glow' : 'default'}
+                    className="h-2.5"
+                  />
+                )}
                 {compactingMarkerPercent != null && (
                   <div
                     className="absolute top-0 h-full w-0.5 rounded-full bg-foreground/60"
@@ -311,15 +341,45 @@ export const ConversationHeader = memo(function ConversationHeader({
                   />
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                {hasContextData
-                  ? t('chat.contextUsage', {
-                      tokens: formatTokenCount(estimatedTokens),
-                      max: formatTokenCount(maxTokens),
-                      percent: contextPercent,
-                    })
-                  : t('chat.contextNoData')}
-              </p>
+              {contextBreakdown && hasContextData ? (
+                <div className="space-y-1 text-[10px]">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block size-2 rounded-sm bg-blue-500" />
+                      {t('chat.breakdown.tools', 'Tools')}
+                    </span>
+                    <span>{formatTokenCount(contextBreakdown.tools)} ({Math.round((contextBreakdown.tools / contextBreakdown.total) * 100)}%)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block size-2 rounded-sm bg-purple-500" />
+                      {t('chat.breakdown.systemPrompt', 'System prompt')}
+                    </span>
+                    <span>{formatTokenCount(contextBreakdown.systemPrompt)} ({Math.round((contextBreakdown.systemPrompt / contextBreakdown.total) * 100)}%)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block size-2 rounded-sm bg-emerald-500" />
+                      {t('chat.breakdown.messages', 'Messages')}
+                    </span>
+                    <span>{formatTokenCount(contextBreakdown.messages)} ({Math.round((contextBreakdown.messages / contextBreakdown.total) * 100)}%)</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border/40 pt-1 text-foreground">
+                    <span className="font-medium">{t('chat.breakdown.total', 'Total')}</span>
+                    <span>{formatTokenCount(contextBreakdown.total)} / {formatTokenCount(maxTokens)} ({contextPercent}%)</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">
+                  {hasContextData
+                    ? t('chat.contextUsage', {
+                        tokens: formatTokenCount(estimatedTokens),
+                        max: formatTokenCount(maxTokens),
+                        percent: contextPercent,
+                      })
+                    : t('chat.contextNoData')}
+                </p>
+              )}
             </div>
 
             {/* Compacting proximity */}

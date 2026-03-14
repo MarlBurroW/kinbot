@@ -354,6 +354,7 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     return c.json({
       contextTokens: cached.contextTokens,
       contextWindow: cached.contextWindow,
+      contextBreakdown: cached.breakdown ?? null,
       compactingTokens: compacting.currentTokens,
       compactingThreshold: compacting.tokenThreshold,
       compactingMessages: compacting.currentMessages,
@@ -365,9 +366,9 @@ kinRoutes.get('/:id/context-usage', async (c) => {
   const contextWindow = getModelContextWindow(kin.model)
   const estimateTokens = (text: string) => Math.ceil(text.length / 4)
 
-  let contextTokens = 0
-  contextTokens += estimateTokens([kin.name, kin.role, kin.character, kin.expertise].join(' '))
-  contextTokens += 1500
+  let systemPromptTokens = 0
+  systemPromptTokens += estimateTokens([kin.name, kin.role, kin.character, kin.expertise].join(' '))
+  systemPromptTokens += 1500
 
   const snapshot = await db
     .select({ summary: compactingSnapshots.summary, createdAt: compactingSnapshots.createdAt })
@@ -376,7 +377,7 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     .get()
 
   if (snapshot) {
-    contextTokens += estimateTokens(snapshot.summary)
+    systemPromptTokens += estimateTokens(snapshot.summary)
   }
 
   const recentMsgs = await db
@@ -398,13 +399,17 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     ? recentMsgs.filter((m) => m.createdAt && snapshot.createdAt && m.createdAt > snapshot.createdAt)
     : recentMsgs
 
+  let messagesTokens = 0
   for (const msg of filtered) {
-    if (msg.content) contextTokens += estimateTokens(msg.content)
+    if (msg.content) messagesTokens += estimateTokens(msg.content)
   }
+
+  const contextTokens = systemPromptTokens + messagesTokens
 
   return c.json({
     contextTokens,
     contextWindow,
+    contextBreakdown: { systemPrompt: systemPromptTokens, messages: messagesTokens, tools: 0, total: contextTokens },
     compactingTokens: compacting.currentTokens,
     compactingThreshold: compacting.tokenThreshold,
     compactingMessages: compacting.currentMessages,
