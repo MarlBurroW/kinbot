@@ -11,6 +11,7 @@ const mockVault = {
   updateSecretValueByKey: mock(() => Promise.resolve(null as any)),
   deleteSecret: mock(() => Promise.resolve(false)),
   searchSecrets: mock(() => Promise.resolve([] as any[])),
+  findMessageByContent: mock(() => Promise.resolve(null as string | null)),
   getEntryValue: mock(() => Promise.resolve(null as any)),
   createEntry: mock(() => Promise.resolve({ id: 'ent-1', key: 'TEST', entryType: 'text' })),
   getAttachment: mock(() => Promise.resolve(null as any)),

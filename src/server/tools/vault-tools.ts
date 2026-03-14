@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   getSecretValue,
   redactMessage,
+  findMessageByContent,
   createSecret,
   getSecretByKey,
   updateSecretValueByKey,
@@ -57,16 +58,48 @@ export const redactMessageTool: ToolRegistration = {
       description:
         'Replace secret content in a message with a placeholder. Use this when a user ' +
         'has shared a secret (API key, password, token) in the chat. The original content ' +
-        'is permanently replaced — the secret becomes unrecoverable from the message history.',
+        'is permanently replaced — the secret becomes unrecoverable from the message history. ' +
+        'You can provide either a message_id or a content_match string (a unique snippet from ' +
+        'the message to redact). If both are provided, message_id takes priority.',
       inputSchema: z.object({
-        message_id: z.string().describe('The ID of the message to redact'),
+        message_id: z
+          .string()
+          .optional()
+          .describe('The ID of the message to redact (from search_history or other tools)'),
+        content_match: z
+          .string()
+          .optional()
+          .describe(
+            'A unique text snippet contained in the message to redact. ' +
+            'The most recent matching non-redacted message will be used. ' +
+            'Prefer this when you do not have the message ID.',
+          ),
         redacted_text: z
           .string()
           .describe('Placeholder text (e.g. "[SECRET: GITHUB_TOKEN]" or "[REDACTED]")'),
       }),
-      execute: async ({ message_id, redacted_text }) => {
-        const success = await redactMessage(message_id, ctx.kinId, redacted_text)
+      execute: async ({ message_id, content_match, redacted_text }) => {
+        let targetId = message_id
+
+        // If no message_id provided (or it fails), try content-based lookup
+        if (!targetId && content_match) {
+          targetId = await findMessageByContent(ctx.kinId, content_match) ?? undefined
+        }
+
+        if (!targetId) {
+          return { error: 'Message not found. Provide a valid message_id or a content_match snippet that exists in a recent message.' }
+        }
+
+        const success = await redactMessage(targetId, ctx.kinId, redacted_text)
         if (!success) {
+          // If message_id was provided directly but failed, try content fallback
+          if (message_id && content_match) {
+            const fallbackId = await findMessageByContent(ctx.kinId, content_match)
+            if (fallbackId) {
+              const fallbackSuccess = await redactMessage(fallbackId, ctx.kinId, redacted_text)
+              if (fallbackSuccess) return { success: true, matched_by: 'content_match' }
+            }
+          }
           return { error: 'Message not found' }
         }
         return { success: true }
