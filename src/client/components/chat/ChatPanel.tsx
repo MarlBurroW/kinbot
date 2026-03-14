@@ -628,6 +628,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
             onClose={toggleSearch}
             onSearchChange={handleSearchChange}
             messages={displayMessages}
+            hasMore={hasMore}
           />
         </Suspense>
       )}

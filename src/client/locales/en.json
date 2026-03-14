@@ -562,7 +562,8 @@
       "results": "{{current}} of {{total}}",
       "previous": "Previous match",
       "next": "Next match",
-      "close": "Close search"
+      "close": "Close search",
+      "partialScope": "Only searching {{count}} loaded messages"
     },
     "collapse": {
       "showMore": "Show more",

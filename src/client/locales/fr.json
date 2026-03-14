@@ -562,7 +562,8 @@
       "results": "{{current}} sur {{total}}",
       "previous": "Résultat précédent",
       "next": "Résultat suivant",
-      "close": "Fermer la recherche"
+      "close": "Fermer la recherche",
+      "partialScope": "Recherche limitée à {{count}} messages chargés"
     },
     "collapse": {
       "showMore": "Voir plus",
