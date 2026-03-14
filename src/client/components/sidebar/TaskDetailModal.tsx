@@ -100,12 +100,16 @@ export function TaskDetailModal({
   // Filter out messages already represented elsewhere in the modal:
   // - sourceType 'system' + role 'user' = instruction (shown in header)
   // - sourceType 'task' = report to parent (shown in result block at bottom)
+  // - message with same id as the current streaming message (polling can
+  //   fetch the persisted version while streaming is still active, causing
+  //   the same message to appear both in the list and as the streaming bubble)
   const visibleMessages = useMemo(
     () => messages.filter((msg) =>
       !(msg.sourceType === 'system' && msg.role === 'user') &&
-      msg.sourceType !== 'task'
+      msg.sourceType !== 'task' &&
+      !(streamingMessage && msg.id === streamingMessage.id)
     ),
-    [messages],
+    [messages, streamingMessage],
   )
 
   // Auto-scroll when messages or streaming update
