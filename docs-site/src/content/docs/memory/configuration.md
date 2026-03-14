@@ -24,7 +24,10 @@ These control the hybrid search, scoring, and result selection pipeline.
 | `MEMORY_RRF_K` | `60` | Reciprocal Rank Fusion smoothing constant. Higher values give more weight to lower-ranked results |
 | `MEMORY_FTS_BOOST` | `1.2` | Multiplier for FTS results in RRF scoring. Values > 1 favor keyword matches |
 | `MEMORY_SUBJECT_BOOST` | `1.3` | Score multiplier when a memory's subject matches an entity in the query |
+| `MEMORY_CATEGORY_BOOST` | `1.25` | Score multiplier for category-matching memories |
 | `MEMORY_TEMPORAL_DECAY_LAMBDA` | `0.01` | Temporal decay rate. Higher = faster decay. Set to `0` to disable. Category-adjusted: facts decay 10× slower than decisions |
+| `MEMORY_TEMPORAL_DECAY_FLOOR` | `0.7` | Minimum score multiplier from temporal decay. Prevents old memories from being completely suppressed |
+| `MEMORY_TOKEN_BUDGET` | `0` | Max tokens for the memory block in prompt. `0` = unlimited (no budget enforcement) |
 | `MEMORY_ADAPTIVE_K` | `true` | Enable adaptive result trimming based on score distribution |
 | `MEMORY_ADAPTIVE_K_MIN_SCORE_RATIO` | `0.3` | Minimum score as a ratio of the top result. Results below this are dropped |
 
@@ -35,6 +38,7 @@ These features use additional LLM calls to improve retrieval quality. Each is di
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MEMORY_MULTI_QUERY_MODEL` | *(disabled)* | Model for generating query variations. Expands each query into 3 alternatives targeting different aspects |
+| `MEMORY_HYDE_MODEL` | *(disabled)* | Model for HyDE (Hypothetical Document Embedding). Generates a hypothetical answer to use as an additional search query for better semantic matching |
 | `MEMORY_RERANK_MODEL` | *(disabled)* | Model for re-ranking. If a rerank provider (Cohere/Jina) is configured, uses their cross-encoder API (~20× faster). Otherwise falls back to LLM-based scoring (0-10 scale) |
 | `MEMORY_CONTEXTUAL_REWRITE_MODEL` | *(disabled)* | Model for rewriting short/ambiguous messages into standalone queries using conversation context |
 | `MEMORY_CONTEXTUAL_REWRITE_THRESHOLD` | `80` | Character length threshold. Messages shorter than this are candidates for contextual rewriting |
@@ -55,14 +59,19 @@ Consolidation clusters are capped at 3 memories to preserve detail. Larger group
 
 ## Compacting Settings
 
-Session compacting summarizes long conversations to stay within token limits.
+Session compacting summarizes long conversations when they approach the model's context window limit.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COMPACTING_MESSAGE_THRESHOLD` | `50` | Messages before auto-compacting triggers |
-| `COMPACTING_TOKEN_THRESHOLD` | `30000` | Token count before auto-compacting triggers |
+| `COMPACTING_THRESHOLD_PERCENT` | `75` | Trigger compaction when context usage reaches this % of the model's context window (50-95) |
 | `COMPACTING_MODEL` | Provider default | Model used for session compacting/summarization |
 | `COMPACTING_MAX_SNAPSHOTS` | `10` | Maximum compacting snapshots kept per Kin |
+
+The threshold can also be configured per-Kin (overrides the global setting) or via **Settings > Memory** in the UI.
+
+:::note
+The older `COMPACTING_MESSAGE_THRESHOLD` and `COMPACTING_TOKEN_THRESHOLD` env vars are still accepted for backward compatibility but no longer drive the compaction logic. Use `COMPACTING_THRESHOLD_PERCENT` instead.
+:::
 
 ## Embedding Provider
 
@@ -90,7 +99,7 @@ Without an embedding provider, memory storage and retrieval will not work. The K
 ### Basic Tuning
 - **Lower `MEMORY_SIMILARITY_THRESHOLD`** (e.g., 0.5) to retrieve more memories at the cost of relevance
 - **Raise `MEMORY_MAX_RELEVANT`** if your Kin needs broader context awareness
-- **Lower `COMPACTING_MESSAGE_THRESHOLD`** for Kins with very long conversations
+- **Lower `COMPACTING_THRESHOLD_PERCENT`** (e.g., 60) for Kins with very long conversations to compact earlier
 
 ### Search Quality
 - **Enable multi-query** (`MEMORY_MULTI_QUERY_MODEL=gpt-4.1-mini`) for better recall on complex queries

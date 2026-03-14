@@ -221,6 +221,7 @@ sessionRoutes.get('/:id', async (c) => {
         toolCalls: m.toolCalls ? JSON.parse(m.toolCalls as string) : null,
         resolvedTaskId: null,
         injectedMemories: meta?.injectedMemories ?? null,
+        stepLimitReached: meta?.stepLimitReached ?? false,
         files: (fileMap.get(m.id) ?? []).map(serializeFile),
         createdAt: m.createdAt,
       }

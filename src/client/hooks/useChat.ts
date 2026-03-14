@@ -25,6 +25,7 @@ export interface ChatMessage {
   resolvedTaskId: string | null
   injectedMemories: Array<{ id: string; category: string; content: string; subject: string | null }> | null
   memoriesExtracted: number | null
+  stepLimitReached: boolean
   files: MessageFile[]
   reactions: MessageReaction[]
   createdAt: string
@@ -123,6 +124,42 @@ export function useChat(kinId: string | null) {
     }
   }, [kinId])
 
+  // Fetch active tasks for this kin to restore live task cards after navigation
+  const fetchActiveTasks = useCallback(async () => {
+    if (!kinId) return
+    try {
+      const activeStatuses: TaskStatus[] = ['in_progress', 'pending', 'awaiting_human_input']
+      const results = await Promise.all(
+        activeStatuses.map((s) =>
+          api.get<{ tasks: Array<{ id: string; status: TaskStatus; title: string; description: string; sourceKinName: string | null; sourceKinAvatarUrl: string | null; createdAt: string; parentKinName: string; parentKinAvatarUrl: string | null }> }>(
+            `/tasks?kinId=${kinId}&status=${s}&limit=20`,
+          ),
+        ),
+      )
+      const activeTasks = results.flatMap((r) => r.tasks)
+      if (activeTasks.length > 0) {
+        setLiveTasks((prev) => {
+          const existingIds = new Set(prev.map((t) => t.taskId))
+          const newTasks: LiveTask[] = activeTasks
+            .filter((t) => !existingIds.has(t.id))
+            .map((t) => ({
+              taskId: t.id,
+              status: t.status,
+              title: t.title ?? t.description,
+              senderName: t.sourceKinName ?? t.parentKinName,
+              senderAvatarUrl: t.sourceKinAvatarUrl ?? t.parentKinAvatarUrl,
+              result: null,
+              error: null,
+              createdAt: t.createdAt,
+            }))
+          return newTasks.length > 0 ? [...prev, ...newTasks] : prev
+        })
+      }
+    } catch {
+      // Silently fail — tasks list is non-critical
+    }
+  }, [kinId])
+
   useEffect(() => {
     fetchMessages()
     setIsStreaming(false)
@@ -138,7 +175,21 @@ export function useChat(kinId: string | null) {
       clearTimeout(batchTimerRef.current)
       batchTimerRef.current = null
     }
-  }, [fetchMessages])
+    // Restore live task cards for active tasks after clearing
+    fetchActiveTasks()
+    // Restore compacting state if a compaction is in progress
+    api.get<{ isCompacting?: boolean }>(`/kins/${kinId}`).then((kin) => {
+      if (kin.isCompacting) {
+        setLiveCompacting({
+          kinId: kinId!,
+          status: 'running',
+          summary: null,
+          memoriesExtracted: null,
+          startedAt: new Date().toISOString(),
+        })
+      }
+    }).catch(() => {})
+  }, [fetchMessages, fetchActiveTasks])
 
   // Fetch older messages (pagination — prepend to existing)
   const fetchOlderMessages = useCallback(async () => {
@@ -204,6 +255,7 @@ export function useChat(kinId: string | null) {
           memoriesExtracted: null,
           files: [],
           reactions: [],
+          stepLimitReached: false,
           createdAt: new Date().toISOString(),
         })
       } else {
@@ -254,6 +306,7 @@ export function useChat(kinId: string | null) {
             memoriesExtracted: null,
             files: [],
             reactions: [],
+          stepLimitReached: false,
             createdAt: new Date().toISOString(),
           },
         ])
@@ -300,6 +353,7 @@ export function useChat(kinId: string | null) {
         memoriesExtracted: null,
         files: [],
         reactions: [],
+          stepLimitReached: false,
         createdAt: new Date(data.createdAt as number).toISOString(),
       }
       setMessages((prev) => [...prev, message])
@@ -450,6 +504,7 @@ export function useChat(kinId: string | null) {
         memoriesExtracted: null,
         files: optimisticFiles ?? [],
         reactions: [],
+          stepLimitReached: false,
         createdAt: new Date().toISOString(),
       }
 

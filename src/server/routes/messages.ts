@@ -156,6 +156,7 @@ messageRoutes.get('/', async (c) => {
         resolvedTaskId: meta?.resolvedTaskId ?? meta?.relatedTaskId ?? null,
         injectedMemories: meta?.injectedMemories ?? null,
         memoriesExtracted: meta?.memoriesExtracted ?? null,
+        stepLimitReached: meta?.stepLimitReached ?? false,
         files: (fileMap.get(m.id) ?? []).map(serializeFile),
         reactions: reactionMap.get(m.id) ?? [],
         createdAt: m.createdAt,

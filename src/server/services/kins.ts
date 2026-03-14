@@ -51,7 +51,7 @@ export interface CreateKinInput {
   expertise: string
   model: string
   providerId?: string | null
-  createdBy: string
+  createdBy: string | null
   mcpServerIds?: string[]
 }
 
@@ -171,20 +171,25 @@ export async function createKin(input: CreateKinInput): Promise<KinRecord> {
   mkdirSync(`${workspacePath}/tools`, { recursive: true })
 
   const now = new Date()
-  await db.insert(kins).values({
-    id,
-    slug,
-    name: input.name,
-    role: input.role,
-    character: input.character,
-    expertise: input.expertise,
-    model: input.model,
-    providerId: input.providerId ?? null,
-    workspacePath,
-    createdBy: input.createdBy,
-    createdAt: now,
-    updatedAt: now,
-  })
+  try {
+    await db.insert(kins).values({
+      id,
+      slug,
+      name: input.name,
+      role: input.role,
+      character: input.character,
+      expertise: input.expertise,
+      model: input.model,
+      providerId: input.providerId ?? null,
+      workspacePath,
+      createdBy: input.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    })
+  } catch (err) {
+    log.error({ kinId: id, name: input.name, createdBy: input.createdBy, providerId: input.providerId ?? null, err }, 'Failed to insert kin')
+    throw err
+  }
 
   log.info({ kinId: id, name: input.name, slug }, 'Kin created')
 

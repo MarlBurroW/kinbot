@@ -447,3 +447,61 @@ All sections migrated and accuracy-reviewed:
 - No new source commits since last run (0e68bed was the latest, already covered)
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-13 — Maintenance check: no changes needed
+
+- Checked source commits since last run: `7e9689b` (chore: PR template cleanup), `c499845` (site: cursor spotlight effect), `3c1c14a` (deps: devalue bump), `9d1f3e4` (release v0.19.4) — none affect documentation content
+- v0.19.4 release bundles features already documented (cross-encoder rerank, sourceContext, stale pruning, memory prioritization)
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-13 — Maintenance check: no changes needed (run 2)
+
+- Checked source commits: `d279ccd` (e2e test fixes), `7e9689b` (PR template cleanup) — neither affects documentation
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-13 — Maintenance check: no changes needed (run 3)
+
+- Checked source commits: `9fae6a7` and `35c5b39` (e2e test fixes) — no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-14 — Maintenance check: no changes needed
+
+- Checked source commits since last run: `72d7dcb`, `9fae6a7`, `35c5b39`, `d279ccd` — all e2e test fixes, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-14 — Missing env vars from README sync ✅
+
+- README commit `a8a9891` added 26 env vars. Cross-checked docs-site coverage.
+- **memory/configuration.md**: Added 4 missing vars:
+  - `MEMORY_HYDE_MODEL` — HyDE (hypothetical document embedding) for better semantic matching
+  - `MEMORY_CATEGORY_BOOST` — category-matching score multiplier
+  - `MEMORY_TEMPORAL_DECAY_FLOOR` — minimum decay multiplier
+  - `MEMORY_TOKEN_BUDGET` — token budget for memory block in prompt
+- **getting-started/configuration.md**: Added 4 new sections with 8 env vars:
+  - History: `HISTORY_TOKEN_BUDGET`
+  - Webhooks: `WEBHOOKS_LOG_RETENTION_DAYS`, `WEBHOOKS_MAX_LOGS_PER_WEBHOOK`, `WEBHOOKS_RATE_LIMIT_PER_MINUTE`
+  - Uploads: `UPLOAD_CHANNEL_RETENTION_DAYS`, `UPLOAD_CHANNEL_CLEANUP_INTERVAL`
+  - Version checking: `VERSION_CHECK_ENABLED`, `VERSION_CHECK_REPO`, `VERSION_CHECK_INTERVAL_HOURS`
+- Other today's commits (SSE handlers, installer --env, shimmer effect, i18n) have no docs impact
+- Build passes: 34 pages
+- Commit: `da133d5` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with source code
+
+## 2026-03-14 — Compacting percentage threshold + tool step limit docs ✅
+
+- New feature `6ad7da7`: replaced dual `COMPACTING_MESSAGE_THRESHOLD` / `COMPACTING_TOKEN_THRESHOLD` with single `COMPACTING_THRESHOLD_PERCENT` (default 75%)
+- New feature `a59e82a`: `TOOLS_MAX_STEPS` default changed from 10 to 0 (unlimited)
+- **memory/configuration.md**: Rewrote Compacting Settings section with new percentage-based env var, added deprecation note for old vars, updated tuning tips
+- **memory/how-it-works.md**: Updated compacting trigger description from "message/token count" to "context usage percentage"
+- **api/rest.md**: Added `GET/PUT /api/settings/compacting-threshold` endpoints
+- **getting-started/configuration.md**: Updated advanced options list with new compacting var and TOOLS_MAX_STEPS
+- Other commits since last run: UI fixes (duplicate tool calls, typing indicator, compacting state persistence, animation fixes, MCP process cleanup, shell stderr rendering) — no docs impact
+- Build passes: 34 pages
+- Commit: `f20a9db` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with source code

@@ -379,6 +379,34 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
     let streamError: Error | null = null
 
+    // Pre-insert assistant message so it's visible in fetchDetail() during streaming.
+    // Content and tool calls will be updated when the stream completes.
+    const assistantMsgCreatedAt = new Date()
+    await db.insert(messages).values({
+      id: assistantMessageId,
+      kinId: task.parentKinId,
+      taskId,
+      role: 'assistant',
+      content: '',
+      sourceType: 'kin',
+      sourceId: kinIdentity.id,
+      createdAt: assistantMsgCreatedAt,
+    })
+
+    sseManager.sendToKin(task.parentKinId, {
+      type: 'chat:message',
+      kinId: task.parentKinId,
+      data: {
+        id: assistantMessageId,
+        taskId,
+        role: 'assistant',
+        content: '',
+        sourceType: 'kin',
+        sourceId: kinIdentity.id,
+        createdAt: assistantMsgCreatedAt.getTime(),
+      },
+    })
+
     const result = streamText({
       model,
       system: systemPrompt,
@@ -399,6 +427,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
               messageId: assistantMessageId,
               toolCallId: p.toolCallId,
               toolName: p.toolName,
+              contentOffset: fullContent.length,
               taskId,
             },
           })
@@ -463,20 +492,13 @@ async function executeSubKin(taskId: string, isNudge = false) {
     if (streamError) {
       log.error({ taskId, error: streamError.message }, 'Sub-Kin stream error')
 
-      // Save partial content if any was produced before the error
-      if (fullContent || toolCallsLog.length > 0) {
-        await db.insert(messages).values({
-          id: assistantMessageId,
-          kinId: task.parentKinId,
-          taskId,
-          role: 'assistant',
+      // Update pre-inserted assistant message with partial content from the error
+      await db.update(messages)
+        .set({
           content: fullContent || '',
-          sourceType: 'kin',
-          sourceId: kinIdentity.id,
           toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
-          createdAt: new Date(),
         })
-      }
+        .where(eq(messages.id, assistantMessageId))
 
       sseManager.sendToKin(task.parentKinId, {
         type: 'chat:done',
@@ -510,18 +532,13 @@ async function executeSubKin(taskId: string, isNudge = false) {
 
     const responseText = fullContent
 
-    // Save assistant message with tool calls
-    await db.insert(messages).values({
-      id: assistantMessageId,
-      kinId: task.parentKinId,
-      taskId,
-      role: 'assistant',
-      content: responseText,
-      sourceType: 'kin',
-      sourceId: kinIdentity.id,
-      toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
-      createdAt: new Date(),
-    })
+    // Update the pre-inserted assistant message with final content and tool calls
+    await db.update(messages)
+      .set({
+        content: responseText,
+        toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+      })
+      .where(eq(messages.id, assistantMessageId))
 
     // Emit chat:done so the frontend knows streaming is over
     sseManager.sendToKin(task.parentKinId, {

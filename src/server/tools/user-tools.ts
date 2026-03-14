@@ -125,9 +125,12 @@ export const createInvitationTool: ToolRegistration = {
       }),
       execute: async ({ label, expires_in_days }) => {
         log.debug({ kinId: ctx.kinId, label }, 'Invitation creation requested by Kin')
+        if (!ctx.userId) {
+          return { error: 'Cannot create invitation without an authenticated user context' }
+        }
         try {
           const invitation = await createInvitation({
-            createdBy: ctx.userId ?? 'system',
+            createdBy: ctx.userId,
             label,
             kinId: ctx.kinId,
             expiresInDays: expires_in_days,

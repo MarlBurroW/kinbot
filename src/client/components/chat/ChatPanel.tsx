@@ -59,7 +59,7 @@ interface ChatPanelProps {
   kin: KinInfo
   llmModels: LLMModel[]
   modelUnavailable?: boolean
-  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; compactingTokens?: number; compactingThreshold?: number; compactingMessages?: number; compactingMessageThreshold?: number }
+  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: { systemPrompt: number; messages: number; tools: number; total: number }; compactingTokens?: number; compactingThreshold?: number; compactingThresholdPercent?: number; compactingMessages?: number }
   onModelChange: (model: string) => void
   onEditKin: () => void
 }
@@ -111,6 +111,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const inputRef = useRef<MessageInputHandle>(null)
   const prevScrollHeightRef = useRef<number | null>(null)
   const isLoadingMoreRef = useRef(false)
+  const knownMessageIdsRef = useRef<Set<string>>(new Set())
+  const initialLoadDoneRef = useRef(false)
 
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
   const toggleSearch = useCallback(() => {
@@ -164,6 +166,12 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  // Reset known message IDs when switching kins
+  useEffect(() => {
+    knownMessageIdsRef.current = new Set()
+    initialLoadDoneRef.current = false
+  }, [kin.id])
 
   // Auto-focus message input when switching kins
   useEffect(() => {
@@ -490,7 +498,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i]!
       if (msg.role === 'user' && msg.sourceType === 'user') {
-        sendMessage(msg.content)
+        const fileIds = msg.files && msg.files.length > 0 ? msg.files.map((f) => f.id) : undefined
+        sendMessage(msg.content, fileIds)
         return
       }
     }
@@ -564,9 +573,22 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       const isSearchMatch = lowerSearch !== '' && msg.content.toLowerCase().includes(lowerSearch)
       const isCurrentMatch = searchHighlightId === msg.id
 
-      return { msg, showDateSeparator, isGrouped: !!isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch }
+      // Only animate messages that haven't been rendered before.
+      // Suppress animation entirely during the initial load so messages
+      // fetched from the DB don't all flash in.
+      const isNew = initialLoadDoneRef.current && !knownMessageIdsRef.current.has(msg.id)
+      knownMessageIdsRef.current.add(msg.id)
+
+      return { msg, showDateSeparator, isGrouped: !!isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch, isNew }
     })
   }, [displayMessages, searchQuery, searchHighlightId])
+
+  // Mark initial load as done after the first batch of messages is processed
+  useEffect(() => {
+    if (!initialLoadDoneRef.current && displayMessages.length > 0 && !isLoading) {
+      initialLoadDoneRef.current = true
+    }
+  }, [displayMessages, isLoading])
 
   return (
     <div
@@ -599,10 +621,11 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         messageCount={messages.length}
         estimatedTokens={queueState?.contextTokens ?? 0}
         maxTokens={queueState?.contextWindow ?? 0}
+        contextBreakdown={queueState?.contextBreakdown}
         compactingTokens={queueState?.compactingTokens}
         compactingThreshold={queueState?.compactingThreshold}
+        compactingThresholdPercent={queueState?.compactingThresholdPercent}
         compactingMessages={queueState?.compactingMessages}
-        compactingMessageThreshold={queueState?.compactingMessageThreshold}
         toolCallCount={toolCallCount}
         isToolCallsOpen={isToolCallsOpen}
         queueState={queueState}
@@ -627,6 +650,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
             onClose={toggleSearch}
             onSearchChange={handleSearchChange}
             messages={displayMessages}
+            hasMore={hasMore}
           />
         </Suspense>
       )}
@@ -668,7 +692,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
               />
             ) : (
               <div className="space-y-1">
-                {processedMessages.map(({ msg, showDateSeparator, isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch }) => {
+                {processedMessages.map(({ msg, showDateSeparator, isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch, isNew }) => {
                   const dateSeparator = showDateSeparator
                     ? <DateSeparator key={`date-${msg.id}`} date={msg.createdAt} />
                     : null
@@ -729,8 +753,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       timestamp={msg.createdAt}
                       toolCalls={toolCallsByMessage.get(msg.id)}
                       injectedMemories={msg.injectedMemories}
+                      stepLimitReached={msg.stepLimitReached}
                       isRedacted={msg.isRedacted}
                       isGrouped={isGrouped}
+                      isNew={isNew}
                       messageId={msg.id}
                       resolvedTaskId={msg.resolvedTaskId}
                       onOpenTaskDetail={isTask && msg.resolvedTaskId ? setDetailTaskId : undefined}
@@ -775,7 +801,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     isResponding={isResponding}
                   />
                 ))}
-                {(isStreaming || queueState?.isProcessing) && (
+                {((queueState?.isProcessing && !(streamingMessage && streamingMessage.content.length > 0)) || (isStreaming && !streamingMessage)) && (
                   <TypingIndicator kinName={kin.name} kinAvatarUrl={kin.avatarUrl} />
                 )}
               </div>

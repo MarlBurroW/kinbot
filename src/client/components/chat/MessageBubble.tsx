@@ -40,6 +40,7 @@ interface MessageBubbleProps {
   timestamp?: string
   toolCalls?: ToolCallViewItem[]
   injectedMemories?: InjectedMemory[] | null
+  stepLimitReached?: boolean
   files?: MessageFile[]
   reactions?: MessageReaction[]
   currentUserId?: string
@@ -47,6 +48,8 @@ interface MessageBubbleProps {
   isRedacted?: boolean
   /** When true, the message is part of a consecutive group from the same sender — avatar and name are hidden, spacing is tighter. */
   isGrouped?: boolean
+  /** When true, the message was just added to the list (animate entrance). */
+  isNew?: boolean
   messageId?: string
   resolvedTaskId?: string | null
   onOpenTaskDetail?: (taskId: string) => void
@@ -649,6 +652,7 @@ export const MessageBubble = memo(function MessageBubble({
   timestamp,
   toolCalls,
   injectedMemories,
+  stepLimitReached = false,
   files,
   reactions,
   currentUserId,
@@ -656,6 +660,7 @@ export const MessageBubble = memo(function MessageBubble({
   resolvedTaskId,
   isRedacted = false,
   isGrouped = false,
+  isNew = false,
   onOpenTaskDetail,
   onRegenerate,
   onQuoteReply,
@@ -678,13 +683,24 @@ export const MessageBubble = memo(function MessageBubble({
   const channelPlatform = isFromChannel ? content.match(/^\[(\w+):/)?.[1] ?? 'channel' : null
   const isTaskResult = sourceType === 'task'
   const isSystem = sourceType === 'system' || sourceType === 'cron'
-  const hasToolCalls = toolCalls && toolCalls.length > 0
+  // Deduplicate tool calls by ID (safety net for race conditions between
+  // streaming and fetched state that can produce the same call twice)
+  const dedupedToolCalls = useMemo(() => {
+    if (!toolCalls || toolCalls.length === 0) return toolCalls
+    const seen = new Set<string>()
+    return toolCalls.filter((tc) => {
+      if (seen.has(tc.id)) return false
+      seen.add(tc.id)
+      return true
+    })
+  }, [toolCalls])
+  const hasToolCalls = dedupedToolCalls && dedupedToolCalls.length > 0
   const hasFiles = files && files.length > 0
   const hasMemories = injectedMemories && injectedMemories.length > 0
 
   const contentParts = useMemo(
-    () => (hasToolCalls ? buildContentParts(content, toolCalls) : null),
-    [content, toolCalls, hasToolCalls],
+    () => (hasToolCalls ? buildContentParts(content, dedupedToolCalls) : null),
+    [content, dedupedToolCalls, hasToolCalls],
   )
 
   // Task result cards (from persisted messages)
@@ -695,7 +711,7 @@ export const MessageBubble = memo(function MessageBubble({
   // System messages centered
   if (isSystem) {
     return (
-      <div className="flex justify-center px-4 py-2 animate-fade-in">
+      <div className={cn('flex justify-center px-4 py-2', isNew && 'animate-fade-in')}>
         <div className="rounded-lg bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
           {content}
         </div>
@@ -721,7 +737,7 @@ export const MessageBubble = memo(function MessageBubble({
   if (!isUser && contentParts) {
     return (
       <MessageContextMenu content={content} isUser={false} onRegenerate={onRegenerate} onQuoteReply={onQuoteReply} onEditResend={onEditResend}>
-      <div className={cn('flex gap-3 px-4 animate-fade-in-up', isGrouped ? 'py-0.5' : 'py-2')}>
+      <div className={cn('flex gap-3 px-4', isNew && 'animate-fade-in-up', isGrouped ? 'py-0.5' : 'py-2')}>
         {isGrouped ? (
           <div className="size-10 shrink-0" />
         ) : (
@@ -763,6 +779,14 @@ export const MessageBubble = memo(function MessageBubble({
           {/* Injected memories indicator */}
           {hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
 
+          {/* Step limit indicator */}
+          {stepLimitReached && (
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-warning">
+              <span>⚠️</span>
+              <span className="text-muted-foreground">{t('chat.stepLimitReached')}</span>
+            </div>
+          )}
+
           <ReactionDisplay reactions={reactions ?? []} currentUserId={currentUserId} onToggle={handleToggleReaction} />
 
           <div className="flex items-center gap-1.5">
@@ -785,7 +809,8 @@ export const MessageBubble = memo(function MessageBubble({
     <MessageContextMenu content={content} isUser={isUser} onRegenerate={isUser ? undefined : onRegenerate} onQuoteReply={onQuoteReply} onEditResend={isUser ? onEditResend : undefined}>
     <div
       className={cn(
-        'flex gap-3 px-4 animate-fade-in-up',
+        'flex gap-3 px-4',
+        isNew && 'animate-fade-in-up',
         isUser ? 'flex-row-reverse' : 'flex-row',
         isGrouped ? 'py-0.5' : 'py-2',
       )}
@@ -827,6 +852,14 @@ export const MessageBubble = memo(function MessageBubble({
 
         {/* Injected memories indicator */}
         {!isRedacted && hasMemories && <InjectedMemoriesIndicator memories={injectedMemories} />}
+
+        {/* Step limit indicator */}
+        {!isRedacted && stepLimitReached && (
+          <div className="flex items-center gap-1.5 mt-1 text-[11px]">
+            <span>⚠️</span>
+            <span className="text-muted-foreground">{t('chat.stepLimitReached')}</span>
+          </div>
+        )}
 
         <ReactionDisplay reactions={reactions ?? []} currentUserId={currentUserId} onToggle={handleToggleReaction} />
 

@@ -353,10 +353,15 @@ export function useTaskDetail(taskId: string | null) {
     return items
   }, [messages])
 
-  // Merge historical + streaming tool calls
+  // Merge historical + streaming tool calls (deduplicate by id — the 3s
+  // polling fallback can fetch persisted messages while the stream is still
+  // active, causing the same tool call to appear in both lists).
   const allToolCalls = useMemo(() => {
     if (streamingToolCalls.length === 0) return historicalToolCalls
-    return [...historicalToolCalls, ...streamingToolCalls]
+    if (historicalToolCalls.length === 0) return streamingToolCalls
+    const seen = new Set(historicalToolCalls.map((tc) => tc.id))
+    const unique = streamingToolCalls.filter((tc) => !seen.has(tc.id))
+    return [...historicalToolCalls, ...unique]
   }, [historicalToolCalls, streamingToolCalls])
 
   const toolCallsByMessage = useMemo(() => {

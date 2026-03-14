@@ -40,7 +40,7 @@ const OPENAI_COMPATIBLE_PROVIDERS = new Set([
   'mistral', 'perplexity', 'xai', 'ollama', 'cohere',
 ])
 import { createLogger } from '@/server/logger'
-import { getLastContextUsage } from '@/server/services/kin-engine'
+import { getLastContextUsage, compactingKins } from '@/server/services/kin-engine'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
 const log = createLogger('routes:kins')
@@ -48,23 +48,38 @@ const kinRoutes = new Hono<{ Variables: AppVariables }>()
 
 // GET /api/kins — list all kins
 kinRoutes.get('/', async (c) => {
-  const [allKins, hubKinId] = await Promise.all([
+  const [allKins, hubKinId, allQueueItems] = await Promise.all([
     db.select().from(kins).all(),
     getHubKinId(),
+    db.select({ kinId: queueItems.kinId, status: queueItems.status }).from(queueItems).all(),
   ])
 
+  // Build per-kin queue state from all queue items
+  const queueStateMap = new Map<string, { isProcessing: boolean; queueSize: number }>()
+  for (const item of allQueueItems) {
+    const state = queueStateMap.get(item.kinId) ?? { isProcessing: false, queueSize: 0 }
+    if (item.status === 'processing') state.isProcessing = true
+    if (item.status === 'pending') state.queueSize++
+    queueStateMap.set(item.kinId, state)
+  }
+
   return c.json({
-    kins: allKins.map((k) => ({
-      id: k.id,
-      slug: k.slug,
-      name: k.name,
-      role: k.role,
-      avatarUrl: kinAvatarUrl(k.id, k.avatarPath, k.updatedAt),
-      model: k.model,
-      providerId: k.providerId ?? null,
-      createdAt: k.createdAt,
-      isHub: k.id === hubKinId,
-    })),
+    kins: allKins.map((k) => {
+      const qs = queueStateMap.get(k.id)
+      return {
+        id: k.id,
+        slug: k.slug,
+        name: k.name,
+        role: k.role,
+        avatarUrl: kinAvatarUrl(k.id, k.avatarPath, k.updatedAt),
+        model: k.model,
+        providerId: k.providerId ?? null,
+        createdAt: k.createdAt,
+        isHub: k.id === hubKinId,
+        isProcessing: qs?.isProcessing ?? false,
+        queueSize: qs?.queueSize ?? 0,
+      }
+    }),
   })
 })
 
@@ -339,10 +354,11 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     return c.json({
       contextTokens: cached.contextTokens,
       contextWindow: cached.contextWindow,
+      contextBreakdown: cached.breakdown ?? null,
       compactingTokens: compacting.currentTokens,
       compactingThreshold: compacting.tokenThreshold,
+      compactingThresholdPercent: compacting.thresholdPercent,
       compactingMessages: compacting.currentMessages,
-      compactingMessageThreshold: compacting.messageThreshold,
     })
   }
 
@@ -350,9 +366,9 @@ kinRoutes.get('/:id/context-usage', async (c) => {
   const contextWindow = getModelContextWindow(kin.model)
   const estimateTokens = (text: string) => Math.ceil(text.length / 4)
 
-  let contextTokens = 0
-  contextTokens += estimateTokens([kin.name, kin.role, kin.character, kin.expertise].join(' '))
-  contextTokens += 1500
+  let systemPromptTokens = 0
+  systemPromptTokens += estimateTokens([kin.name, kin.role, kin.character, kin.expertise].join(' '))
+  systemPromptTokens += 1500
 
   const snapshot = await db
     .select({ summary: compactingSnapshots.summary, createdAt: compactingSnapshots.createdAt })
@@ -361,7 +377,7 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     .get()
 
   if (snapshot) {
-    contextTokens += estimateTokens(snapshot.summary)
+    systemPromptTokens += estimateTokens(snapshot.summary)
   }
 
   const recentMsgs = await db
@@ -383,17 +399,21 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     ? recentMsgs.filter((m) => m.createdAt && snapshot.createdAt && m.createdAt > snapshot.createdAt)
     : recentMsgs
 
+  let messagesTokens = 0
   for (const msg of filtered) {
-    if (msg.content) contextTokens += estimateTokens(msg.content)
+    if (msg.content) messagesTokens += estimateTokens(msg.content)
   }
+
+  const contextTokens = systemPromptTokens + messagesTokens
 
   return c.json({
     contextTokens,
     contextWindow,
+    contextBreakdown: { systemPrompt: systemPromptTokens, messages: messagesTokens, tools: 0, total: contextTokens },
     compactingTokens: compacting.currentTokens,
     compactingThreshold: compacting.tokenThreshold,
+    compactingThresholdPercent: compacting.thresholdPercent,
     compactingMessages: compacting.currentMessages,
-    compactingMessageThreshold: compacting.messageThreshold,
   })
 })
 
@@ -437,6 +457,7 @@ kinRoutes.get('/:id', async (c) => {
     mcpServers: details.mcpServers,
     queueSize,
     isProcessing,
+    isCompacting: compactingKins.has(kin.id),
     createdAt: details.createdAt,
   })
 })

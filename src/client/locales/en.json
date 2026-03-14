@@ -320,7 +320,7 @@
       "allEnabled": "All enabled",
       "allDisabled": "All disabled",
       "countEnabled": "{{count}} / {{total}}",
-      "hubNotice": "This Kin is the Hub — all opt-in tools are automatically enabled at runtime, regardless of the toggles below.",
+      "hubNotice": "This Kin is the Hub. All opt-in tools are automatically enabled at runtime, regardless of the toggles below.",
       "autoEnabled": "Auto",
       "noMcp": "No MCP servers configured.",
       "saveMcpHint": "Save the Kin first to configure MCP tools.",
@@ -344,7 +344,10 @@
       "messageThresholdPlaceholder": "Default: {{default}}",
       "tokenThresholdPlaceholder": "Default: {{default}}",
       "messageThresholdHint": "Global default: {{default}}",
-      "tokenThresholdHint": "Global default: {{default}}"
+      "tokenThresholdHint": "Global default: {{default}}",
+      "thresholdPercent": "Threshold (%)",
+      "thresholdPercentPlaceholder": "Global default ({{default}})",
+      "thresholdPercentHint": "Compact when context reaches this % of model window. Leave empty for global default ({{default}}%)."
     },
     "avatar": {
       "title": "Choose avatar",
@@ -468,10 +471,11 @@
     "streaming": "Thinking...",
     "contextUsage": "Context: ~{{tokens}} / {{max}} tokens ({{percent}}%), includes system prompt, history & tools",
     "contextNoData": "Context usage will appear after the first message is processed",
+    "stepLimitReached": "Response truncated: tool step limit reached. Ask me to continue.",
     "forceCompact": "Force compaction",
     "tooltipContext": "Context window",
     "tooltipCompacting": "Compaction",
-    "compactingProximity": "Compaction in ~{{tokens}} tokens ({{messages}}/{{maxMessages}} msgs)",
+    "compactingProximity": "Compaction at {{thresholdPercent}}% ({{messages}} msgs, ~{{tokens}} tokens remaining)",
     "compactingMarker": "Compaction threshold",
     "moreActions": "More actions",
     "compacting": {
@@ -562,7 +566,8 @@
       "results": "{{current}} of {{total}}",
       "previous": "Previous match",
       "next": "Next match",
-      "close": "Close search"
+      "close": "Close search",
+      "partialScope": "Only searching {{count}} loaded messages"
     },
     "collapse": {
       "showMore": "Show more",
@@ -575,7 +580,7 @@
       "filesOnly": "(files only)"
     },
     "charCount": "{{count}} characters",
-    "messageTooLong": "{{count}} / {{max}} — message too long",
+    "messageTooLong": "{{count}} / {{max}}, message too long",
     "mention": {
       "users": "User",
       "kins": "Kin",
@@ -985,7 +990,11 @@
         "bullet2": "The embedding model makes memories searchable by meaning, so your Kin finds relevant info even if the exact words differ",
         "bullet3": "You don't need expensive models here. Small, fast models handle extraction and embedding just fine",
         "bullet4": "If no extraction model is set, each Kin uses its own chat model for memory extraction"
-      }
+      },
+      "compactingThresholdLabel": "Compaction Threshold",
+      "compactingThresholdDescription": "Compact the conversation when context usage reaches this percentage of the model's context window. Lower values compact more often, higher values use more context before compacting.",
+      "compactingThresholdSaved": "Compaction threshold saved",
+      "compactingThresholdError": "Failed to save compaction threshold"
     },
     "contacts": {
       "title": "Contacts",

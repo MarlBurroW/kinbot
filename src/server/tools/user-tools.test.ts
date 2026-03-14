@@ -235,16 +235,13 @@ describe('createInvitationTool', () => {
     expect(result.error).toBe('Unknown error')
   })
 
-  it('uses "system" as createdBy when userId is not set', async () => {
+  it('returns error when userId is not set', async () => {
     const noUserCtx: ToolExecutionContext = { kinId: 'kin-1', isSubKin: false }
     const t = createInvitationTool.create(noUserCtx)
     const execute = t.execute as (...args: any[]) => Promise<any>
-    await execute({ label: 'System invite' })
+    const result = await execute({ label: 'System invite' })
 
-    expect(mockCreateInvitation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        createdBy: 'system',
-      }),
-    )
+    expect(result.error).toBe('Cannot create invitation without an authenticated user context')
+    expect(mockCreateInvitation).not.toHaveBeenCalled()
   })
 })

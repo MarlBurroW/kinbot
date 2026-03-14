@@ -116,7 +116,7 @@ describe('config', () => {
     })
 
     it('tools defaults', () => {
-      expect(config.tools.maxSteps).toBe(10)
+      expect(config.tools.maxSteps).toBe(0)
     })
 
     it('humanPrompts defaults', () => {

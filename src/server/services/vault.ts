@@ -1,4 +1,4 @@
-import { eq, and, or, like, sql } from 'drizzle-orm'
+import { eq, and, or, like, sql, desc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { join } from 'path'
 import { mkdir, unlink, rm } from 'fs/promises'
@@ -166,6 +166,30 @@ export async function redactMessage(
     .where(eq(messages.id, messageId))
 
   return true
+}
+
+/**
+ * Find the most recent non-redacted message containing a text snippet.
+ */
+export async function findMessageByContent(
+  kinId: string,
+  contentMatch: string,
+): Promise<string | null> {
+  const row = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.kinId, kinId),
+        eq(messages.isRedacted, false),
+        like(messages.content, `%${contentMatch}%`),
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(1)
+    .get()
+
+  return row?.id ?? null
 }
 
 // ─── Typed Entry API ──────────────────────────────────────────────────────────

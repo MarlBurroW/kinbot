@@ -19,12 +19,14 @@ export function GeneralSettings() {
   // Global prompt
   const [globalPrompt, setGlobalPrompt] = useState('')
   const [initialGlobalPrompt, setInitialGlobalPrompt] = useState('')
-  const [savingPrompt, setSavingPrompt] = useState(false)
 
   // Hub Kin
   const [hubKinId, setHubKinId] = useState<string | null>(null)
+  const [initialHubKinId, setInitialHubKinId] = useState<string | null>(null)
   const [allKins, setAllKins] = useState<{ id: string; name: string; role?: string; avatarUrl?: string | null }[]>([])
-  const [savingHub, setSavingHub] = useState(false)
+
+  // Saving state (unified)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     setFetchError(null)
@@ -38,24 +40,11 @@ export function GeneralSettings() {
         api.get<{ kins: { id: string; name: string; role: string; avatarUrl: string | null }[] }>('/kins'),
       ])
       setHubKinId(hubData.hubKinId)
+      setInitialHubKinId(hubData.hubKinId)
       setAllKins(kinsData.kins)
     } catch (err: unknown) {
       setFetchError(getErrorMessage(err))
       toast.error(t('settings.general.fetchError', 'Failed to load settings'))
-    }
-  }
-
-  const handleHubChange = async (kinId: string) => {
-    const actualKinId = kinId === '__none__' ? null : kinId
-    setSavingHub(true)
-    try {
-      await api.put('/settings/hub', { kinId: actualKinId })
-      setHubKinId(actualKinId)
-      toast.success(t('settings.general.hubSaved'))
-    } catch (err: unknown) {
-      toastError(err)
-    } finally {
-      setSavingHub(false)
     }
   }
 
@@ -72,21 +61,49 @@ export function GeneralSettings() {
     }
   }
 
-  const handleSavePrompt = async () => {
-    setSavingPrompt(true)
+  const handleSave = async () => {
+    setSaving(true)
     try {
-      await api.put('/settings/global-prompt', { globalPrompt })
-      setInitialGlobalPrompt(globalPrompt)
+      const promises: Promise<unknown>[] = []
+
+      if (hasPromptChanges) {
+        promises.push(api.put('/settings/global-prompt', { globalPrompt }))
+      }
+
+      if (hasHubChanges) {
+        const actualKinId = hubKinId === '__none__' ? null : hubKinId
+        promises.push(api.put('/settings/hub', { kinId: actualKinId }))
+      }
+
+      await Promise.all(promises)
+
+      if (hasPromptChanges) {
+        setInitialGlobalPrompt(globalPrompt)
+      }
+      if (hasHubChanges) {
+        const actualKinId = hubKinId === '__none__' ? null : hubKinId
+        setInitialHubKinId(actualKinId)
+        setHubKinId(actualKinId)
+      }
+
       toast.success(t('settings.general.saved'))
     } catch (err: unknown) {
       toastError(err)
     } finally {
-      setSavingPrompt(false)
+      setSaving(false)
     }
+  }
+
+  const handleDiscard = () => {
+    setGlobalPrompt(initialGlobalPrompt)
+    setHubKinId(initialHubKinId)
   }
 
   const MAX_PROMPT_LENGTH = 10000
   const hasPromptChanges = globalPrompt !== initialGlobalPrompt
+  const effectiveHubKinId = hubKinId === '__none__' ? null : hubKinId
+  const hasHubChanges = effectiveHubKinId !== initialHubKinId
+  const hasChanges = hasPromptChanges || hasHubChanges
   const approxTokens = Math.ceil(globalPrompt.length / 4)
   const isOverLimit = globalPrompt.length > MAX_PROMPT_LENGTH
 
@@ -134,7 +151,7 @@ export function GeneralSettings() {
           </Label>
           <KinSelector
             value={hubKinId ?? '__none__'}
-            onValueChange={handleHubChange}
+            onValueChange={setHubKinId}
             kins={allKins}
             placeholder={t('settings.general.hubKinPlaceholder')}
             noneLabel={t('settings.general.hubKinNone', 'None')}
@@ -170,15 +187,15 @@ export function GeneralSettings() {
 
       <div className="flex items-center gap-2">
         <Button
-          onClick={handleSavePrompt}
-          disabled={!hasPromptChanges || savingPrompt || isOverLimit}
+          onClick={handleSave}
+          disabled={!hasChanges || saving || isOverLimit}
         >
-          {savingPrompt ? t('common.loading') : t('common.save')}
+          {saving ? t('common.loading') : t('common.save')}
         </Button>
-        {hasPromptChanges && (
+        {hasChanges && (
           <Button
             variant="ghost"
-            onClick={() => setGlobalPrompt(initialGlobalPrompt)}
+            onClick={handleDiscard}
           >
             {t('common.discard', 'Discard')}
           </Button>

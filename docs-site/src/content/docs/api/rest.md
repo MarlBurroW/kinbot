@@ -411,6 +411,8 @@ Pending approval prompts (e.g. tool use confirmations).
 | `PUT` | `/api/settings/search-provider` | Update search provider |
 | `GET` | `/api/settings/hub` | Get Hub settings |
 | `PUT` | `/api/settings/hub` | Update Hub settings |
+| `GET` | `/api/settings/compacting-threshold` | Get compacting threshold percent |
+| `PUT` | `/api/settings/compacting-threshold` | Set compacting threshold percent (50-95) |
 
 ## Current User
 

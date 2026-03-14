@@ -49,7 +49,8 @@ const kinLocks = new Set<string>()
 const quickLocks = new Set<string>()
 
 // In-memory lock to prevent queue processing while compacting is running
-const compactingKins = new Set<string>()
+// Exported so the API can report compacting state to the frontend
+export const compactingKins = new Set<string>()
 
 // AbortController registry — one per actively-streaming Kin
 const activeAbortControllers = new Map<string, AbortController>()
@@ -57,12 +58,20 @@ const activeAbortControllers = new Map<string, AbortController>()
 // AbortController registry for quick sessions — keyed by sessionId
 const quickAbortControllers = new Map<string, AbortController>()
 
+// Token breakdown by category
+export interface ContextTokenBreakdown {
+  systemPrompt: number
+  messages: number
+  tools: number
+  total: number
+}
+
 // Cache of last computed context usage per Kin (populated after each LLM call)
-const lastContextUsage = new Map<string, { contextTokens: number; contextWindow: number; updatedAt: number }>()
+const lastContextUsage = new Map<string, { contextTokens: number; contextWindow: number; updatedAt: number; breakdown?: ContextTokenBreakdown }>()
 
 /** Store the latest context usage for a Kin (called after LLM estimation). */
-export function setLastContextUsage(kinId: string, contextTokens: number, contextWindow: number) {
-  lastContextUsage.set(kinId, { contextTokens, contextWindow, updatedAt: Date.now() })
+export function setLastContextUsage(kinId: string, contextTokens: number, contextWindow: number, breakdown?: ContextTokenBreakdown) {
+  lastContextUsage.set(kinId, { contextTokens, contextWindow, updatedAt: Date.now(), breakdown })
 }
 
 /** Get the cached context usage for a Kin, if available. */
@@ -71,7 +80,7 @@ export function getLastContextUsage(kinId: string) {
 }
 
 // Cache of last computed compacting proximity per Kin
-const lastCompactingProximity = new Map<string, { compactingTokens: number; compactingThreshold: number; compactingMessages: number; compactingMessageThreshold: number }>()
+const lastCompactingProximity = new Map<string, { compactingTokens: number; compactingThreshold: number; compactingThresholdPercent: number; compactingMessages: number }>()
 
 /**
  * Extract a human-readable message from a raw API error object.
@@ -119,25 +128,29 @@ function estimateContextTokens(
   systemPrompt: string,
   messageHistory: ModelMessage[],
   tools: Record<string, unknown> | undefined,
-): number {
-  let total = estimateTokens(systemPrompt)
+): ContextTokenBreakdown {
+  const systemPromptTokens = estimateTokens(systemPrompt)
+  let messagesTokens = 0
   for (const msg of messageHistory) {
     if (typeof msg.content === 'string') {
-      total += estimateTokens(msg.content)
+      messagesTokens += estimateTokens(msg.content)
     } else if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
         if ('text' in part && typeof part.text === 'string') {
-          total += estimateTokens(part.text)
+          messagesTokens += estimateTokens(part.text)
         } else if ('type' in part && part.type === 'image') {
-          total += 85 // rough per-image overhead
+          messagesTokens += 85 // rough per-image overhead
         }
       }
     }
   }
-  if (tools && Object.keys(tools).length > 0) {
-    total += estimateTokens(JSON.stringify(tools))
+  const toolsTokens = (tools && Object.keys(tools).length > 0) ? estimateTokens(JSON.stringify(tools)) : 0
+  return {
+    systemPrompt: systemPromptTokens,
+    messages: messagesTokens,
+    tools: toolsTokens,
+    total: systemPromptTokens + messagesTokens + toolsTokens,
   }
-  return total
 }
 
 /**
@@ -234,10 +247,13 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       }
     }
 
+    // Only propagate userId when the source is actually a user (not a kin or task)
+    const effectiveUserId = queueItem.sourceType === 'user' ? (queueItem.sourceId ?? undefined) : undefined
+
     // Execute beforeChat hook
     await hookRegistry.execute('beforeChat', {
       kinId,
-      userId: queueItem.sourceId ?? undefined,
+      userId: effectiveUserId,
       message: queueItem.content,
     })
 
@@ -430,7 +446,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     const nativeTools = toolRegistry.resolve({
       kinId,
-      userId: queueItem.sourceId ?? undefined,
+      userId: effectiveUserId,
       isSubKin: false,
     })
 
@@ -467,9 +483,10 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const hasTools = Object.keys(tools).length > 0
 
     // Estimate total context tokens and resolve model context window
-    const contextTokens = estimateContextTokens(systemPrompt, messageHistory, hasTools ? tools : undefined)
+    const contextBreakdown = estimateContextTokens(systemPrompt, messageHistory, hasTools ? tools : undefined)
+    const contextTokens = contextBreakdown.total
     const contextWindow = getModelContextWindow(kin.model)
-    setLastContextUsage(kinId, contextTokens, contextWindow)
+    setLastContextUsage(kinId, contextTokens, contextWindow, contextBreakdown)
     log.debug({ kinId, toolCount: Object.keys(tools).length, modelId: kin.model, contextTokens, contextWindow }, 'Starting LLM stream')
 
     // Compute compacting proximity and cache it for lightweight SSE events
@@ -478,8 +495,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     lastCompactingProximity.set(kinId, {
       compactingTokens: compactingData.currentTokens,
       compactingThreshold: compactingData.tokenThreshold,
+      compactingThresholdPercent: compactingData.thresholdPercent,
       compactingMessages: compactingData.currentMessages,
-      compactingMessageThreshold: compactingData.messageThreshold,
     })
 
     // Update the queue event with real context usage (the initial queue:update
@@ -489,6 +506,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       kinId,
       data: {
         kinId, queueSize: 0, isProcessing: true, contextTokens, contextWindow,
+        contextBreakdown,
         ...lastCompactingProximity.get(kinId),
       },
     })
@@ -522,7 +540,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       system: systemPrompt,
       messages: messageHistory,
       tools: hasTools ? tools : undefined,
-      stopWhen: hasTools ? stepCountIs(config.tools.maxSteps) : undefined,
+      stopWhen: hasTools && config.tools.maxSteps > 0 ? stepCountIs(config.tools.maxSteps) : undefined,
       abortSignal: abortController.signal,
     })
 
@@ -540,6 +558,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
               messageId: assistantMessageId,
               toolCallId: p.toolCallId,
               toolName: p.toolName,
+              contentOffset: fullContent.length,
             },
           })
           continue
@@ -633,6 +652,28 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     log.info({ kinId, messageId: assistantMessageId, contentLength: fullContent.length, toolCalls: toolCallsLog.length, wasAborted }, 'LLM turn completed')
 
+    // Detect truncated turns: tool calls executed but no text response generated.
+    // This typically happens when the step limit (maxSteps) is reached before the
+    // LLM can produce a final text response. Add a fallback message so the user
+    // knows work was done even though no text was returned.
+    const stepLimitReached = !fullContent && toolCallsLog.length > 0 && !wasAborted && config.tools.maxSteps > 0
+    if (stepLimitReached) {
+      log.warn(
+        { kinId, messageId: assistantMessageId, toolCalls: toolCallsLog.length, maxSteps: config.tools.maxSteps },
+        'LLM turn produced tool calls but no text content (step limit truncation)',
+      )
+      fullContent = `*(Completed ${toolCallsLog.length} tool call${toolCallsLog.length > 1 ? 's' : ''} but the response was truncated due to the tool step limit of ${config.tools.maxSteps}. You can ask me to continue or summarize the results.)*`
+      sseManager.sendToKin(kinId, {
+        type: 'chat:token',
+        kinId,
+        data: {
+          messageId: assistantMessageId,
+          token: fullContent,
+          isFirst: true,
+        },
+      })
+    }
+
     // Save assistant message (partial if aborted) with tool call metadata
     if (fullContent || toolCallsLog.length > 0 || wasAborted) {
       await db.insert(messages).values({
@@ -643,9 +684,16 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         sourceType: 'kin',
         sourceId: kinId,
         toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
-        metadata: relevantMemories.length > 0
-          ? JSON.stringify({ injectedMemories: relevantMemories })
-          : null,
+        metadata: (() => {
+          const meta: Record<string, unknown> = {}
+          if (relevantMemories.length > 0) meta.injectedMemories = relevantMemories
+          if (stepLimitReached) {
+            meta.stepLimitReached = true
+            meta.maxSteps = config.tools.maxSteps
+            meta.toolCallCount = toolCallsLog.length
+          }
+          return Object.keys(meta).length > 0 ? JSON.stringify(meta) : null
+        })(),
         createdAt: new Date(),
       })
     }
@@ -662,6 +710,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         sourceId: kinId,
         sourceName: kin.name,
         sourceAvatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${kin.avatarPath.split('.').pop()}` : null,
+        ...(stepLimitReached ? { stepLimitReached: true } : {}),
       },
     })
 
@@ -669,7 +718,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       // Execute afterChat hook
       await hookRegistry.execute('afterChat', {
         kinId,
-        userId: queueItem.sourceId ?? undefined,
+        userId: effectiveUserId,
         message: queueItem.content,
         response: fullContent,
       })
@@ -965,7 +1014,8 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
 
     // Resolve tools (with exclusion list for quick sessions)
     const toolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
-    const nativeTools = toolRegistry.resolve({ kinId, userId: queueItem.sourceId ?? undefined, isSubKin: false })
+    const quickEffectiveUserId = queueItem.sourceType === 'user' ? (queueItem.sourceId ?? undefined) : undefined
+    const nativeTools = toolRegistry.resolve({ kinId, userId: quickEffectiveUserId, isSubKin: false })
 
     // Apply Kin-level deny-list
     if (toolConfig?.disabledNativeTools?.length) {
@@ -996,7 +1046,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       system: systemPrompt,
       messages: messageHistory,
       tools: hasTools ? tools : undefined,
-      stopWhen: hasTools ? stepCountIs(config.tools.maxSteps) : undefined,
+      stopWhen: hasTools && config.tools.maxSteps > 0 ? stepCountIs(config.tools.maxSteps) : undefined,
       abortSignal: abortController.signal,
     })
 
@@ -1009,7 +1059,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
           sseManager.sendToKin(kinId, {
             type: 'chat:tool-call-start',
             kinId,
-            data: { messageId: assistantMessageId, toolCallId: p.toolCallId, toolName: p.toolName, sessionId },
+            data: { messageId: assistantMessageId, toolCallId: p.toolCallId, toolName: p.toolName, contentOffset: fullContent.length, sessionId },
           })
           continue
         }
@@ -1063,6 +1113,16 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       quickAbortControllers.delete(sessionId)
     }
 
+    // Detect truncated turns (same as main path)
+    const stepLimitReached = !fullContent && toolCallsLog.length > 0 && !wasAborted && config.tools.maxSteps > 0
+    if (stepLimitReached) {
+      log.warn(
+        { kinId, sessionId, toolCalls: toolCallsLog.length, maxSteps: config.tools.maxSteps },
+        'Quick session LLM turn produced tool calls but no text content (step limit truncation)',
+      )
+      fullContent = `*(Completed ${toolCallsLog.length} tool call${toolCallsLog.length > 1 ? 's' : ''} but the response was truncated due to the tool step limit of ${config.tools.maxSteps}. You can ask me to continue or summarize.)*`
+    }
+
     // Save assistant message (with sessionId)
     if (fullContent || toolCallsLog.length > 0 || wasAborted) {
       await db.insert(messages).values({
@@ -1074,7 +1134,16 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
         sourceType: 'kin',
         sourceId: kinId,
         toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
-        metadata: relevantMemories.length > 0 ? JSON.stringify({ injectedMemories: relevantMemories }) : null,
+        metadata: (() => {
+          const meta: Record<string, unknown> = {}
+          if (relevantMemories.length > 0) meta.injectedMemories = relevantMemories
+          if (stepLimitReached) {
+            meta.stepLimitReached = true
+            meta.maxSteps = config.tools.maxSteps
+            meta.toolCallCount = toolCallsLog.length
+          }
+          return Object.keys(meta).length > 0 ? JSON.stringify(meta) : null
+        })(),
         createdAt: new Date(),
       })
     }

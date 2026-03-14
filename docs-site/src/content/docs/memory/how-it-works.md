@@ -143,7 +143,7 @@ Pruned memories are permanently deleted. The number of pruned memories is record
 
 When conversations grow long, KinBot automatically **compacts** them:
 
-1. The conversation reaches a threshold (message count or token count)
+1. Context usage reaches a percentage of the model's context window (default: 75%)
 2. A summarization model distills the conversation into a compact snapshot
 3. The snapshot replaces the full history, preserving context while reducing token usage
 4. Multiple snapshots are kept (up to `COMPACTING_MAX_SNAPSHOTS`) for layered context

@@ -195,7 +195,7 @@ describe('createKinTool', () => {
     expect(result).toEqual({ error: 'Duplicate name' })
   })
 
-  it('uses system as createdBy when no userId in context', async () => {
+  it('uses null as createdBy when no userId in context', async () => {
     mockCreateKin.mockResolvedValueOnce({
       id: 'sys-kin',
       slug: 'sys-kin',
@@ -215,7 +215,7 @@ describe('createKinTool', () => {
     }, { toolCallId: 'tc5', messages: [] })
 
     expect(mockCreateKin).toHaveBeenLastCalledWith(expect.objectContaining({
-      createdBy: 'system',
+      createdBy: null,
     }))
   })
 })

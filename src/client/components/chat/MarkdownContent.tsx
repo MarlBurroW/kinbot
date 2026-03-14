@@ -415,7 +415,7 @@ export const MarkdownContent = memo(function MarkdownContent({
   // Skip markdown rendering for very short / plain messages
   const isPlainText = useMemo(() => {
     // No markdown markers at all → render as-is
-    return !/[*_`#\[!\-|>~$\\]|\d+\./.test(content)
+    return !/[*_`#\[!\-|>~$\\]/.test(content) && !/^\d+\.\s/m.test(content)
   }, [content])
 
   if (isPlainText) {

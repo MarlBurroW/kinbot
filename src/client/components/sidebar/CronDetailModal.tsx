@@ -32,6 +32,7 @@ import {
   Play,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { cn } from '@/client/lib/utils'
 import { formatRelativeTime, formatDurationBetween } from '@/client/lib/time'
 import { cronToHuman } from '@/client/lib/cron-human'
@@ -155,9 +156,9 @@ export function CronDetailModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[80vh] flex-col gap-0 sm:max-w-2xl">
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
           {/* Header */}
-          <DialogHeader className="pb-3 border-b border-border">
+          <DialogHeader className="shrink-0 px-6 pb-3 pt-6 border-b border-border">
             <div className="flex items-center gap-3">
               <Avatar className="size-9 shrink-0">
                 {cron.kinAvatarUrl && <AvatarImage src={cron.kinAvatarUrl} alt={kinName} />}
@@ -226,8 +227,8 @@ export function CronDetailModal({
               {/* Description */}
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">{t('cron.detail.description')}</p>
-                <div className="rounded-md bg-muted/50 px-3 py-2">
-                  <p className="text-sm whitespace-pre-wrap">{cron.taskDescription}</p>
+                <div className="rounded-md bg-muted/50 px-3 py-2 overflow-hidden text-sm">
+                  <MarkdownContent content={cron.taskDescription} />
                 </div>
               </div>
 
@@ -356,7 +357,7 @@ export function CronDetailModal({
           </ScrollArea>
 
           {/* Footer */}
-          <DialogFooter className="flex-row items-center gap-2 border-t border-border px-6 py-3">
+          <DialogFooter className="shrink-0 flex-row items-center gap-2 border-t border-border px-6 py-3">
             {cron.requiresApproval && (
               <Button
                 size="sm"

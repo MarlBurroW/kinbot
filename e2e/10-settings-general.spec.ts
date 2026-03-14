@@ -156,7 +156,7 @@ test.describe.serial('Settings — General & Navigation', () => {
     await openSettings(page)
 
     // Hub Kin label should be visible (kins exist from onboarding)
-    await expect(page.getByText('Hub Kin')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('Hub Kin', { exact: true })).toBeVisible({ timeout: 5_000 })
 
     // Hint text should be visible
     await expect(
@@ -164,21 +164,29 @@ test.describe.serial('Settings — General & Navigation', () => {
     ).toBeVisible()
 
     // Select trigger should show placeholder or a kin name
-    const selectTrigger = page.getByRole('dialog').locator('[data-slot="select-trigger"]').first()
-    await expect(selectTrigger).toBeVisible()
+    // Scroll to Hub Kin section first (may be below fold in CI viewports)
+    const hubKinLabel = page.getByText('Hub Kin', { exact: true })
+    await hubKinLabel.scrollIntoViewIfNeeded()
+    const selectTrigger = page.getByRole('dialog').getByRole('combobox').first()
+    await expect(selectTrigger).toBeVisible({ timeout: 10_000 })
   })
 
   test('should select a Hub Kin and see success toast', async ({ page }) => {
     await openSettings(page)
 
     // Open the Hub Kin dropdown
-    const selectTrigger = page.getByRole('dialog').locator('[data-slot="select-trigger"]').first()
-    await expect(selectTrigger).toBeVisible({ timeout: 5_000 })
+    const hubKinLabel = page.getByText('Hub Kin', { exact: true })
+    await hubKinLabel.scrollIntoViewIfNeeded()
+    const selectTrigger = page.getByRole('dialog').getByRole('combobox').first()
+    await expect(selectTrigger).toBeVisible({ timeout: 10_000 })
     await selectTrigger.click()
 
-    // Pick the first available kin option
-    const option = page.getByRole('option').first()
-    await expect(option).toBeVisible({ timeout: 3_000 })
+    // Pick the first real kin option (skip the "None" option which is first)
+    const options = page.getByRole('option')
+    await expect(options.first()).toBeVisible({ timeout: 3_000 })
+    const count = await options.count()
+    // If there's more than one option, pick the second (first real kin); otherwise pick the first
+    const option = count > 1 ? options.nth(1) : options.first()
     const kinName = await option.textContent()
     await option.click()
 
@@ -193,7 +201,7 @@ test.describe.serial('Settings — General & Navigation', () => {
     await openSettings(page)
 
     // Find and click the help toggle
-    const helpToggle = page.getByRole('dialog').locator('button:has(.lucide-circle-help)')
+    const helpToggle = page.getByRole('dialog').locator('button:has(.lucide-circle-question-mark)')
     await expect(helpToggle).toBeVisible({ timeout: 5_000 })
     await helpToggle.click()
 

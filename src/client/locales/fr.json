@@ -320,7 +320,7 @@
       "allEnabled": "Tous activés",
       "allDisabled": "Tous désactivés",
       "countEnabled": "{{count}} / {{total}}",
-      "hubNotice": "Ce Kin est le Hub — tous les outils opt-in sont automatiquement activés au runtime, indépendamment des toggles ci-dessous.",
+      "hubNotice": "Ce Kin est le Hub. Tous les outils opt-in sont automatiquement activés au runtime, indépendamment des toggles ci-dessous.",
       "autoEnabled": "Auto",
       "noMcp": "Aucun serveur MCP configuré.",
       "saveMcpHint": "Enregistrez le Kin d'abord pour configurer les outils MCP.",
@@ -344,7 +344,10 @@
       "messageThresholdPlaceholder": "Défaut : {{default}}",
       "tokenThresholdPlaceholder": "Défaut : {{default}}",
       "messageThresholdHint": "Défaut global : {{default}}",
-      "tokenThresholdHint": "Défaut global : {{default}}"
+      "tokenThresholdHint": "Défaut global : {{default}}",
+      "thresholdPercent": "Seuil (%)",
+      "thresholdPercentPlaceholder": "Defaut global ({{default}})",
+      "thresholdPercentHint": "Compacter quand le contexte atteint ce % de la fenetre du modele. Vide = defaut global ({{default}}%)."
     },
     "avatar": {
       "title": "Choisir l'avatar",
@@ -468,10 +471,11 @@
     "streaming": "Réflexion...",
     "contextUsage": "Contexte : ~{{tokens}} / {{max}} tokens ({{percent}} %), inclut prompt système, historique et outils",
     "contextNoData": "L'utilisation du contexte apparaîtra après le premier message traité",
+    "stepLimitReached": "Réponse tronquée : limite d'étapes atteinte. Demandez-moi de continuer.",
     "forceCompact": "Forcer la compaction",
     "tooltipContext": "Fenêtre de contexte",
     "tooltipCompacting": "Compaction",
-    "compactingProximity": "Compaction dans ~{{tokens}} tokens ({{messages}}/{{maxMessages}} msgs)",
+    "compactingProximity": "Compaction a {{thresholdPercent}}% ({{messages}} msgs, ~{{tokens}} tokens restants)",
     "compactingMarker": "Seuil de compaction",
     "moreActions": "Plus d'actions",
     "compacting": {
@@ -562,7 +566,8 @@
       "results": "{{current}} sur {{total}}",
       "previous": "Résultat précédent",
       "next": "Résultat suivant",
-      "close": "Fermer la recherche"
+      "close": "Fermer la recherche",
+      "partialScope": "Recherche limitée à {{count}} messages chargés"
     },
     "collapse": {
       "showMore": "Voir plus",
@@ -575,7 +580,7 @@
       "filesOnly": "(fichiers uniquement)"
     },
     "charCount": "{{count}} caractères",
-    "messageTooLong": "{{count}} / {{max}} — message trop long",
+    "messageTooLong": "{{count}} / {{max}}, message trop long",
     "mention": {
       "users": "Utilisateur",
       "kins": "Kin",
@@ -985,7 +990,11 @@
         "bullet2": "Le modèle d'embedding rend les souvenirs recherchables par le sens, pour retrouver les infos même avec des mots différents",
         "bullet3": "Des modèles petits et rapides suffisent pour l'extraction et l'embedding, pas besoin de modèles coûteux",
         "bullet4": "Si aucun modèle d'extraction n'est défini, chaque Kin utilise son propre modèle de chat"
-      }
+      },
+      "compactingThresholdLabel": "Seuil de compaction",
+      "compactingThresholdDescription": "Compacter la conversation lorsque l'utilisation du contexte atteint ce pourcentage de la fenetre contextuelle du modele. Des valeurs plus basses compactent plus souvent.",
+      "compactingThresholdSaved": "Seuil de compaction sauvegarde",
+      "compactingThresholdError": "Erreur lors de la sauvegarde du seuil"
     },
     "contacts": {
       "title": "Contacts",
@@ -1300,7 +1309,7 @@
       "providers": "fournisseurs",
       "channels": "canaux",
       "permissions": "autorisations",
-      "viewPermissions": "Voir les permissions",
+      "viewPermissions": "Voir les autorisations",
       "configure": "Configurer",
       "configureTitle": "Configurer {{name}}",
       "configureDescription": "Modifiez les paramètres du plugin ci-dessous.",

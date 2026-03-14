@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
@@ -31,6 +31,7 @@ import {
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { api, toastError } from '@/client/lib/api'
+import { useSSE } from '@/client/hooks/useSSE'
 import {
   Plug,
   RefreshCw,
@@ -80,11 +81,7 @@ export function PluginsSettings() {
   // Health reset state
   const [resettingHealth, setResettingHealth] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchPlugins()
-  }, [])
-
-  const fetchPlugins = async () => {
+  const fetchPlugins = useCallback(async () => {
     try {
       const data = await api.get<PluginSummary[]>('/plugins')
       setPlugins(data)
@@ -93,7 +90,23 @@ export function PluginsSettings() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchPlugins()
+  }, [fetchPlugins])
+
+  // Keep plugin list in sync when other clients/the server changes plugin state
+  useSSE({
+    'plugin:installed': () => fetchPlugins(),
+    'plugin:uninstalled': () => fetchPlugins(),
+    'plugin:updated': () => fetchPlugins(),
+    'plugin:reloaded': () => fetchPlugins(),
+    'plugin:enabled': () => fetchPlugins(),
+    'plugin:disabled': () => fetchPlugins(),
+    'plugin:configUpdated': () => fetchPlugins(),
+    'plugin:autoDisabled': () => fetchPlugins(),
+  })
 
   const handleToggle = async (name: string, enabled: boolean) => {
     try {

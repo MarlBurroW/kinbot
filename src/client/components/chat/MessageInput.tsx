@@ -8,6 +8,7 @@ import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2, Bold, Italic, 
 import { useInputHistory } from '@/client/hooks/useInputHistory'
 import { MAX_MESSAGE_LENGTH } from '@/shared/constants'
 import { MentionPopover, getMentionItemCount, getMentionItemAt, type MentionItem } from '@/client/components/chat/MentionPopover'
+import { getCaretCoordinates } from '@/client/lib/getCaretCoordinates'
 import type { MentionableUser, MentionableKin } from '@/client/hooks/useMentionables'
 import type { PendingFile } from '@/client/hooks/useFileUpload'
 
@@ -68,6 +69,7 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [mentionStartIndex, setMentionStartIndex] = useState(0)
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0)
+  const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number }>({ top: 8, left: 0 })
   const isMentionOpen = mentionQuery !== null && (mentionableUsers?.length || mentionableKins?.length)
 
   useImperativeHandle(ref, () => ({
@@ -89,6 +91,15 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
         setMentionQuery(query)
         setMentionStartIndex(i)
         setMentionSelectedIndex(0)
+        // Compute popover position from caret
+        const textarea = textareaRef.current
+        if (textarea) {
+          const coords = getCaretCoordinates(textarea, i)
+          const textareaRect = textarea.getBoundingClientRect()
+          // Position the popover above the caret line (bottom-anchored)
+          const distanceFromBottom = textareaRect.height - coords.top - coords.height
+          setMentionPosition({ top: Math.max(distanceFromBottom, 8), left: coords.left })
+        }
         return
       }
     }
@@ -448,7 +459,7 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
                 users={mentionableUsers}
                 kins={mentionableKins}
                 selectedIndex={mentionSelectedIndex}
-                position={{ top: 8, left: 0 }}
+                position={mentionPosition}
                 onSelect={handleMentionSelect}
               />
             )}

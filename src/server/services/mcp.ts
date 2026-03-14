@@ -71,6 +71,7 @@ interface MCPToolDef {
 const connections = new Map<string, MCPConnection>()
 
 const MCP_CONNECT_TIMEOUT_MS = 30_000
+const MCP_CALL_TIMEOUT_MS = 120_000 // 2 minutes max for any single MCP tool call
 
 async function connectToServer(serverId: string): Promise<MCPConnection | null> {
   const server = await db.select().from(mcpServers).where(eq(mcpServers.id, serverId)).get()
@@ -138,17 +139,80 @@ async function getConnection(serverId: string): Promise<MCPConnection | null> {
   return connectToServer(serverId)
 }
 
-// Register graceful shutdown hook
+// Register graceful shutdown hooks
 process.on('beforeExit', () => { disconnectAll() })
+process.on('SIGINT', () => { disconnectAll().finally(() => process.exit(0)) })
+process.on('SIGTERM', () => { disconnectAll().finally(() => process.exit(0)) })
+
+// ─── Process tree cleanup ────────────────────────────────────────────────────
+
+/**
+ * Kill a process and all its descendants.
+ * Uses /proc on Linux to find child processes recursively.
+ */
+async function killProcessTree(pid: number) {
+  try {
+    // Collect all descendant PIDs first (bottom-up kill avoids re-parenting)
+    const descendants = await getDescendantPids(pid)
+    const allPids = [...descendants.reverse(), pid]
+
+    // SIGTERM first
+    for (const p of allPids) {
+      try { process.kill(p, 'SIGTERM') } catch { /* already dead */ }
+    }
+
+    // Wait briefly, then SIGKILL survivors
+    await new Promise((r) => setTimeout(r, 2000))
+    for (const p of allPids) {
+      try { process.kill(p, 'SIGKILL') } catch { /* already dead */ }
+    }
+  } catch {
+    // Best effort - if we can't enumerate children, at least kill the parent
+    try { process.kill(pid, 'SIGKILL') } catch { /* already dead */ }
+  }
+}
+
+/**
+ * Get all descendant PIDs of a process using /proc filesystem (Linux).
+ */
+async function getDescendantPids(pid: number): Promise<number[]> {
+  try {
+    const proc = Bun.spawn(['pgrep', '-P', String(pid)], { stdout: 'pipe', stderr: 'pipe' })
+    const output = await new Response(proc.stdout).text()
+    await proc.exited
+
+    const childPids = output.trim().split('\n').filter(Boolean).map(Number).filter((n) => !isNaN(n))
+    const allDescendants: number[] = []
+
+    for (const childPid of childPids) {
+      allDescendants.push(childPid)
+      const grandchildren = await getDescendantPids(childPid)
+      allDescendants.push(...grandchildren)
+    }
+
+    return allDescendants
+  } catch {
+    return []
+  }
+}
 
 // ─── Disconnect ──────────────────────────────────────────────────────────────
 
 export async function disconnectServer(serverId: string) {
   const conn = connections.get(serverId)
   if (conn) {
+    // Grab the PID before close() clears it
+    const pid = conn.transport.pid
     try {
       await conn.client.close()
     } catch { /* ignore */ }
+
+    // Kill the entire process tree to clean up npm exec → sh → node chains.
+    // client.close() only kills the direct child; grandchildren may survive.
+    if (pid) {
+      await killProcessTree(pid)
+    }
+
     connections.delete(serverId)
   }
 }
@@ -363,47 +427,53 @@ export async function getMCPToolsForConfig(
 
 // ─── Call an MCP tool ────────────────────────────────────────────────────────
 
+/** Race a promise against a timeout */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+    ),
+  ])
+}
+
+/** Extract text content from an MCP call result */
+function extractMCPResult(result: Awaited<ReturnType<Client['callTool']>>): unknown {
+  if (result.content && Array.isArray(result.content)) {
+    const texts = result.content
+      .filter((c: any) => c.type === 'text')
+      .map((c: any) => c.text)
+    return texts.length === 1 ? texts[0] : texts.join('\n')
+  }
+  return result
+}
+
 async function callMCPTool(
   conn: MCPConnection,
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
   try {
-    const result = await conn.client.callTool({
-      name: toolName,
-      arguments: args,
-    })
-
-    // Extract text content from MCP result
-    if (result.content && Array.isArray(result.content)) {
-      const texts = result.content
-        .filter((c: any) => c.type === 'text')
-        .map((c: any) => c.text)
-      return texts.length === 1 ? texts[0] : texts.join('\n')
-    }
-
-    return result
+    const result = await withTimeout(
+      conn.client.callTool({ name: toolName, arguments: args }),
+      MCP_CALL_TIMEOUT_MS,
+      `MCP tool ${toolName}`,
+    )
+    return extractMCPResult(result)
   } catch (err) {
     // Connection may be dead, try to reconnect once
     log.warn({ toolName, serverName: conn.serverName, err }, 'MCP tool call failed, attempting reconnection')
-    connections.delete(conn.serverId)
+    await disconnectServer(conn.serverId)
 
     try {
       const newConn = await connectToServer(conn.serverId)
       if (newConn) {
-        const retryResult = await newConn.client.callTool({
-          name: toolName,
-          arguments: args,
-        })
-
-        if (retryResult.content && Array.isArray(retryResult.content)) {
-          const texts = retryResult.content
-            .filter((c: any) => c.type === 'text')
-            .map((c: any) => c.text)
-          return texts.length === 1 ? texts[0] : texts.join('\n')
-        }
-
-        return retryResult
+        const retryResult = await withTimeout(
+          newConn.client.callTool({ name: toolName, arguments: args }),
+          MCP_CALL_TIMEOUT_MS,
+          `MCP tool ${toolName} (retry)`,
+        )
+        return extractMCPResult(retryResult)
       }
     } catch (retryErr) {
       log.error({ toolName, serverName: conn.serverName, retryErr }, 'MCP tool call retry also failed')

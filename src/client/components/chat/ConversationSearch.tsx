@@ -9,9 +9,10 @@ interface ConversationSearchProps {
   onClose: () => void
   onSearchChange: (query: string, matchIndex: number, matchCount: number) => void
   messages: Array<{ id: string; content: string }>
+  hasMore?: boolean
 }
 
-export const ConversationSearch = React.memo(function ConversationSearch({ onClose, onSearchChange, messages }: ConversationSearchProps) {
+export const ConversationSearch = React.memo(function ConversationSearch({ onClose, onSearchChange, messages, hasMore }: ConversationSearchProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -95,6 +96,11 @@ export const ConversationSearch = React.memo(function ConversationSearch({ onClo
           {matchCount === 0
             ? t('chat.search.noResults')
             : t('chat.search.results', { current: currentIndex + 1, total: matchCount })}
+        </span>
+      )}
+      {hasMore && query.trim().length >= 2 && (
+        <span className="shrink-0 text-xs text-muted-foreground/70 italic">
+          {t('chat.search.partialScope', { count: messages.length })}
         </span>
       )}
       <div className="flex items-center">

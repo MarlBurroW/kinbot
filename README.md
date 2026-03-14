@@ -407,6 +407,24 @@ All settings have sensible defaults. Override only what you need.
 | `MEMORY_SIMILARITY_THRESHOLD` | `0.7` | Minimum cosine similarity for memory retrieval |
 | `MEMORY_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model for memory vectors |
 | `MEMORY_EMBEDDING_DIMENSION` | `1536` | Vector dimension for embeddings |
+| `MEMORY_TOKEN_BUDGET` | `0` | Max tokens for memory block in prompt (`0` = unlimited) |
+| `MEMORY_RERANK_MODEL` | Provider default | Cross-encoder rerank model (Cohere, Jina) for memory retrieval |
+| `MEMORY_CONSOLIDATION_MODEL` | Provider default | Model used for memory consolidation |
+| `MEMORY_CONSOLIDATION_SIMILARITY` | `0.85` | Cosine similarity threshold for merging duplicate memories |
+| `MEMORY_CONSOLIDATION_MAX_GEN` | `5` | Max consolidation generations per run |
+| `MEMORY_MULTI_QUERY_MODEL` | Provider default | Model for multi-query expansion during recall |
+| `MEMORY_HYDE_MODEL` | Provider default | Model for HyDE (hypothetical document embedding) queries |
+| `MEMORY_CONTEXTUAL_REWRITE_MODEL` | Provider default | Model for contextual memory rewriting |
+| `MEMORY_CONTEXTUAL_REWRITE_THRESHOLD` | `80` | Token threshold to trigger contextual rewrite |
+| `MEMORY_ADAPTIVE_K` | `true` | Enable adaptive K (dynamic result count based on score distribution) |
+| `MEMORY_ADAPTIVE_K_MIN_SCORE_RATIO` | `0.3` | Minimum score ratio for adaptive K cutoff |
+| `MEMORY_RRF_K` | `60` | Reciprocal Rank Fusion K parameter for hybrid search |
+| `MEMORY_FTS_BOOST` | `0.5` | Full-text search score boost factor |
+| `MEMORY_SUBJECT_BOOST` | `1.3` | Score boost for subject-matching memories |
+| `MEMORY_CATEGORY_BOOST` | `1.25` | Score boost for category-matching memories |
+| `MEMORY_TEMPORAL_DECAY_LAMBDA` | `0.01` | Temporal decay rate (higher = faster decay) |
+| `MEMORY_TEMPORAL_DECAY_FLOOR` | `0.7` | Minimum score multiplier from temporal decay |
+| `HISTORY_TOKEN_BUDGET` | `40000` | Max tokens for conversation history in context |
 
 #### Tasks & Queues
 
@@ -439,6 +457,9 @@ All settings have sensible defaults. Override only what you need.
 | `CHANNELS_MAX_PER_KIN` | `5` | Max channel connections per Kin |
 | `WEBHOOKS_MAX_PER_KIN` | `20` | Max webhooks per Kin |
 | `WEBHOOKS_MAX_PAYLOAD_BYTES` | `1048576` | Max webhook payload size (1 MB) |
+| `WEBHOOKS_LOG_RETENTION_DAYS` | `30` | Webhook execution log retention period |
+| `WEBHOOKS_MAX_LOGS_PER_WEBHOOK` | `500` | Max stored execution logs per webhook |
+| `WEBHOOKS_RATE_LIMIT_PER_MINUTE` | `60` | Max webhook executions per minute |
 
 #### File Storage & Uploads
 
@@ -446,6 +467,8 @@ All settings have sensible defaults. Override only what you need.
 |----------|---------|-------------|
 | `UPLOAD_DIR` | `{dataDir}/uploads` | Upload directory |
 | `UPLOAD_MAX_FILE_SIZE` | `50` | Max upload size in MB |
+| `UPLOAD_CHANNEL_RETENTION_DAYS` | `30` | Channel file retention period in days |
+| `UPLOAD_CHANNEL_CLEANUP_INTERVAL` | `60` | Channel file cleanup interval in minutes |
 | `FILE_STORAGE_DIR` | `{dataDir}/storage` | Kin file storage directory |
 | `FILE_STORAGE_MAX_SIZE` | `100` | Max file size in MB |
 | `FILE_STORAGE_CLEANUP_INTERVAL` | `60` | Cleanup interval in minutes |
@@ -517,6 +540,14 @@ All settings have sensible defaults. Override only what you need.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `WAKEUPS_MAX_PENDING_PER_KIN` | `20` | Max pending wakeups per Kin |
+
+#### Version Check
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VERSION_CHECK_ENABLED` | `false` | Enable automatic version checking |
+| `VERSION_CHECK_REPO` | `MarlBurroW/kinbot` | GitHub repo to check for new releases |
+| `VERSION_CHECK_INTERVAL_HOURS` | `12` | Hours between version checks |
 
 </details>
 

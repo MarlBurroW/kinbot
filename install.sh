@@ -1686,7 +1686,7 @@ case "${1:-}" in
     echo ""
     echo "Configuration:"
     echo "  config        Re-run the configuration wizard (change port, URL)"
-    echo "  env [K=V|K-]  Show, set, or remove config variables"
+    echo "  env [K|K=V|K-] Show, get, set, or remove config variables"
     echo ""
     echo "Maintenance:"
     echo "  update        Check for updates and apply"
@@ -2473,8 +2473,8 @@ show_help() {
 
   echo -e "${BOLD}CONFIGURATION${NC}"
   echo "  --config        Re-run the configuration wizard (change port, URL)"
-  echo "  --env [KEY=VAL] Show, set, or remove env variables in the config file"
-  echo "                  No args: show all; KEY=VAL: set; KEY-: remove"
+  echo "  --env [KEY=VAL] Show, get, set, or remove env variables in the config file"
+  echo "                  No args: show all; KEY: get one; KEY=VAL: set; KEY-: remove"
   echo ""
 
   echo -e "${BOLD}DATA${NC}"
@@ -2546,6 +2546,7 @@ show_help() {
   echo ""
   echo -e "  ${DIM}# Change config${NC}"
   echo "  bash install.sh --config"
+  echo "  bash install.sh --env PORT               ${DIM}# get a single value${NC}"
   echo "  bash install.sh --env LOG_LEVEL=debug"
   echo "  bash install.sh --env ENCRYPTION_KEY=\$(openssl rand -hex 32)"
   echo ""
@@ -4177,7 +4178,7 @@ do_restore() {
   echo ""
 }
 
-# ─── Set env variable ─────────────────────────────────────────────────────────
+# ─── Manage env variables (get / set / remove) ───────────────────────────────
 do_env() {
   local assignment="${1:-}"
 
@@ -4268,9 +4269,41 @@ do_env() {
     return
   fi
 
+  # ── KEY syntax (bare name): get a single variable ──
+  if [[ "$assignment" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    local key="$assignment"
+
+    if [ ! -f "$env_file" ]; then
+      error "No config file found at $env_file. Run the installer first: bash install.sh"
+    fi
+
+    local found_value=""
+    local found=false
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      [[ "$line" =~ ^#.*$ ]] && continue
+      local k="${line%%=*}"
+      if [ "$k" = "$key" ]; then
+        found_value="${line#*=}"
+        found=true
+        break
+      fi
+    done < "$env_file"
+
+    if [ "$found" = true ]; then
+      # Raw output (no colors, no prefix) so it's script-friendly:
+      #   PORT=$(bash install.sh --env PORT)
+      echo "$found_value"
+    else
+      warn "$key is not set in $env_file"
+      return 1
+    fi
+    return
+  fi
+
   # ── KEY=VALUE syntax: set a variable ──
   if [[ ! "$assignment" =~ ^[A-Za-z_][A-Za-z0-9_]*=.* ]]; then
-    error "Invalid format. Usage: bash install.sh --env [KEY=VALUE | KEY-]"
+    error "Invalid format. Usage: bash install.sh --env [KEY | KEY=VALUE | KEY-]"
   fi
 
   local key="${assignment%%=*}"
