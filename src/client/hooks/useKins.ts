@@ -129,7 +129,7 @@ export function useKins() {
   }, [sseStatus, fetchKins])
 
   // Track which kins are currently processing (queue state from SSE)
-  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: { systemPrompt: number; messages: number; tools: number; total: number }; compactingTokens?: number; compactingThreshold?: number; compactingMessages?: number; compactingMessageThreshold?: number }>>(new Map())
+  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: { systemPrompt: number; messages: number; tools: number; total: number }; compactingTokens?: number; compactingThreshold?: number; compactingThresholdPercent?: number; compactingMessages?: number }>>(new Map())
 
   // Listen for kin lifecycle and queue updates via SSE to keep the list in sync
   useSSE({
@@ -194,8 +194,8 @@ export function useKins() {
           contextBreakdown: (data.contextBreakdown as { systemPrompt: number; messages: number; tools: number; total: number } | undefined) ?? existing?.contextBreakdown,
           compactingTokens: (data.compactingTokens as number | undefined) ?? existing?.compactingTokens,
           compactingThreshold: (data.compactingThreshold as number | undefined) ?? existing?.compactingThreshold,
+          compactingThresholdPercent: (data.compactingThresholdPercent as number | undefined) ?? existing?.compactingThresholdPercent,
           compactingMessages: (data.compactingMessages as number | undefined) ?? existing?.compactingMessages,
-          compactingMessageThreshold: (data.compactingMessageThreshold as number | undefined) ?? existing?.compactingMessageThreshold,
         })
         return next
       })
@@ -232,7 +232,7 @@ export function useKins() {
   // Fetch initial context usage for a kin (so the counter doesn't show "— / —")
   const fetchContextUsage = useCallback(async (kinId: string) => {
     try {
-      const data = await api.get<{ contextTokens: number; contextWindow: number; contextBreakdown?: { systemPrompt: number; messages: number; tools: number; total: number }; compactingTokens?: number; compactingThreshold?: number; compactingMessages?: number; compactingMessageThreshold?: number }>(`/kins/${kinId}/context-usage`)
+      const data = await api.get<{ contextTokens: number; contextWindow: number; contextBreakdown?: { systemPrompt: number; messages: number; tools: number; total: number }; compactingTokens?: number; compactingThreshold?: number; compactingThresholdPercent?: number; compactingMessages?: number }>(`/kins/${kinId}/context-usage`)
       setKinQueueState((prev) => {
         const existing = prev.get(kinId)
         // Don't overwrite if SSE already provided fresh data
@@ -246,8 +246,8 @@ export function useKins() {
           contextBreakdown: data.contextBreakdown,
           compactingTokens: data.compactingTokens,
           compactingThreshold: data.compactingThreshold,
+          compactingThresholdPercent: data.compactingThresholdPercent,
           compactingMessages: data.compactingMessages,
-          compactingMessageThreshold: data.compactingMessageThreshold,
         })
         return next
       })

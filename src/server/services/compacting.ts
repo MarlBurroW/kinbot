@@ -14,6 +14,7 @@ import { config } from '@/server/config'
 import { getExtractionModel } from '@/server/services/app-settings'
 import { createMemory, updateMemory, isDuplicateMemory, pruneStaleMemories } from '@/server/services/memory'
 import { sseManager } from '@/server/sse/index'
+import { getModelContextWindow } from '@/shared/model-context-windows'
 import type { MemoryCategory, KinCompactingConfig } from '@/shared/types'
 
 const log = createLogger('compacting')
@@ -25,8 +26,8 @@ function estimateTokens(text: string): number {
 
 // ─── Per-Kin Threshold Resolution ────────────────────────────────────────────
 
-/** Resolve effective compacting thresholds: per-Kin overrides > global defaults */
-async function getEffectiveThresholds(kinId: string): Promise<{ messageThreshold: number; tokenThreshold: number }> {
+/** Resolve effective compacting threshold percentage: per-Kin override > DB setting > env var default */
+async function getEffectiveThresholdPercent(kinId: string): Promise<number> {
   const kin = await db
     .select({ compactingConfig: kins.compactingConfig })
     .from(kins)
@@ -38,10 +39,23 @@ async function getEffectiveThresholds(kinId: string): Promise<{ messageThreshold
     try { kinConfig = JSON.parse(kin.compactingConfig) as KinCompactingConfig } catch { /* use defaults */ }
   }
 
-  return {
-    messageThreshold: kinConfig?.messageThreshold ?? config.compacting.messageThreshold,
-    tokenThreshold: kinConfig?.tokenThreshold ?? config.compacting.tokenThreshold,
-  }
+  if (kinConfig?.thresholdPercent != null) return kinConfig.thresholdPercent
+
+  // Check DB-stored global setting
+  const { getCompactingThresholdPercent } = await import('@/server/services/app-settings')
+  const dbPercent = await getCompactingThresholdPercent()
+  return dbPercent ?? config.compacting.thresholdPercent
+}
+
+/** Get the model context window for a Kin */
+async function getKinContextWindow(kinId: string): Promise<number> {
+  const kin = await db
+    .select({ model: kins.model })
+    .from(kins)
+    .where(eq(kins.id, kinId))
+    .get()
+
+  return getModelContextWindow(kin?.model ?? 'unknown')
 }
 
 /** Get non-compacted message stats for a Kin (shared by shouldCompact + getCompactingProximity) */
@@ -83,18 +97,18 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
 
 /**
  * Evaluate whether compacting should trigger for a Kin.
- * Returns true if message count or token count exceeds thresholds.
+ * Returns true if token count exceeds the configured percentage of model context window.
  */
 async function shouldCompact(kinId: string): Promise<boolean> {
-  const [stats, thresholds] = await Promise.all([
+  const [stats, thresholdPercent, contextWindow] = await Promise.all([
     getNonCompactedStats(kinId),
-    getEffectiveThresholds(kinId),
+    getEffectiveThresholdPercent(kinId),
+    getKinContextWindow(kinId),
   ])
 
   if (stats.currentMessages === 0) return false
-  if (stats.currentMessages > thresholds.messageThreshold) return true
-  if (stats.currentTokens > thresholds.tokenThreshold) return true
-  return false
+  const tokenThreshold = Math.floor((contextWindow * thresholdPercent) / 100)
+  return stats.currentTokens > tokenThreshold
 }
 
 // ─── Public: compacting proximity for UI ─────────────────────────────────────
@@ -102,22 +116,27 @@ async function shouldCompact(kinId: string): Promise<boolean> {
 export interface CompactingProximity {
   currentTokens: number
   tokenThreshold: number
+  thresholdPercent: number
+  contextWindow: number
   currentMessages: number
-  messageThreshold: number
 }
 
 /** Get compacting proximity data for display in the chat UI */
 export async function getCompactingProximity(kinId: string): Promise<CompactingProximity> {
-  const [stats, thresholds] = await Promise.all([
+  const [stats, thresholdPercent, contextWindow] = await Promise.all([
     getNonCompactedStats(kinId),
-    getEffectiveThresholds(kinId),
+    getEffectiveThresholdPercent(kinId),
+    getKinContextWindow(kinId),
   ])
+
+  const tokenThreshold = Math.floor((contextWindow * thresholdPercent) / 100)
 
   return {
     currentTokens: stats.currentTokens,
-    tokenThreshold: thresholds.tokenThreshold,
+    tokenThreshold,
+    thresholdPercent,
+    contextWindow,
     currentMessages: stats.currentMessages,
-    messageThreshold: thresholds.messageThreshold,
   }
 }
 

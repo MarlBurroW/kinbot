@@ -357,8 +357,8 @@ kinRoutes.get('/:id/context-usage', async (c) => {
       contextBreakdown: cached.breakdown ?? null,
       compactingTokens: compacting.currentTokens,
       compactingThreshold: compacting.tokenThreshold,
+      compactingThresholdPercent: compacting.thresholdPercent,
       compactingMessages: compacting.currentMessages,
-      compactingMessageThreshold: compacting.messageThreshold,
     })
   }
 
@@ -412,8 +412,8 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     contextBreakdown: { systemPrompt: systemPromptTokens, messages: messagesTokens, tools: 0, total: contextTokens },
     compactingTokens: compacting.currentTokens,
     compactingThreshold: compacting.tokenThreshold,
+    compactingThresholdPercent: compacting.thresholdPercent,
     compactingMessages: compacting.currentMessages,
-    compactingMessageThreshold: compacting.messageThreshold,
   })
 })
 

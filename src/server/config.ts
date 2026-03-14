@@ -67,8 +67,12 @@ export const config = {
   },
 
   compacting: {
+    /** @deprecated Use thresholdPercent instead */
     messageThreshold: Number(process.env.COMPACTING_MESSAGE_THRESHOLD ?? 50),
+    /** @deprecated Use thresholdPercent instead */
     tokenThreshold: Number(process.env.COMPACTING_TOKEN_THRESHOLD ?? 30000),
+    /** Trigger compaction when context usage reaches this % of model's context window (default: 75) */
+    thresholdPercent: Number(process.env.COMPACTING_THRESHOLD_PERCENT ?? 75),
     model: process.env.COMPACTING_MODEL ?? undefined,
     maxSnapshotsPerKin: Number(process.env.COMPACTING_MAX_SNAPSHOTS ?? 10),
   },

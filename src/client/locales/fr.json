@@ -344,7 +344,10 @@
       "messageThresholdPlaceholder": "Défaut : {{default}}",
       "tokenThresholdPlaceholder": "Défaut : {{default}}",
       "messageThresholdHint": "Défaut global : {{default}}",
-      "tokenThresholdHint": "Défaut global : {{default}}"
+      "tokenThresholdHint": "Défaut global : {{default}}",
+      "thresholdPercent": "Seuil (%)",
+      "thresholdPercentPlaceholder": "Defaut global ({{default}})",
+      "thresholdPercentHint": "Compacter quand le contexte atteint ce % de la fenetre du modele. Vide = defaut global ({{default}}%)."
     },
     "avatar": {
       "title": "Choisir l'avatar",
@@ -472,7 +475,7 @@
     "forceCompact": "Forcer la compaction",
     "tooltipContext": "Fenêtre de contexte",
     "tooltipCompacting": "Compaction",
-    "compactingProximity": "Compaction dans ~{{tokens}} tokens ({{messages}}/{{maxMessages}} msgs)",
+    "compactingProximity": "Compaction a {{thresholdPercent}}% ({{messages}} msgs, ~{{tokens}} tokens restants)",
     "compactingMarker": "Seuil de compaction",
     "moreActions": "Plus d'actions",
     "compacting": {
@@ -987,7 +990,11 @@
         "bullet2": "Le modèle d'embedding rend les souvenirs recherchables par le sens, pour retrouver les infos même avec des mots différents",
         "bullet3": "Des modèles petits et rapides suffisent pour l'extraction et l'embedding, pas besoin de modèles coûteux",
         "bullet4": "Si aucun modèle d'extraction n'est défini, chaque Kin utilise son propre modèle de chat"
-      }
+      },
+      "compactingThresholdLabel": "Seuil de compaction",
+      "compactingThresholdDescription": "Compacter la conversation lorsque l'utilisation du contexte atteint ce pourcentage de la fenetre contextuelle du modele. Des valeurs plus basses compactent plus souvent.",
+      "compactingThresholdSaved": "Seuil de compaction sauvegarde",
+      "compactingThresholdError": "Erreur lors de la sauvegarde du seuil"
     },
     "contacts": {
       "title": "Contacts",

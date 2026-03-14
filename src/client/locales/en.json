@@ -344,7 +344,10 @@
       "messageThresholdPlaceholder": "Default: {{default}}",
       "tokenThresholdPlaceholder": "Default: {{default}}",
       "messageThresholdHint": "Global default: {{default}}",
-      "tokenThresholdHint": "Global default: {{default}}"
+      "tokenThresholdHint": "Global default: {{default}}",
+      "thresholdPercent": "Threshold (%)",
+      "thresholdPercentPlaceholder": "Global default ({{default}})",
+      "thresholdPercentHint": "Compact when context reaches this % of model window. Leave empty for global default ({{default}}%)."
     },
     "avatar": {
       "title": "Choose avatar",
@@ -472,7 +475,7 @@
     "forceCompact": "Force compaction",
     "tooltipContext": "Context window",
     "tooltipCompacting": "Compaction",
-    "compactingProximity": "Compaction in ~{{tokens}} tokens ({{messages}}/{{maxMessages}} msgs)",
+    "compactingProximity": "Compaction at {{thresholdPercent}}% ({{messages}} msgs, ~{{tokens}} tokens remaining)",
     "compactingMarker": "Compaction threshold",
     "moreActions": "More actions",
     "compacting": {
@@ -987,7 +990,11 @@
         "bullet2": "The embedding model makes memories searchable by meaning, so your Kin finds relevant info even if the exact words differ",
         "bullet3": "You don't need expensive models here. Small, fast models handle extraction and embedding just fine",
         "bullet4": "If no extraction model is set, each Kin uses its own chat model for memory extraction"
-      }
+      },
+      "compactingThresholdLabel": "Compaction Threshold",
+      "compactingThresholdDescription": "Compact the conversation when context usage reaches this percentage of the model's context window. Lower values compact more often, higher values use more context before compacting.",
+      "compactingThresholdSaved": "Compaction threshold saved",
+      "compactingThresholdError": "Failed to save compaction threshold"
     },
     "contacts": {
       "title": "Contacts",

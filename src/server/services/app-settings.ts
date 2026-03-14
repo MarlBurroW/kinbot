@@ -88,3 +88,12 @@ export async function setHubKinId(kinId: string | null): Promise<void> {
   if (kinId === null) return deleteSetting('hub_kin_id')
   return setSetting('hub_kin_id', kinId)
 }
+
+export async function getCompactingThresholdPercent(): Promise<number | null> {
+  const v = await getSetting('compacting_threshold_percent')
+  return v ? Number(v) : null
+}
+
+export async function setCompactingThresholdPercent(percent: number): Promise<void> {
+  return setSetting('compacting_threshold_percent', String(Math.max(50, Math.min(95, Math.round(percent)))))
+}

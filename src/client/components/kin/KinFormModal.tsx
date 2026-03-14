@@ -421,7 +421,7 @@ export function KinFormModal({
     try {
       if (isEdit && onUpdateKin) {
         // Normalize compactingConfig: if both fields are empty, send null to clear the override
-        const effectiveCompactingConfig = (compactingConfig?.messageThreshold != null || compactingConfig?.tokenThreshold != null)
+        const effectiveCompactingConfig = (compactingConfig?.thresholdPercent != null)
           ? compactingConfig
           : null
         await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig, compactingConfig: effectiveCompactingConfig })
@@ -873,38 +873,22 @@ export function KinFormModal({
                               {t('kin.compacting.title')}
                             </Label>
                             <p className="text-xs text-muted-foreground">{t('kin.compacting.overrideHint')}</p>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1.5">
-                                <Label className="text-xs">{t('kin.compacting.messageThreshold')}</Label>
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  placeholder={t('kin.compacting.messageThresholdPlaceholder', { default: 50 })}
-                                  value={compactingConfig?.messageThreshold ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value ? Number(e.target.value) : null
-                                    setCompactingConfig({ ...compactingConfig, messageThreshold: val, tokenThreshold: compactingConfig?.tokenThreshold ?? null })
-                                    markDirty()
-                                  }}
-                                />
-                                <p className="text-[10px] text-muted-foreground">{t('kin.compacting.messageThresholdHint', { default: 50 })}</p>
-                              </div>
-                              <div className="space-y-1.5">
-                                <Label className="text-xs">{t('kin.compacting.tokenThreshold')}</Label>
-                                <Input
-                                  type="number"
-                                  min={1000}
-                                  step={1000}
-                                  placeholder={t('kin.compacting.tokenThresholdPlaceholder', { default: '30k' })}
-                                  value={compactingConfig?.tokenThreshold ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value ? Number(e.target.value) : null
-                                    setCompactingConfig({ ...compactingConfig, tokenThreshold: val, messageThreshold: compactingConfig?.messageThreshold ?? null })
-                                    markDirty()
-                                  }}
-                                />
-                                <p className="text-[10px] text-muted-foreground">{t('kin.compacting.tokenThresholdHint', { default: '30k' })}</p>
-                              </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">{t('kin.compacting.thresholdPercent')}</Label>
+                              <Input
+                                type="number"
+                                min={50}
+                                max={95}
+                                step={5}
+                                placeholder={t('kin.compacting.thresholdPercentPlaceholder', { default: '75%' })}
+                                value={compactingConfig?.thresholdPercent ?? ''}
+                                onChange={(e) => {
+                                  const val = e.target.value ? Number(e.target.value) : null
+                                  setCompactingConfig({ ...compactingConfig, thresholdPercent: val })
+                                  markDirty()
+                                }}
+                              />
+                              <p className="text-[10px] text-muted-foreground">{t('kin.compacting.thresholdPercentHint', { default: 75 })}</p>
                             </div>
                           </div>
                         </div>

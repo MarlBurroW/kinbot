@@ -64,8 +64,8 @@ interface ConversationHeaderProps {
   contextBreakdown?: { systemPrompt: number; messages: number; tools: number; total: number }
   compactingTokens?: number
   compactingThreshold?: number
+  compactingThresholdPercent?: number
   compactingMessages?: number
-  compactingMessageThreshold?: number
   messages?: ChatMessage[]
   scrollViewportRef?: React.RefObject<HTMLElement | null>
 }
@@ -101,8 +101,8 @@ export const ConversationHeader = memo(function ConversationHeader({
   contextBreakdown,
   compactingTokens,
   compactingThreshold,
+  compactingThresholdPercent,
   compactingMessages,
-  compactingMessageThreshold,
   messages,
   scrollViewportRef,
 }: ConversationHeaderProps) {
@@ -239,7 +239,7 @@ export const ConversationHeader = memo(function ConversationHeader({
                 {t('chat.compactingProximity', {
                   tokens: formatTokenCount(compactingRemaining),
                   messages: compactingMessages ?? 0,
-                  maxMessages: compactingMessageThreshold ?? 0,
+                  thresholdPercent: compactingThresholdPercent ?? 75,
                 })}
               </p>
             )}
@@ -301,7 +301,7 @@ export const ConversationHeader = memo(function ConversationHeader({
                   {t('chat.compactingProximity', {
                     tokens: formatTokenCount(compactingRemaining),
                     messages: compactingMessages ?? 0,
-                    maxMessages: compactingMessageThreshold ?? 0,
+                    thresholdPercent: compactingThresholdPercent ?? 75,
                   })}
                 </p>
               )}
@@ -398,7 +398,7 @@ export const ConversationHeader = memo(function ConversationHeader({
                   <span>{t('chat.compactingProximity', {
                     tokens: formatTokenCount(compactingRemaining),
                     messages: compactingMessages ?? 0,
-                    maxMessages: compactingMessageThreshold ?? 0,
+                    thresholdPercent: compactingThresholdPercent ?? 75,
                   })}</span>
                 </div>
               </div>
