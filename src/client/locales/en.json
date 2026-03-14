@@ -320,7 +320,7 @@
       "allEnabled": "All enabled",
       "allDisabled": "All disabled",
       "countEnabled": "{{count}} / {{total}}",
-      "hubNotice": "This Kin is the Hub — all opt-in tools are automatically enabled at runtime, regardless of the toggles below.",
+      "hubNotice": "This Kin is the Hub. All opt-in tools are automatically enabled at runtime, regardless of the toggles below.",
       "autoEnabled": "Auto",
       "noMcp": "No MCP servers configured.",
       "saveMcpHint": "Save the Kin first to configure MCP tools.",
@@ -575,7 +575,7 @@
       "filesOnly": "(files only)"
     },
     "charCount": "{{count}} characters",
-    "messageTooLong": "{{count}} / {{max}} — message too long",
+    "messageTooLong": "{{count}} / {{max}}, message too long",
     "mention": {
       "users": "User",
       "kins": "Kin",

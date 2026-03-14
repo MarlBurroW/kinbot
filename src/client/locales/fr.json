@@ -320,7 +320,7 @@
       "allEnabled": "Tous activés",
       "allDisabled": "Tous désactivés",
       "countEnabled": "{{count}} / {{total}}",
-      "hubNotice": "Ce Kin est le Hub — tous les outils opt-in sont automatiquement activés au runtime, indépendamment des toggles ci-dessous.",
+      "hubNotice": "Ce Kin est le Hub. Tous les outils opt-in sont automatiquement activés au runtime, indépendamment des toggles ci-dessous.",
       "autoEnabled": "Auto",
       "noMcp": "Aucun serveur MCP configuré.",
       "saveMcpHint": "Enregistrez le Kin d'abord pour configurer les outils MCP.",
@@ -575,7 +575,7 @@
       "filesOnly": "(fichiers uniquement)"
     },
     "charCount": "{{count}} caractères",
-    "messageTooLong": "{{count}} / {{max}} — message trop long",
+    "messageTooLong": "{{count}} / {{max}}, message trop long",
     "mention": {
       "users": "Utilisateur",
       "kins": "Kin",
@@ -1300,7 +1300,7 @@
       "providers": "fournisseurs",
       "channels": "canaux",
       "permissions": "autorisations",
-      "viewPermissions": "Voir les permissions",
+      "viewPermissions": "Voir les autorisations",
       "configure": "Configurer",
       "configureTitle": "Configurer {{name}}",
       "configureDescription": "Modifiez les paramètres du plugin ci-dessous.",
