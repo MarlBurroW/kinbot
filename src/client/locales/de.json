@@ -125,9 +125,9 @@
       "getKey": "Key holen",
       "noKeyNeeded": "Kein API-Key erforderlich",
       "guidanceFooter": "Du kannst später in den Einstellungen weitere Provider hinzufügen. Wähle einfach einen aus, um loszulegen.",
-      "advancedSetup": "Speicher und Suche anpassen",
+      "advancedSetup": "Erinnerungen und Suche anpassen",
       "quickFinish": "Schneller Abschluss mit den Standardeinstellungen",
-      "quickFinishHint": "Speicher und Suche können später in den Einstellungen konfiguriert werden"
+      "quickFinishHint": "Erinnerungen und Suche können später in den Einstellungen konfiguriert werden"
     },
     "memory": {
       "title": "Erinnerung",
