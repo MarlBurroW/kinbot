@@ -24,7 +24,10 @@ These control the hybrid search, scoring, and result selection pipeline.
 | `MEMORY_RRF_K` | `60` | Reciprocal Rank Fusion smoothing constant. Higher values give more weight to lower-ranked results |
 | `MEMORY_FTS_BOOST` | `1.2` | Multiplier for FTS results in RRF scoring. Values > 1 favor keyword matches |
 | `MEMORY_SUBJECT_BOOST` | `1.3` | Score multiplier when a memory's subject matches an entity in the query |
+| `MEMORY_CATEGORY_BOOST` | `1.25` | Score multiplier for category-matching memories |
 | `MEMORY_TEMPORAL_DECAY_LAMBDA` | `0.01` | Temporal decay rate. Higher = faster decay. Set to `0` to disable. Category-adjusted: facts decay 10× slower than decisions |
+| `MEMORY_TEMPORAL_DECAY_FLOOR` | `0.7` | Minimum score multiplier from temporal decay. Prevents old memories from being completely suppressed |
+| `MEMORY_TOKEN_BUDGET` | `0` | Max tokens for the memory block in prompt. `0` = unlimited (no budget enforcement) |
 | `MEMORY_ADAPTIVE_K` | `true` | Enable adaptive result trimming based on score distribution |
 | `MEMORY_ADAPTIVE_K_MIN_SCORE_RATIO` | `0.3` | Minimum score as a ratio of the top result. Results below this are dropped |
 
@@ -35,6 +38,7 @@ These features use additional LLM calls to improve retrieval quality. Each is di
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MEMORY_MULTI_QUERY_MODEL` | *(disabled)* | Model for generating query variations. Expands each query into 3 alternatives targeting different aspects |
+| `MEMORY_HYDE_MODEL` | *(disabled)* | Model for HyDE (Hypothetical Document Embedding). Generates a hypothetical answer to use as an additional search query for better semantic matching |
 | `MEMORY_RERANK_MODEL` | *(disabled)* | Model for re-ranking. If a rerank provider (Cohere/Jina) is configured, uses their cross-encoder API (~20× faster). Otherwise falls back to LLM-based scoring (0-10 scale) |
 | `MEMORY_CONTEXTUAL_REWRITE_MODEL` | *(disabled)* | Model for rewriting short/ambiguous messages into standalone queries using conversation context |
 | `MEMORY_CONTEXTUAL_REWRITE_THRESHOLD` | `80` | Character length threshold. Messages shorter than this are candidates for contextual rewriting |

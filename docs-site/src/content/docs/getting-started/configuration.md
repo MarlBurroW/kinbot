@@ -31,12 +31,41 @@ KinBot stores everything in a single directory (`KINBOT_DATA_DIR`):
 When using Docker, mount a volume to `/app/data` to persist data across container restarts.
 :::
 
+## History
+
+| Variable | Default | Description |
+|---|---|---|
+| `HISTORY_TOKEN_BUDGET` | `40000` | Max tokens for conversation history in context |
+
+## Webhooks
+
+| Variable | Default | Description |
+|---|---|---|
+| `WEBHOOKS_LOG_RETENTION_DAYS` | `30` | Webhook execution log retention period in days |
+| `WEBHOOKS_MAX_LOGS_PER_WEBHOOK` | `500` | Max stored execution logs per webhook |
+| `WEBHOOKS_RATE_LIMIT_PER_MINUTE` | `60` | Max webhook executions per minute |
+
+## Uploads
+
+| Variable | Default | Description |
+|---|---|---|
+| `UPLOAD_CHANNEL_RETENTION_DAYS` | `30` | Channel file retention period in days |
+| `UPLOAD_CHANNEL_CLEANUP_INTERVAL` | `60` | Channel file cleanup interval in minutes |
+
+## Version checking
+
+| Variable | Default | Description |
+|---|---|---|
+| `VERSION_CHECK_ENABLED` | `false` | Enable automatic version checking against GitHub releases |
+| `VERSION_CHECK_REPO` | `MarlBurroW/kinbot` | GitHub repo to check for new releases |
+| `VERSION_CHECK_INTERVAL_HOURS` | `12` | Hours between version checks |
+
 ## Advanced options
 
 See [`.env.example`](https://github.com/MarlBurroW/kinbot/blob/main/.env.example) for the complete list of all options including:
 
 - Compacting thresholds
-- Memory tuning (extraction, vector dimensions)
+- Memory tuning (extraction, vector dimensions, search pipeline)
 - Queue settings
 - Cron limits
 - Web browsing configuration
