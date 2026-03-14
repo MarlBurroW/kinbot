@@ -32,6 +32,7 @@ import {
   Play,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { cn } from '@/client/lib/utils'
 import { formatRelativeTime, formatDurationBetween } from '@/client/lib/time'
 import { cronToHuman } from '@/client/lib/cron-human'
@@ -226,8 +227,8 @@ export function CronDetailModal({
               {/* Description */}
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">{t('cron.detail.description')}</p>
-                <div className="rounded-md bg-muted/50 px-3 py-2">
-                  <p className="text-sm whitespace-pre-wrap">{cron.taskDescription}</p>
+                <div className="rounded-md bg-muted/50 px-3 py-2 overflow-hidden text-sm">
+                  <MarkdownContent content={cron.taskDescription} />
                 </div>
               </div>
 
