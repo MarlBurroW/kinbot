@@ -49,18 +49,75 @@ function GlowDivider() {
       className="w-full flex justify-center py-4"
       aria-hidden="true"
     >
-      <div
-        className="w-full max-w-2xl h-px"
-        style={{
-          background: `linear-gradient(90deg,
-            transparent 0%,
-            color-mix(in oklch, var(--color-glow-1) 30%, transparent) 20%,
-            color-mix(in oklch, var(--color-glow-2) 40%, transparent) 50%,
-            color-mix(in oklch, var(--color-glow-3) 30%, transparent) 80%,
-            transparent 100%
-          )`,
-        }}
-      />
+      <div className="relative w-full max-w-2xl">
+        {/* Base gradient line */}
+        <div
+          className="w-full h-px"
+          style={{
+            background: `linear-gradient(90deg,
+              transparent 0%,
+              color-mix(in oklch, var(--color-glow-1) 30%, transparent) 20%,
+              color-mix(in oklch, var(--color-glow-2) 40%, transparent) 50%,
+              color-mix(in oklch, var(--color-glow-3) 30%, transparent) 80%,
+              transparent 100%
+            )`,
+          }}
+        />
+        {/* Animated shimmer pulse */}
+        <div
+          className="absolute inset-0 h-px overflow-hidden"
+          style={{
+            maskImage: 'linear-gradient(90deg, transparent 0%, transparent 20%, black 50%, transparent 80%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, transparent 20%, black 50%, transparent 80%, transparent 100%)',
+          }}
+        >
+          <div
+            className="h-px w-full"
+            style={{
+              background: `linear-gradient(90deg,
+                transparent 0%,
+                transparent 40%,
+                color-mix(in oklch, var(--color-glow-2) 80%, transparent) 48%,
+                var(--color-glow-2) 50%,
+                color-mix(in oklch, var(--color-glow-2) 80%, transparent) 52%,
+                transparent 60%,
+                transparent 100%
+              )`,
+              backgroundSize: '200% 100%',
+              animation: 'divider-shimmer 3s ease-in-out infinite',
+            }}
+          />
+        </div>
+        {/* Glow halo behind the shimmer */}
+        <div
+          className="absolute -top-2 h-5 w-full overflow-hidden pointer-events-none"
+          style={{
+            maskImage: 'linear-gradient(90deg, transparent 0%, transparent 20%, black 50%, transparent 80%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, transparent 20%, black 50%, transparent 80%, transparent 100%)',
+          }}
+        >
+          <div
+            className="h-full w-full"
+            style={{
+              background: `radial-gradient(ellipse 8% 100% at 50% 50%,
+                color-mix(in oklch, var(--color-glow-2) 20%, transparent),
+                transparent 70%
+              )`,
+              backgroundSize: '200% 100%',
+              animation: 'divider-shimmer 3s ease-in-out infinite',
+            }}
+          />
+        </div>
+      </div>
+      <style>{`
+        @keyframes divider-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .divider-shimmer-anim { animation: none !important; }
+        }
+      `}</style>
     </div>
   )
 }
