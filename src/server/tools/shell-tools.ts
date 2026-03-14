@@ -65,10 +65,13 @@ export const runShellTool: ToolRegistration = {
             'Shell command executed',
           )
 
+          const trimmedStderr = stderr.trim() || undefined
+
           return {
             success: exitCode === 0,
             output: stdout.trim(),
-            error: stderr.trim() || undefined,
+            stderr: trimmedStderr,
+            ...(exitCode !== 0 && trimmedStderr ? { error: trimmedStderr } : {}),
             exitCode,
             executionTime,
           }

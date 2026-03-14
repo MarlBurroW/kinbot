@@ -29,10 +29,14 @@ function deriveStatus(entry: ToolCallEntry): ToolCallStatus {
   if (entry.result === undefined) return 'error'
   if (
     typeof entry.result === 'object' &&
-    entry.result !== null &&
-    'error' in (entry.result as Record<string, unknown>)
-  )
-    return 'error'
+    entry.result !== null
+  ) {
+    const res = entry.result as Record<string, unknown>
+    // If the result explicitly declares success (e.g. run_shell with exitCode 0),
+    // trust that over the presence of an 'error' field
+    if ('success' in res && res.success === true) return 'success'
+    if ('error' in res) return 'error'
+  }
   return 'success'
 }
 
@@ -121,12 +125,14 @@ export function useToolCalls(kinId: string | null, messages: ChatMessage[]) {
           next.set(existing.id, {
             ...existing,
             result: resultData,
-            status:
-              typeof resultData === 'object' &&
-              resultData !== null &&
-              'error' in (resultData as Record<string, unknown>)
-                ? 'error'
-                : 'success',
+            status: (() => {
+              if (typeof resultData === 'object' && resultData !== null) {
+                const r = resultData as Record<string, unknown>
+                if ('success' in r && r.success === true) return 'success' as const
+                if ('error' in r) return 'error' as const
+              }
+              return 'success' as const
+            })(),
           })
         }
         return next
