@@ -181,7 +181,7 @@ export function useChat(kinId: string | null) {
     api.get<{ isCompacting?: boolean }>(`/kins/${kinId}`).then((kin) => {
       if (kin.isCompacting) {
         setLiveCompacting({
-          kinId,
+          kinId: kinId!,
           status: 'running',
           summary: null,
           memoriesExtracted: null,
@@ -255,6 +255,7 @@ export function useChat(kinId: string | null) {
           memoriesExtracted: null,
           files: [],
           reactions: [],
+          stepLimitReached: false,
           createdAt: new Date().toISOString(),
         })
       } else {
@@ -305,6 +306,7 @@ export function useChat(kinId: string | null) {
             memoriesExtracted: null,
             files: [],
             reactions: [],
+          stepLimitReached: false,
             createdAt: new Date().toISOString(),
           },
         ])
@@ -351,6 +353,7 @@ export function useChat(kinId: string | null) {
         memoriesExtracted: null,
         files: [],
         reactions: [],
+          stepLimitReached: false,
         createdAt: new Date(data.createdAt as number).toISOString(),
       }
       setMessages((prev) => [...prev, message])
@@ -501,6 +504,7 @@ export function useChat(kinId: string | null) {
         memoriesExtracted: null,
         files: optimisticFiles ?? [],
         reactions: [],
+          stepLimitReached: false,
         createdAt: new Date().toISOString(),
       }
 
