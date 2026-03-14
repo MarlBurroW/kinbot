@@ -1375,3 +1375,44 @@
 ### Next run
 - Area 1: Onboarding / First run (re-test)
 - Area 3: Conversations (re-test)
+
+## 2026-03-14 10:10 UTC
+### Area tested: Conversations (Area 3)
+- **Pages visited:** Code review of ChatPage.tsx, ChatPanel.tsx, MessageInput.tsx, MessageBubble.tsx, useChat.ts, ChatEmptyState.tsx, ConversationSearch.tsx, MarkdownContent.tsx, MentionPopover.tsx, TypingIndicator.tsx, DateSeparator.tsx, TimeGapIndicator.tsx, useReactions.ts, QueuePreview.tsx, messages.ts (server routes)
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 2 (issues created: #206, #208)
+  - #206: Regenerate discards file attachments from original message (sendMessage called with content only, no fileIds)
+  - #208: Plain text detection regex false positives: `\d+\.` matches any number+period anywhere, not just ordered list syntax at line start
+
+- **UX suggestions:** 3 (issues created: #207, #209, #210)
+  - #207: Conversation search only covers loaded messages (~50), no indication of limitation, no server-side search
+  - #209: @mention popover position is hardcoded (bottom:8, left:0), doesn't follow cursor in multiline input
+  - #210: Typing indicator renders simultaneously with streaming content, redundant visual signal
+
+#### All clear:
+- Chat panel architecture: clean separation of concerns with ChatPanel orchestrating useChat, useToolCalls, useHumanPrompts, useQuickSession, useReactions, useDraftMessage, useQueueItems, useFileUpload, useExportConversation, useMentionables
+- Message rendering: well-structured MessageBubble with memo, proper grouping (2-min window), date separators, time gap indicators (30-min threshold)
+- Streaming: SSE-based token streaming with 50ms batched UI updates, streaming message promoted to messages array on done (prevents remount/animation replay), MutationObserver for auto-scroll
+- Auto-scroll: pin/unpin toggle with localStorage persistence, ResizeObserver to compensate viewport height changes, new message counter when scrolled up
+- Message input: controlled value, input history (Up/Down arrows), formatting toolbar (bold/italic/strikethrough/code/codeBlock), character count with color thresholds, @mention autocomplete, file drag-and-drop + paste + button, draft persistence per kin
+- Markdown rendering: lazy-loaded rehype-highlight and remark-math/rehype-katex, plain text fast path, code blocks with copy/download/wrap/line numbers/language label
+- File handling: image thumbnails with lightbox, non-image download chips, optimistic file display on send
+- Reactions: preset emoji picker with toggle, optimistic-like display grouped by emoji, SSE sync for added/removed reactions
+- Context menu: copy, quote reply (blockquote from first 3 lines), edit & resend (user messages), read aloud (Web Speech API), regenerate
+- Conversation search: client-side Ctrl+F with match highlighting, keyboard navigation (Enter/Shift+Enter), scroll to match
+- Message grouping: consecutive messages from same sender within 2-min window collapse (hidden avatar/name, tighter spacing)
+- Queue preview: pending messages shown above input with remove button, proper empty state
+- Tool calls: interleaved text + tool call parts using content offsets, deduplication of trailing repeated text
+- Injected memories: collapsible indicator with category badges
+- Empty state: greeting with kin avatar, suggestion chips from i18n, keyboard shortcut hints
+- Compacting: live card during compacting, input disabled with reason tooltip, force compact from header
+- Human prompts: card UI for pending approvals with respond action
+- Export: markdown and JSON export from header menu
+- Optimistic updates: user messages appear immediately, reverted on send failure
+- Loading states: skeleton placeholders during initial load, spinner during infinite scroll
+- Server routes: proper validation (content/files required, max length, fileIds max 10 with UUID), paginated with hasMore, file and reaction maps built efficiently, kin source info resolved for inter-kin messages
+
+### Next run
+- Area 11: Contacts
+- Area 12: Webhooks

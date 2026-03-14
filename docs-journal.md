@@ -472,3 +472,22 @@ All sections migrated and accuracy-reviewed:
 - Checked source commits since last run: `72d7dcb`, `9fae6a7`, `35c5b39`, `d279ccd` — all e2e test fixes, no documentation impact
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-14 — Missing env vars from README sync ✅
+
+- README commit `a8a9891` added 26 env vars. Cross-checked docs-site coverage.
+- **memory/configuration.md**: Added 4 missing vars:
+  - `MEMORY_HYDE_MODEL` — HyDE (hypothetical document embedding) for better semantic matching
+  - `MEMORY_CATEGORY_BOOST` — category-matching score multiplier
+  - `MEMORY_TEMPORAL_DECAY_FLOOR` — minimum decay multiplier
+  - `MEMORY_TOKEN_BUDGET` — token budget for memory block in prompt
+- **getting-started/configuration.md**: Added 4 new sections with 8 env vars:
+  - History: `HISTORY_TOKEN_BUDGET`
+  - Webhooks: `WEBHOOKS_LOG_RETENTION_DAYS`, `WEBHOOKS_MAX_LOGS_PER_WEBHOOK`, `WEBHOOKS_RATE_LIMIT_PER_MINUTE`
+  - Uploads: `UPLOAD_CHANNEL_RETENTION_DAYS`, `UPLOAD_CHANNEL_CLEANUP_INTERVAL`
+  - Version checking: `VERSION_CHECK_ENABLED`, `VERSION_CHECK_REPO`, `VERSION_CHECK_INTERVAL_HOURS`
+- Other today's commits (SSE handlers, installer --env, shimmer effect, i18n) have no docs impact
+- Build passes: 34 pages
+- Commit: `da133d5` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with source code

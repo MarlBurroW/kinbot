@@ -49,7 +49,7 @@ export const createKinTool: ToolRegistration = {
             character,
             expertise,
             model,
-            createdBy: ctx.userId ?? 'system',
+            createdBy: ctx.userId ?? null,
           })
 
           let avatarUrl: string | null = null
