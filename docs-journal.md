@@ -518,3 +518,19 @@ All sections migrated and accuracy-reviewed:
 - v0.20.0 release bundles features already documented (compacting threshold, tool step limit, cross-encoder rerank)
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-15 — New features: core principles, speaker profile, recency boost, version check ✅
+
+- Four new feature commits since last run:
+  - `ea03888` — Core principles block, current speaker profile, memory recency boost
+  - `ac49216` — Discovery prompt for users with no contact notes
+  - `00de107` — Per-Kin private notes + channel contact resolution in speaker profile
+  - `5a903f5` — Self-update system (version check + update endpoint)
+- **system-prompts.md**: Updated prompt architecture list from 12 to 14 blocks. Added [3] Core principles (universal baseline behaviors for main Kins) and [12] Current speaker profile (name, role, global + private notes, channel contact resolution, discovery nudge)
+- **memory/how-it-works.md**: Added recency boost (×1.5 today, ×1.25 week, ×1.1 month) and category boost to score weighting section
+- **memory/configuration.md**: Added `MEMORY_RECENCY_BOOST` env var
+- **api/rest.md**: Added Version Check section with 3 endpoints (GET cached info, POST force check, POST self-update)
+- Build passes: 34 pages
+- Commit: `a8612ed` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes

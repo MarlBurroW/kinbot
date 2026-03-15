@@ -400,9 +400,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
             const channelContact = findContactByPlatformId(ch.platform, meta.platformUserId)
             if (channelContact) {
               const senderName = currentMessageSource.senderName ?? channelContact.name
-              const speakerData: NonNullable<typeof currentSpeaker> = {
-                firstName: null,
-                lastName: null,
+              const speakerData = {
+                firstName: null as string | null,
+                lastName: null as string | null,
                 pseudonym: senderName,
                 role: 'external',
               }
