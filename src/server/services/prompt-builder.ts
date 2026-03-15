@@ -785,14 +785,23 @@ export function buildSystemPrompt(params: PromptParams): string {
       speakerBlock += `\n\nYour personal notes:\n` +
         kinNotes.map((n) => `- ${n}`).join('\n')
     }
-    if (!hasGlobalNotes && !hasKinNotes && contactId) {
+    if (!hasGlobalNotes && contactId) {
+      // No global notes at all — this is a priority: we need to know who we're talking to
       speakerBlock +=
-        `\n\nYou don't have any notes about this person yet (contact id: ${contactId}). ` +
-        `During early interactions, naturally get to know them — their interests, what they work on, ` +
-        `what they expect from you. Save what you learn via set_contact_note(${contactId}, "global", ...) ` +
-        `so all Kins can benefit from this context. Use set_contact_note(${contactId}, "private", ...) ` +
-        `for observations specific to your own interactions with them. ` +
-        `Don't interrogate — weave discovery into the natural flow of conversation.`
+        `\n\n⚠️ PRIORITY: You have no information about this person (contact id: ${contactId}). ` +
+        `Before providing substantive help, you MUST get to know them. ` +
+        `In your very first response, introduce yourself briefly and ask 2-3 natural questions: ` +
+        `who they are, what they do, what they expect from you. ` +
+        `Save every piece of information you learn via set_contact_note(${contactId}, "global", ...) ` +
+        `so all Kins benefit from this context. ` +
+        `Also use set_contact_note(${contactId}, "private", ...) for observations specific to your interactions. ` +
+        `This is not optional — knowing your interlocutor is essential to being genuinely helpful.`
+    } else if (hasGlobalNotes && contactId) {
+      // Has some notes — encourage enrichment during casual moments
+      speakerBlock +=
+        `\n\nWhen the conversation allows it (greetings, small talk, casual moments), take the opportunity ` +
+        `to learn more about ${pseudonym} — their current projects, evolving interests, or new needs. ` +
+        `Update notes via set_contact_note(${contactId}, "global"|"private", ...) when you learn something new.`
     }
     blocks.push(speakerBlock)
   }
