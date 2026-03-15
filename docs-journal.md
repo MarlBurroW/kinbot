@@ -534,3 +534,14 @@ All sections migrated and accuracy-reviewed:
 - Commit: `a8612ed` — pushed to main (--no-verify)
 
 ### Status: docs fully caught up with latest source changes
+
+## 2026-03-15 — Tool descriptions refactor docs update ✅
+
+- New commit `b5392a2` trimmed tool descriptions and Zod `.describe()` across 35 tool files + prompt-builder to reduce token overhead
+- No tool names or parameters changed — pure description trimming
+- **system-prompts.md**: Updated block [11] (Internal instructions) to note that mini-app instructions now direct Kins to `get_mini_app_docs` instead of inline SDK reference, and MCP sections show server-level summaries only
+- Other tool files: descriptions only shortened, no behavioral changes — docs tool tables unaffected
+- Build passes: 34 pages
+- Commit: `3314c9b` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes
