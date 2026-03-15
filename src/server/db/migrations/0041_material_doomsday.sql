@@ -1,0 +1,1 @@
+ALTER TABLE `queue_items` ADD `created_message_id` text;

@@ -4,7 +4,7 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { eq, and, isNull, ne, asc, desc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
-import { db } from '@/server/db/index'
+import { db, sqlite } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import {
   kins,
@@ -13,6 +13,7 @@ import {
   memories,
   compactingSnapshots,
   userProfiles,
+  queueItems,
 } from '@/server/db/schema'
 import { decrypt } from '@/server/services/encryption'
 import { buildSystemPrompt } from '@/server/services/prompt-builder'
@@ -209,25 +210,37 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
     if (!kin) return false
 
-    // Save the incoming user message to DB
-    const userMessageId = uuid()
-    // For task_result messages, propagate the task ID as metadata so the client
-    // can link the message back to its task detail modal.
-    const messageMetadata = queueItem.sourceType === 'task' && queueItem.taskId
-      ? JSON.stringify({ resolvedTaskId: queueItem.taskId })
-      : null
-    await db.insert(messages).values({
-      id: userMessageId,
-      kinId,
-      role: 'user',
-      content: queueItem.content,
-      sourceType: queueItem.sourceType,
-      sourceId: queueItem.sourceId,
-      requestId: queueItem.requestId,
-      inReplyTo: queueItem.inReplyTo,
-      metadata: messageMetadata,
-      createdAt: new Date(),
-    })
+    // Save the incoming user message to DB (idempotent: skip if already created during a previous attempt)
+    let userMessageId: string
+    if (queueItem.createdMessageId) {
+      // Recovery path: message was already inserted before crash — reuse it
+      userMessageId = queueItem.createdMessageId
+      log.debug({ kinId, queueItemId: queueItem.id, userMessageId }, 'Reusing existing message from recovered queue item')
+    } else {
+      userMessageId = uuid()
+      // For task_result messages, propagate the task ID as metadata so the client
+      // can link the message back to its task detail modal.
+      const messageMetadata = queueItem.sourceType === 'task' && queueItem.taskId
+        ? JSON.stringify({ resolvedTaskId: queueItem.taskId })
+        : null
+      await db.insert(messages).values({
+        id: userMessageId,
+        kinId,
+        role: 'user',
+        content: queueItem.content,
+        sourceType: queueItem.sourceType,
+        sourceId: queueItem.sourceId,
+        requestId: queueItem.requestId,
+        inReplyTo: queueItem.inReplyTo,
+        metadata: messageMetadata,
+        createdAt: new Date(),
+      })
+      // Record the created message ID on the queue item for crash recovery
+      sqlite.run(
+        `UPDATE queue_items SET created_message_id = ? WHERE id = ?`,
+        [userMessageId, queueItem.id],
+      )
+    }
 
     // Link uploaded files to the actual message (fileIds come through the queue sideband)
     if (queueItem.fileIds && queueItem.fileIds.length > 0) {

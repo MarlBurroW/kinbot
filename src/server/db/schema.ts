@@ -359,6 +359,7 @@ export const queueItems = sqliteTable('queue_items', {
   taskId: text('task_id').references(() => tasks.id),
   sessionId: text('session_id'),
   status: text('status').notNull().default('pending'), // 'pending' | 'processing' | 'done'
+  createdMessageId: text('created_message_id'), // tracks whether the user message was already inserted (idempotency on recovery)
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   processedAt: integer('processed_at', { mode: 'timestamp_ms' }),
 }, (table) => [

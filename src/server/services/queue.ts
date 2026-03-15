@@ -103,6 +103,7 @@ export async function dequeueMessage(kinId: string, mode: 'main' | 'quick' = 'ma
     task_id: string | null
     session_id: string | null
     status: string
+    created_message_id: string | null
     created_at: number
     processed_at: number | null
   }, [string]>(`
@@ -136,6 +137,7 @@ export async function dequeueMessage(kinId: string, mode: 'main' | 'quick' = 'ma
     taskId: row.task_id,
     sessionId: row.session_id,
     status: row.status,
+    createdMessageId: row.created_message_id,
     createdAt: new Date(row.created_at),
     processedAt: row.processed_at ? new Date(row.processed_at) : null,
     fileIds: fileIds ?? null,
