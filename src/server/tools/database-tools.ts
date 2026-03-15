@@ -18,18 +18,13 @@ export const executeSqlTool: ToolRegistration = {
   create: (_ctx) =>
     tool({
       description:
-        'Execute a raw SQL query against the KinBot SQLite database. ' +
-        'SELECT/WITH/EXPLAIN/PRAGMA queries return rows. ' +
-        'INSERT/UPDATE/DELETE return the number of rows affected and the last insert rowid. ' +
-        'Results are capped at 500 rows for read queries. ' +
-        'Use parameterized queries (? placeholders) to safely bind values. ' +
-        'WARNING: This is a God Tier tool — write queries are executed immediately with no undo.',
+        'Execute raw SQL against the KinBot SQLite database. Write queries have no undo.',
       inputSchema: z.object({
-        sql: z.string().describe('The SQL query to execute'),
+        sql: z.string(),
         params: z
           .array(z.union([z.string(), z.number(), z.null()]))
           .optional()
-          .describe('Positional bind parameters for ? placeholders'),
+          .describe('Bind values for ? placeholders'),
       }),
       execute: async ({ sql, params }) => {
         try {

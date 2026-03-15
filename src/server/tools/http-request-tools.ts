@@ -51,27 +51,23 @@ export const httpRequestTool: ToolRegistration = {
   create: () =>
     tool({
       description:
-        'Make an HTTP request to an external URL. Supports GET, POST, PUT, PATCH, DELETE. ' +
-        'Returns the response status, headers, and body (truncated to 100KB). ' +
-        'Cannot access private/internal IPs (SSRF protection).',
+        'Make an HTTP request to an external URL. Private/internal IPs are blocked.',
       inputSchema: z.object({
         method: z
-          .enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
-          .describe('HTTP method'),
-        url: z.string().url().describe('Target URL (must be http:// or https://)'),
+          .enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+        url: z.string().url(),
         headers: z
           .record(z.string(), z.string())
-          .optional()
-          .describe('Request headers as key-value pairs'),
+          .optional(),
         body: z
           .union([z.string(), z.record(z.string(), z.unknown())])
           .optional()
-          .describe('Request body. Objects are auto-serialized to JSON.'),
+          .describe('Objects auto-serialized to JSON'),
         timeout_seconds: z
           .number()
           .optional()
           .default(30)
-          .describe('Request timeout in seconds (default 30, max 120)'),
+          .describe('Default: 30, max: 120'),
       }),
       execute: async ({ method, url, headers, body, timeout_seconds }) => {
         // SSRF protection

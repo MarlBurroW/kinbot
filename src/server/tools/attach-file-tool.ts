@@ -67,23 +67,13 @@ export const attachFileTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Attach a file to your current response. The file will be sent alongside your text reply ' +
-        'on the messaging platform (Telegram, Discord, WhatsApp, etc.). ' +
-        'You can attach a file from your stored files (by URL path like /api/uploads/...), ' +
-        'a local workspace file, or an external URL. ' +
-        'Call this BEFORE writing your text response. You can call it multiple times to attach several files. ' +
-        'Note: attachments are only delivered on channel conversations (Telegram, Discord, etc.), not in the web UI chat.',
+        'Attach a file to your response for channel delivery (Telegram, Discord, etc.). Call before your text reply.',
       inputSchema: z.object({
         source: z.string().describe(
-          'File source: a URL path from generate_image or store_file (e.g. "/api/uploads/messages/..."), ' +
-          'a workspace file path, or an external https:// URL',
+          'Internal URL path (/api/uploads/...), workspace path, or external https:// URL',
         ),
-        mimeType: z.string().optional().describe(
-          'MIME type (e.g. "image/png", "application/pdf"). Auto-detected from file extension if omitted.',
-        ),
-        fileName: z.string().optional().describe(
-          'Display file name for the recipient. Auto-derived from source if omitted.',
-        ),
+        mimeType: z.string().optional().describe('Auto-detected if omitted'),
+        fileName: z.string().optional().describe('Auto-derived if omitted'),
       }),
       execute: async ({ source, mimeType, fileName }) => {
         log.debug({ kinId: ctx.kinId, source }, 'attach_file invoked')

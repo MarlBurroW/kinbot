@@ -23,27 +23,20 @@ export const wakeMeInTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Schedule a one-shot proactive wake-up for yourself (or another Kin) after a delay. ' +
-        'When the alarm fires, an automatic LLM turn is triggered — useful for follow-ups, ' +
-        'background monitoring, or deferred tasks. ' +
-        `Min delay: ${config.wakeups.minDelaySeconds}s. Max: ${config.wakeups.maxDelaySeconds}s (30 days).`,
+        'Schedule a one-shot wake-up that triggers an LLM turn after a delay.',
       inputSchema: z.object({
         seconds: z
           .number()
           .int()
           .min(config.wakeups.minDelaySeconds)
-          .max(config.wakeups.maxDelaySeconds)
-          .describe('Number of seconds to wait before waking up'),
+          .max(config.wakeups.maxDelaySeconds),
         reason: z
           .string()
-          .optional()
-          .describe('Optional reminder message shown when the wake-up triggers'),
+          .optional(),
         target_kin_slug: z
           .string()
           .optional()
-          .describe(
-            'Slug (or UUID) of another Kin to wake up instead of yourself. Omit to wake yourself.',
-          ),
+          .describe('Omit to wake yourself'),
       }),
       execute: async ({ seconds, reason, target_kin_slug }) => {
         let targetKinId = ctx.kinId
@@ -91,39 +84,27 @@ export const wakeMeEveryTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Schedule a recurring wake-up that fires repeatedly at a fixed interval. ' +
-        'Useful for active monitoring over a limited but undetermined period ' +
-        '(e.g. watching a deploy, polling a service, tracking a process). ' +
-        'The alarm re-fires automatically until it expires or you cancel it. ' +
-        `Min interval: ${config.wakeups.minDelaySeconds}s. ` +
-        'Use cancel_wakeup with the returned ID to stop it.',
+        'Schedule a recurring wake-up at a fixed interval. Use cancel_wakeup to stop.',
       inputSchema: z.object({
         interval_seconds: z
           .number()
           .int()
           .min(config.wakeups.minDelaySeconds)
-          .max(86400) // max 24h interval
-          .describe('Number of seconds between each wake-up'),
+          .max(86400),
         reason: z
           .string()
-          .optional()
-          .describe('Reminder message shown each time the wake-up triggers'),
+          .optional(),
         expires_in_seconds: z
           .number()
           .int()
           .min(60)
           .max(config.wakeups.maxDelaySeconds)
           .optional()
-          .describe(
-            'Total duration in seconds after which the recurring wake-up automatically stops. ' +
-            'Omit for no automatic expiry (must be cancelled manually).',
-          ),
+          .describe('Auto-stop after N seconds. Omit for manual cancel.'),
         target_kin_slug: z
           .string()
           .optional()
-          .describe(
-            'Slug (or UUID) of another Kin to wake up instead of yourself. Omit to wake yourself.',
-          ),
+          .describe('Omit to wake yourself'),
       }),
       execute: async ({ interval_seconds, reason, expires_in_seconds, target_kin_slug }) => {
         let targetKinId = ctx.kinId
@@ -173,9 +154,9 @@ export const cancelWakeupTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Cancel a pending wake-up alarm before it fires. Use list_wakeups to get IDs.',
+      description: 'Cancel a pending wake-up before it fires.',
       inputSchema: z.object({
-        wakeup_id: z.string().describe('ID of the wake-up to cancel'),
+        wakeup_id: z.string(),
       }),
       execute: async ({ wakeup_id }) => {
         log.debug({ kinId: ctx.kinId, wakeupId: wakeup_id }, 'Cancel wake-up requested')
@@ -199,7 +180,7 @@ export const listWakeupsTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'List all your pending (not yet fired) scheduled wake-ups.',
+      description: 'List all pending wake-ups.',
       inputSchema: z.object({}),
       execute: async () => {
         const rows = await listPendingWakeups(ctx.kinId)

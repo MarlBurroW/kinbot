@@ -15,20 +15,20 @@ export const runShellTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Execute a shell command on the host system. The command is passed to bash -c. Returns stdout, stderr, exit code, and execution time.',
+        'Execute a shell command (bash -c). Returns stdout, stderr, and exit code.',
       inputSchema: z.object({
-        command: z.string().describe('The shell command to execute (passed to bash -c)'),
+        command: z.string(),
         cwd: z
           .string()
           .optional()
-          .describe('Working directory (absolute path). Defaults to the Kin workspace.'),
+          .describe('Absolute path. Defaults to Kin workspace.'),
         timeout: z
           .number()
           .int()
           .min(1000)
           .max(MAX_TIMEOUT)
           .optional()
-          .describe(`Timeout in milliseconds (default: ${DEFAULT_TIMEOUT}, max: ${MAX_TIMEOUT})`),
+          .describe(`Ms. Default: ${DEFAULT_TIMEOUT}, max: ${MAX_TIMEOUT}`),
       }),
       execute: async ({ command, cwd, timeout }) => {
         const workspace = resolve(config.workspace.baseDir, ctx.kinId)

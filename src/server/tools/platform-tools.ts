@@ -64,38 +64,33 @@ export const getPlatformLogsTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Query recent platform system logs (Pino). Useful for diagnosing errors, monitoring ' +
-        'queue processing, task execution, cron triggers, and other system activity. ' +
-        'Logs are kept in an in-memory ring buffer and are not persisted across restarts.',
+        'Query recent platform system logs. Logs are in-memory only, not persisted across restarts.',
       inputSchema: z.object({
         level: z
           .enum(['info', 'warn', 'error', 'fatal'])
-          .optional()
-          .describe('Filter by log level. Omit to return all levels.'),
+          .optional(),
         module: z
           .string()
           .optional()
-          .describe(
-            'Filter by module name (partial match). Examples: "kin-engine", "queue", "tasks", "cron", "auth".',
-          ),
+          .describe('Partial match (e.g. "kin-engine", "queue", "cron")'),
         search: z
           .string()
           .optional()
-          .describe('Text search across log messages and data (case-insensitive).'),
+          .describe('Case-insensitive text search'),
         minutes_ago: z
           .number()
           .int()
           .min(1)
           .max(1440)
           .optional()
-          .describe('Only return logs from the last N minutes. Default: 60.'),
+          .describe('Default: 60'),
         limit: z
           .number()
           .int()
           .min(1)
           .max(200)
           .optional()
-          .describe('Maximum number of log entries to return. Default: 50, max: 200.'),
+          .describe('Default: 50'),
       }),
       execute: async ({ level, module, search, minutes_ago, limit }) => {
         log.debug({ kinId: ctx.kinId, level, module, search }, 'Platform logs queried')
@@ -131,10 +126,7 @@ export const getPlatformConfigTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Read the current KinBot platform configuration. Returns installation type, paths, ' +
-        'version, and all operational config values. Sensitive values (encryption keys, auth ' +
-        'secrets, provider API keys) are redacted. Use this to understand the current platform ' +
-        'setup before making configuration changes.',
+        'Read the current KinBot platform configuration. Sensitive values are redacted.',
       inputSchema: z.object({}),
       execute: async () => {
         log.debug({ kinId: ctx.kinId }, 'Platform config queried')
@@ -225,16 +217,10 @@ export const updatePlatformConfigTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Update a KinBot configuration value. Only works when a .env file is available. ' +
-        'For Docker installations, provides guidance on updating docker-compose.yml. ' +
-        'For systemd without env file, provides the exact command to modify the service. ' +
-        'A restart is required for changes to take effect. ' +
-        'Only operational keys can be modified — security-critical keys (ENCRYPTION_KEY, BETTER_AUTH_SECRET) are blocked.',
+        'Update a KinBot config value in the .env file. Restart required. Security-critical keys are blocked.',
       inputSchema: z.object({
-        key: z.string().describe(
-          'The environment variable key to update (e.g., "PUBLIC_URL", "LOG_LEVEL", "PORT").',
-        ),
-        value: z.string().describe('The new value to set.'),
+        key: z.string().describe('Environment variable key (e.g. "PUBLIC_URL", "LOG_LEVEL")'),
+        value: z.string(),
       }),
       execute: async ({ key, value }) => {
         log.info({ kinId: ctx.kinId, key }, 'Platform config update requested')
@@ -364,15 +350,10 @@ export const restartPlatformTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Trigger a graceful restart of KinBot. This exits the process so the service manager ' +
-        '(systemd, Docker) can restart it automatically. For manual installations, the process ' +
-        'will simply stop. IMPORTANT: Always use prompt_human() to get explicit user confirmation ' +
-        'before calling this tool. Only use after a config change that requires a restart.',
+        'Trigger a graceful restart of KinBot. Always use prompt_human() for user confirmation first.',
       inputSchema: z.object({
-        reason: z.string().describe('Why the restart is needed (e.g., "Applied PUBLIC_URL change").'),
-        confirmed: z.boolean().describe(
-          'Must be true. Set this to true only after the user has explicitly confirmed the restart via prompt_human().',
-        ),
+        reason: z.string(),
+        confirmed: z.boolean().describe('Must be true after explicit user confirmation via prompt_human()'),
       }),
       execute: async ({ reason, confirmed }) => {
         if (!confirmed) {

@@ -24,20 +24,17 @@ export const createKinTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create a new Kin on the platform with a name, role, personality (character), ' +
-        'expertise, and LLM model. The new Kin will be immediately available for interaction. ' +
-        'Optionally generate an avatar automatically after creation.',
+        'Create a new Kin on the platform. Immediately available after creation.',
       inputSchema: z.object({
-        name: z.string().describe('Name for the new Kin'),
-        role: z.string().describe('Short role description (e.g. "Research Assistant", "Code Reviewer")'),
-        character: z.string().describe('Personality description — how the Kin behaves, communicates, and its tone'),
-        expertise: z.string().describe('Areas of expertise, capabilities, and objectives'),
+        name: z.string(),
+        role: z.string(),
+        character: z.string().describe('Personality and communication style'),
+        expertise: z.string(),
         model: z.string().describe('LLM model ID (e.g. "claude-sonnet-4-20250514", "gpt-4o")'),
         generate_avatar: z
           .boolean()
           .optional()
-          .default(false)
-          .describe('If true, automatically generate an avatar based on the Kin identity'),
+          .default(false),
       }),
       execute: async ({ name, role, character, expertise, model, generate_avatar }) => {
         log.info({ kinId: ctx.kinId, newKinName: name }, 'Kin creation requested via tool')
@@ -86,30 +83,25 @@ export const updateKinTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        "Update an existing Kin's properties: name, role, character, expertise, model, slug, " +
-        'or tool configuration (enable/disable native tools, MCP access). ' +
-        'You cannot modify your own properties.',
+        "Update a Kin's properties or tool configuration. Cannot modify yourself.",
       inputSchema: z.object({
-        kin_id: z.string().describe('Slug or UUID of the Kin to update'),
-        name: z.string().optional().describe('New name'),
-        role: z.string().optional().describe('New role description'),
-        character: z.string().optional().describe('New personality description'),
-        expertise: z.string().optional().describe('New expertise description'),
-        model: z.string().optional().describe('New LLM model ID'),
-        slug: z.string().optional().describe('New URL slug (lowercase, hyphens, 2-50 chars)'),
+        kin_id: z.string().describe('Slug or UUID'),
+        name: z.string().optional(),
+        role: z.string().optional(),
+        character: z.string().optional(),
+        expertise: z.string().optional(),
+        model: z.string().optional(),
+        slug: z.string().optional().describe('Lowercase, hyphens, 2-50 chars'),
         tool_config: z
           .string()
           .optional()
           .describe(
-            'Tool authorization config as a JSON string. Format: ' +
-            '{"disabledNativeTools": ["tool_name", ...], "mcpAccess": {"serverId": ["*"] or ["tool1", "tool2"]}, "enabledOptInTools": ["tool_name", ...]}. ' +
-            'disabledNativeTools is a deny-list (empty = all enabled). mcpAccess maps server IDs to allowed tool names. enabledOptInTools enables opt-in tools.',
+            'JSON: {"disabledNativeTools":[], "mcpAccess":{"serverId":["*"]}, "enabledOptInTools":[]}',
           ),
         generate_avatar: z
           .boolean()
           .optional()
-          .default(false)
-          .describe('If true, regenerate the avatar based on the updated identity'),
+          .default(false),
       }),
       execute: async ({ kin_id, name, role, character, expertise, model, slug, tool_config, generate_avatar }) => {
         const targetKinId = resolveKinId(kin_id)
@@ -184,11 +176,10 @@ export const deleteKinTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Permanently delete a Kin and all its data (messages, memories, tasks, files, crons, etc.). ' +
-        'This action is irreversible. You cannot delete yourself.',
+        'Permanently delete a Kin and all its data. Irreversible. Cannot delete yourself.',
       inputSchema: z.object({
-        kin_id: z.string().describe('Slug or UUID of the Kin to delete'),
-        confirm: z.literal(true).describe('Must be true to confirm deletion'),
+        kin_id: z.string().describe('Slug or UUID'),
+        confirm: z.literal(true).describe('Must be true'),
       }),
       execute: async ({ kin_id, confirm }) => {
         if (!confirm) {
@@ -229,10 +220,9 @@ export const getKinDetailsTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Get detailed information about a Kin, including its configuration, model, ' +
-        'role, character, expertise, connected MCP servers, and tool configuration.',
+        'Get detailed information about a Kin including config, MCP servers, and tool settings.',
       inputSchema: z.object({
-        kin_id: z.string().describe('Slug or UUID of the Kin to inspect'),
+        kin_id: z.string().describe('Slug or UUID'),
       }),
       execute: async ({ kin_id }) => {
         const targetKinId = resolveKinId(kin_id)

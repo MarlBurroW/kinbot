@@ -16,9 +16,7 @@ export const listInstalledPluginsTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'List all installed plugins with their status (enabled/disabled), version, type, and error info. ' +
-        'Use this to check what plugins are currently installed and their state.',
+      description: 'List all installed plugins with their status and version.',
       inputSchema: z.object({}),
       execute: async () => {
         const plugins = pluginManager.listPlugins()
@@ -51,12 +49,10 @@ export const browsePluginStoreTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'Browse the KinBot community plugin store. Search by name, description, or tag. ' +
-        'Returns available plugins that can be installed.',
+      description: 'Browse the community plugin store.',
       inputSchema: z.object({
-        query: z.string().optional().describe('Search query (matches name, description, author, tags)'),
-        tag: z.string().optional().describe('Filter by tag (e.g. "utility", "ai", "productivity")'),
+        query: z.string().optional(),
+        tag: z.string().optional(),
       }),
       execute: async ({ query, tag }) => {
         log.debug({ query, tag }, 'Browsing plugin store')
@@ -92,15 +88,10 @@ export const installPluginTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'Install a plugin from the community store (by name), a git URL, or an npm package. ' +
-        'After installation, the plugin still needs to be enabled. ' +
-        'IMPORTANT: only install plugins the user explicitly asked for.',
+      description: 'Install a plugin. Still needs enable_plugin after. Only install what user asked for.',
       inputSchema: z.object({
-        source: z.enum(['store', 'git', 'npm']).describe('Where to install from'),
-        name: z
-          .string()
-          .describe('Plugin name (for store), git URL (for git), or npm package name (for npm)'),
+        source: z.enum(['store', 'git', 'npm']),
+        name: z.string().describe('Plugin name, git URL, or npm package'),
       }),
       execute: async ({ source, name }) => {
         log.info({ source, name }, 'Installing plugin')
@@ -140,11 +131,9 @@ export const uninstallPluginTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'Uninstall a plugin completely. This removes the plugin files and configuration. ' +
-        'IMPORTANT: only uninstall plugins the user explicitly asked to remove.',
+      description: 'Uninstall a plugin completely. Only uninstall what user asked for.',
       inputSchema: z.object({
-        name: z.string().describe('The plugin name to uninstall'),
+        name: z.string(),
       }),
       execute: async ({ name }) => {
         log.info({ name }, 'Uninstalling plugin')
@@ -169,9 +158,9 @@ export const enablePluginTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description: 'Enable a currently disabled plugin so it becomes active.',
+      description: 'Enable a disabled plugin.',
       inputSchema: z.object({
-        name: z.string().describe('The plugin name to enable'),
+        name: z.string(),
       }),
       execute: async ({ name }) => {
         log.info({ name }, 'Enabling plugin')
@@ -196,9 +185,9 @@ export const disablePluginTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description: 'Disable a plugin without uninstalling it. It can be re-enabled later.',
+      description: 'Disable a plugin without uninstalling it.',
       inputSchema: z.object({
-        name: z.string().describe('The plugin name to disable'),
+        name: z.string(),
       }),
       execute: async ({ name }) => {
         log.info({ name }, 'Disabling plugin')
@@ -223,12 +212,10 @@ export const configurePluginTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'Update configuration for an installed plugin. Pass key-value pairs matching ' +
-        'the plugin\'s config schema. Use list_installed_plugins to see available config fields.',
+      description: 'Update configuration for an installed plugin.',
       inputSchema: z.object({
-        name: z.string().describe('The plugin name to configure'),
-        config: z.record(z.string(), z.unknown()).describe('Configuration key-value pairs to set'),
+        name: z.string(),
+        config: z.record(z.string(), z.unknown()),
       }),
       execute: async ({ name, config }) => {
         log.info({ name }, 'Configuring plugin')
@@ -256,11 +243,9 @@ export const getPluginDetailsTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'Get detailed information about a specific installed plugin, including its configuration schema, ' +
-        'registered tools, providers, channels, and current config values.',
+      description: 'Get detailed info about a plugin: config schema, tools, providers, channels.',
       inputSchema: z.object({
-        name: z.string().describe('The plugin name'),
+        name: z.string(),
       }),
       execute: async ({ name }) => {
         const plugin = pluginManager.getPlugin(name)
@@ -301,9 +286,7 @@ export const checkPluginUpdatesTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'Check if any installed plugins have updates available. ' +
-        'Returns a list of plugins with their current and available versions.',
+      description: 'Check if any installed plugins have updates available.',
       inputSchema: z.object({}),
       execute: async () => {
         log.debug('Checking for plugin updates')
@@ -339,12 +322,9 @@ export const updatePluginTool: ToolRegistration = {
   defaultDisabled: true,
   create: () =>
     tool({
-      description:
-        'Update an installed plugin to the latest version. The plugin will be briefly ' +
-        'deactivated during the update and re-activated with the new version. ' +
-        'IMPORTANT: only update plugins the user explicitly asked to update.',
+      description: 'Update a plugin to the latest version. Only update what user asked for.',
       inputSchema: z.object({
-        name: z.string().describe('The plugin name to update'),
+        name: z.string(),
       }),
       execute: async ({ name }) => {
         log.info({ name }, 'Updating plugin')

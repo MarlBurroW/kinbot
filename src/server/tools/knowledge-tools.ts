@@ -15,18 +15,16 @@ export const searchKnowledgeTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Search your knowledge base for relevant information. The knowledge base contains ' +
-        'documents, texts, and other reference materials that have been added by the user. ' +
-        'Use this when you need to find specific information from uploaded documents or texts.',
+        'Search your knowledge base (uploaded documents and texts) for relevant information.',
       inputSchema: z.object({
-        query: z.string().describe('What to search for (semantic + keyword search)'),
+        query: z.string(),
         limit: z
           .number()
           .int()
           .min(1)
           .max(20)
           .optional()
-          .describe('Max results to return (default: 5)'),
+          .describe('Default: 5'),
       }),
       execute: async ({ query, limit }) => {
         log.debug({ kinId: ctx.kinId, query }, 'search_knowledge invoked')
@@ -52,8 +50,7 @@ export const listKnowledgeSourcesTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'List all knowledge sources (documents, texts) available in your knowledge base. ' +
-        'Shows the name, type, status, and chunk/token counts for each source.',
+        'List all knowledge sources (documents, texts) in your knowledge base.',
       inputSchema: z.object({}),
       execute: async () => {
         log.debug({ kinId: ctx.kinId }, 'list_knowledge_sources invoked')

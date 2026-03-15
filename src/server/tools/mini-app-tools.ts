@@ -37,27 +37,16 @@ export const createMiniAppTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create a new mini web application. The app will appear in the KinBot sidebar. ' +
-        '**Call `get_mini_app_docs` first** to get the full SDK reference (hooks, components, guidelines). ' +
-        '**Use React** with `<script type="text/jsx">` (server-side transpilation, no build step). ' +
-        '**Setup:** Create `app.json` via write_mini_app_file: ' +
-        '`{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client", ' +
-        '"@kinbot/react": "/api/mini-apps/sdk/kinbot-react.js"}}`. ' +
-        'For components add: `"@kinbot/components": "/api/mini-apps/sdk/kinbot-components.js"`. ' +
-        '**Pattern:** `<div id="root"></div>` + `<script type="text/jsx">` with: ' +
-        '`import { createRoot } from "react-dom/client"; import { useKinBot } from "@kinbot/react"; ' +
-        'function App() { const { ready } = useKinBot(); if (!ready) return <div>Loading...</div>; return <Content />; } ' +
-        'createRoot(document.getElementById("root")).render(<App />);` ' +
-        '**Key hooks:** useKinBot (lifecycle), useStorage (persistent state), useApi (backend calls), useTheme, useForm. ' +
-        '**Backend:** Write `_server.js` that exports default function(ctx) returning a Hono app. ' +
-        'For additional files, use write_mini_app_file. Use templates via get_mini_app_templates.',
+        'Create a new mini web app displayed in the KinBot sidebar. ' +
+        'Call get_mini_app_docs first for full SDK reference. ' +
+        'Use get_mini_app_templates to start from a template.',
       inputSchema: z.object({
-        name: z.string().describe('Display name of the app (e.g. "Todo Tracker")'),
-        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('URL-safe identifier in kebab-case (e.g. "todo-tracker"). Must be unique among your apps.'),
-        description: z.string().optional().describe('Short description shown in the app list'),
-        icon: z.string().optional().describe('Single emoji for the app icon (e.g. "📊", "🎮", "📝")'),
-        html: z.string().optional().describe('Full HTML content for index.html. Do NOT include a <link> to kinbot-sdk.css — it is injected automatically. Either html or template is required.'),
-        template: z.string().optional().describe('Use a built-in template instead of providing html. Available templates: "dashboard", "todo-list", "form", "data-viewer", "kanban", "responsive". Use get_mini_app_templates to see all templates with descriptions.'),
+        name: z.string().describe('Display name'),
+        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/).describe('Unique kebab-case identifier'),
+        description: z.string().optional(),
+        icon: z.string().optional().describe('Single emoji'),
+        html: z.string().optional().describe('HTML for index.html (either html or template required)'),
+        template: z.string().optional().describe('Template name instead of html'),
       }),
       execute: async ({ name, slug, description, icon, html, template }) => {
         log.debug({ kinId: ctx.kinId, name, slug }, 'create_mini_app invoked')
@@ -119,14 +108,14 @@ export const updateMiniAppTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Update the metadata of a mini app (name, description, icon, active status).',
+      description: 'Update mini app metadata (name, description, icon, active status).',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the app to update'),
-        name: z.string().optional().describe('New display name'),
-        description: z.string().nullable().optional().describe('New description (null to clear)'),
-        icon: z.string().nullable().optional().describe('New icon emoji (null to clear)'),
-        entry_file: z.string().optional().describe('Change the entry file path (default: index.html)'),
-        is_active: z.boolean().optional().describe('Set to false to hide the app from the sidebar'),
+        app_id: z.string(),
+        name: z.string().optional(),
+        description: z.string().nullable().optional(),
+        icon: z.string().nullable().optional(),
+        entry_file: z.string().optional(),
+        is_active: z.boolean().optional(),
       }),
       execute: async (args) => {
         log.debug({ kinId: ctx.kinId, appId: args.app_id }, 'update_mini_app invoked')
@@ -163,7 +152,7 @@ export const deleteMiniAppTool: ToolRegistration = {
     tool({
       description: 'Delete a mini app and all its files permanently.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the app to delete'),
+        app_id: z.string(),
       }),
       execute: async ({ app_id }) => {
         log.debug({ kinId: ctx.kinId, appId: app_id }, 'delete_mini_app invoked')
@@ -213,17 +202,12 @@ export const writeMiniAppFileTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Write or overwrite a file in a mini app. Use this to add or update CSS, JavaScript, images, ' +
-        'or modify index.html. After writing, the app reloads automatically in the UI. ' +
-        'Path must be relative (e.g. "styles.css", "js/app.js", "img/logo.png"). ' +
-        'For binary files (images), set is_base64 to true and pass base64-encoded content. ' +
-        'To add a backend, write a file named "_server.js" that exports a default function receiving ctx and returning a Hono app (see create_mini_app docs for full format). ' +
-        'To add external dependencies, write an "app.json" file with a "dependencies" map (see create_mini_app docs for format).',
+        'Write or overwrite a file in a mini app. App reloads automatically after write.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        path: z.string().describe('Relative file path within the app (e.g. "styles.css", "js/app.js")'),
-        content: z.string().describe('File content (text or base64-encoded binary)'),
-        is_base64: z.boolean().optional().describe('Set true if content is base64-encoded binary data'),
+        app_id: z.string(),
+        path: z.string().describe('Relative file path (e.g. "styles.css", "_server.js")'),
+        content: z.string(),
+        is_base64: z.boolean().optional().describe('True if content is base64-encoded'),
       }),
       execute: async ({ app_id, path, content, is_base64 }) => {
         log.debug({ kinId: ctx.kinId, appId: app_id, path }, 'write_mini_app_file invoked')
@@ -260,10 +244,10 @@ export const readMiniAppFileTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Read the content of a file from a mini app. Returns text content for text files, or base64 for binary files.',
+      description: 'Read a file from a mini app. Returns text or base64 for binary files.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        path: z.string().describe('Relative file path (e.g. "index.html", "styles.css")'),
+        app_id: z.string(),
+        path: z.string(),
       }),
       execute: async ({ app_id, path }) => {
         const existing = await getMiniApp(app_id)
@@ -293,10 +277,10 @@ export const deleteMiniAppFileTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Delete a specific file from a mini app.',
+      description: 'Delete a file from a mini app.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        path: z.string().describe('Relative file path to delete'),
+        app_id: z.string(),
+        path: z.string(),
       }),
       execute: async ({ app_id, path }) => {
         const existing = await getMiniApp(app_id)
@@ -331,9 +315,9 @@ export const listMiniAppFilesTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'List all files in a mini app with their sizes and MIME types.',
+      description: 'List all files in a mini app with sizes and MIME types.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
+        app_id: z.string(),
       }),
       execute: async ({ app_id }) => {
         const existing = await getMiniApp(app_id)
@@ -357,13 +341,10 @@ export const getMiniAppStorageTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Read a value from a mini app\'s key-value storage. ' +
-        'This is the same storage accessible via KinBot.storage in the frontend SDK. ' +
-        'Useful for inspecting app state, debugging, or reading data set by the frontend.',
+      description: 'Read a value from a mini app\'s key-value storage.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        key: z.string().describe('Storage key to read'),
+        app_id: z.string(),
+        key: z.string(),
       }),
       execute: async ({ app_id, key }) => {
         const existing = await getMiniApp(app_id)
@@ -387,14 +368,11 @@ export const setMiniAppStorageTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Set a value in a mini app\'s key-value storage. ' +
-        'Values must be JSON-serializable. Max 64KB per value, 500 keys per app. ' +
-        'Use this to pre-populate data for an app, configure settings, or seed initial content.',
+      description: 'Set a value in a mini app\'s key-value storage. Max 64KB per value.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        key: z.string().describe('Storage key to set'),
-        value: z.any().describe('Value to store (any JSON-serializable type: string, number, boolean, array, object)'),
+        app_id: z.string(),
+        key: z.string(),
+        value: z.any().describe('JSON-serializable value'),
       }),
       execute: async ({ app_id, key, value }) => {
         const existing = await getMiniApp(app_id)
@@ -420,8 +398,8 @@ export const deleteMiniAppStorageTool: ToolRegistration = {
     tool({
       description: 'Delete a key from a mini app\'s key-value storage.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        key: z.string().describe('Storage key to delete'),
+        app_id: z.string(),
+        key: z.string(),
       }),
       execute: async ({ app_id, key }) => {
         const existing = await getMiniApp(app_id)
@@ -441,11 +419,9 @@ export const listMiniAppStorageTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'List all storage keys for a mini app with their sizes. ' +
-        'Use this to inspect what data an app has stored.',
+      description: 'List all storage keys for a mini app with their sizes.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
+        app_id: z.string(),
       }),
       execute: async ({ app_id }) => {
         const existing = await getMiniApp(app_id)
@@ -469,9 +445,9 @@ export const clearMiniAppStorageTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Clear all storage keys for a mini app. Use with caution — this removes all persisted data.',
+      description: 'Clear all storage keys for a mini app. Removes all persisted data.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
+        app_id: z.string(),
       }),
       execute: async ({ app_id }) => {
         const existing = await getMiniApp(app_id)
@@ -495,13 +471,10 @@ export const createMiniAppSnapshotTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Create a snapshot (backup) of the current state of a mini app. ' +
-        'Snapshots capture all files at the current version and can be restored later with rollback_mini_app. ' +
-        'Useful before making risky changes. Max 20 snapshots per app (oldest auto-pruned).',
+      description: 'Create a snapshot (backup) of a mini app. Restore later with rollback_mini_app. Max 20 per app.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        label: z.string().optional().describe('Optional label for the snapshot (e.g. "before redesign", "working version")'),
+        app_id: z.string(),
+        label: z.string().optional(),
       }),
       execute: async ({ app_id, label }) => {
         log.debug({ kinId: ctx.kinId, appId: app_id }, 'create_mini_app_snapshot invoked')
@@ -533,11 +506,9 @@ export const listMiniAppSnapshotsTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'List all available snapshots for a mini app. Shows version, label, file count, and creation date. ' +
-        'Use the version number with rollback_mini_app to restore a previous state.',
+      description: 'List available snapshots for a mini app.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
+        app_id: z.string(),
       }),
       execute: async ({ app_id }) => {
         const existing = await getMiniApp(app_id)
@@ -570,13 +541,10 @@ export const rollbackMiniAppTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Rollback a mini app to a previous snapshot version. ' +
-        'This restores all files from the snapshot and creates an auto-backup of the current state first (so the rollback itself is reversible). ' +
-        'Use list_mini_app_snapshots to see available versions.',
+      description: 'Rollback a mini app to a previous snapshot. Auto-backs up current state first.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        version: z.number().int().positive().describe('Version number to rollback to (from list_mini_app_snapshots)'),
+        app_id: z.string(),
+        version: z.number().int().positive().describe('Version from list_mini_app_snapshots'),
       }),
       execute: async ({ app_id, version }) => {
         log.debug({ kinId: ctx.kinId, appId: app_id, version }, 'rollback_mini_app invoked')
@@ -615,14 +583,10 @@ export const generateMiniAppIconTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Generate an AI-created icon/logo for one of your mini-apps. ' +
-        'Uses the app name, description, and emoji to create a flat-design app icon. ' +
-        'Requires an image generation provider to be configured. ' +
-        'Falls back gracefully with an error message if no image provider is available. ' +
-        'IMPORTANT: This tool calls an image generation API which may incur costs. ' +
-        'Always ask the user for confirmation (via prompt_human) before calling this tool.',
+        'Generate an AI icon for a mini app. Requires image provider. ' +
+        'May incur costs — ask user confirmation first.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini-app to generate an icon for'),
+        app_id: z.string(),
       }),
       execute: async ({ app_id }) => {
         log.debug({ kinId: ctx.kinId, appId: app_id }, 'generate_mini_app_icon invoked')
@@ -658,15 +622,11 @@ export const getMiniAppConsoleTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Get recent console output (logs, warnings, errors) from a running mini app. ' +
-        'Console entries are captured from the iframe and forwarded to the server when a user has the app open. ' +
-        'Use this to debug runtime errors in mini apps you created or updated. ' +
-        'You can filter by level (log, warn, error) and optionally clear the buffer after reading.',
+      description: 'Get recent console output (logs, warnings, errors) from a running mini app.',
       inputSchema: z.object({
-        app_id: z.string().describe('ID of the mini app'),
-        level: z.enum(['log', 'warn', 'error']).optional().describe('Filter by log level (default: all levels)'),
-        clear: z.boolean().optional().describe('Clear the console buffer after reading (default: false)'),
+        app_id: z.string(),
+        level: z.enum(['log', 'warn', 'error']).optional(),
+        clear: z.boolean().optional().describe('Clear buffer after reading'),
       }),
       execute: async ({ app_id, level, clear }) => {
         const existing = await getMiniApp(app_id)

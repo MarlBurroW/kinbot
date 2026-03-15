@@ -10,13 +10,12 @@ import type { ToolRegistration } from '@/server/tools/types'
 const log = createLogger('tools:human-prompt')
 
 const optionSchema = z.object({
-  label: z.string().describe('Display text for this option'),
-  value: z.string().describe('Machine-readable value returned when selected'),
-  description: z.string().optional().describe('Optional helper text explaining this option'),
+  label: z.string(),
+  value: z.string(),
+  description: z.string().optional(),
   variant: z
     .enum(['default', 'success', 'warning', 'destructive', 'primary'])
-    .optional()
-    .describe('Visual style hint for this option: default, success (green), warning (amber), destructive (red), primary (accent)'),
+    .optional(),
 })
 
 /**
@@ -29,33 +28,21 @@ export const promptHumanTool: ToolRegistration = {
     let promptCalledThisTurn = false
     return tool({
       description:
-        'Prompt the user with a structured interactive question. ' +
-        'Use "confirm" for yes/no decisions, "select" for single choice from a list, ' +
-        '"multi_select" for picking multiple options. ' +
-        'The user\'s response will be delivered to you as a new message in your next turn. ' +
-        'NOT available in cron-triggered tasks. ' +
-        'After calling this tool, briefly explain what you asked and why, then wait for the response.',
+        'Prompt the user with a structured question (confirm/select/multi_select). Not available in cron tasks.',
       inputSchema: z.object({
         prompt_type: z
-          .enum(['confirm', 'select', 'multi_select'])
-          .describe('Type of interaction: confirm (yes/no), select (pick one), multi_select (pick multiple)'),
+          .enum(['confirm', 'select', 'multi_select']),
         question: z
           .string()
-          .max(500)
-          .describe('The question to ask the user (max 500 chars)'),
+          .max(500),
         description: z
           .string()
           .max(1000)
-          .optional()
-          .describe('Optional longer explanation or context for the question'),
+          .optional(),
         options: z
           .array(optionSchema)
           .min(2)
-          .max(10)
-          .describe(
-            'Options to present. For "confirm", typically two options like Yes/No. ' +
-            'For "select" and "multi_select", provide 2-10 meaningful options.',
-          ),
+          .max(10),
       }),
       execute: async ({ prompt_type, question, description, options }) => {
         log.debug({ kinId: ctx.kinId, taskId: ctx.taskId, promptType: prompt_type }, 'prompt_human invoked')

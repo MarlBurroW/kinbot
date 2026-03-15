@@ -2841,14 +2841,10 @@ export const getMiniAppTemplatesTool: ToolRegistration = {
   create: (_ctx) =>
     tool({
       description:
-        'Get a list of starter templates for mini apps. Returns template metadata (name, description, icon, tags) ' +
-        'and optionally the full file contents for a specific template. ' +
-        'Use this to quickly scaffold a new mini app instead of writing everything from scratch. ' +
-        'After getting the template files, use create_mini_app with the HTML content and write_mini_app_file for additional files.',
+        'Get starter templates for mini-apps. Use to scaffold new apps quickly.',
       inputSchema: z.object({
         template_id: z.string().optional().describe(
-          'If provided, returns the full file contents for this template. ' +
-          'If omitted, returns a summary list of all available templates.'
+          'Returns full files for this template. Omit to list all.'
         ),
       }),
       execute: async ({ template_id }) => {

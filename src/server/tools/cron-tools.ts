@@ -24,31 +24,24 @@ export const createCronTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create a new recurring scheduled task (cron). ' +
-        'The cron will spawn a sub-Kin at each trigger. ' +
-        'Important: crons you create require user approval before activation.',
+        'Create a new scheduled task (cron). Kin-created crons require user approval before activation.',
       inputSchema: z.object({
-        name: z.string().describe('Label for the scheduled task'),
+        name: z.string(),
         schedule: z
           .string()
-          .describe('Cron expression (e.g. "0 9 * * *" for daily at 9am, "*/30 * * * *" every 30 min)'),
-        task_description: z.string().describe('Instructions given to the sub-Kin at each execution'),
+          .describe('Cron expression (e.g. "0 9 * * *") or ISO 8601 datetime when run_once=true'),
+        task_description: z.string(),
         target_kin_slug: z
           .string()
           .optional()
-          .describe('Slug of the target Kin to execute the task (e.g. "test-ai"). If omitted, you execute it yourself'),
+          .describe('Target Kin slug. Omit to execute yourself.'),
         model: z
           .string()
-          .optional()
-          .describe('LLM model override for the sub-Kin'),
+          .optional(),
         run_once: z
           .boolean()
           .optional()
-          .describe(
-            'If true, the cron fires exactly once then auto-deactivates. ' +
-            'When run_once is true, schedule can also be an ISO 8601 datetime string ' +
-            '(e.g. "2026-03-15T14:30:00") for a specific point in time.',
-          ),
+          .describe('If true, fires once then auto-deactivates.'),
       }),
       execute: async ({ name, schedule, task_description, target_kin_slug, model, run_once }) => {
         let targetKinId: string | undefined
@@ -94,13 +87,13 @@ export const updateCronTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Update an existing cron (schedule, description, active state, etc.).',
+      description: 'Update an existing cron (schedule, description, active state).',
       inputSchema: z.object({
-        cron_id: z.string().describe('ID of the cron to update'),
-        name: z.string().optional().describe('New label'),
-        schedule: z.string().optional().describe('New cron expression'),
-        task_description: z.string().optional().describe('New task instructions'),
-        is_active: z.boolean().optional().describe('Activate or deactivate the cron'),
+        cron_id: z.string(),
+        name: z.string().optional(),
+        schedule: z.string().optional(),
+        task_description: z.string().optional(),
+        is_active: z.boolean().optional(),
       }),
       execute: async ({ cron_id, name, schedule, task_description, is_active }) => {
         try {
@@ -128,9 +121,9 @@ export const deleteCronTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Delete a cron permanently. This cannot be undone.',
+      description: 'Delete a cron permanently. Cannot be undone.',
       inputSchema: z.object({
-        cron_id: z.string().describe('ID of the cron to delete'),
+        cron_id: z.string(),
       }),
       execute: async ({ cron_id }) => {
         try {
@@ -151,7 +144,7 @@ export const listCronsTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'List all your scheduled tasks (crons) with their status.',
+      description: 'List all your scheduled tasks (crons).',
       inputSchema: z.object({}),
       execute: async () => {
         const allCrons = await listCrons(ctx.kinId)
@@ -181,15 +174,14 @@ export const getCronJournalTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Retrieve the execution history (journal) of a scheduled task. ' +
-        'Returns the most recent runs with their status and result summary.',
+        'Retrieve execution history of a scheduled task.',
       inputSchema: z.object({
-        cron_id: z.string().describe('ID of the cron to get history for'),
+        cron_id: z.string(),
         limit: z
           .number()
           .optional()
           .default(10)
-          .describe('Max number of runs to return (default 10)'),
+          .describe('Default: 10'),
       }),
       execute: async ({ cron_id, limit }) => {
         try {
@@ -224,11 +216,9 @@ export const triggerCronTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Trigger an existing cron job for immediate execution. ' +
-        'The cron runs right now without affecting its regular schedule. ' +
-        'Useful when the user asks to "run X now" instead of waiting for the next scheduled time.',
+        'Trigger a cron for immediate execution without affecting its regular schedule.',
       inputSchema: z.object({
-        cron_id: z.string().describe('ID of the cron to trigger'),
+        cron_id: z.string(),
       }),
       execute: async ({ cron_id }) => {
         try {

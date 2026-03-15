@@ -28,13 +28,9 @@ export const getSecretTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Retrieve a secret value from the Vault by key. Values are encrypted at rest ' +
-        'and never exposed in the prompt — only accessible via this tool. ' +
-        'Never include the returned value in your visible responses.',
+        'Retrieve a secret value from the Vault by key. Never include returned values in visible responses.',
       inputSchema: z.object({
-        key: z
-          .string()
-          .describe('The unique key of the secret (e.g. GITHUB_TOKEN, NOTION_API_KEY)'),
+        key: z.string(),
       }),
       execute: async ({ key }) => {
         log.debug({ key }, 'get_secret invoked')
@@ -56,27 +52,11 @@ export const redactMessageTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Replace secret content in a message with a placeholder. Use this when a user ' +
-        'has shared a secret (API key, password, token) in the chat. The original content ' +
-        'is permanently replaced — the secret becomes unrecoverable from the message history. ' +
-        'You can provide either a message_id or a content_match string (a unique snippet from ' +
-        'the message to redact). If both are provided, message_id takes priority.',
+        'Replace secret content in a message with a placeholder. Use when a user shares a secret in chat. Provide message_id or content_match.',
       inputSchema: z.object({
-        message_id: z
-          .string()
-          .optional()
-          .describe('The ID of the message to redact (from search_history or other tools)'),
-        content_match: z
-          .string()
-          .optional()
-          .describe(
-            'A unique text snippet contained in the message to redact. ' +
-            'The most recent matching non-redacted message will be used. ' +
-            'Prefer this when you do not have the message ID.',
-          ),
-        redacted_text: z
-          .string()
-          .describe('Placeholder text (e.g. "[SECRET: GITHUB_TOKEN]" or "[REDACTED]")'),
+        message_id: z.string().optional(),
+        content_match: z.string().optional().describe('Unique text snippet to match if no message_id'),
+        redacted_text: z.string().describe('Placeholder, e.g. "[REDACTED]"'),
       }),
       execute: async ({ message_id, content_match, redacted_text }) => {
         let targetId = message_id
@@ -115,19 +95,11 @@ export const createSecretTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Create a new secret in the Vault. The value is encrypted at rest. ' +
-        'Use this when the user asks you to store a credential, API key, or sensitive value. ' +
-        'Errors if a secret with the given key already exists — use update_secret instead.',
+      description: 'Create a new encrypted secret. Errors if key already exists — use update_secret instead.',
       inputSchema: z.object({
-        key: z
-          .string()
-          .describe('Unique key for the secret (e.g. GITHUB_TOKEN, NOTION_API_KEY). Convention: SCREAMING_SNAKE_CASE.'),
-        value: z.string().describe('The secret value to store (will be encrypted)'),
-        description: z
-          .string()
-          .optional()
-          .describe('Optional description of what this secret is used for'),
+        key: z.string().describe('SCREAMING_SNAKE_CASE key'),
+        value: z.string(),
+        description: z.string().optional(),
       }),
       execute: async ({ key, value, description }) => {
         log.debug({ key, kinId: ctx.kinId }, 'create_secret invoked')
@@ -149,13 +121,10 @@ export const updateSecretTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Update the value of an existing secret in the Vault. ' +
-        'Use this to rotate or change a stored credential. ' +
-        'Errors if the key does not exist — use create_secret to create a new one.',
+      description: 'Update an existing secret value. Errors if key does not exist.',
       inputSchema: z.object({
-        key: z.string().describe('The key of the secret to update'),
-        value: z.string().describe('The new value for the secret (will be encrypted)'),
+        key: z.string(),
+        value: z.string(),
       }),
       execute: async ({ key, value }) => {
         log.debug({ key, kinId: ctx.kinId }, 'update_secret invoked')
@@ -177,11 +146,9 @@ export const deleteSecretTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Delete a secret from the Vault. You can only delete secrets that were created by you (this Kin). ' +
-        'Admin-created secrets cannot be deleted via this tool — the user must delete them from the Settings UI.',
+      description: 'Delete a secret you created. Cannot delete admin-created secrets.',
       inputSchema: z.object({
-        key: z.string().describe('The key of the secret to delete'),
+        key: z.string(),
       }),
       execute: async ({ key }) => {
         log.debug({ key, kinId: ctx.kinId }, 'delete_secret invoked')
@@ -210,14 +177,9 @@ export const searchSecretsTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Search for secrets in the Vault by key or description. Returns matching keys and descriptions, ' +
-        'never the secret values. Use this to find the right key before calling get_secret(). ' +
-        'Prefer this over listing all secrets to keep the context small.',
+      description: 'Search secrets by key or description. Returns metadata only, never values.',
       inputSchema: z.object({
-        query: z
-          .string()
-          .describe('Search term to match against secret keys and descriptions (case-insensitive)'),
+        query: z.string(),
       }),
       execute: async ({ query }) => {
         log.debug({ query, kinId: ctx.kinId }, 'search_secrets invoked')
@@ -237,12 +199,9 @@ export const getVaultEntryTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Retrieve a typed vault entry by key. Returns the entry type and structured fields ' +
-        '(e.g. for credentials: url, username, password). For plain text entries, returns ' +
-        'the value string. Never include sensitive values in your visible responses.',
+      description: 'Retrieve a typed vault entry by key. Never include sensitive values in responses.',
       inputSchema: z.object({
-        key: z.string().describe('The unique key of the vault entry'),
+        key: z.string(),
       }),
       execute: async ({ key }) => {
         log.debug({ key, kinId: ctx.kinId }, 'get_vault_entry invoked')
@@ -266,17 +225,14 @@ export const createVaultEntryTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Create a typed vault entry in the Vault. Supports types: text, credential, card, note, identity, ' +
-        'or any custom type slug. The value is encrypted at rest. ' +
-        'For "text" type, pass a string value. For other types, pass a JSON object with the type\'s fields.',
+      description: 'Create a typed vault entry (text, credential, card, note, identity, or custom type). Encrypted at rest.',
       inputSchema: z.object({
-        key: z.string().describe('Unique key for the entry (SCREAMING_SNAKE_CASE recommended)'),
-        entry_type: z.string().describe('Entry type: text, credential, card, note, identity, or a custom type slug'),
+        key: z.string().describe('SCREAMING_SNAKE_CASE key'),
+        entry_type: z.string().describe('text, credential, card, note, identity, or custom slug'),
         value: z.union([z.string(), z.record(z.string(), z.unknown())]).describe(
-          'For text type: a string value. For other types: an object with the type\'s fields (e.g. { url, username, password })',
+          'String for text type, object with fields for others',
         ),
-        description: z.string().optional().describe('Optional description of the entry'),
+        description: z.string().optional(),
       }),
       execute: async ({ key, entry_type, value, description }) => {
         log.debug({ key, entry_type, kinId: ctx.kinId }, 'create_vault_entry invoked')
@@ -303,20 +259,17 @@ export const createVaultTypeTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Create a custom vault entry type with a defined field schema. This allows storing ' +
-        'structured data beyond the built-in types (text, credential, card, note, identity). ' +
-        'Example: create a "wifi" type with fields [ssid, password, security_type].',
+      description: 'Create a custom vault entry type with a defined field schema.',
       inputSchema: z.object({
-        name: z.string().describe('Display name for the type (e.g. "WiFi Network")'),
-        slug: z.string().describe('Machine name (lowercase, no spaces, e.g. "wifi")'),
-        icon: z.string().optional().describe('Lucide icon name (e.g. "Wifi")'),
+        name: z.string().describe('Display name'),
+        slug: z.string().describe('Machine name, lowercase'),
+        icon: z.string().optional().describe('Lucide icon name'),
         fields: z.array(z.object({
-          name: z.string().describe('Field machine name (e.g. "ssid")'),
-          label: z.string().describe('Display label (e.g. "Network Name")'),
+          name: z.string(),
+          label: z.string(),
           type: z.enum(['text', 'password', 'textarea', 'url', 'email', 'phone', 'date', 'number']),
-          required: z.boolean().optional().describe('Whether the field is required'),
-        })).describe('Array of field definitions'),
+          required: z.boolean().optional(),
+        })),
       }),
       execute: async ({ name, slug, icon, fields }) => {
         log.debug({ slug, kinId: ctx.kinId }, 'create_vault_type invoked')
@@ -343,11 +296,9 @@ export const getVaultAttachmentTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Download a vault attachment by its ID. Returns the file content as base64-encoded data. ' +
-        'Use this to access files attached to vault entries (documents, certificates, etc.).',
+      description: 'Download a vault attachment as base64.',
       inputSchema: z.object({
-        attachment_id: z.string().describe('The ID of the attachment to download'),
+        attachment_id: z.string(),
       }),
       execute: async ({ attachment_id }) => {
         log.debug({ attachment_id, kinId: ctx.kinId }, 'get_vault_attachment invoked')

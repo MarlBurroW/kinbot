@@ -15,22 +15,20 @@ export const webSearchTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Search the web for current information. Use this when you need recent data, facts, ' +
-        'news, or information that may not be in your training data. Returns a list of results ' +
-        'with title, URL, and description.',
+        'Search the web for current information. Use when you need recent data or facts.',
       inputSchema: z.object({
-        query: z.string().describe('The search query'),
+        query: z.string(),
         count: z
           .number()
           .int()
           .min(1)
           .max(20)
           .optional()
-          .describe('Number of results to return (default: 5)'),
+          .describe('Default: 5'),
         freshness: z
           .enum(['pd', 'pw', 'pm', 'py'])
           .optional()
-          .describe('Freshness filter: pd=past day, pw=past week, pm=past month, py=past year'),
+          .describe('pd=past day, pw=past week, pm=past month, py=past year'),
       }),
       execute: async ({ query, count, freshness }) => {
         log.debug({ query }, 'Web search executed')

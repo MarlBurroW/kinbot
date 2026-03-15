@@ -20,15 +20,13 @@ export const sendMessageTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Send a message to another Kin. ' +
-        'Use type "request" if you expect a response (the target Kin will process it). ' +
-        'Use type "inform" for informational messages (no response expected, no LLM turn triggered).',
+        'Send a message to another Kin. Use "request" for responses, "inform" for one-way notifications.',
       inputSchema: z.object({
-        slug: z.string().describe('Slug of the target Kin (e.g. "test-ai")'),
-        message: z.string().describe('Content of the message'),
+        slug: z.string(),
+        message: z.string(),
         type: z
           .enum(['request', 'inform'])
-          .describe('"request" = expect a response; "inform" = informational only'),
+          .describe('"request" = expect response; "inform" = no LLM turn triggered'),
       }),
       execute: async ({ slug, message, type }) => {
         log.debug({ kinId: ctx.kinId, targetSlug: slug, type }, 'Inter-kin message send requested')
@@ -60,12 +58,10 @@ export const replyTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Reply to a request from another Kin. ' +
-        'Replies are always informational — they will not trigger an automatic response from the recipient. ' +
-        'Use the request_id from the original message to correlate.',
+        'Reply to a request from another Kin. Replies are always informational (no ping-pong).',
       inputSchema: z.object({
-        request_id: z.string().describe('Correlation ID from the original request'),
-        message: z.string().describe('Your response'),
+        request_id: z.string(),
+        message: z.string(),
       }),
       execute: async ({ request_id, message }) => {
         try {
@@ -90,7 +86,7 @@ export const listKinsTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'List all available Kins on the platform that you can communicate with.',
+      description: 'List all available Kins on the platform.',
       inputSchema: z.object({}),
       execute: async () => {
         const availableKins = await listAvailableKins(ctx.kinId)

@@ -709,49 +709,30 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- If two users give conflicting instructions, ask for clarification rather than picking one silently.\n` +
       `- In group contexts, keep responses focused and avoid overly long replies that derail the conversation for everyone.\n\n` +
       `### File storage\n` +
-      `- Use store_file() to create shareable files for the user. You can provide text/base64 content directly (source: "content"), reference a file from your workspace (source: "workspace"), or download from a URL (source: "url").\n` +
-      `- Files get a shareable URL. Use isPublic=true (default) for public access, or set a password for protected files.\n` +
-      `- Use expiresIn (minutes) for temporary files. Use readAndBurn=true for one-time download links.\n` +
-      `- Use list_stored_files() or search_stored_files() to find existing files before creating duplicates.\n` +
-      `- Always share the file URL with the user after creating a file.\n\n` +
+      `- Use store_file() to create shareable files. Always share the URL with the user after.\n` +
+      `- Check list_stored_files() before creating duplicates.\n\n` +
       `### Tool usage strategy\n` +
-      `- **Before answering from memory**, use recall() to verify facts about users, preferences, or past decisions. Don't guess when you can check.\n` +
-      `- **Before answering factual questions**, use web_search() for current information rather than relying on potentially outdated training data.\n` +
-      `- **After web_search**, use browse_page() to read the full content of promising results — search snippets are often incomplete.\n` +
-      `- **Prefer memorize() eagerly** — when you learn something worth keeping (a name, preference, decision, technical detail), save it immediately rather than hoping you'll remember later.\n` +
-      `- **Use find_contact_by_identifier() before create_contact()** — always check for duplicates first.\n` +
-      `- **Use store_file() for substantial content** — code, reports, long outputs are better as downloadable files than walls of text in chat.\n` +
-      `- **Use spawn_self()/spawn_kin() for heavy tasks** — anything that requires multiple tool calls or extended reasoning should be delegated to avoid blocking the conversation queue.\n` +
-      `- **Use notify() for time-sensitive alerts** — when you discover something urgent during a cron or background task, notify the user rather than waiting for them to check.\n` +
-      `- **Minimize shell_command() usage** — prefer dedicated tools (web_search, browse_page, database_query) over shell commands when a specific tool exists for the job.\n\n` +
+      `- Use recall() before answering from memory — verify facts, don't guess.\n` +
+      `- Use web_search() for current information, then browse_url() for full content.\n` +
+      `- Memorize eagerly — save names, preferences, decisions immediately.\n` +
+      `- Check duplicates before creating contacts (find_contact_by_identifier).\n` +
+      `- Delegate heavy tasks to spawn_self()/spawn_kin() to avoid blocking the queue.\n` +
+      `- Use store_file() for substantial content instead of long chat messages.\n\n` +
       `### Mini-Apps\n` +
-      `You can create interactive web applications (mini-apps) that appear in the KinBot sidebar and open in a side panel.\n` +
-      `- **When to create a mini-app**: dashboards, trackers, interactive tools, games, data viewers, forms, calculators — anything that benefits from a visual UI rather than plain text.\n` +
-      `- **Tech stack**: All mini-apps use **React 19** with JSX transpiled server-side. No build step needed.\n` +
-      `- **Setup pattern**: 1) create_mini_app with name/slug/html, 2) write_mini_app_file to add \`app.json\` with dependencies, 3) write additional files as needed.\n` +
-      `- **app.json dependencies** (required for React): \`{"dependencies": {"react": "https://esm.sh/react@19", "react-dom/client": "https://esm.sh/react-dom@19/client", "@kinbot/react": "/api/mini-apps/sdk/kinbot-react.js", "@kinbot/components": "/api/mini-apps/sdk/kinbot-components.js"}}\`\n` +
-      `- **@kinbot/react hooks**: \`useKinBot()\` (lifecycle, theme, locale, api), \`useStorage(key, default)\` (persistent KV), \`useTheme()\` (reactive theme).\n` +
-      `- **@kinbot/react exports**: \`toast()\`, \`confirm()\`, \`prompt()\`, \`navigate()\`, \`fullpage()\`, \`setTitle()\`, \`setBadge()\`, \`openApp()\`, \`clipboard\`, \`storage\`, \`api\`, \`http\`, \`events\`.\n` +
-      `- **@kinbot/components**: Full component library (Card, Button, Input, Select, Textarea, Checkbox, Switch, Badge, Table, Modal, Drawer, Tabs, DataGrid, Form, Grid, Accordion, DropdownMenu, etc.). All auto-adapt to theme.\n` +
-      `- **Backend API**: Write a \`_server.js\` file exporting a default function that receives ctx and returns a Hono app. Routes at \`/api/mini-apps/<appId>/api/*\`.\n` +
-      `- **Real-time**: Backend \`ctx.events.emit(event, data)\` → Frontend \`events.on(event, cb)\`.\n` +
-      `- **Snapshots**: Use create_mini_app_snapshot before risky changes, rollback_mini_app to restore.\n` +
-      `- **Gallery**: Use browse_mini_apps to discover apps from other Kins, clone_mini_app to copy them.\n` +
-      `- **Templates**: Use get_mini_app_templates to see available starter templates (dashboard, todo-list, form, data-viewer, kanban).\n` +
-      `- Always use @kinbot/components instead of raw HTML elements for consistent styling across themes and palettes.`,
+      `You can create interactive web apps (mini-apps) in the KinBot sidebar.\n` +
+      `- **Always call get_mini_app_docs first** for the full SDK reference (hooks, components, setup patterns).\n` +
+      `- Use get_mini_app_templates to start from a template (dashboard, todo-list, form, data-viewer, kanban).\n` +
+      `- Use create_mini_app_snapshot before risky changes.\n` +
+      `- Always use @kinbot/components instead of raw HTML elements.`,
     )
   }
 
-  // [6.5] MCP tools (external tool servers)
+  // [6.5] MCP tools (external tool servers) — server-level summary only,
+  // individual tool descriptions are already in the AI SDK tools parameter
   if (params.mcpTools && params.mcpTools.length > 0) {
     const mcpLines = params.mcpTools
-      .map((server) => {
-        const toolLines = server.tools
-          .map((t) => `  - \`${t.name}\`: ${t.description}`)
-          .join('\n')
-        return `**${server.serverName}**\n${toolLines}`
-      })
-      .join('\n\n')
+      .map((server) => `- **${server.serverName}** (${server.tools.length} tools)`)
+      .join('\n')
     blocks.push(
       `## MCP Tools (external servers)\n\n` +
       `You have access to tools from the following external MCP servers. ` +

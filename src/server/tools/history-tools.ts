@@ -18,18 +18,16 @@ export const searchHistoryTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Search your message history for past exchanges. Use this when you need to ' +
-        'find specific conversations, topics, or information from previous interactions ' +
-        'that may be beyond your active context window.',
+        'Search your message history for past conversations beyond the active context window.',
       inputSchema: z.object({
-        query: z.string().describe('Search query (keywords from past conversations)'),
+        query: z.string(),
         limit: z
           .number()
           .int()
           .min(1)
           .max(30)
           .optional()
-          .describe('Max results to return (default: 10)'),
+          .describe('Default: 10'),
       }),
       execute: async ({ query, limit }) => {
         log.debug({ kinId: ctx.kinId, query }, 'History search invoked')

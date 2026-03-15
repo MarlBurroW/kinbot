@@ -18,8 +18,7 @@ export const listUsersTool: ToolRegistration = {
   create: (_ctx) =>
     tool({
       description:
-        'List all platform users with their pseudonym, first name, language, and role. ' +
-        'Use this to know who is on the platform.',
+        'List all platform users with pseudonym, name, language, and role.',
       inputSchema: z.object({}),
       execute: async () => {
         const users = db
@@ -49,10 +48,9 @@ export const getUserTool: ToolRegistration = {
   create: (_ctx) =>
     tool({
       description:
-        'Get details of a specific platform user by their ID or pseudonym. ' +
-        'Returns their name, email, language, role, and avatar.',
+        'Get details of a specific platform user by ID or pseudonym.',
       inputSchema: z.object({
-        identifier: z.string().describe('User ID or pseudonym to look up'),
+        identifier: z.string().describe('User ID or pseudonym'),
       }),
       execute: async ({ identifier }) => {
         // Try by ID first
@@ -109,19 +107,17 @@ export const createInvitationTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Generate an invitation link for a new user to join the platform. ' +
-        'Share this link with the person you want to invite. ' +
-        'The link expires after the specified number of days (default 7).',
+        'Generate an invitation link for a new user to join the platform.',
       inputSchema: z.object({
         label: z
           .string()
           .optional()
-          .describe('Optional label to identify who this invitation is for (e.g. "For Mom", "For the team")'),
+          .describe('Who this invitation is for'),
         expires_in_days: z
           .number()
           .optional()
           .default(7)
-          .describe('Number of days before the invitation expires (default 7)'),
+          .describe('Default: 7'),
       }),
       execute: async ({ label, expires_in_days }) => {
         log.debug({ kinId: ctx.kinId, label }, 'Invitation creation requested by Kin')

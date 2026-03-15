@@ -26,8 +26,7 @@ export const listChannelsTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'List all external messaging channels connected to this Kin.',
+      description: 'List all messaging channels connected to this Kin.',
       inputSchema: z.object({}),
       execute: async () => {
         const items = await listChannels(ctx.kinId)
@@ -57,10 +56,9 @@ export const listChannelConversationsTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'List known users and chat IDs for a channel. Use this to discover who you can message proactively via send_channel_message. ' +
-        'Returns users (with their platform user ID usable as chat_id for DMs) and all known chat IDs (including groups).',
+        'List known users and chat IDs for a channel. Use to discover who you can message proactively.',
       inputSchema: z.object({
-        channel_id: z.string().describe('The channel ID to list conversations for'),
+        channel_id: z.string(),
       }),
       execute: async ({ channel_id }) => {
         const channel = await getChannel(channel_id)
@@ -81,18 +79,16 @@ export const sendChannelMessageTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Send a message to an external platform via a connected channel. ' +
-        'Use this to proactively reach out to users on external platforms, or to send follow-up messages ' +
-        'after delegating work to other Kins.',
+        'Send a message to an external platform via a connected channel.',
       inputSchema: z.object({
-        channel_id: z.string().describe('The channel ID to send through'),
-        chat_id: z.string().describe('The platform chat/channel ID to send to'),
-        message: z.string().describe('The message content to send'),
+        channel_id: z.string(),
+        chat_id: z.string().describe('Platform chat/user ID to send to'),
+        message: z.string(),
         attachments: z.array(z.object({
-          source: z.string().describe('File path (absolute) or URL'),
-          mimeType: z.string().describe('MIME type (e.g. "image/png")'),
-          fileName: z.string().optional().describe('Display file name'),
-        })).optional().describe('Optional file attachments to send with the message'),
+          source: z.string().describe('Absolute file path or URL'),
+          mimeType: z.string(),
+          fileName: z.string().optional(),
+        })).optional(),
       }),
       execute: async ({ channel_id, chat_id, message, attachments }) => {
         log.debug({ kinId: ctx.kinId, channelId: channel_id, chatId: chat_id }, 'Channel message send requested')
@@ -142,15 +138,13 @@ export const createChannelTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create a new external messaging channel for this Kin. ' +
-        'Available platforms: ' + channelAdapters.list().join(', ') + '. ' +
-        'IMPORTANT: Retrieve bot tokens from the Vault (get_secret) — never hardcode them.',
+        'Create a new messaging channel. Retrieve bot tokens from Vault (get_secret) — never hardcode them.',
       inputSchema: z.object({
-        name: z.string().describe('Display name for the channel'),
-        platform: z.string().describe('Platform identifier (e.g. "telegram", "discord")'),
-        bot_token: z.string().describe('Bot token / API credential for the platform'),
+        name: z.string(),
+        platform: z.string().describe('e.g. "telegram", "discord"'),
+        bot_token: z.string(),
         allowed_chat_ids: z.array(z.string()).optional().describe('Restrict to specific chat/group IDs'),
-        auto_create_contacts: z.boolean().optional().describe('Auto-create contacts for new senders (default: true)'),
+        auto_create_contacts: z.boolean().optional().describe('Default: true'),
       }),
       execute: async ({ name, platform, bot_token, allowed_chat_ids, auto_create_contacts }) => {
         log.debug({ kinId: ctx.kinId, platform, name }, 'Channel creation requested')
@@ -195,12 +189,12 @@ export const updateChannelTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Update an existing channel\'s configuration. Only channels owned by this Kin can be updated.',
+        'Update a channel\'s configuration (name, chat restrictions, auto-contact).',
       inputSchema: z.object({
-        channel_id: z.string().describe('Channel ID to update'),
-        name: z.string().optional().describe('New display name'),
-        allowed_chat_ids: z.array(z.string()).optional().describe('Updated chat ID restrictions (empty array to remove)'),
-        auto_create_contacts: z.boolean().optional().describe('Toggle auto-contact creation'),
+        channel_id: z.string(),
+        name: z.string().optional(),
+        allowed_chat_ids: z.array(z.string()).optional().describe('Empty array to remove restrictions'),
+        auto_create_contacts: z.boolean().optional(),
       }),
       execute: async ({ channel_id, name, allowed_chat_ids, auto_create_contacts }) => {
         const channel = await getChannel(channel_id)
@@ -241,9 +235,9 @@ export const deleteChannelTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Permanently delete a messaging channel. This stops the channel and removes it entirely. Only channels owned by this Kin can be deleted.',
+        'Permanently delete a messaging channel. Only use when explicitly asked.',
       inputSchema: z.object({
-        channel_id: z.string().describe('Channel ID to delete'),
+        channel_id: z.string(),
       }),
       execute: async ({ channel_id }) => {
         const channel = await getChannel(channel_id)
@@ -269,10 +263,9 @@ export const activateChannelTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Activate an inactive channel so it starts listening for incoming messages.',
+      description: 'Activate an inactive channel to start listening for messages.',
       inputSchema: z.object({
-        channel_id: z.string().describe('Channel ID to activate'),
+        channel_id: z.string(),
       }),
       execute: async ({ channel_id }) => {
         const channel = await getChannel(channel_id)
@@ -307,10 +300,9 @@ export const deactivateChannelTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description:
-        'Deactivate an active channel so it stops listening for incoming messages.',
+      description: 'Deactivate an active channel to stop listening for messages.',
       inputSchema: z.object({
-        channel_id: z.string().describe('Channel ID to deactivate'),
+        channel_id: z.string(),
       }),
       execute: async ({ channel_id }) => {
         const channel = await getChannel(channel_id)

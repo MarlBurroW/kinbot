@@ -8,14 +8,13 @@ export const notifyTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Send a custom notification to the user via the platform notification system (bell icon + external channels like Telegram/Discord if configured). Use for proactive alerts, reminders, or important updates that do not require user input.',
+        'Send a notification to the user (bell icon + external channels if configured).',
       inputSchema: z.object({
-        title: z.string().max(100).describe('Short notification title (max 100 characters)'),
+        title: z.string().max(100),
         body: z
           .string()
           .max(500)
-          .optional()
-          .describe('Optional notification body with additional details (max 500 characters)'),
+          .optional(),
       }),
       execute: async ({ title, body }) => {
         await createNotification({

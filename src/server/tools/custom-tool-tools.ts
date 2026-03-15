@@ -20,20 +20,18 @@ export const registerToolTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Register a script in your workspace as a reusable tool. ' +
-        'The script must be in your tools/ directory. ' +
-        'Once registered, it becomes available for execution.',
+        'Register a workspace script as a reusable tool. Must be in your tools/ directory.',
       inputSchema: z.object({
         name: z
           .string()
-          .describe('Tool name (alphanumeric + underscore, e.g. "scrape_url")'),
-        description: z.string().describe('What the tool does (for context)'),
+          .describe('Alphanumeric + underscore (e.g. "scrape_url")'),
+        description: z.string(),
         parameters: z
           .string()
-          .describe('JSON Schema string defining the tool parameters'),
+          .describe('JSON Schema string'),
         path: z
           .string()
-          .describe('Relative path to the script (e.g. "tools/my_script.sh")'),
+          .describe('Relative path (e.g. "tools/my_script.sh")'),
       }),
       execute: async ({ name, description, parameters, path }) => {
         log.debug({ kinId: ctx.kinId, toolName: name }, 'Custom tool registration requested')
@@ -62,15 +60,12 @@ export const runCustomToolTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Execute a registered custom tool script with given arguments. ' +
-        'Arguments are passed as JSON via stdin. ' +
-        'Returns stdout, stderr, exit code, and execution time.',
+        'Execute a registered custom tool. Arguments passed as JSON via stdin.',
       inputSchema: z.object({
-        tool_name: z.string().describe('Name of the registered custom tool'),
+        tool_name: z.string(),
         args: z
           .record(z.string(), z.unknown())
-          .optional()
-          .describe('Arguments matching the tool\'s parameter schema'),
+          .optional(),
       }),
       execute: async ({ tool_name, args }) => {
         log.debug({ kinId: ctx.kinId, toolName: tool_name }, 'Custom tool execution requested')

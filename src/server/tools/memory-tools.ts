@@ -45,19 +45,16 @@ export const recallTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Search your long-term memory for relevant information. Use this when you need ' +
-        'to remember facts, preferences, decisions, or knowledge from past interactions. ' +
-        'Returns the most relevant memories ranked by relevance, with importance scores, age, ' +
-        'and conversational context (sourceContext) showing when/how you learned this.',
+        'Search your long-term memory for facts, preferences, decisions, or knowledge from past interactions.',
       inputSchema: z.object({
-        query: z.string().describe('What to search for (semantic + keyword search)'),
+        query: z.string(),
         limit: z
           .number()
           .int()
           .min(1)
           .max(20)
           .optional()
-          .describe('Max results to return (default: 10)'),
+          .describe('Default: 10'),
       }),
       execute: async ({ query, limit }) => {
         log.debug({ kinId: ctx.kinId, query }, 'Recall invoked')
@@ -86,25 +83,22 @@ export const memorizeTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Save important information to your long-term memory. Use this when you learn ' +
-        'a new fact, preference, decision, or piece of knowledge that should be remembered ' +
-        'across future interactions.',
+        'Save important information to long-term memory for future interactions.',
       inputSchema: z.object({
-        content: z.string().describe('The information to remember (clear, standalone sentence)'),
+        content: z.string().describe('Clear, standalone sentence to remember'),
         category: z
-          .enum(CATEGORIES)
-          .describe('Type: "fact", "preference", "decision", or "knowledge"'),
+          .enum(CATEGORIES),
         subject: z
           .string()
           .optional()
-          .describe('Who or what this is about (e.g. a contact name, "general")'),
+          .describe('Who/what this is about (e.g. a contact name)'),
         importance: z
           .number()
           .int()
           .min(1)
           .max(10)
           .optional()
-          .describe('Importance score 1-10 (1=mundane, 5=useful, 10=critical). Default: 5'),
+          .describe('1=mundane, 5=useful, 10=critical. Default: 5'),
       }),
       execute: async ({ content, category, subject, importance }) => {
         log.debug({ kinId: ctx.kinId, category, subject }, 'Memorize invoked')
@@ -131,16 +125,14 @@ export const updateMemoryTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Update an existing memory with corrected or updated information. ' +
-        'Use this when a previously stored fact has changed or needs correction.',
+        'Update an existing memory with corrected or new information.',
       inputSchema: z.object({
-        memory_id: z.string().describe('The memory ID to update'),
-        content: z.string().optional().describe('Updated content'),
+        memory_id: z.string(),
+        content: z.string().optional(),
         category: z
           .enum(CATEGORIES)
-          .optional()
-          .describe('Updated category'),
-        subject: z.string().optional().describe('Updated subject'),
+          .optional(),
+        subject: z.string().optional(),
       }),
       execute: async ({ memory_id, content, category, subject }) => {
         const updated = await updateMemory(memory_id, ctx.kinId, {
@@ -163,10 +155,9 @@ export const forgetTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Delete a memory that is outdated, incorrect, or no longer relevant. ' +
-        'Use this to clean up your memory when information becomes obsolete.',
+        'Delete a memory that is outdated, incorrect, or no longer relevant.',
       inputSchema: z.object({
-        memory_id: z.string().describe('The memory ID to delete'),
+        memory_id: z.string(),
       }),
       execute: async ({ memory_id }) => {
         const deleted = await deleteMemory(memory_id, ctx.kinId)
@@ -184,14 +175,12 @@ export const listMemoriesTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'List your stored memories, optionally filtered by subject or category. ' +
-        'Use this to review what you know about a topic or person.',
+        'List stored memories, optionally filtered by subject or category.',
       inputSchema: z.object({
-        subject: z.string().optional().describe('Filter by subject (e.g. a contact name)'),
+        subject: z.string().optional(),
         category: z
           .enum(CATEGORIES)
-          .optional()
-          .describe('Filter by category'),
+          .optional(),
       }),
       execute: async ({ subject, category }) => {
         const results = await listMemories(ctx.kinId, {
@@ -223,16 +212,12 @@ export const reviewMemoriesTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Audit your memory for quality issues. Analyzes all stored memories and identifies: ' +
-        'contradictions (conflicting facts), near-duplicates (redundant entries), ' +
-        'stale entries (likely outdated), and low-value clutter. ' +
-        'Returns actionable suggestions you can act on with update_memory or forget. ' +
-        'Use this periodically to keep your memory clean and accurate.',
+        'Audit memory for contradictions, duplicates, stale entries, and clutter. Returns actionable suggestions.',
       inputSchema: z.object({
         subject: z
           .string()
           .optional()
-          .describe('Optional: only review memories about a specific subject'),
+          .describe('Only review memories about this subject'),
       }),
       execute: async ({ subject }) => {
         log.debug({ kinId: ctx.kinId, subject }, 'Review memories invoked')

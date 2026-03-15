@@ -115,9 +115,7 @@ export const getSystemInfoTool: ToolRegistration = {
   create: () =>
     tool({
       description:
-        'Get detailed information about the host system: CPU, RAM, disk, network, uptime, ' +
-        'top processes, temperature, and Docker containers (if available). ' +
-        'Use this when you need more detail than the summary in your system prompt.',
+        'Get detailed host system info: CPU, RAM, disk, network, uptime, top processes, Docker.',
       inputSchema: z.object({}),
       execute: async () => {
         try {

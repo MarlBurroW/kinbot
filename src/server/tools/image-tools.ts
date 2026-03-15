@@ -23,9 +23,7 @@ export const listImageModelsTool: ToolRegistration = {
   create: (_ctx) =>
     tool({
       description:
-        'List all available image generation models across configured providers. ' +
-        'Returns model IDs, provider info, and whether each model supports image input (editing/inpainting). ' +
-        'Use this to discover which models you can pass to generate_image.',
+        'List available image generation models. Use before generate_image to discover options.',
       inputSchema: z.object({}),
       execute: async () => {
         const allProviders = await db.select().from(providers).all()
@@ -86,31 +84,25 @@ export const generateImageTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Generate an image from a text prompt, or edit an existing image using a prompt. ' +
-        'Returns the URL of the generated image. ' +
-        'Use list_image_models() first to see available models and their capabilities. ' +
-        'If imageUrl is provided, the model must support image input (supportsImageInput=true). ' +
-        'imageUrl can be an internal file URL (e.g. /api/uploads/..., /api/file-storage/...) or an external URL (https://...).',
+        'Generate an image from a text prompt, or edit an existing image. Use list_image_models first.',
       inputSchema: z.object({
         prompt: z
-          .string()
-          .describe('Detailed text description of the image to generate, or editing instructions if imageUrl is provided'),
+          .string(),
         modelId: z
           .string()
           .optional()
-          .describe('Image model ID to use (e.g. "dall-e-3", "gpt-image-1", "imagen-3.0-generate-002"). Use list_image_models() to see available options. If omitted, uses the default model for the provider.'),
+          .describe('From list_image_models. Auto-selects if omitted.'),
         providerId: z
           .string()
           .optional()
-          .describe('Provider ID to use if you have multiple image providers. If omitted, auto-selects the first available image provider.'),
+          .describe('Auto-selects if omitted'),
         imageUrl: z
           .string()
           .optional()
-          .describe('URL of a source image for editing/inpainting. Can be an internal URL (/api/uploads/..., /api/file-storage/...) or an external URL (https://...). Only works with models that support image input.'),
+          .describe('Source image URL for editing. Internal (/api/uploads/...) or external (https://...).'),
         filename: z
           .string()
-          .optional()
-          .describe('Optional filename for the generated image (default: generated-{id}.png)'),
+          .optional(),
       }),
       execute: async ({ prompt, modelId, providerId, imageUrl, filename }) => {
         log.debug({ kinId: ctx.kinId, modelId, providerId, hasImageUrl: !!imageUrl }, 'Image generation requested')

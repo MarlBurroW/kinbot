@@ -258,14 +258,11 @@ export const getMiniAppDocsTool: ToolRegistration = {
   create: () =>
     tool({
       description:
-        'Get mini-app SDK documentation. Returns structured reference for hooks, components, SDK methods, backend API, and design guidelines. ' +
-        'Use this before creating or modifying mini-apps to get the API reference. ' +
-        'Sections: overview, getting-started, hooks, components, sdk, backend, guidelines, all.',
+        'Get mini-app SDK documentation (hooks, components, backend, guidelines).',
       inputSchema: z.object({
         section: z
           .enum(['overview', 'getting-started', 'hooks', 'components', 'sdk', 'backend', 'guidelines', 'all'])
-          .default('all')
-          .describe('Which section to retrieve. Use "all" for the complete reference.'),
+          .default('all'),
       }),
       execute: async ({ section }) => {
         if (section === 'all') {

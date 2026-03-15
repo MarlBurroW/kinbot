@@ -13,9 +13,7 @@ export const browseMiniAppsTool: ToolRegistration = {
   create: (_ctx) =>
     tool({
       description:
-        'Browse all active mini-apps across all Kins. ' +
-        'Returns a list of all active mini-apps with their metadata, including which Kin created them. ' +
-        'All apps are accessible to all users regardless of which Kin owns them.',
+        'Browse all active mini-apps across all Kins.',
       inputSchema: z.object({}),
       execute: async () => {
         log.debug('browse_mini_apps invoked')

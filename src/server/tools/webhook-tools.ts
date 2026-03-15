@@ -23,16 +23,12 @@ export const createWebhookTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create a new incoming webhook endpoint for this Kin. ' +
-        'External services (Grafana, Kubernetes, CI/CD, etc.) can POST to this URL to send you notifications. ' +
-        'The returned token is shown only once — store it securely. ' +
-        'Include the token as Authorization: Bearer <token> header when calling the webhook.',
+        'Create an incoming webhook endpoint. The returned token is shown only once.',
       inputSchema: z.object({
-        name: z.string().describe('Short label for the webhook (e.g. "Grafana alerts", "K8s events")'),
+        name: z.string(),
         description: z
           .string()
-          .optional()
-          .describe('What this webhook will receive'),
+          .optional(),
       }),
       execute: async ({ name, description }) => {
         log.debug({ kinId: ctx.kinId, name }, 'Webhook creation requested')
@@ -66,12 +62,12 @@ export const updateWebhookTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Update an existing webhook (name, description, or active/inactive status).',
+        'Update a webhook (name, description, or active status).',
       inputSchema: z.object({
-        webhook_id: z.string().describe('The ID of the webhook to update'),
-        name: z.string().optional().describe('New name'),
-        description: z.string().optional().describe('New description'),
-        is_active: z.boolean().optional().describe('Set active (true) or inactive (false)'),
+        webhook_id: z.string(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        is_active: z.boolean().optional(),
       }),
       execute: async ({ webhook_id, name, description, is_active }) => {
         // Verify ownership
@@ -111,9 +107,9 @@ export const deleteWebhookTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Delete a webhook. External services using it will receive 404 errors.',
+        'Delete a webhook permanently.',
       inputSchema: z.object({
-        webhook_id: z.string().describe('The ID of the webhook to delete'),
+        webhook_id: z.string(),
       }),
       execute: async ({ webhook_id }) => {
         // Verify ownership
@@ -142,7 +138,7 @@ export const listWebhooksTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'List all webhooks configured for this Kin. Tokens are not included for security.',
+        'List all webhooks for this Kin. Tokens are not included.',
       inputSchema: z.object({}),
       execute: async () => {
         const items = await listWebhooks(ctx.kinId)

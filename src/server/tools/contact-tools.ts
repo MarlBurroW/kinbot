@@ -23,11 +23,9 @@ export const getContactTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Retrieve the full details of a contact including identifiers (phone, email, etc.), ' +
-        'global notes from all Kins, and your private notes. Use this when you need more ' +
-        'details about a person listed in the known contacts.',
+        'Retrieve full details of a contact including identifiers and notes.',
       inputSchema: z.object({
-        contact_id: z.string().describe('The unique identifier of the contact'),
+        contact_id: z.string(),
       }),
       execute: async ({ contact_id }) => {
         const contact = await getContactWithDetails(contact_id, ctx.kinId)
@@ -61,10 +59,9 @@ export const searchContactsTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Search the shared contact registry by name, identifier value, or keywords in notes. ' +
-        'Returns matching contacts with their identifiers and visible notes.',
+        'Search contacts by name, identifier value, or keywords in notes.',
       inputSchema: z.object({
-        query: z.string().describe('Search query (name, phone number, email, keyword, etc.)'),
+        query: z.string(),
       }),
       execute: async ({ query }) => {
         const results = await searchContacts(query, ctx.kinId)
@@ -93,20 +90,18 @@ export const createContactTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create a new contact in the shared registry. All Kins will see this contact. ' +
-        'You can optionally include identifiers (phone, email, etc.).',
+        'Create a new contact in the shared registry. All Kins will see this contact.',
       inputSchema: z.object({
-        name: z.string().describe('Contact name or pseudonym'),
-        type: z.enum(['human', 'kin']).describe('"human" for people, "kin" for other Kins'),
+        name: z.string(),
+        type: z.enum(['human', 'kin']),
         identifiers: z
           .array(
             z.object({
-              label: z.string().describe('Identifier label (e.g. "email", "phone pro", "WhatsApp", "Discord")'),
-              value: z.string().describe('Identifier value'),
+              label: z.string().describe('e.g. "email", "phone", "WhatsApp", "Discord"'),
+              value: z.string(),
             }),
           )
-          .optional()
-          .describe('Contact identifiers for cross-channel identification'),
+          .optional(),
       }),
       execute: async ({ name, type, identifiers }) => {
         log.debug({ kinId: ctx.kinId, contactName: name, contactType: type }, 'Contact creation requested')
@@ -131,21 +126,19 @@ export const updateContactTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Update a contact\'s basic information (name, type) and/or add identifiers. ' +
-        'Identifiers are additive: providing them adds new ones, but does not remove existing ones.',
+        'Update a contact\'s name/type and/or add identifiers. Identifiers are additive only.',
       inputSchema: z.object({
-        contact_id: z.string().describe('The contact ID to update'),
-        name: z.string().optional().describe('New name (only if correcting)'),
-        type: z.enum(['human', 'kin']).optional().describe('New type'),
+        contact_id: z.string(),
+        name: z.string().optional(),
+        type: z.enum(['human', 'kin']).optional(),
         identifiers: z
           .array(
             z.object({
-              label: z.string().describe('Identifier label (e.g. "email perso", "mobile", "WhatsApp")'),
-              value: z.string().describe('Identifier value'),
+              label: z.string().describe('e.g. "email", "mobile", "WhatsApp"'),
+              value: z.string(),
             }),
           )
-          .optional()
-          .describe('Identifiers to add'),
+          .optional(),
       }),
       execute: async ({ contact_id, name, type, identifiers }) => {
         const updated = await updateContact(contact_id, { name, type })
@@ -178,10 +171,9 @@ export const deleteContactTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Permanently delete a contact from the shared registry. This also removes all ' +
-        'identifiers and notes associated with the contact. Only use when explicitly asked.',
+        'Permanently delete a contact and all its identifiers and notes. Only use when explicitly asked.',
       inputSchema: z.object({
-        contact_id: z.string().describe('The contact ID to delete'),
+        contact_id: z.string(),
       }),
       execute: async ({ contact_id }) => {
         log.debug({ kinId: ctx.kinId, contactId: contact_id }, 'Contact deletion requested')
@@ -202,12 +194,11 @@ export const setContactNoteTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Write or replace a note on a contact. Use scope "private" for notes only you can see, ' +
-        'or "global" for notes visible to all Kins. Each Kin can have one private and one global note per contact.',
+        'Write or replace a note on a contact. One private and one global note per Kin per contact.',
       inputSchema: z.object({
-        contact_id: z.string().describe('The contact ID'),
-        scope: z.enum(['private', 'global']).describe('"private" = only you see it, "global" = all Kins see it'),
-        content: z.string().describe('The note content (replaces any existing note of the same scope)'),
+        contact_id: z.string(),
+        scope: z.enum(['private', 'global']).describe('"private" = only you; "global" = all Kins'),
+        content: z.string().describe('Replaces any existing note of the same scope'),
       }),
       execute: async ({ contact_id, scope, content }) => {
         log.debug({ kinId: ctx.kinId, contactId: contact_id, scope }, 'Contact note set')
@@ -230,11 +221,10 @@ export const findContactByIdentifierTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Find a contact by an identifier (e.g., phone number, email, WhatsApp ID, Discord handle). ' +
-        'Use this to check if a person already exists before creating a duplicate.',
+        'Find a contact by identifier (exact match). Use to check for duplicates before creating.',
       inputSchema: z.object({
-        label: z.string().describe('Identifier label (e.g. "email", "phone", "whatsapp", "discord")'),
-        value: z.string().describe('Identifier value to search for (exact match)'),
+        label: z.string().describe('e.g. "email", "phone", "whatsapp", "discord"'),
+        value: z.string(),
       }),
       execute: async ({ label, value }) => {
         const contact = findContactByIdentifier(label, value)

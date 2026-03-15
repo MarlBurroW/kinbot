@@ -26,26 +26,17 @@ export const spawnSelfTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Spawn a sub-Kin copy of yourself with a specific task. ' +
-        'The sub-Kin inherits your character, expertise, and tools. ' +
-        'Your current turn ends immediately after spawning.',
+        'Spawn a sub-Kin copy of yourself with a specific task. Your current turn ends immediately after spawning.',
       inputSchema: z.object({
-        title: z.string().describe('Short label for the task (shown in UI, max ~60 chars)'),
-        task_description: z.string().describe('Full instructions for the sub-Kin task'),
+        title: z.string().describe('Short label, max ~60 chars'),
+        task_description: z.string(),
         mode: z
           .enum(['await', 'async'])
           .describe(
-            '"await" = result enters your queue and triggers a new turn; ' +
-            '"async" = result is deposited as informational, no new turn',
+            '"await" = result triggers a new turn; "async" = informational, no new turn',
           ),
-        model: z
-          .string()
-          .optional()
-          .describe('LLM model for the sub-Kin. If omitted, inherits your model'),
-        allow_human_prompt: z
-          .boolean()
-          .optional()
-          .describe('Whether the sub-Kin can prompt the human user for input. Defaults to true.'),
+        model: z.string().optional(),
+        allow_human_prompt: z.boolean().optional().describe('Default: true'),
       }),
       execute: async ({ title, task_description, mode, model, allow_human_prompt }) => {
         log.debug({ kinId: ctx.kinId, mode, spawnType: 'self' }, 'Task spawn requested (spawn_self)')
@@ -72,27 +63,18 @@ export const spawnKinTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Spawn a different Kin as a sub-Kin for a specific task. ' +
-        'The sub-Kin uses the target Kin\'s identity and expertise. ' +
-        'Your current turn ends immediately after spawning.',
+        'Spawn another Kin as a sub-Kin for a specific task. Your current turn ends immediately after spawning.',
       inputSchema: z.object({
-        kin_slug: z.string().describe('Slug of the target Kin to spawn (e.g. "test-ai")'),
-        title: z.string().describe('Short label for the task (shown in UI, max ~60 chars)'),
-        task_description: z.string().describe('Full instructions for the sub-Kin task'),
+        kin_slug: z.string(),
+        title: z.string().describe('Short label, max ~60 chars'),
+        task_description: z.string(),
         mode: z
           .enum(['await', 'async'])
           .describe(
-            '"await" = result enters your queue and triggers a new turn; ' +
-            '"async" = result is deposited as informational, no new turn',
+            '"await" = result triggers a new turn; "async" = informational, no new turn',
           ),
-        model: z
-          .string()
-          .optional()
-          .describe('LLM model for the sub-Kin. If omitted, inherits target Kin\'s model'),
-        allow_human_prompt: z
-          .boolean()
-          .optional()
-          .describe('Whether the sub-Kin can prompt the human user for input. Defaults to true.'),
+        model: z.string().optional(),
+        allow_human_prompt: z.boolean().optional().describe('Default: true'),
       }),
       execute: async ({ kin_slug, title, task_description, mode, model, allow_human_prompt }) => {
         const kinId = resolveKinId(kin_slug)
@@ -124,11 +106,10 @@ export const respondToTaskTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Answer a clarification request (request_input) from one of your sub-Kins. ' +
-        'The answer is injected into the sub-Kin\'s session and triggers a new LLM turn.',
+        'Answer a clarification request from a sub-Kin. Triggers a new LLM turn on the sub-Kin.',
       inputSchema: z.object({
-        task_id: z.string().describe('ID of the sub-Kin task'),
-        answer: z.string().describe('The clarification answer'),
+        task_id: z.string(),
+        answer: z.string(),
       }),
       execute: async ({ task_id, answer }) => {
         const success = await respondToTask(task_id, answer)
@@ -150,7 +131,7 @@ export const cancelTaskTool: ToolRegistration = {
     tool({
       description: 'Cancel a sub-Kin task that is pending or in progress.',
       inputSchema: z.object({
-        task_id: z.string().describe('ID of the task to cancel'),
+        task_id: z.string(),
       }),
       execute: async ({ task_id }) => {
         const success = await cancelTask(task_id, ctx.kinId)
@@ -171,7 +152,7 @@ export const listTasksTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'List all tasks — both tasks you spawned and tasks where you were spawned as the executing Kin by another Kin.',
+        'List all tasks you spawned and tasks assigned to you by other Kins.',
       inputSchema: z.object({}),
       execute: async () => {
         const spawnedTasks = await listKinTasks(ctx.kinId)
@@ -231,10 +212,9 @@ export const getTaskDetailTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Get detailed information about a specific task, including its full message history. ' +
-        'Works for tasks you spawned OR tasks where you were the executing Kin.',
+        'Get full details and message history of a task you spawned or were assigned.',
       inputSchema: z.object({
-        task_id: z.string().describe('ID of the task to inspect'),
+        task_id: z.string(),
       }),
       execute: async ({ task_id }) => {
         const task = await getTask(task_id)

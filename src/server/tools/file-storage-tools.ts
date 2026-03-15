@@ -23,24 +23,22 @@ export const storeFileTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Store a file in the shared file storage and get a shareable URL. ' +
-        'You can provide content directly (text or base64), reference a file from your workspace, ' +
-        'or download from an external URL.',
+        'Store a file and get a shareable URL. Source can be inline content, workspace file, or external URL.',
       inputSchema: z.object({
-        name: z.string().describe('Display name for the file'),
+        name: z.string(),
         source: z.enum(['content', 'workspace', 'url']).describe(
-          'How to provide the file: "content" for inline text/base64, "workspace" for a file in your workspace, "url" to download from an external URL',
+          '"content" for inline text/base64, "workspace" for workspace file, "url" to download',
         ),
-        content: z.string().optional().describe('File content (text or base64). Required when source is "content"'),
-        isBase64: z.boolean().optional().describe('Set to true if content is base64-encoded binary data. Default: false'),
-        filePath: z.string().optional().describe('Path relative to your workspace root. Required when source is "workspace"'),
-        url: z.string().optional().describe('External URL to download from. Required when source is "url"'),
-        mimeType: z.string().optional().describe('MIME type (e.g. "text/plain", "application/json"). Auto-detected if not provided'),
-        description: z.string().optional().describe('Optional description of the file'),
-        isPublic: z.boolean().optional().describe('Whether anyone with the URL can access the file. Default: true'),
-        password: z.string().optional().describe('Set a password to protect the file. Only users with the password can download it'),
-        expiresIn: z.number().optional().describe('Auto-delete the file after this many minutes. Omit for no expiration'),
-        readAndBurn: z.boolean().optional().describe('Delete the file after the first download. Default: false'),
+        content: z.string().optional().describe('Required when source is "content"'),
+        isBase64: z.boolean().optional().describe('True if content is base64-encoded. Default: false'),
+        filePath: z.string().optional().describe('Required when source is "workspace"'),
+        url: z.string().optional().describe('Required when source is "url"'),
+        mimeType: z.string().optional().describe('Auto-detected if omitted'),
+        description: z.string().optional(),
+        isPublic: z.boolean().optional().describe('Default: true'),
+        password: z.string().optional(),
+        expiresIn: z.number().optional().describe('Auto-delete after N minutes'),
+        readAndBurn: z.boolean().optional().describe('Delete after first download. Default: false'),
       }),
       execute: async (args) => {
         log.debug({ kinId: ctx.kinId, name: args.name, source: args.source }, 'store_file invoked')
@@ -108,8 +106,8 @@ export const getStoredFileTool: ToolRegistration = {
     tool({
       description: 'Get metadata and share URL for a stored file by ID or name.',
       inputSchema: z.object({
-        id: z.string().optional().describe('File ID. Provide either id or name'),
-        name: z.string().optional().describe('File display name. Provide either id or name'),
+        id: z.string().optional().describe('Provide either id or name'),
+        name: z.string().optional().describe('Provide either id or name'),
       }),
       execute: async ({ id, name }) => {
         log.debug({ kinId: ctx.kinId, id, name }, 'get_stored_file invoked')
@@ -135,8 +133,8 @@ export const listStoredFilesTool: ToolRegistration = {
     tool({
       description: 'List all files in your file storage.',
       inputSchema: z.object({
-        limit: z.number().optional().describe('Max number of files to return. Default: 50'),
-        offset: z.number().optional().describe('Number of files to skip. Default: 0'),
+        limit: z.number().optional().describe('Default: 50'),
+        offset: z.number().optional().describe('Default: 0'),
       }),
       execute: async ({ limit = 50, offset = 0 }) => {
         log.debug({ kinId: ctx.kinId }, 'list_stored_files invoked')
@@ -155,7 +153,7 @@ export const searchStoredFilesTool: ToolRegistration = {
     tool({
       description: 'Search stored files by name or description.',
       inputSchema: z.object({
-        query: z.string().describe('Search query to match against file names and descriptions'),
+        query: z.string(),
       }),
       execute: async ({ query }) => {
         log.debug({ kinId: ctx.kinId, query }, 'search_stored_files invoked')
@@ -173,13 +171,13 @@ export const updateStoredFileTool: ToolRegistration = {
     tool({
       description: 'Update metadata of a stored file (name, description, access settings, expiration).',
       inputSchema: z.object({
-        id: z.string().describe('ID of the file to update'),
-        name: z.string().optional().describe('New display name'),
-        description: z.string().nullable().optional().describe('New description. Set to null to remove'),
-        isPublic: z.boolean().optional().describe('Change public/private access'),
-        password: z.string().nullable().optional().describe('Set a new password. Set to null to remove password protection'),
-        expiresIn: z.number().nullable().optional().describe('Set expiration in minutes from now. Set to null to remove expiration'),
-        readAndBurn: z.boolean().optional().describe('Enable or disable read-and-burn'),
+        id: z.string(),
+        name: z.string().optional(),
+        description: z.string().nullable().optional().describe('Null to remove'),
+        isPublic: z.boolean().optional(),
+        password: z.string().nullable().optional().describe('Null to remove'),
+        expiresIn: z.number().nullable().optional().describe('Minutes from now. Null to remove.'),
+        readAndBurn: z.boolean().optional(),
       }),
       execute: async (args) => {
         log.debug({ kinId: ctx.kinId, fileId: args.id }, 'update_stored_file invoked')
@@ -204,9 +202,9 @@ export const deleteStoredFileTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Delete a file from the storage. This permanently removes the file and invalidates its share URL.',
+      description: 'Permanently delete a stored file and invalidate its share URL.',
       inputSchema: z.object({
-        id: z.string().describe('ID of the file to delete'),
+        id: z.string(),
       }),
       execute: async ({ id }) => {
         log.debug({ kinId: ctx.kinId, fileId: id }, 'delete_stored_file invoked')

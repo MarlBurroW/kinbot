@@ -23,20 +23,16 @@ export const addMcpServerTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Add a new MCP (Model Context Protocol) server to the platform. ' +
-        'The server will be auto-assigned to you. ' +
-        'Depending on platform settings, the server may require user approval before activation.',
+        'Add a new MCP server. Auto-assigned to you. May require user approval.',
       inputSchema: z.object({
-        name: z.string().describe('Display name for the MCP server (e.g. "GitHub - Personal")'),
-        command: z.string().describe('Executable command to launch the server (e.g. "npx", "node", "python")'),
+        name: z.string(),
+        command: z.string().describe('Executable (e.g. "npx", "node", "python")'),
         args: z
           .array(z.string())
-          .optional()
-          .describe('Command-line arguments (e.g. ["-y", "@modelcontextprotocol/server-github"])'),
+          .optional(),
         env: z
           .record(z.string(), z.string())
-          .optional()
-          .describe('Environment variables for the server process (e.g. {"GITHUB_TOKEN": "ghp_..."})'),
+          .optional(),
       }),
       execute: async ({ name, command, args, env }) => {
         try {
@@ -105,13 +101,13 @@ export const updateMcpServerTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Update an existing MCP server configuration (name, command, args, env).',
+      description: 'Update an MCP server configuration (name, command, args, env).',
       inputSchema: z.object({
-        server_id: z.string().describe('ID of the MCP server to update'),
-        name: z.string().optional().describe('New display name'),
-        command: z.string().optional().describe('New executable command'),
-        args: z.array(z.string()).optional().describe('New command-line arguments'),
-        env: z.record(z.string(), z.string()).optional().describe('Environment variables to set (merged with existing; pass null to clear all)'),
+        server_id: z.string(),
+        name: z.string().optional(),
+        command: z.string().optional(),
+        args: z.array(z.string()).optional(),
+        env: z.record(z.string(), z.string()).optional().describe('Merged with existing. Pass null to clear all.'),
       }),
       execute: async ({ server_id, name, command, args, env }) => {
         try {
@@ -164,9 +160,9 @@ export const removeMcpServerTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'Remove an MCP server from the platform permanently. This disconnects the server and removes it from all Kins.',
+      description: 'Remove an MCP server permanently. Disconnects and removes from all Kins.',
       inputSchema: z.object({
-        server_id: z.string().describe('ID of the MCP server to remove'),
+        server_id: z.string(),
       }),
       execute: async ({ server_id }) => {
         try {
@@ -199,7 +195,7 @@ export const listMcpServersTool: ToolRegistration = {
   availability: ['main'],
   create: (ctx) =>
     tool({
-      description: 'List all MCP servers configured on the platform with their status.',
+      description: 'List all MCP servers on the platform.',
       inputSchema: z.object({}),
       execute: async () => {
         const servers = await db.select().from(mcpServers).all()

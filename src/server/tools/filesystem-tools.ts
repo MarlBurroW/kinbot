@@ -82,11 +82,11 @@ export const readFileTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Read the contents of a file. Supports text files. Output includes detected language for syntax highlighting. Use offset/limit for large files.',
+        'Read a text file. Use offset/limit for large files.',
       inputSchema: z.object({
-        path: z.string().describe('File path (relative to workspace or absolute)'),
-        offset: z.number().int().min(1).optional().describe('Line number to start reading from (1-indexed)'),
-        limit: z.number().int().min(1).max(MAX_LINES).optional().describe(`Max lines to read (default/max: ${MAX_LINES})`),
+        path: z.string().describe('Relative to workspace or absolute'),
+        offset: z.number().int().min(1).optional().describe('Start line (1-indexed)'),
+        limit: z.number().int().min(1).max(MAX_LINES).optional().describe(`Default/max: ${MAX_LINES}`),
       }),
       execute: async ({ path: filePath, offset, limit }) => {
         const workspace = resolve(config.workspace.baseDir, ctx.kinId)
@@ -153,11 +153,11 @@ export const writeFileTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Write content to a file. Creates the file if it doesn\'t exist, overwrites if it does. Optionally creates parent directories. Returns previous content for diff display when overwriting.',
+        'Write content to a file. Creates if missing, overwrites if exists.',
       inputSchema: z.object({
-        path: z.string().describe('File path (relative to workspace or absolute)'),
-        content: z.string().describe('Content to write'),
-        createDirectories: z.boolean().optional().describe('Create parent directories if they don\'t exist (default: true)'),
+        path: z.string().describe('Relative to workspace or absolute'),
+        content: z.string(),
+        createDirectories: z.boolean().optional().describe('Default: true'),
       }),
       execute: async ({ path: filePath, content, createDirectories }) => {
         const workspace = resolve(config.workspace.baseDir, ctx.kinId)
@@ -217,11 +217,11 @@ export const editFileTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Edit a file by replacing exact text. The oldText must match exactly (including whitespace). Returns a diff-friendly result with context lines around the change.',
+        'Edit a file by replacing exact text. oldText must match exactly once.',
       inputSchema: z.object({
-        path: z.string().describe('File path (relative to workspace or absolute)'),
-        oldText: z.string().describe('Exact text to find and replace (must match exactly)'),
-        newText: z.string().describe('New text to replace the old text with'),
+        path: z.string().describe('Relative to workspace or absolute'),
+        oldText: z.string().describe('Must match exactly including whitespace'),
+        newText: z.string(),
       }),
       execute: async ({ path: filePath, oldText, newText }) => {
         const workspace = resolve(config.workspace.baseDir, ctx.kinId)
@@ -365,12 +365,12 @@ export const listDirectoryTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'List directory contents with optional recursion and glob filtering. Skips common non-essential directories (node_modules, .git, etc.) by default. Returns a tree structure.',
+        'List directory contents. Skips node_modules, .git, etc. by default.',
       inputSchema: z.object({
-        path: z.string().optional().describe('Directory path (relative to workspace or absolute). Defaults to workspace root.'),
-        recursive: z.boolean().optional().describe('List recursively (default: false)'),
-        maxDepth: z.number().int().min(1).max(10).optional().describe('Max recursion depth (default: 3, max: 10)'),
-        pattern: z.string().optional().describe('Filter file names by glob-like pattern (e.g. "*.ts", "*.test.*")'),
+        path: z.string().optional().describe('Defaults to workspace root'),
+        recursive: z.boolean().optional().describe('Default: false'),
+        maxDepth: z.number().int().min(1).max(10).optional().describe('Default: 3'),
+        pattern: z.string().optional().describe('Glob pattern (e.g. "*.ts")'),
       }),
       execute: async ({ path: dirPath, recursive, maxDepth, pattern }) => {
         const workspace = resolve(config.workspace.baseDir, ctx.kinId)
