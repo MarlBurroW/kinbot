@@ -89,6 +89,8 @@ Fused scores are weighted by multiple factors:
 - **Importance** — Higher importance memories get proportionally higher scores
 - **Retrieval frequency** — Memories retrieved more often get a mild logarithmic boost (the system finds them useful)
 - **Subject matching** — If the query mentions a known memory subject, those memories get a boost (default 1.3×)
+- **Recency boost** — Very recent memories get an extra multiplier: ×1.5 for today, ×1.25 for this week, ×1.1 for this month. Enabled by default, disable with `MEMORY_RECENCY_BOOST=false`
+- **Category boost** — Memories matching a detected category in the query get a configurable multiplier (default 1.2×, set via `MEMORY_CATEGORY_BOOST`)
 
 ### 6. Re-ranking (Optional)
 

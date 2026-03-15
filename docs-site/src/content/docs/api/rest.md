@@ -431,6 +431,14 @@ Public access to shared files (no auth required, token-based).
 | `GET` | `/s/:token` | View shared content |
 | `POST` | `/s/:token` | Access password-protected share |
 
+## Version Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/version-check` | Get cached version info (current version, latest, update available, release notes). Returns `isUpdateAvailable: false` if disabled |
+| `POST` | `/api/version-check/check` | Force a fresh version check (admin only). Returns 400 if version check is disabled |
+| `POST` | `/api/version-check/update` | Self-update: runs `git pull` + `bun install` and restarts (admin only, non-Docker). Returns 400 in Docker mode |
+
 ## SSE
 
 | Method | Endpoint | Description |

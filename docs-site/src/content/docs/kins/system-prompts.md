@@ -11,16 +11,18 @@ KinBot builds the system prompt from these blocks (in order):
 
 1. **Platform context** — explains that the Kin lives on KinBot, has a continuous session, and sees multiple users
 2. **Identity** — name, slug, and role
-3. **Personality** — the `character` field you define
-4. **Expertise** — the `expertise` field you define
-5. **Platform directives** — optional global prompt that applies to all Kins (set in Settings)
-6. **Contacts directory** — shared contacts across the platform
-7. **Kin directory** — other Kins available for collaboration, with delegation instructions (Hub Kins get an enriched view with expertise summaries)
-8. **Relevant memories** — automatically retrieved via semantic search based on the current message
-9. **Relevant knowledge** — excerpts from uploaded knowledge base documents, when applicable
-10. **Internal instructions** — tool usage guidelines, memory management, contact resolution, secrets handling, response calibration, mini-app creation
-11. **Language** — response language based on user settings
-12. **Date and context** — current timestamp
+3. **Core principles** — universal baseline behaviors (genuine helpfulness, resourcefulness, privacy, calibrated responses). Injected for all main Kins, not sub-Kins or quick sessions
+4. **Personality** — the `character` field you define
+5. **Expertise** — the `expertise` field you define
+6. **Platform directives** — optional global prompt that applies to all Kins (set in Settings)
+7. **Contacts directory** — shared contacts across the platform
+8. **Kin directory** — other Kins available for collaboration, with delegation instructions (Hub Kins get an enriched view with expertise summaries)
+9. **Relevant memories** — automatically retrieved via semantic search based on the current message
+10. **Relevant knowledge** — excerpts from uploaded knowledge base documents, when applicable
+11. **Internal instructions** — tool usage guidelines, memory management, contact resolution, secrets handling, response calibration, mini-app creation
+12. **Current speaker profile** — name, role, and contact notes (both global/shared and per-Kin private notes) for the user who sent the current message. If the user has a linked contact but no notes yet, includes a gentle nudge to discover them naturally. Also resolves channel senders (Telegram, Discord, WhatsApp) to their contact records via platform ID
+13. **Language** — response language based on user settings
+14. **Date and context** — current timestamp
 
 ## Writing effective characters
 

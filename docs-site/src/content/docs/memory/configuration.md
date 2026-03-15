@@ -28,6 +28,7 @@ These control the hybrid search, scoring, and result selection pipeline.
 | `MEMORY_TEMPORAL_DECAY_LAMBDA` | `0.01` | Temporal decay rate. Higher = faster decay. Set to `0` to disable. Category-adjusted: facts decay 10× slower than decisions |
 | `MEMORY_TEMPORAL_DECAY_FLOOR` | `0.7` | Minimum score multiplier from temporal decay. Prevents old memories from being completely suppressed |
 | `MEMORY_TOKEN_BUDGET` | `0` | Max tokens for the memory block in prompt. `0` = unlimited (no budget enforcement) |
+| `MEMORY_RECENCY_BOOST` | `true` | Enable recency-based score boost (×1.5 today, ×1.25 this week, ×1.1 this month). Set to `false` to disable |
 | `MEMORY_ADAPTIVE_K` | `true` | Enable adaptive result trimming based on score distribution |
 | `MEMORY_ADAPTIVE_K_MIN_SCORE_RATIO` | `0.3` | Minimum score as a ratio of the top result. Results below this are dropped |
 
