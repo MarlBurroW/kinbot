@@ -200,7 +200,7 @@ function parseEnvFile(content: string): { lines: string[]; vars: Map<string, { l
   const lines = content.split('\n')
   const vars = new Map<string, { lineIndex: number; value: string }>()
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
+    const line = lines[i]!.trim()
     if (!line || line.startsWith('#')) continue
     const eqIndex = line.indexOf('=')
     if (eqIndex === -1) continue

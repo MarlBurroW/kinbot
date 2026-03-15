@@ -183,15 +183,16 @@ function buildContextBlock(): string {
   const arch = os.arch()
 
   // Platform self-awareness
+  const env = config.environment
   const installLabel: Record<string, string> = {
     'docker': 'Docker container',
-    'systemd-user': `systemd user service (user: ${config.environment.user})`,
+    'systemd-user': `systemd user service (user: ${env?.user ?? 'unknown'})`,
     'systemd-system': 'systemd system service',
-    'manual': `manual (user: ${config.environment.user})`,
+    'manual': `manual (user: ${env?.user ?? 'unknown'})`,
   }
-  const installLine = installLabel[config.environment.installationType] ?? config.environment.installationType
-  const envFileLine = config.environment.envFilePath
-    ? `\nConfig file: ${config.environment.envFilePath}`
+  const installLine = env ? (installLabel[env.installationType] ?? env.installationType) : 'unknown'
+  const envFileLine = env?.envFilePath
+    ? `\nConfig file: ${env.envFilePath}`
     : ''
 
   return (

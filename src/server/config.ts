@@ -97,7 +97,7 @@ function findEnvFilePath(): string | null {
         const unit = readFileSync(servicePath, 'utf-8')
         const match = unit.match(/^EnvironmentFile\s*=\s*(.+)$/m)
         if (match) {
-          const envPath = match[1].replace(/^-/, '').trim().replace(/^~/, os.homedir())
+          const envPath = match[1]!.replace(/^-/, '').trim().replace(/^~/, os.homedir())
           if (existsSync(envPath)) return resolve(envPath)
         }
       } catch {
