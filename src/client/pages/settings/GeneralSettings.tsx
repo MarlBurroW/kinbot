@@ -86,7 +86,14 @@ export function GeneralSettings() {
         setHubKinId(actualKinId)
       }
 
-      toast.success(t('settings.general.saved'))
+      if (hasPromptChanges && hasHubChanges) {
+        toast.success(t('settings.general.saved'))
+        toast.success(t('settings.general.hubSaved'))
+      } else if (hasHubChanges) {
+        toast.success(t('settings.general.hubSaved'))
+      } else {
+        toast.success(t('settings.general.saved'))
+      }
     } catch (err: unknown) {
       toastError(err)
     } finally {
