@@ -113,7 +113,7 @@ export function ChannelFormDialog({
   // Set default platform when platforms load
   useEffect(() => {
     if (!platform && platforms.length > 0) {
-      setPlatform(platforms[0].platform)
+      setPlatform(platforms[0]!.platform)
     }
   }, [platforms])
 
