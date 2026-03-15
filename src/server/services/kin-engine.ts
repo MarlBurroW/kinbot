@@ -33,7 +33,7 @@ import { listAvailableKins } from '@/server/services/inter-kin'
 import { listContactsForPrompt, findContactByLinkedUserId } from '@/server/services/contacts'
 import { contactNotes as contactNotesTable } from '@/server/db/schema'
 import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
-import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel } from '@/server/services/channels'
+import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel, findContactByPlatformId } from '@/server/services/channels'
 import { popStagedAttachments, clearStagedAttachments } from '@/server/tools/attach-file-tool'
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import { getGlobalPrompt, getHubKinId } from '@/server/services/app-settings'
@@ -237,7 +237,30 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     // Get user language and speaker profile
     let userLanguage: 'fr' | 'en' = 'fr'
-    let currentSpeaker: { firstName: string | null; lastName: string | null; pseudonym: string; role: string; contactId?: string; contactNotes?: string[] } | undefined
+    let currentSpeaker: {
+      firstName: string | null
+      lastName: string | null
+      pseudonym: string
+      role: string
+      contactId?: string
+      contactNotes?: string[]   // Global notes (visible to all Kins)
+      kinNotes?: string[]       // Private notes (this Kin only)
+    } | undefined
+
+    // Helper: enrich speaker data with contact notes (global + per-Kin)
+    const enrichSpeakerFromContact = (speakerData: NonNullable<typeof currentSpeaker>, contactId: string) => {
+      speakerData.contactId = contactId
+      const allNotes = db
+        .select({ content: contactNotesTable.content, scope: contactNotesTable.scope, kinId: contactNotesTable.kinId })
+        .from(contactNotesTable)
+        .where(eq(contactNotesTable.contactId, contactId))
+        .all()
+      const globalNotes = allNotes.filter((n) => n.scope === 'global').map((n) => n.content)
+      const kinNotes = allNotes.filter((n) => n.scope === 'private' && n.kinId === kinId).map((n) => n.content)
+      if (globalNotes.length > 0) speakerData.contactNotes = globalNotes
+      if (kinNotes.length > 0) speakerData.kinNotes = kinNotes
+    }
+
     if (queueItem.sourceType === 'user' && queueItem.sourceId) {
       const profile = await db
         .select()
@@ -246,25 +269,15 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         .get()
       if (profile) {
         userLanguage = profile.language as 'fr' | 'en'
-        // Build current speaker context for prompt injection
-        const speakerData: typeof currentSpeaker = {
+        const speakerData: NonNullable<typeof currentSpeaker> = {
           firstName: profile.firstName,
           lastName: profile.lastName,
           pseudonym: profile.pseudonym,
           role: profile.role,
         }
-        // Fetch global notes from linked contact record
         const linkedContact = findContactByLinkedUserId(queueItem.sourceId)
         if (linkedContact) {
-          speakerData.contactId = linkedContact.id
-          const globalNotes = db
-            .select({ content: contactNotesTable.content })
-            .from(contactNotesTable)
-            .where(and(eq(contactNotesTable.contactId, linkedContact.id), eq(contactNotesTable.scope, 'global')))
-            .all()
-          if (globalNotes.length > 0) {
-            speakerData.contactNotes = globalNotes.map((n) => n.content)
-          }
+          enrichSpeakerFromContact(speakerData, linkedContact.id)
         }
         currentSpeaker = speakerData
       }
@@ -381,6 +394,21 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           const prefixMatch = queueItem.content.match(/^\[[\w-]+:([^\]]+)\]/)
           if (prefixMatch?.[1]) {
             currentMessageSource.senderName = prefixMatch[1].trim()
+          }
+          // Resolve channel sender to contact for speaker profile
+          if (!currentSpeaker) {
+            const channelContact = findContactByPlatformId(ch.platform, meta.platformUserId)
+            if (channelContact) {
+              const senderName = currentMessageSource.senderName ?? channelContact.name
+              const speakerData: NonNullable<typeof currentSpeaker> = {
+                firstName: null,
+                lastName: null,
+                pseudonym: senderName,
+                role: 'external',
+              }
+              enrichSpeakerFromContact(speakerData, channelContact.id)
+              currentSpeaker = speakerData
+            }
           }
         }
       }

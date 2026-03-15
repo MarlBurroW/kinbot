@@ -86,7 +86,8 @@ interface PromptParams {
     pseudonym: string
     role: string
     contactId?: string        // Linked contact ID (for set_contact_note)
-    contactNotes?: string[]   // Global notes from linked contact record
+    contactNotes?: string[]   // Global notes (visible to all Kins)
+    kinNotes?: string[]       // Private notes (this Kin only)
   }
 }
 
@@ -765,22 +766,33 @@ export function buildSystemPrompt(params: PromptParams): string {
 
   // [6.75] Current speaker profile
   if (params.currentSpeaker) {
-    const { firstName, lastName, pseudonym, role, contactId, contactNotes } = params.currentSpeaker
+    const { firstName, lastName, pseudonym, role, contactId, contactNotes, kinNotes } = params.currentSpeaker
     const nameParts = [firstName, lastName].filter(Boolean).join(' ')
     const displayName = nameParts ? `${nameParts} (${pseudonym})` : pseudonym
     let speakerBlock =
       `## Current speaker\n\n` +
       `Name: ${displayName}\n` +
       `Role: ${role}`
-    if (contactNotes && contactNotes.length > 0) {
-      speakerBlock += `\n\nNotes from your contact records:\n` +
+
+    const hasGlobalNotes = contactNotes && contactNotes.length > 0
+    const hasKinNotes = kinNotes && kinNotes.length > 0
+
+    if (hasGlobalNotes) {
+      speakerBlock += `\n\nShared notes (visible to all Kins):\n` +
         contactNotes.map((n) => `- ${n}`).join('\n')
-    } else if (contactId) {
+    }
+    if (hasKinNotes) {
+      speakerBlock += `\n\nYour personal notes:\n` +
+        kinNotes.map((n) => `- ${n}`).join('\n')
+    }
+    if (!hasGlobalNotes && !hasKinNotes && contactId) {
       speakerBlock +=
         `\n\nYou don't have any notes about this person yet (contact id: ${contactId}). ` +
         `During early interactions, naturally get to know them — their interests, what they work on, ` +
         `what they expect from you. Save what you learn via set_contact_note(${contactId}, "global", ...) ` +
-        `so all Kins can benefit from this context. Don't interrogate — weave discovery into the natural flow of conversation.`
+        `so all Kins can benefit from this context. Use set_contact_note(${contactId}, "private", ...) ` +
+        `for observations specific to your own interactions with them. ` +
+        `Don't interrogate — weave discovery into the natural flow of conversation.`
     }
     blocks.push(speakerBlock)
   }
