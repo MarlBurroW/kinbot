@@ -182,13 +182,28 @@ function buildContextBlock(): string {
   const release = os.release()
   const arch = os.arch()
 
+  // Platform self-awareness
+  const installLabel: Record<string, string> = {
+    'docker': 'Docker container',
+    'systemd-user': `systemd user service (user: ${config.environment.user})`,
+    'systemd-system': 'systemd system service',
+    'manual': `manual (user: ${config.environment.user})`,
+  }
+  const installLine = installLabel[config.environment.installationType] ?? config.environment.installationType
+  const envFileLine = config.environment.envFilePath
+    ? `\nConfig file: ${config.environment.envFilePath}`
+    : ''
+
   return (
     `## Context\n\n` +
     `Current date: ${readable}\n` +
     `Current time: ${time} UTC\n` +
     `ISO timestamp: ${iso}\n` +
-    `System: ${platform} ${release} (${arch}) | Uptime: ${uptimeStr} | RAM: ${usedMem}/${totalMemGb} GB\n` +
-    `Platform: KinBot`
+    `Platform: KinBot v${config.version}\n` +
+    `Installation: ${installLine}${envFileLine}\n` +
+    `Data directory: ${config.dataDir}\n` +
+    `Public URL: ${config.publicUrl}\n` +
+    `System: ${platform} ${release} (${arch}) | Uptime: ${uptimeStr} | RAM: ${usedMem}/${totalMemGb} GB`
   )
 }
 

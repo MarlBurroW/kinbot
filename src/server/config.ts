@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, resolve } from 'path'
+import os from 'os'
 
 const dataDir = process.env.KINBOT_DATA_DIR ?? './data'
 
@@ -53,6 +54,85 @@ function resolveEncryptionKey(): string {
   console.log('Generated and persisted ENCRYPTION_KEY in data directory.')
 
   return keyHex
+}
+
+/** Detect the installation type based on environment heuristics. */
+type InstallationType = 'docker' | 'systemd-user' | 'systemd-system' | 'manual'
+
+function detectInstallationType(): InstallationType {
+  // Docker: /.dockerenv file or known Docker data dir
+  if (existsSync('/.dockerenv') || process.env.KINBOT_DATA_DIR === '/app/data') {
+    return 'docker'
+  }
+  // systemd: INVOCATION_ID is set by systemd for all service processes
+  if (process.env.INVOCATION_ID) {
+    // User service: runs as regular user with XDG dirs, no root
+    // System service: typically PID 1's child or has MANAGERPID pointing to system manager
+    // Heuristic: if UID > 0 and DBUS_SESSION_BUS_ADDRESS or XDG_RUNTIME_DIR is set → user service
+    const uid = process.getuid?.() ?? 0
+    if (uid > 0) {
+      return 'systemd-user'
+    }
+    return 'systemd-system'
+  }
+  return 'manual'
+}
+
+/** Try to find the env file path for the current installation. */
+function findEnvFilePath(): string | null {
+  // 1. Explicit env var
+  if (process.env.KINBOT_ENV_FILE && existsSync(process.env.KINBOT_ENV_FILE)) {
+    return resolve(process.env.KINBOT_ENV_FILE)
+  }
+
+  // 2. .env in CWD
+  const cwdEnv = resolve(process.cwd(), '.env')
+  if (existsSync(cwdEnv)) return cwdEnv
+
+  // 3. For systemd: check EnvironmentFile from the service unit
+  if (process.env.INVOCATION_ID) {
+    const servicePath = findServiceFilePath()
+    if (servicePath) {
+      try {
+        const unit = readFileSync(servicePath, 'utf-8')
+        const match = unit.match(/^EnvironmentFile\s*=\s*(.+)$/m)
+        if (match) {
+          const envPath = match[1].replace(/^-/, '').trim().replace(/^~/, os.homedir())
+          if (existsSync(envPath)) return resolve(envPath)
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  // 4. Common locations relative to data dir
+  const dataDirEnv = resolve(dataDir, 'kinbot.env')
+  if (existsSync(dataDirEnv)) return dataDirEnv
+
+  // 5. XDG data dir (common for systemd-user installs)
+  const xdgEnv = resolve(os.homedir(), '.local', 'share', 'kinbot', 'kinbot.env')
+  if (existsSync(xdgEnv)) return xdgEnv
+
+  return null
+}
+
+/** Try to find the systemd service file path. */
+function findServiceFilePath(): string | null {
+  if (!process.env.INVOCATION_ID) return null
+
+  const candidates = [
+    // User service
+    resolve(os.homedir(), '.config', 'systemd', 'user', 'kinbot.service'),
+    // System service
+    '/etc/systemd/system/kinbot.service',
+    '/usr/lib/systemd/system/kinbot.service',
+  ]
+
+  for (const path of candidates) {
+    if (existsSync(path)) return path
+  }
+  return null
 }
 
 export const config = {
@@ -241,4 +321,12 @@ export const config = {
   },
 
   publicUrl: process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 3333}`,
+
+  environment: {
+    installationType: detectInstallationType(),
+    envFilePath: findEnvFilePath(),
+    serviceFilePath: findServiceFilePath(),
+    workingDir: process.cwd(),
+    user: os.userInfo().username,
+  },
 } as const
