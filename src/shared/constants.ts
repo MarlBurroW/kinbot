@@ -219,6 +219,9 @@ export const TOOL_DOMAIN_MAP: Record<string, ToolDomain> = {
   send_channel_message: 'channels',
   // System
   get_platform_logs: 'system',
+  get_platform_config: 'system',
+  update_platform_config: 'system',
+  restart_platform: 'system',
   // Users
   list_users: 'users',
   get_user: 'users',
