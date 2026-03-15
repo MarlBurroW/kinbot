@@ -1,0 +1,117 @@
+<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#14102a"/>
+      <stop offset="100%" stop-color="#070b1a"/>
+    </linearGradient>
+
+    <!-- Table face gradient: upper-right bright → lower-left muted -->
+    <linearGradient id="tableGrad"
+      x1="163" y1="46" x2="77" y2="194" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#f8f4ff"/>
+      <stop offset="100%" stop-color="#d0c2ff"/>
+    </linearGradient>
+
+    <!-- Whole-gem light sheen (radial, top-right) -->
+    <radialGradient id="sheen" cx="70%" cy="20%" r="55%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Soft ambient glow under the gem -->
+    <filter id="aura" x="-18%" y="-18%" width="136%" height="136%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Sparkle glow at highlight vertices -->
+    <filter id="spark" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="240" height="240" rx="52" fill="url(#bg)"/>
+
+  <!-- Ambient glow beneath gem -->
+  <polygon points="205,120 163,46 77,46 35,120 77,194 163,194"
+    fill="#6d28d9" opacity="0.18" filter="url(#aura)"/>
+
+  <!--
+    Outer hexagon vertices (pointed-top, r=85, center 120,120):
+      v0=(205,120)  v1=(163,46)  v2=(77,46)
+      v3=(35,120)   v4=(77,194)  v5=(163,194)
+
+    Inner hexagon vertices (r=30 → the gem "table" face):
+      i0=(150,120)  i1=(135,94)  i2=(105,94)
+      i3=(90,120)   i4=(105,146) i5=(135,146)
+
+    6 kite facets between inner and outer hex.
+    Light source: upper-right (between v0 and v1).
+    Brightness: F1(top) > F0(right-top) > F5(right-bot) > F2(left-top) > F3(left-bot) > F4(bottom)
+  -->
+
+  <!-- F0 — right-upper: bright -->
+  <polygon points="150,120 135,94  163,46  205,120" fill="#cebeff"/>
+  <!-- F1 — top: brightest (direct light) -->
+  <polygon points="135,94  105,94  77,46   163,46"  fill="#e8d6ff"/>
+  <!-- F2 — upper-left: medium -->
+  <polygon points="105,94  90,120  35,120  77,46"   fill="#8264d8"/>
+  <!-- F3 — lower-left: dark -->
+  <polygon points="90,120  105,146 77,194  35,120"  fill="#4a34b0"/>
+  <!-- F4 — bottom: darkest (deep shadow) -->
+  <polygon points="105,146 135,146 163,194 77,194"  fill="#271680"/>
+  <!-- F5 — lower-right: medium -->
+  <polygon points="135,146 150,120 205,120 163,194" fill="#6a54c8"/>
+
+  <!-- Inner table face (central, most reflective) -->
+  <polygon points="150,120 135,94 105,94 90,120 105,146 135,146"
+    fill="url(#tableGrad)"/>
+
+  <!-- Facet edge lines (inner-to-outer vertices, subtle) -->
+  <g stroke="#c4b5fd" fill="none" opacity="0.28">
+    <line x1="150" y1="120" x2="205" y2="120" stroke-width="0.7"/>
+    <line x1="135" y1="94"  x2="163" y2="46"  stroke-width="0.7"/>
+    <line x1="105" y1="94"  x2="77"  y2="46"  stroke-width="0.7"/>
+    <line x1="90"  y1="120" x2="35"  y2="120" stroke-width="0.7"/>
+    <line x1="105" y1="146" x2="77"  y2="194" stroke-width="0.7"/>
+    <line x1="135" y1="146" x2="163" y2="194" stroke-width="0.7"/>
+    <!-- Inner table outline -->
+    <polygon points="150,120 135,94 105,94 90,120 105,146 135,146"
+      stroke-width="0.6"/>
+  </g>
+
+  <!-- Light sheen over entire gem -->
+  <polygon points="205,120 163,46 77,46 35,120 77,194 163,194"
+    fill="url(#sheen)"/>
+
+  <!-- Outer rim: lit side (top-right edges, bright) -->
+  <polyline points="205,120 163,46 77,46"
+    fill="none" stroke="#deccff" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <!-- Outer rim: shadow side (bottom-left edges, dim) -->
+  <polyline points="77,46 35,120 77,194 163,194 205,120"
+    fill="none" stroke="#6050b8" stroke-width="1" stroke-linecap="round" opacity="0.25"/>
+
+  <!-- 4-point sparkle at the primary highlight vertex (v1 = upper-right = 163,46) -->
+  <g transform="translate(163,46)" filter="url(#spark)">
+    <line x1="-9" y1="0" x2="9" y2="0"   stroke="#ffffff" stroke-width="0.9" opacity="0.75"/>
+    <line x1="0" y1="-9" x2="0" y2="9"   stroke="#ffffff" stroke-width="0.9" opacity="0.75"/>
+    <line x1="-5" y1="-5" x2="5" y2="5"  stroke="#ffffff" stroke-width="0.5" opacity="0.4"/>
+    <line x1="5" y1="-5" x2="-5" y2="5"  stroke="#ffffff" stroke-width="0.5" opacity="0.4"/>
+    <circle r="2.5" fill="#ffffff" opacity="0.9"/>
+  </g>
+
+  <!-- Secondary sparkle at v0 (right vertex = 205,120) -->
+  <g transform="translate(205,120)" filter="url(#spark)">
+    <line x1="-6" y1="0" x2="6" y2="0"  stroke="#ffffff" stroke-width="0.7" opacity="0.5"/>
+    <line x1="0" y1="-6" x2="0" y2="6"  stroke="#ffffff" stroke-width="0.7" opacity="0.5"/>
+    <circle r="1.8" fill="#ffffff" opacity="0.7"/>
+  </g>
+</svg>

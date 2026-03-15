@@ -1,0 +1,26 @@
+{
+  "name": "KinBot",
+  "short_name": "KinBot",
+  "description": "Self-hosted AI agents with persistent memory",
+  "start_url": "/kinbot/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#7C3AED",
+  "icons": [
+    {
+      "src": "/kinbot/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/kinbot/favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/kinbot/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

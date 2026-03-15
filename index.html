@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="KinBot — AI agents that actually remember you. Create persistent agents with long-term memory that live on your server, collaborate, and work autonomously. One process, one SQLite file, zero cloud." />
+    <meta name="keywords" content="AI agents, self-hosted, persistent memory, multi-agent, LLM, open source, chatbot platform, local AI, private AI" />
+    <meta name="author" content="MarlBurroW" />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" href="/kinbot/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/kinbot/logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/kinbot/apple-touch-icon.png" />
+    <link rel="manifest" href="/kinbot/site.webmanifest" />
+    <link rel="canonical" href="https://marlburrow.github.io/kinbot/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="KinBot — Self-hosted AI Agents" />
+    <meta property="og:description" content="AI agents that actually remember you. Self-hosted, multi-agent platform with persistent identity and continuous memory." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://marlburrow.github.io/kinbot/" />
+    <meta property="og:site_name" content="KinBot" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://marlburrow.github.io/kinbot/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content="KinBot — Self-hosted AI agents with persistent memory. 23 providers, 6 chat platforms." />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KinBot — Self-hosted AI Agents" />
+    <meta name="twitter:description" content="AI agents that actually remember you. Persistent identity, continuous memory, real collaboration." />
+    <meta name="twitter:creator" content="@MarlburroW38" />
+    <meta name="twitter:image" content="https://marlburrow.github.io/kinbot/og-image.png" />
+    <meta name="twitter:image:alt" content="KinBot — Self-hosted AI agents with persistent memory" />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#7C3AED" />
+    <meta name="color-scheme" content="dark" />
+
+    <title>KinBot — Self-hosted AI Agents with Persistent Memory</title>
+
+    <!-- Structured data injected dynamically by App.tsx (richer, with featureList) -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.github.com" />
+    <link rel="dns-prefetch" href="https://api.github.com" />
+    <link rel="dns-prefetch" href="https://cdn.simpleicons.org" />
+    <link rel="preload" href="/kinbot/kinbot.svg" as="image" type="image/svg+xml" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/kinbot/assets/index-D-bAOymn.js"></script>
+    <link rel="modulepreload" crossorigin href="/kinbot/assets/vendor-react-Ah1pgjPn.js">
+    <link rel="modulepreload" crossorigin href="/kinbot/assets/vendor-provider-icons-CR9wDs0h.js">
+    <link rel="modulepreload" crossorigin href="/kinbot/assets/vendor-icons-BKV7kGyc.js">
+    <link rel="stylesheet" crossorigin href="/kinbot/assets/index-D0dirnUR.css">
+  </head>
+  <body>
+    <!-- Splash loader: hides content until React mounts -->
+    <div id="splash-loader" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#09090b;transition:opacity 0.4s ease,visibility 0.4s ease">
+      <div style="text-align:center">
+        <img src="/kinbot/kinbot.svg" alt="" width="64" height="64" style="border-radius:16px;animation:splash-pulse 1.8s ease-in-out infinite" />
+        <div style="margin-top:16px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">KinBot</div>
+      </div>
+      <style>@keyframes splash-pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}</style>
+    </div>
+    <script>
+      (function(){
+        var t=localStorage.getItem('kinbot-site-theme');
+        var dark=t?t==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;
+        document.getElementById('splash-loader').style.background=dark?'#09090b':'#ffffff';
+      })();
+    </script>
+    <div id="root"></div>
+    <noscript>
+      <div style="max-width:800px;margin:4rem auto;padding:0 1.5rem;font-family:system-ui,sans-serif;color:#e2e8f0">
+        <h1 style="font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">KinBot</h1>
+        <p style="font-size:1.25rem;margin:1rem 0">AI agents that actually remember you.</p>
+        <p style="color:#94a3b8">Create AI agents that live on your server, remember everything, and work together. One process, one file, zero cloud.</p>
+        <h2 style="margin-top:2rem;font-size:1.5rem">Why KinBot?</h2>
+        <ul style="color:#94a3b8;line-height:2">
+          <li><strong style="color:#e2e8f0">Persistent memory</strong> &mdash; Vector search + full-text across months of conversations</li>
+          <li><strong style="color:#e2e8f0">Real identity</strong> &mdash; Each agent has a name, role, personality, and avatar</li>
+          <li><strong style="color:#e2e8f0">Multi-agent collaboration</strong> &mdash; Agents delegate tasks and share context</li>
+          <li><strong style="color:#e2e8f0">Autonomy</strong> &mdash; Cron jobs, webhooks, 6 messaging channels</li>
+          <li><strong style="color:#e2e8f0">23+ AI providers</strong> &mdash; Including Ollama for fully local setups</li>
+          <li><strong style="color:#e2e8f0">Self-hosted</strong> &mdash; One SQLite file, zero cloud dependency</li>
+        </ul>
+        <h2 style="margin-top:2rem;font-size:1.5rem">Quick Start</h2>
+        <pre style="background:#1e293b;padding:1rem;border-radius:0.5rem;overflow-x:auto;color:#e2e8f0"><code>docker run -d --name kinbot -p 3000:3000 -v kinbot-data:/app/data ghcr.io/marlburrow/kinbot:latest</code></pre>
+        <p style="margin-top:1.5rem"><a href="https://github.com/MarlBurroW/kinbot" style="color:#a855f7">View on GitHub</a></p>
+      </div>
+    </noscript>
+  </body>
+</html>
