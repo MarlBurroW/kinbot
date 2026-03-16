@@ -217,7 +217,7 @@ test.describe.serial('Settings — General & Navigation', () => {
     await openSettings(page)
 
     // Find and click the help toggle
-    const helpToggle = page.getByRole('dialog').locator('button:has(.lucide-help-circle)')
+    const helpToggle = page.getByRole('dialog').getByRole('button', { name: /what is this/i })
     await expect(helpToggle).toBeVisible({ timeout: 5_000 })
     await helpToggle.click()
 

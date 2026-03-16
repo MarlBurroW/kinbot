@@ -113,7 +113,7 @@ describe('buildSystemPrompt', () => {
     expect(result).toContain('spawn sub-tasks')
   })
 
-  it('omits kin directory for sub-kins', () => {
+  it('includes compact kin directory for sub-kins with inter-kin instructions', () => {
     const result = buildSystemPrompt(makeParams({
       isSubKin: true,
       taskDescription: 'Do something',
@@ -121,7 +121,9 @@ describe('buildSystemPrompt', () => {
         { slug: 'helper', name: 'Helper', role: 'research assistant' },
       ],
     }))
-    expect(result).not.toContain('## Kin directory')
+    expect(result).toContain('## Kin directory')
+    expect(result).toContain('Inter-Kin communication')
+    expect(result).toContain('Helper (slug: helper)')
   })
 
   it('sets language to French when userLanguage is fr', () => {
