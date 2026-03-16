@@ -97,7 +97,22 @@ interface GatewayState {
 function createGateway(state: GatewayState): void {
   if (state.stopped) return
 
-  const url = state.resumeGatewayUrl ?? DISCORD_GATEWAY
+  const resumeUrl = state.resumeGatewayUrl
+  let url = DISCORD_GATEWAY
+  if (resumeUrl) {
+    try {
+      const parsed = new URL(resumeUrl)
+      if (parsed.protocol === 'wss:' && parsed.hostname.endsWith('.discord.gg')) {
+        url = resumeUrl
+      } else {
+        log.warn({ channelId: state.channelId, resumeUrl }, 'Ignoring invalid resume gateway URL')
+        state.resumeGatewayUrl = null
+      }
+    } catch {
+      log.warn({ channelId: state.channelId, resumeUrl }, 'Ignoring malformed resume gateway URL')
+      state.resumeGatewayUrl = null
+    }
+  }
   const ws = new WebSocket(url)
   state.ws = ws
 
