@@ -11,6 +11,8 @@ import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
 import { ArrowUpCircle, Copy, ExternalLink, Download, Loader2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { toast } from 'sonner'
@@ -52,7 +54,7 @@ export function UpdateAvailableDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col gap-0">
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col gap-0">
         <DialogHeader className="pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-primary/10 p-2">
@@ -89,8 +91,10 @@ export function UpdateAvailableDialog({
                 <h4 className="text-sm font-semibold mb-2">
                   {t('updateAvailable.releaseNotes')}
                 </h4>
-                <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground whitespace-pre-wrap max-h-48 overflow-y-auto">
-                  {versionInfo.releaseNotes}
+                <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground overflow-x-auto prose prose-xs prose-neutral dark:prose-invert max-w-none prose-headings:text-sm prose-headings:font-semibold prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-pre:bg-muted prose-pre:text-xs prose-pre:overflow-x-auto prose-code:text-xs prose-code:break-all">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {versionInfo.releaseNotes}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}

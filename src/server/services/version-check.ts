@@ -69,6 +69,13 @@ export async function getCachedVersionInfo(currentVersion: string): Promise<Vers
     getSetting('version_check_last_time'),
   ])
 
+  // If cache is stale (older than intervalHours) or never checked, trigger a fresh check in background
+  const maxAge = config.versionCheck.intervalHours * 60 * 60 * 1000
+  const lastTime = lastCheckedAt ? Number(lastCheckedAt) : 0
+  if (Date.now() - lastTime > maxAge) {
+    checkForUpdates().catch((err) => log.warn({ err }, 'Background version check failed'))
+  }
+
   const isUpdateAvailable = latest ? compareSemver(currentVersion, latest) < 0 : false
 
   return {
