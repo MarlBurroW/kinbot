@@ -21,7 +21,7 @@
     "@tailwindcss/vite": "^4.2.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.4",
+    "@vitejs/plugin-react": "^6.0.1",
     "puppeteer": "^24.37.5",
     "satori": "^0.25.0",
     "satori-html": "^0.3.2",
