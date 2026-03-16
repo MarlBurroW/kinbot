@@ -97,6 +97,15 @@ versionCheckRoutes.post('/update', async (c) => {
       )
     }
 
+    const bunBuild = Bun.spawnSync(['bun', 'run', 'build'], { cwd: process.cwd() })
+    if (bunBuild.exitCode !== 0) {
+      const stderr = bunBuild.stderr.toString().trim()
+      return c.json(
+        { error: { code: 'UPDATE_FAILED', message: `Build failed: ${stderr}` } },
+        500,
+      )
+    }
+
     // Schedule restart after response is sent
     setTimeout(() => process.exit(0), 2000)
 
