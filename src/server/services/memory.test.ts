@@ -94,6 +94,10 @@ mock.module('drizzle-orm', () => ({
   desc: (col: unknown) => ({ type: 'desc', col }),
 }))
 
+mock.module('@/server/services/rerank', () => ({
+  rerankDocuments: mock(async (docs: unknown[]) => docs),
+}))
+
 mock.module('@/server/db/schema', () => ({
   memories: {
     id: 'id',
@@ -112,7 +116,11 @@ mock.module('@/server/db/schema', () => ({
 
 // ─── Import the module under test ────────────────────────────────────────────
 
-import { recencyBoost } from '@/server/services/memory'
+// Import the pure utility directly (no heavy deps) to avoid full-suite module cache issues
+import { recencyBoost as recencyBoostPure } from '@/server/services/memory-utils'
+
+// Wrapper matching the test expectations (recencyBoostEnabled = true from mock config)
+const recencyBoost = (d: Date | null) => recencyBoostPure(d, true)
 
 // Since the pure functions (temporalDecayWeight, applyAdaptiveK) are not exported,
 // we test them indirectly through the exported API, and also test the exported

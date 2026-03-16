@@ -275,19 +275,14 @@ function temporalDecayWeight(updatedAt: Date | null, category: string, importanc
 
 // ─── Recency Boost ──────────────────────────────────────────────────────────
 
+import { recencyBoost as _recencyBoostPure } from '@/server/services/memory-utils'
+
 /**
  * Apply a multiplicative boost to very recent memories.
- * This complements temporal decay (which penalizes old memories) by giving
- * an explicit advantage to memories updated in the last few days.
+ * Delegates to pure utility, passing config flag.
  */
 export function recencyBoost(updatedAt: Date | null): number {
-  if (!config.memory.recencyBoostEnabled || !updatedAt) return 1
-  const daysSince = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)
-
-  if (daysSince <= 1) return 1.5    // Today: strong boost
-  if (daysSince <= 7) return 1.25   // This week: moderate boost
-  if (daysSince <= 30) return 1.1   // This month: mild boost
-  return 1.0                         // Older: no boost (decay still applies)
+  return _recencyBoostPure(updatedAt, config.memory.recencyBoostEnabled)
 }
 
 // ─── Multi-Query Generation ──────────────────────────────────────────────────
