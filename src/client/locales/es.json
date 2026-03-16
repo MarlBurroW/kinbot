@@ -1555,7 +1555,10 @@
       "write_mini_app_file": "Escribir archivo de app",
       "read_mini_app_file": "Leer archivo de app",
       "delete_mini_app_file": "Eliminar archivo de app",
-      "list_mini_app_files": "Listar archivos de app"
+      "list_mini_app_files": "Listar archivos de app",
+      "get_platform_config": "Configuración de plataforma",
+      "restart_platform": "Reiniciar plataforma",
+      "update_platform_config": "Modificar configuración"
     },
     "renderers": {
       "rawJson": "JSON crudo",

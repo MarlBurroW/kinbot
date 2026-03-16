@@ -344,7 +344,10 @@
       "messageThresholdPlaceholder": "Standard: {{default}}",
       "tokenThresholdPlaceholder": "Standard: {{default}}",
       "messageThresholdHint": "Globaler Standard: {{default}}",
-      "tokenThresholdHint": "Globaler Standard: {{default}}"
+      "tokenThresholdHint": "Globaler Standard: {{default}}",
+      "thresholdPercent": "Schwellenwert (%)",
+      "thresholdPercentHint": "Kompaktieren, wenn der Kontext diesen % des Modellfensters erreicht. Leer lassen für globalen Standard ({{default}}%).",
+      "thresholdPercentPlaceholder": "Globaler Standard ({{default}})"
     },
     "avatar": {
       "title": "Wähle einen Avatar",
@@ -562,7 +565,8 @@
       "results": "{{current}} von {{total}}",
       "previous": "Letzte Suche",
       "next": "Nächster Treffer",
-      "close": "Suche schließen"
+      "close": "Suche schließen",
+      "partialScope": "Nur {{count}} geladene Nachrichten werden durchsucht"
     },
     "collapse": {
       "showMore": "Mehr anzeigen",
@@ -645,7 +649,8 @@
     "quickChat": "Schneller Chat",
     "react": "Reagieren",
     "messageRedacted": "Diese Nachricht wurde redigiert",
-    "reactionFailed": "Die Reaktion konnte nicht umgeschaltet werden"
+    "reactionFailed": "Die Reaktion konnte nicht umgeschaltet werden",
+    "stepLimitReached": "Antwort abgeschnitten: Tool-Schrittlimit erreicht. Bitte mich fortzufahren."
   },
   "quickChat": {
     "title": "Schnelle Sitzung",
@@ -985,7 +990,11 @@
         "bullet2": "Das Einbettungsodell macht Erinnerungen nach Bedeutung durchsuchbar, damit deine Kins auch dann relevante Informationen finden, wenn nicht dieselben Wörter verwendet werden",
         "bullet3": "Hier braucht man keine teuren Modelle. Kleine, schnelle Modelle beherrschen die Extraktion und Einbettung ganz gut",
         "bullet4": "Wenn kein Extraktionsmodell festgelegt ist, verwendet jeder Kin sein eigenes Chat-Modell für die Speicherextraktion"
-      }
+      },
+      "compactingThresholdDescription": "Konversation kompaktieren, wenn die Kontextnutzung diesen Prozentsatz des Kontextfensters des Modells erreicht. Niedrigere Werte kompaktieren häufiger, höhere Werte nutzen mehr Kontext vor dem Kompaktieren.",
+      "compactingThresholdError": "Kompaktierungsschwellenwert konnte nicht gespeichert werden",
+      "compactingThresholdLabel": "Kompaktierungsschwellenwert",
+      "compactingThresholdSaved": "Kompaktierungsschwellenwert gespeichert"
     },
     "contacts": {
       "title": "Kontakte",
@@ -1546,7 +1555,10 @@
       "write_mini_app_file": "App-Datei schreiben",
       "read_mini_app_file": "App-Datei lesen",
       "delete_mini_app_file": "App-Datei löschen",
-      "list_mini_app_files": "App-Dateien auflisten"
+      "list_mini_app_files": "App-Dateien auflisten",
+      "get_platform_config": "Plattform-Konfiguration",
+      "restart_platform": "Plattform neustarten",
+      "update_platform_config": "Konfiguration ändern"
     },
     "renderers": {
       "rawJson": "Rohes JSON",
