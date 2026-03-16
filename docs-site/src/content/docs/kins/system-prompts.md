@@ -64,6 +64,7 @@ When a Kin spawns a sub-agent (via `spawn_self` or `spawn_kin`), the sub-Kin get
 - Mission-focused: the task description is front and center
 - Constrained: must call `update_task_status()` to complete
 - Can request input from the parent via `request_input()`
+- Can communicate with other Kins via `send_message` and `list_kins` (Kin directory included in prompt)
 - For cron tasks: previous run results are injected for continuity
 
 ## Tips

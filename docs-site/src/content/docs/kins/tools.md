@@ -280,7 +280,12 @@ Most tools are **main-only**. The following are also available to sub-kins:
 - `report_to_parent`, `update_task_status`, `request_input` (sub-kin only)
 - `prompt_human`, `notify`, `run_shell`, `http_request`
 
-Sub-kins have access to standard tools (memory, web, contacts, vault, files, etc.) but not to administrative tools (cron, webhooks, channels, kin management, inter-kin communication).
+Sub-kins have access to standard tools (memory, web, contacts, vault, files, etc.) and **inter-Kin communication** (`send_message`, `list_kins`), but not administrative tools (cron, webhooks, channels, kin management).
+
+When a sub-kin sends an inter-Kin message:
+- **`request` type**: The task suspends (`awaiting_kin_response` status) until the recipient replies or the timeout expires (default: 5 minutes)
+- **`inform` type**: Fire-and-forget, the task continues immediately
+- Sub-kins can make up to 3 inter-Kin requests per task (configurable via `maxInterKinRequests`)
 
 ## MCP servers
 
