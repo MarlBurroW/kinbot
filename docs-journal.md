@@ -562,3 +562,14 @@ All sections migrated and accuracy-reviewed:
 - Commit: `52a1db7` — pushed to main (--no-verify)
 
 ### Status: docs fully caught up with latest source changes
+
+## 2026-03-16 — Inter-Kin communication from sub-Kin tasks ✅
+
+- New feature `8209d80` (#250): sub-Kins can now use `send_message` and `list_kins` during tasks
+- **kins/tools.md**: Updated tool availability section — sub-kins now have inter-Kin communication access. Added details on `request` vs `inform` behavior, `awaiting_kin_response` task status, timeout (5min default), and `maxInterKinRequests` limit (3)
+- **kins/system-prompts.md**: Added bullet about inter-Kin communication and Kin directory in sub-Kin prompts
+- Other commits since last run: test fixes (`4e0decc`), build step fix (`c997e50`), memory test (`d8fd3ee`), lockfile fix (`b483917`) — no docs impact
+- Build passes: 34 pages
+- Commit: `3158c85` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes

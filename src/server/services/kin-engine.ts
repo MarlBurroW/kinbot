@@ -247,6 +247,30 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       await linkFilesToMessage(queueItem.fileIds, userMessageId)
     }
 
+    // Emit SSE so the web UI shows the incoming message immediately.
+    // Skip 'user' sourceType (web UI) since those are already handled by optimistic updates.
+    if (queueItem.sourceType !== 'user') {
+      const fileList = queueItem.fileIds && queueItem.fileIds.length > 0
+        ? await getFilesForMessage(userMessageId)
+        : []
+      sseManager.sendToKin(kinId, {
+        type: 'chat:message',
+        kinId,
+        data: {
+          id: userMessageId,
+          role: 'user',
+          content: queueItem.content,
+          sourceType: queueItem.sourceType,
+          sourceId: queueItem.sourceId ?? null,
+          sourceName: null,
+          sourceAvatarUrl: null,
+          files: fileList,
+          resolvedTaskId: queueItem.sourceType === 'task' && queueItem.taskId ? queueItem.taskId : null,
+          createdAt: Date.now(),
+        },
+      })
+    }
+
     // Get user language and speaker profile
     let userLanguage: 'fr' | 'en' = 'fr'
     let currentSpeaker: {
