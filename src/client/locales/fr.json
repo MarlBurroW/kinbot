@@ -498,6 +498,10 @@
       "openDetail": "Voir les détails de la tâche",
       "assigned": "Assignée"
     },
+    "webhook": {
+      "received": "Webhook reçu",
+      "showPayload": "Voir le contenu"
+    },
     "attachFile": "Joindre un fichier",
     "dropFiles": "Déposez les fichiers ici",
     "uploading": "Envoi en cours...",

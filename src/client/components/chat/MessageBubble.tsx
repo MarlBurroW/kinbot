@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/client/co
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { InlineToolCall } from '@/client/components/chat/InlineToolCall'
 import { TaskResultCard } from '@/client/components/chat/TaskResultCard'
+import { WebhookMessageCard } from '@/client/components/chat/WebhookMessageCard'
 import { ImageLightbox } from '@/client/components/chat/ImageLightbox'
 import { ChatAvatar } from '@/client/components/chat/ChatAvatar'
 import { cn } from '@/client/lib/utils'
@@ -682,6 +683,7 @@ export const MessageBubble = memo(function MessageBubble({
   // Extract platform from content prefix [telegram:Name] or [discord:Name]
   const channelPlatform = isFromChannel ? content.match(/^\[(\w+):/)?.[1] ?? 'channel' : null
   const isTaskResult = sourceType === 'task'
+  const isWebhook = sourceType === 'webhook'
   const isSystem = sourceType === 'system' || sourceType === 'cron'
   // Deduplicate tool calls by ID (safety net for race conditions between
   // streaming and fetched state that can produce the same call twice)
@@ -706,6 +708,11 @@ export const MessageBubble = memo(function MessageBubble({
   // Task result cards (from persisted messages)
   if (isTaskResult) {
     return <TaskResultCard mode="message" content={content} timestamp={timestamp} avatarUrl={avatarUrl} senderName={senderName} onOpenDetail={handleOpenTaskDetail} />
+  }
+
+  // Webhook message cards
+  if (isWebhook) {
+    return <WebhookMessageCard content={content} timestamp={timestamp} />
   }
 
   // System messages centered

@@ -498,6 +498,10 @@
       "openDetail": "View task details",
       "assigned": "Assigned"
     },
+    "webhook": {
+      "received": "Webhook received",
+      "showPayload": "Show payload"
+    },
     "attachFile": "Attach file",
     "dropFiles": "Drop files here",
     "uploading": "Uploading...",
