@@ -579,3 +579,10 @@ All sections migrated and accuracy-reviewed:
 - Checked source commits since last run: `57d2234` (SSE fix for incoming channel messages — `chat:message` already documented), `1a48007`/`f3353b2` (rerank tests), `6df894b` (SSRF security fix in Discord gateway), `4149316` (Discord adapter tests) — no documentation impact
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-17 — Maintenance check: no changes needed (run 2)
+
+- Checked source commits: `c4eb28b` (shell-tools tests), `d9767c5` (v0.23.0 release) — no documentation impact
+- v0.23.0 bundles features already documented (channel management tools, inter-Kin communication, platform tools)
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**

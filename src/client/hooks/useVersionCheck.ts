@@ -6,6 +6,7 @@ import type { VersionInfo } from '@/shared/types'
 export function useVersionCheck() {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isChecking, setIsChecking] = useState(false)
 
   const fetchVersionInfo = useCallback(async () => {
     try {
@@ -15,6 +16,18 @@ export function useVersionCheck() {
       // Non-critical — silently fail
     } finally {
       setIsLoading(false)
+    }
+  }, [])
+
+  /** Force a fresh check against GitHub (POST /api/version-check/check) */
+  const forceCheck = useCallback(async () => {
+    setIsChecking(true)
+    try {
+      const data = await api.post<VersionInfo>('/version-check/check')
+      setVersionInfo(data)
+      return data
+    } finally {
+      setIsChecking(false)
     }
   }, [])
 
@@ -38,5 +51,5 @@ export function useVersionCheck() {
     },
   })
 
-  return { versionInfo, isLoading, refetch: fetchVersionInfo }
+  return { versionInfo, isLoading, isChecking, refetch: fetchVersionInfo, forceCheck }
 }

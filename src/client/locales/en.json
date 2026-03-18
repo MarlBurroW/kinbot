@@ -249,7 +249,10 @@
       "commandPalette": "Command palette",
       "shortcuts": "Keyboard shortcuts",
       "settings": "Settings",
-      "whatsNew": "What's new"
+      "whatsNew": "What's new",
+      "checkForUpdates": "Check for updates",
+      "upToDate": "You're up to date!",
+      "checkFailed": "Failed to check for updates"
     },
     "health": {
       "providers": "{{healthy}}/{{total}} providers connected",

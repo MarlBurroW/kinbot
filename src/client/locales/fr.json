@@ -249,7 +249,10 @@
       "commandPalette": "Palette de commandes",
       "shortcuts": "Raccourcis clavier",
       "settings": "Paramètres",
-      "whatsNew": "Nouveautés"
+      "whatsNew": "Nouveautés",
+      "checkForUpdates": "Vérifier les mises à jour",
+      "upToDate": "Vous êtes à jour !",
+      "checkFailed": "Impossible de vérifier les mises à jour"
     },
     "health": {
       "providers": "{{healthy}}/{{total}} providers connectés",

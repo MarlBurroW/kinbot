@@ -212,6 +212,52 @@ describe('openaiProvider', () => {
       )
     })
 
+    it('treats unrecognized models as LLM on custom endpoints', async () => {
+      mockFetchResponse({
+        data: [
+          { id: 'llama3', object: 'model', owned_by: 'system' },
+          { id: 'mistral3', object: 'model', owned_by: 'system' },
+          { id: 'qwen3', object: 'model', owned_by: 'system' },
+          { id: 'swiss-ai/Apertus-70B-Instruct-2509', object: 'model', owned_by: 'system' },
+        ],
+      })
+      const { openaiProvider } = await import('@/server/providers/openai')
+      const models = await openaiProvider.listModels({
+        apiKey: 'test-key',
+        baseUrl: 'https://api.infomaniak.com/v1',
+      })
+      expect(models.length).toBe(4)
+      expect(models.every((m: ProviderModel) => m.capability === 'llm')).toBe(true)
+    })
+
+    it('still filters unrecognized models on default OpenAI endpoint', async () => {
+      mockFetchResponse({
+        data: [
+          { id: 'llama3', object: 'model', owned_by: 'system' },
+          { id: 'gpt-4o', object: 'model', owned_by: 'openai' },
+        ],
+      })
+      const { openaiProvider } = await import('@/server/providers/openai')
+      const models = await openaiProvider.listModels({ apiKey: 'test-key' })
+      expect(models.length).toBe(1)
+      expect(models[0]!.id).toBe('gpt-4o')
+    })
+
+    it('does not apply OpenAI exclusion patterns on custom endpoints', async () => {
+      mockFetchResponse({
+        data: [
+          { id: 'codestral-instruct', object: 'model', owned_by: 'system' },
+          { id: 'gpt-4o-2024-11-20', object: 'model', owned_by: 'system' },
+        ],
+      })
+      const { openaiProvider } = await import('@/server/providers/openai')
+      const models = await openaiProvider.listModels({
+        apiKey: 'test-key',
+        baseUrl: 'https://custom.provider.com/v1',
+      })
+      expect(models.length).toBe(2)
+    })
+
     it('handles mixed model types correctly', async () => {
       mockFetchResponse({
         data: [

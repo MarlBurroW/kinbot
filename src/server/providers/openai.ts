@@ -36,22 +36,26 @@ const NON_CHAT_PATTERNS = [
 /** Matches dated snapshot suffixes like -0613, -0125-preview, -2024-11-20 */
 const DATED_SNAPSHOT_RE = /-(20\d{2}[/-]\d{2}([/-]\d{2})?|\d{4}(-preview)?)$/
 
-function classifyModel(id: string): OpenAIClassification | null {
+function classifyModel(id: string, isCustomEndpoint = false): OpenAIClassification | null {
   if (id.startsWith('ft:')) return null
   if (id.includes('embedding')) return { capability: 'embedding' }
   // DALL-E 3 is text-to-image only (no editing support in the SDK)
   if (id.startsWith('dall-e')) return { capability: 'image', supportsImageInput: false }
   // GPT Image models support image input (editing/inpainting)
   if (id.startsWith('gpt-image')) return { capability: 'image', supportsImageInput: true }
-  // Exclude non-chat models before the broad gpt-/o* catch-all
-  if (NON_CHAT_PATTERNS.some((p) => id.includes(p))) return null
-  // Exclude dated snapshot variants (e.g. gpt-4-0613, gpt-4o-2024-11-20)
-  if (DATED_SNAPSHOT_RE.test(id)) return null
+  // OpenAI-specific exclusion rules: skip for custom endpoints where these
+  // patterns have different semantics (e.g. "Instruct" = instruction-tuned)
+  if (!isCustomEndpoint) {
+    if (NON_CHAT_PATTERNS.some((p) => id.includes(p))) return null
+    if (DATED_SNAPSHOT_RE.test(id)) return null
+  }
   if (
     id.startsWith('gpt-') ||
     id.startsWith('chatgpt-') ||
     /^o[1-9]/.test(id)
   ) return { capability: 'llm' }
+  // For custom endpoints, treat unrecognized models as LLMs by default
+  if (isCustomEndpoint) return { capability: 'llm' }
   return null
 }
 
@@ -90,9 +94,11 @@ export const openaiProvider: ProviderDefinition = {
   async listModels(config: ProviderConfig) {
     try {
       const apiModels = await fetchOpenAIModels(config)
+      const baseUrl = config.baseUrl ?? 'https://api.openai.com/v1'
+      const isCustomEndpoint = !baseUrl.includes('api.openai.com')
       const models = apiModels
         .map((m): ProviderModel | null => {
-          const classification = classifyModel(m.id)
+          const classification = classifyModel(m.id, isCustomEndpoint)
           if (!classification) return null
           return {
             id: m.id,
