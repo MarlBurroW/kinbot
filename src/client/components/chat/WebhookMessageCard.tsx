@@ -27,7 +27,7 @@ function parseWebhookContent(content: string): ParsedWebhook {
     return { name: 'webhook', payload: content, isJson: false, parsed: null }
   }
 
-  const name = match[1]
+  const name = match[1] ?? 'webhook'
   const payload = match[2]?.trim() ?? ''
 
   let parsed: Record<string, unknown> | null = null

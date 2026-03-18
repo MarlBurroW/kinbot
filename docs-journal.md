@@ -586,3 +586,15 @@ All sections migrated and accuracy-reviewed:
 - v0.23.0 bundles features already documented (channel management tools, inter-Kin communication, platform tools)
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-18 — Causal chain delivery (channelOriginId) docs ✅
+
+- New v0.24.0 feature: `channelOriginId` propagates through queue items, messages, tasks, inter-Kin requests to auto-deliver follow-up responses back to originating external channels
+- **channels/overview.md**: Added "Causal Chain Delivery" section explaining the mechanism, auto-delivered message types (`kin_reply`, `task_result`, `wakeup`), and `CHANNEL_PENDING_ORIGIN_TTL` env var
+- **kins/system-prompts.md**: Added block [13] "Channel origin context" to prompt architecture list (total now 15 blocks)
+- **getting-started/configuration.md**: Added `CHANNEL_PENDING_ORIGIN_TTL` to advanced options
+- Other v0.24.0 changes: PDF text extraction in read_file, inline non-image attachments, custom provider model fix — no docs impact (behavioral fixes, not API changes)
+- Build passes: 34 pages
+- Commit: `525ecf1` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with v0.24.0
