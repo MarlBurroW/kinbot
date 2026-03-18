@@ -95,7 +95,13 @@ export const openaiProvider: ProviderDefinition = {
     try {
       const apiModels = await fetchOpenAIModels(config)
       const baseUrl = config.baseUrl ?? 'https://api.openai.com/v1'
-      const isCustomEndpoint = !baseUrl.includes('api.openai.com')
+      let isCustomEndpoint = true
+      try {
+        const parsedUrl = new URL(baseUrl)
+        isCustomEndpoint = parsedUrl.hostname !== 'api.openai.com'
+      } catch {
+        isCustomEndpoint = true
+      }
       const models = apiModels
         .map((m): ProviderModel | null => {
           const classification = classifyModel(m.id, isCustomEndpoint)
