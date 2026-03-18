@@ -221,28 +221,55 @@ export async function downloadAndStoreAttachment(params: DownloadAttachmentParam
   }
 }
 
+// ─── Channel attachment download result types ────────────────────────────────
+
+export interface FailedAttachmentInfo {
+  mimeType?: string
+  fileName?: string
+  reason: string
+}
+
+export interface DownloadChannelAttachmentsResult {
+  fileIds: string[]
+  failedAttachments: FailedAttachmentInfo[]
+}
+
 /**
  * Download and store multiple channel attachments.
- * Returns array of file IDs (skips failed downloads).
+ * Returns successful file IDs and info about failed attachments.
  */
 export async function downloadChannelAttachments(
   kinId: string,
   attachments: IncomingAttachment[],
-): Promise<string[]> {
+): Promise<DownloadChannelAttachmentsResult> {
   const fileIds: string[] = []
+  const failedAttachments: FailedAttachmentInfo[] = []
 
   for (const attachment of attachments) {
     const downloadUrl = attachment.url
     if (!downloadUrl) {
-      log.debug({ platformFileId: attachment.platformFileId }, 'Attachment has no download URL, skipping')
+      log.warn({ platformFileId: attachment.platformFileId, fileName: attachment.fileName }, 'Attachment has no download URL, skipping')
+      failedAttachments.push({
+        mimeType: attachment.mimeType,
+        fileName: attachment.fileName,
+        reason: 'Could not resolve download URL from platform',
+      })
       continue
     }
 
     const fileId = await downloadAndStoreAttachment({ kinId, attachment, downloadUrl })
-    if (fileId) fileIds.push(fileId)
+    if (fileId) {
+      fileIds.push(fileId)
+    } else {
+      failedAttachments.push({
+        mimeType: attachment.mimeType,
+        fileName: attachment.fileName,
+        reason: 'Download failed',
+      })
+    }
   }
 
-  return fileIds
+  return { fileIds, failedAttachments }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

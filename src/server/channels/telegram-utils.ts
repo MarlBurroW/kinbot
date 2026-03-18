@@ -58,23 +58,37 @@ export interface TelegramSticker extends TelegramFile {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Call Telegram Bot API getFile to resolve download URL */
+/** Call Telegram Bot API getFile to resolve download URL (retries once on failure) */
 export async function resolveFileUrl(token: string, fileId: string): Promise<string | null> {
-  try {
-    const resp = await fetch(`${TELEGRAM_API}/bot${token}/getFile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file_id: fileId }),
-    })
-    const data = await resp.json() as { ok: boolean; result?: { file_path?: string } }
-    if (data.ok && data.result?.file_path) {
-      return `${TELEGRAM_API}/file/bot${token}/${data.result.file_path}`
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const resp = await fetch(`${TELEGRAM_API}/bot${token}/getFile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: fileId }),
+      })
+      const data = await resp.json() as { ok: boolean; result?: { file_path?: string } }
+      if (data.ok && data.result?.file_path) {
+        return `${TELEGRAM_API}/file/bot${token}/${data.result.file_path}`
+      }
+      if (attempt === 0) {
+        log.debug({ fileId, attempt }, 'Telegram getFile non-ok, retrying')
+        await new Promise((r) => setTimeout(r, 500))
+        continue
+      }
+      log.warn({ fileId }, 'Telegram getFile failed after retry')
+      return null
+    } catch (err) {
+      if (attempt === 0) {
+        log.debug({ fileId, err }, 'Telegram getFile error, retrying')
+        await new Promise((r) => setTimeout(r, 500))
+        continue
+      }
+      log.warn({ fileId, err }, 'Failed to resolve Telegram file URL after retry')
+      return null
     }
-    return null
-  } catch (err) {
-    log.warn({ fileId, err }, 'Failed to resolve Telegram file URL')
-    return null
   }
+  return null
 }
 
 /** Extract attachments from a Telegram message update */

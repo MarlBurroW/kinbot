@@ -771,6 +771,7 @@ export function buildSystemPrompt(params: PromptParams): string {
       `## External channels\n\n` +
       `You are connected to the following external messaging platforms:\n\n${channelLines}\n\n` +
       `Messages prefixed with [platform:Name] come from these platforms. Your responses are automatically sent back to the originating conversation.\n` +
+      `To send files (images, documents, reports, etc.) back to the platform, call attach_file() before your text response.\n` +
       `Keep responses concise for external platforms. Avoid referencing internal tools, UI elements, or administrative details.\n\n` +
       `### Platform formatting guide\n` +
       `Adapt your formatting based on the originating platform:\n` +
@@ -901,6 +902,7 @@ export function buildSystemPrompt(params: PromptParams): string {
       `This turn is part of a conversation chain that originated from **${ctx.platform}**.\n` +
       `Your response will be **automatically delivered** back to ${ctx.platform} — ` +
       `you do NOT need to call send_channel_message().\n` +
+      `If you need to send a file back (image, document, etc.), call attach_file() before your text response.\n` +
       `Adapt your formatting to ${ctx.platform} (keep concise, avoid web-only elements).`,
     )
   }

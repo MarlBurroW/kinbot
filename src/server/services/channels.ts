@@ -369,8 +369,16 @@ export async function handleIncomingChannelMessage(channelId: string, incoming: 
   // Download and store any file attachments
   let fileIds: string[] | undefined
   if (incoming.attachments && incoming.attachments.length > 0) {
-    fileIds = await downloadChannelAttachments(channel.kinId, incoming.attachments)
-    if (fileIds.length === 0) fileIds = undefined
+    const result = await downloadChannelAttachments(channel.kinId, incoming.attachments)
+    fileIds = result.fileIds.length > 0 ? result.fileIds : undefined
+
+    // Inform the Kin about files that couldn't be processed
+    if (result.failedAttachments.length > 0) {
+      const failedLines = result.failedAttachments
+        .map((f) => `- ${f.fileName ?? f.mimeType ?? 'unknown file'}: ${f.reason}`)
+        .join('\n')
+      content += `\n\n[System: The user sent ${incoming.attachments.length} file(s), but ${result.failedAttachments.length} could not be processed:\n${failedLines}]`
+    }
   }
 
   // Pre-generate ID so the queue item can self-reference as its own channelOriginId
