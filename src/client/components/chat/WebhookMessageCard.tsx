@@ -7,6 +7,7 @@ import {
 } from '@/client/components/ui/collapsible'
 import { Webhook, ChevronRight, GitPullRequest, MessageSquareText, CircleDot, Tag, GitCommit } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
+import { JsonViewer } from '@/client/components/common/JsonViewer'
 
 interface WebhookMessageCardProps {
   content: string
@@ -175,13 +176,15 @@ export const WebhookMessageCard = memo(function WebhookMessageCard({
 
           <CollapsibleContent>
             {hasExpandableContent && (
-              <div className="mt-1 rounded-lg bg-muted/80 p-3 overflow-x-auto">
-                <pre className="text-xs leading-relaxed text-foreground whitespace-pre-wrap break-all">
-                  {webhook.isJson
-                    ? JSON.stringify(webhook.parsed, null, 2)
-                    : webhook.payload}
-                </pre>
-              </div>
+              webhook.isJson && webhook.parsed ? (
+                <JsonViewer data={webhook.parsed} maxHeight="max-h-80" className="mt-1" />
+              ) : (
+                <div className="mt-1 rounded-lg bg-muted/80 p-3 overflow-x-auto">
+                  <pre className="text-xs leading-relaxed text-foreground whitespace-pre-wrap break-all">
+                    {webhook.payload}
+                  </pre>
+                </div>
+              )
             )}
           </CollapsibleContent>
         </div>
