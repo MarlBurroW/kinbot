@@ -164,6 +164,10 @@ describe('webhook-tools', () => {
         name: 'Grafana Alerts',
         description: 'Receive Grafana alerts',
         createdBy: 'kin',
+        filterMode: null,
+        filterField: null,
+        filterAllowedValues: null,
+        filterExpression: null,
       })
     })
 
@@ -178,6 +182,10 @@ describe('webhook-tools', () => {
         name: 'Simple Webhook',
         description: undefined,
         createdBy: 'kin',
+        filterMode: null,
+        filterField: null,
+        filterAllowedValues: null,
+        filterExpression: null,
       })
     })
 
