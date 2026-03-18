@@ -70,3 +70,4 @@ See [`.env.example`](https://github.com/MarlBurroW/kinbot/blob/main/.env.example
 - Queue settings
 - Cron limits
 - Web browsing configuration
+- Channel origin TTL (`CHANNEL_PENDING_ORIGIN_TTL`, default 5min)

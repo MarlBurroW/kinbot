@@ -21,8 +21,9 @@ KinBot builds the system prompt from these blocks (in order):
 10. **Relevant knowledge** — excerpts from uploaded knowledge base documents, when applicable
 11. **Internal instructions** — tool usage guidelines, memory management, contact resolution, secrets handling, response calibration, mini-app creation. Mini-app instructions now direct Kins to call `get_mini_app_docs` for the full SDK reference rather than embedding it inline. MCP tool sections show server-level summaries only (individual tool descriptions are provided via the AI SDK tools parameter)
 12. **Current speaker profile** — name, role, and contact notes (both global/shared and per-Kin private notes) for the user who sent the current message. If the user has a linked contact but no notes yet, includes a gentle nudge to discover them naturally. Also resolves channel senders (Telegram, Discord, WhatsApp) to their contact records via platform ID
-13. **Language** — response language based on user settings
-14. **Date and context** — current timestamp
+13. **Channel origin context** — when the current turn is part of a causal chain originating from an external channel (e.g. inter-Kin reply or task result), informs the Kin that delivery is automatic and advises adapting formatting for the target platform
+14. **Language** — response language based on user settings
+15. **Date and context** — current timestamp
 
 ## Writing effective characters
 

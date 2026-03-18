@@ -64,6 +64,20 @@ When a user messages through a channel for the first time, KinBot can automatica
 - The Kin remembering who someone is across sessions
 - Proactive messaging to known users via `send_channel_message`
 
+## Causal Chain Delivery
+
+When a channel message triggers multi-turn processing (inter-Kin delegation, task results, wakeups), KinBot automatically delivers the final response back to the originating platform without requiring the Kin to call `send_channel_message()`.
+
+This works through a **`channelOriginId`** that propagates through the entire causal chain: queue items, messages, tasks, inter-Kin requests/replies, and sub-Kin spawns. When processing completes, KinBot checks if the turn belongs to a channel-originated chain and delivers the response automatically.
+
+**Auto-delivered message types:** `kin_reply`, `task_result`, `wakeup`
+
+The Kin also receives a prompt block informing it that delivery is automatic and advising it to adapt formatting for the target platform.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `CHANNEL_PENDING_ORIGIN_TTL` | 300000 (5min) | How long channel origin metadata is kept in memory |
+
 ## Plugin Channels
 
 Plugins can register custom channel adapters, extending KinBot to support additional platforms beyond the built-in six. Plugin adapters use the same `ChannelAdapter` interface and are managed through the adapter registry.
