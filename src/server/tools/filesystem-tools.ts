@@ -82,7 +82,7 @@ export const readFileTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Read a text file. Use offset/limit for large files.',
+        'Read a text file or extract text from a PDF. Use offset/limit for large files.',
       inputSchema: z.object({
         path: z.string().describe('Relative to workspace or absolute'),
         offset: z.number().int().min(1).optional().describe('Start line (1-indexed)'),
@@ -106,6 +106,40 @@ export const readFileTool: ToolRegistration = {
 
           const buffer = await readFile(absPath)
           if (isBinary(buffer)) {
+            // PDF: extract text instead of rejecting
+            if (absPath.endsWith('.pdf')) {
+              try {
+                const pdfParse = (await import('pdf-parse')).default
+                const pdf = await pdfParse(buffer)
+                const text = pdf.text
+                const allLines = text.split('\n')
+                const totalLines = allLines.length
+                const startLine = offset ?? 1
+                const maxLines = limit ?? MAX_LINES
+                const endLine = Math.min(startLine + maxLines - 1, totalLines)
+                const selectedLines = allLines.slice(startLine - 1, endLine)
+                const content = selectedLines.join('\n')
+
+                log.info({ kinId: ctx.kinId, path: filePath, totalLines, startLine, endLine, pages: pdf.numpages }, 'PDF text extracted')
+
+                return {
+                  success: true,
+                  content,
+                  path: filePath,
+                  totalLines,
+                  startLine,
+                  endLine,
+                  language: 'text',
+                  note: `Extracted text from PDF (${pdf.numpages} pages)`,
+                }
+              } catch (e) {
+                return {
+                  success: false,
+                  error: `Failed to extract text from PDF: ${e instanceof Error ? e.message : String(e)}`,
+                  fileSize: stat.size,
+                }
+              }
+            }
             return {
               success: false,
               error: 'Binary file detected. Use run_shell to inspect binary files.',
