@@ -23,14 +23,22 @@ export const createWebhookTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create an incoming webhook endpoint. The returned token is shown only once.',
+        'Create an incoming webhook endpoint with optional payload filter. The returned token is shown only once.',
       inputSchema: z.object({
         name: z.string(),
         description: z
           .string()
           .optional(),
+        filter_mode: z.enum(['simple', 'advanced']).nullable().optional()
+          .describe('Filter mode: "simple" for field+allowlist, "advanced" for regex, null for no filter.'),
+        filter_field: z.string().nullable().optional()
+          .describe('Dot-notation path to extract from JSON payload (simple mode). e.g. "action", "event.type".'),
+        filter_allowed_values: z.array(z.string()).nullable().optional()
+          .describe('List of allowed values for the extracted field (simple mode). Case-insensitive matching.'),
+        filter_expression: z.string().nullable().optional()
+          .describe('Regex pattern to test against raw payload body (advanced mode).'),
       }),
-      execute: async ({ name, description }) => {
+      execute: async ({ name, description, filter_mode, filter_field, filter_allowed_values, filter_expression }) => {
         log.debug({ kinId: ctx.kinId, name }, 'Webhook creation requested')
         try {
           const webhook = await createWebhook({
@@ -38,12 +46,17 @@ export const createWebhookTool: ToolRegistration = {
             name,
             description,
             createdBy: 'kin',
+            filterMode: filter_mode ?? null,
+            filterField: filter_field ?? null,
+            filterAllowedValues: filter_allowed_values ? JSON.stringify(filter_allowed_values) : null,
+            filterExpression: filter_expression ?? null,
           })
           return {
             webhookId: webhook.id,
             name: webhook.name,
             url: buildWebhookUrl(webhook.id),
             token: webhook.token,
+            filterMode: webhook.filterMode ?? null,
             message: 'Webhook created. Store the token securely — it will not be shown again.',
           }
         } catch (err) {
@@ -54,7 +67,7 @@ export const createWebhookTool: ToolRegistration = {
 }
 
 /**
- * update_webhook — modify a webhook's name, description, or active status.
+ * update_webhook — modify a webhook's name, description, active status, or payload filter.
  * Available to main agents only.
  */
 export const updateWebhookTool: ToolRegistration = {
@@ -62,14 +75,22 @@ export const updateWebhookTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Update a webhook (name, description, or active status).',
+        'Update a webhook (name, description, active status, or payload filter). Set filter_mode to "simple" with filter_field and filter_allowed_values to filter payloads. Set filter_mode to null to disable filtering.',
       inputSchema: z.object({
         webhook_id: z.string(),
         name: z.string().optional(),
         description: z.string().optional(),
         is_active: z.boolean().optional(),
+        filter_mode: z.enum(['simple', 'advanced']).nullable().optional()
+          .describe('Filter mode: "simple" for field+allowlist, "advanced" for regex, null to disable filtering.'),
+        filter_field: z.string().nullable().optional()
+          .describe('Dot-notation path to extract from JSON payload (simple mode).'),
+        filter_allowed_values: z.array(z.string()).nullable().optional()
+          .describe('List of allowed values for the extracted field (simple mode). Case-insensitive.'),
+        filter_expression: z.string().nullable().optional()
+          .describe('Regex pattern to test against raw payload body (advanced mode).'),
       }),
-      execute: async ({ webhook_id, name, description, is_active }) => {
+      execute: async ({ webhook_id, name, description, is_active, filter_mode, filter_field, filter_allowed_values, filter_expression }) => {
         // Verify ownership
         const existing = await getWebhook(webhook_id)
         if (!existing || existing.kinId !== ctx.kinId) {
@@ -81,6 +102,26 @@ export const updateWebhookTool: ToolRegistration = {
         if (description !== undefined) updates.description = description
         if (is_active !== undefined) updates.isActive = is_active
 
+        // Handle filter fields
+        if (filter_mode !== undefined) {
+          if (filter_mode === null) {
+            updates.filterMode = null
+            updates.filterField = null
+            updates.filterAllowedValues = null
+            updates.filterExpression = null
+          } else if (filter_mode === 'simple') {
+            updates.filterMode = 'simple'
+            updates.filterField = filter_field ?? null
+            updates.filterAllowedValues = filter_allowed_values ? JSON.stringify(filter_allowed_values) : null
+            updates.filterExpression = null
+          } else if (filter_mode === 'advanced') {
+            updates.filterMode = 'advanced'
+            updates.filterField = null
+            updates.filterAllowedValues = null
+            updates.filterExpression = filter_expression ?? null
+          }
+        }
+
         try {
           const updated = await updateWebhook(webhook_id, updates)
           if (!updated) return { error: 'Webhook not found' }
@@ -89,6 +130,10 @@ export const updateWebhookTool: ToolRegistration = {
             webhookId: updated.id,
             name: updated.name,
             isActive: updated.isActive,
+            filterMode: updated.filterMode ?? null,
+            filterField: updated.filterField ?? null,
+            filterAllowedValues: updated.filterAllowedValues ? JSON.parse(updated.filterAllowedValues) : null,
+            filterExpression: updated.filterExpression ?? null,
           }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Unknown error' }
@@ -129,7 +174,7 @@ export const deleteWebhookTool: ToolRegistration = {
 }
 
 /**
- * list_webhooks — list all webhooks for this Kin.
+ * list_webhooks — list all webhooks for this Kin with their filter configuration.
  * Tokens are never included in the response.
  * Available to main agents only.
  */
@@ -138,7 +183,7 @@ export const listWebhooksTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'List all webhooks for this Kin. Tokens are not included.',
+        'List all webhooks for this Kin with their filter configuration. Tokens are not included.',
       inputSchema: z.object({}),
       execute: async () => {
         const items = await listWebhooks(ctx.kinId)
@@ -153,6 +198,10 @@ export const listWebhooksTool: ToolRegistration = {
               ? new Date(w.lastTriggeredAt as unknown as number).toISOString()
               : null,
             url: buildWebhookUrl(w.id),
+            filterMode: w.filterMode ?? null,
+            filterField: w.filterField ?? null,
+            filterAllowedValues: w.filterAllowedValues ? JSON.parse(w.filterAllowedValues) : null,
+            filterExpression: w.filterExpression ?? null,
           })),
         }
       },

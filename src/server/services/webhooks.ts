@@ -37,6 +37,10 @@ interface CreateWebhookParams {
   name: string
   description?: string
   createdBy: 'user' | 'kin'
+  filterMode?: string | null
+  filterField?: string | null
+  filterAllowedValues?: string | null
+  filterExpression?: string | null
 }
 
 export async function createWebhook(params: CreateWebhookParams) {
@@ -63,6 +67,10 @@ export async function createWebhook(params: CreateWebhookParams) {
     description: params.description ?? null,
     isActive: true,
     triggerCount: 0,
+    filterMode: params.filterMode ?? null,
+    filterField: params.filterField ?? null,
+    filterAllowedValues: params.filterAllowedValues ?? null,
+    filterExpression: params.filterExpression ?? null,
     createdBy: params.createdBy,
     createdAt: now,
     updatedAt: now,
