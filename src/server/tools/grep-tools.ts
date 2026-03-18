@@ -47,7 +47,6 @@ function buildRgArgs(params: {
     '--color=never',
     '--glob=!node_modules',
     '--glob=!.git',
-    '--binary-file=without-match',
   ]
 
   if (params.caseInsensitive) args.push('-i')
