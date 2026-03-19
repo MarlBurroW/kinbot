@@ -11,7 +11,8 @@ import {
 } from '@/server/services/tasks'
 import { resolveKinId } from '@/server/services/kin-resolver'
 import { db } from '@/server/db/index'
-import { kins, messages } from '@/server/db/schema'
+import { kins, messages, tasks } from '@/server/db/schema'
+import { sql } from 'drizzle-orm'
 import { createLogger } from '@/server/logger'
 import type { ToolRegistration } from '@/server/tools/types'
 
@@ -37,10 +38,16 @@ export const spawnSelfTool: ToolRegistration = {
           ),
         model: z.string().optional(),
         allow_human_prompt: z.boolean().optional().describe('Default: true'),
+        concurrency_group: z.string().optional()
+          .describe('Queue name for concurrency control (e.g. "batch-issues", "api-calls"). ' +
+            'Tasks in the same group are limited to concurrency_max parallel executions. ' +
+            'Excess tasks are queued and auto-promoted when a slot frees.'),
+        concurrency_max: z.number().int().min(1).optional()
+          .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
       }),
-      execute: async ({ title, task_description, mode, model, allow_human_prompt }) => {
+      execute: async ({ title, task_description, mode, model, allow_human_prompt, concurrency_group, concurrency_max }) => {
         log.debug({ kinId: ctx.kinId, mode, spawnType: 'self' }, 'Task spawn requested (spawn_self)')
-        const { taskId } = await spawnTask({
+        const { taskId, queued } = await spawnTask({
           parentKinId: ctx.kinId,
           title,
           description: task_description,
@@ -49,8 +56,10 @@ export const spawnSelfTool: ToolRegistration = {
           model,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
+          concurrencyGroup: concurrency_group,
+          concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
         })
-        return { taskId, status: 'pending' }
+        return { taskId, status: queued ? 'queued' : 'pending' }
       },
     }),
 }
@@ -76,14 +85,20 @@ export const spawnKinTool: ToolRegistration = {
           ),
         model: z.string().optional(),
         allow_human_prompt: z.boolean().optional().describe('Default: true'),
+        concurrency_group: z.string().optional()
+          .describe('Queue name for concurrency control (e.g. "batch-issues", "api-calls"). ' +
+            'Tasks in the same group are limited to concurrency_max parallel executions. ' +
+            'Excess tasks are queued and auto-promoted when a slot frees.'),
+        concurrency_max: z.number().int().min(1).optional()
+          .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
       }),
-      execute: async ({ kin_slug, title, task_description, mode, model, allow_human_prompt }) => {
+      execute: async ({ kin_slug, title, task_description, mode, model, allow_human_prompt, concurrency_group, concurrency_max }) => {
         const kinId = resolveKinId(kin_slug)
         if (!kinId) {
           return { error: `Kin not found for slug "${kin_slug}"` }
         }
         log.debug({ kinId: ctx.kinId, targetKinId: kinId, mode, spawnType: 'other' }, 'Task spawn requested (spawn_kin)')
-        const { taskId } = await spawnTask({
+        const { taskId, queued } = await spawnTask({
           parentKinId: ctx.kinId,
           title,
           description: task_description,
@@ -93,8 +108,10 @@ export const spawnKinTool: ToolRegistration = {
           model,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
+          concurrencyGroup: concurrency_group,
+          concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
         })
-        return { taskId, status: 'pending' }
+        return { taskId, status: queued ? 'queued' : 'pending' }
       },
     }),
 }
@@ -183,6 +200,22 @@ export const listTasksTool: ToolRegistration = {
           }
         }
 
+        // Compute queue positions per concurrency group for queued tasks
+        const queuePositionMap = new Map<string, number>()
+        const queuedByGroup = new Map<string, typeof allTasks>()
+        for (const t of allTasks) {
+          if (t.status === 'queued' && t.concurrencyGroup) {
+            const group = t.concurrencyGroup
+            if (!queuedByGroup.has(group)) queuedByGroup.set(group, [])
+            queuedByGroup.get(group)!.push(t)
+          }
+        }
+        for (const [, groupTasks] of queuedByGroup) {
+          // Sort by queuedAt ASC (FIFO)
+          groupTasks.sort((a, b) => (a.queuedAt?.getTime() ?? 0) - (b.queuedAt?.getTime() ?? 0))
+          groupTasks.forEach((t, i) => queuePositionMap.set(t.id, i + 1))
+        }
+
         return {
           tasks: allTasks.map((t) => ({
             id: t.id,
@@ -197,8 +230,51 @@ export const listTasksTool: ToolRegistration = {
             result: t.result,
             error: t.error,
             depth: t.depth,
+            concurrencyGroup: t.concurrencyGroup ?? null,
+            queuePosition: queuePositionMap.get(t.id) ?? null,
             createdAt: t.createdAt,
             updatedAt: t.updatedAt,
+          })),
+        }
+      },
+    }),
+}
+
+/**
+ * list_active_queues — list all active concurrency groups with status.
+ * Available to main agents only.
+ */
+export const listActiveQueuesTool: ToolRegistration = {
+  availability: ['main'],
+  create: (_ctx) =>
+    tool({
+      description:
+        'List all active concurrency groups (queues) with their current status: active count, queued count, and max concurrent limit.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const rows = await db
+          .select({
+            group: tasks.concurrencyGroup,
+            concurrencyMax: tasks.concurrencyMax,
+            activeCount: sql<number>`count(case when ${tasks.status} in ('pending', 'in_progress', 'awaiting_human_input', 'awaiting_kin_response') then 1 end)`,
+            queuedCount: sql<number>`count(case when ${tasks.status} = 'queued' then 1 end)`,
+          })
+          .from(tasks)
+          .where(
+            and(
+              sql`${tasks.concurrencyGroup} is not null`,
+              inArray(tasks.status, ['queued', 'pending', 'in_progress', 'awaiting_human_input', 'awaiting_kin_response']),
+            ),
+          )
+          .groupBy(tasks.concurrencyGroup)
+          .all()
+
+        return {
+          queues: rows.map((r) => ({
+            group: r.group,
+            active: r.activeCount,
+            queued: r.queuedCount,
+            max: r.concurrencyMax,
           })),
         }
       },

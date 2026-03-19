@@ -42,6 +42,7 @@ import {
   respondToTaskTool,
   cancelTaskTool,
   listTasksTool,
+  listActiveQueuesTool,
   getTaskDetailTool,
 } from '@/server/tools/task-tools'
 import {
@@ -227,6 +228,7 @@ export function registerAllTools(): void {
   toolRegistry.register('respond_to_task', respondToTaskTool)
   toolRegistry.register('cancel_task', cancelTaskTool)
   toolRegistry.register('list_tasks', listTasksTool)
+  toolRegistry.register('list_active_queues', listActiveQueuesTool)
   toolRegistry.register('get_task_detail', getTaskDetailTool)
 
   // Phase 15: Sub-Kin tools (sub-kin only)
