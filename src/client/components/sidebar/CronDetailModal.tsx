@@ -176,9 +176,9 @@ export function CronDetailModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[80vh] flex flex-col gap-0 sm:max-w-2xl">
+        <DialogContent className="max-h-[85vh] overflow-hidden flex flex-col gap-0 !p-0 sm:max-w-2xl">
           {/* Header */}
-          <DialogHeader className="pb-3 border-b border-border">
+          <DialogHeader className="shrink-0 px-6 pt-6 pb-3 border-b border-border">
             <div className="flex items-center gap-3">
               <Avatar className="size-9 shrink-0">
                 {cron.kinAvatarUrl && <AvatarImage src={cron.kinAvatarUrl} alt={kinName} />}
@@ -213,7 +213,7 @@ export function CronDetailModal({
           </DialogHeader>
 
           {/* Content */}
-          <div className="py-4">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
             <div className="space-y-4">
               {/* Schedule */}
               <div className="space-y-1">
@@ -377,7 +377,7 @@ export function CronDetailModal({
           </div>
 
           {/* Footer */}
-          <DialogFooter className="flex-row items-center gap-2 pt-3 border-t border-border">
+          <DialogFooter className="shrink-0 flex-row items-center gap-2 px-6 pb-6 pt-3 border-t border-border">
             {cron.requiresApproval && (
               <Button
                 size="sm"
