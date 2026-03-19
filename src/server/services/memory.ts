@@ -670,7 +670,7 @@ async function searchByVector(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; sourceContext: string | null; importance: number | null; retrievalCount: number; distance: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; sourceContext: string | null; importance: number | null; retrievalCount: number; distance: number; scope: MemoryScope; kinId: string; updatedAt: Date | null }>> {
   try {
     const queryEmbedding = await generateEmbedding(query)
     const queryBuf = Buffer.from(new Float32Array(queryEmbedding).buffer)
@@ -725,7 +725,7 @@ function searchByFTS(
   kinId: string,
   query: string,
   limit: number,
-): Promise<Array<{ id: string; content: string; category: string; subject: string | null; sourceContext: string | null; importance: number | null; retrievalCount: number; rank: number; updatedAt: Date | null }>> {
+): Promise<Array<{ id: string; content: string; category: string; subject: string | null; sourceContext: string | null; importance: number | null; retrievalCount: number; rank: number; scope: MemoryScope; kinId: string; updatedAt: Date | null }>> {
   try {
     // Escape FTS5 special characters, filter noise, build query with prefix matching
     const terms = query

@@ -166,6 +166,13 @@ function getStatusConfig(status: DisplayTaskStatus, t: (key: string) => string) 
         label: t('chat.taskResult.assigned'),
         animate: false,
       }
+    case 'queued':
+      return {
+        icon: Clock,
+        colorClass: 'text-muted-foreground',
+        label: t('sidebar.tasks.status.pending'),
+        animate: true,
+      }
   }
 }
 
