@@ -150,11 +150,14 @@ function parseContentOutput(
     // Match "file:line:content" or "file-line-content" (context lines with -)
     const match = line.match(/^(.+?)[:\-](\d+)[:\-](.*)$/)
     if (match) {
-      const filePath = relative(workspace, resolve(workspace, match[1]))
+      const rawFile = match[1]!
+      const rawLine = match[2]!
+      const rawContent = match[3]!
+      const filePath = relative(workspace, resolve(workspace, rawFile))
       matches.push({
-        file: filePath || match[1],
-        line: parseInt(match[2], 10),
-        content: match[3],
+        file: filePath || rawFile,
+        line: parseInt(rawLine, 10),
+        content: rawContent,
       })
     }
   }

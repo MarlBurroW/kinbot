@@ -1,0 +1,32 @@
+{
+  "name": "home-automation",
+  "version": "1.0.0",
+  "description": "Control your smart home via Home Assistant. Toggle lights, check sensors, run automations, and monitor your home.",
+  "author": "KinBot Team",
+  "license": "MIT",
+  "main": "index.ts",
+  "icon": "🏠",
+  "tags": ["home", "automation", "iot", "tools", "smart-home"],
+  "permissions": [
+    "http:*"
+  ],
+  "config": {
+    "haUrl": {
+      "type": "string",
+      "label": "Home Assistant URL",
+      "description": "Base URL of your Home Assistant instance (e.g. http://homeassistant.local:8123)",
+      "placeholder": "http://homeassistant.local:8123"
+    },
+    "haToken": {
+      "type": "password",
+      "label": "Long-Lived Access Token",
+      "description": "Generate one in Home Assistant: Profile > Security > Long-Lived Access Tokens"
+    },
+    "areaFilter": {
+      "type": "string",
+      "label": "Area Filter (optional)",
+      "description": "Comma-separated list of area names to limit scope (empty = all areas)",
+      "placeholder": "Living Room, Kitchen, Bedroom"
+    }
+  }
+}

@@ -598,3 +598,18 @@ All sections migrated and accuracy-reviewed:
 - Commit: `525ecf1` — pushed to main (--no-verify)
 
 ### Status: docs fully caught up with v0.24.0
+
+## 2026-03-18 — New tools + webhook filtering docs ✅
+
+- New features since last run (v0.24.0+):
+  - `2e38a66` — `grep` tool, `multi_edit` tool, `replaceAll` flag on `edit_file`, LLM tool selection guidance in prompt
+  - `19fed12` + `a9ddc9f` — Webhook payload filtering (simple/advanced modes) with filter params exposed in Kin tools
+- **kins/tools.md**: 
+  - Added new "Filesystem & Code" section with 6 tools: `read_file`, `write_file`, `edit_file` (with `replaceAll`), `multi_edit`, `list_directory`, `grep`
+  - Added tip box explaining the tool selection guidance table
+  - Updated Webhooks section: expanded tool descriptions, added payload filtering documentation (simple/advanced modes, filter parameters)
+- **kins/system-prompts.md**: Updated block [11] to mention file & code tool selection table and `attach_file()` guidance for channel responses
+- Build passes: 34 pages
+- Commit: `1810c0a` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes

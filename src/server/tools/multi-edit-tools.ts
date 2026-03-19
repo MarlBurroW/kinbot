@@ -65,7 +65,7 @@ export const multiEditTool: ToolRegistration = {
 
           // Apply edits sequentially in memory
           for (let i = 0; i < edits.length; i++) {
-            const { oldText, newText } = edits[i]
+            const { oldText, newText } = edits[i]!
             const occurrences = content.split(oldText).length - 1
 
             if (occurrences === 0) {
