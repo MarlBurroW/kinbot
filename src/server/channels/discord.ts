@@ -277,15 +277,39 @@ function sendHeartbeat(state: GatewayState): void {
   state.ws?.send(JSON.stringify({ op: OP_HEARTBEAT, d: state.sequence }))
 }
 
+/**
+ * Allowed heartbeat intervals (ms). Discord typically sends 41250.
+ * We round the server value to the nearest allowed bucket so no
+ * user-controlled duration ever reaches setTimeout / setInterval.
+ */
+const HEARTBEAT_BUCKETS = [5_000, 10_000, 15_000, 20_000, 30_000, 41_250, 45_000, 60_000, 90_000, 120_000] as const
+
+function pickHeartbeatBucket(requestedMs: number): number {
+  let closest: number = 41_250
+  let bestDiff = Infinity
+  for (const bucket of HEARTBEAT_BUCKETS) {
+    const diff = Math.abs(bucket - requestedMs)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      closest = bucket
+    }
+  }
+  return closest
+}
+
 function startHeartbeat(state: GatewayState, intervalMs: number): void {
   stopHeartbeat(state)
   state.heartbeatAcked = true
 
+  // Map to a safe constant bucket to prevent resource exhaustion
+  const safeInterval = pickHeartbeatBucket(intervalMs)
+
   // First heartbeat after jitter
+  const jitter = Math.floor(Math.random() * safeInterval)
   setTimeout(() => {
     if (state.stopped) return
     sendHeartbeat(state)
-  }, Math.random() * intervalMs)
+  }, jitter)
 
   state.heartbeatInterval = setInterval(() => {
     if (!state.heartbeatAcked) {
@@ -294,7 +318,7 @@ function startHeartbeat(state: GatewayState, intervalMs: number): void {
       return
     }
     sendHeartbeat(state)
-  }, intervalMs)
+  }, safeInterval)
 }
 
 function stopHeartbeat(state: GatewayState): void {
