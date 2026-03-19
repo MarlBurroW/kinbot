@@ -1,9 +1,12 @@
 import { describe, it, expect, mock, afterEach } from 'bun:test'
+import { fullMockConfig } from '../../test-helpers'
 
 // Mock config before importing the module
 mock.module('@/server/config', () => ({
   config: {
+    ...fullMockConfig,
     webBrowsing: {
+      ...fullMockConfig.webBrowsing,
       blockedDomains: ['blocked.example.com'],
       maxConcurrentFetches: 3,
       maxContentLength: 50000,

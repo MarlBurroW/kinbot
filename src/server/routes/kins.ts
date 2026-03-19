@@ -27,9 +27,8 @@ import {
   updateKin,
   deleteKin,
   getKinDetails,
-  kinAvatarUrl,
-  validateKinFields,
 } from '@/server/services/kins'
+import { kinAvatarUrl, validateKinFields } from '@/server/services/field-validator'
 import { getHubKinId } from '@/server/services/app-settings'
 import { listModelsForProvider } from '@/server/providers/index'
 import type { AppVariables } from '@/server/app'

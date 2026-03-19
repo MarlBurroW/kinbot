@@ -1,5 +1,5 @@
 import { describe, it, expect, mock, beforeEach, spyOn } from 'bun:test'
-import { fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
+import { fullMockConfig, fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
 
 // ─── Mock dependencies before importing the module ───────────────────────────
 
@@ -65,7 +65,9 @@ mock.module('@/server/services/embeddings', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
+    ...fullMockConfig,
     memory: {
+      ...fullMockConfig.memory,
       temporalDecayLambda: 0.01,
       similarityThreshold: 0.5,
       maxRelevantMemories: 10,

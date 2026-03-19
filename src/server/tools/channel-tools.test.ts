@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
+import { fullMockConfig } from '../../test-helpers'
 import type { ToolRegistration } from '@/server/tools/types'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -87,7 +88,7 @@ mock.module('@/server/logger', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
-    upload: { maxSizeMB: 10, allowedTypes: [] },
+    ...fullMockConfig,
   },
 }))
 

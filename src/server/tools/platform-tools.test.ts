@@ -1,5 +1,6 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test'
 import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from 'fs'
+import { fullMockConfig } from '../../test-helpers'
 import type { ToolRegistration } from '@/server/tools/types'
 
 // ─── Test constants ──────────────────────────────────────────────────────────
@@ -11,21 +12,7 @@ const TEST_ENV_FILE = `${TEST_ENV_DIR}/.env`
 
 // Mutable config so individual tests can override installationType / envFilePath
 const mockConfig = {
-  workspace: { baseDir: '/tmp/test-workspace' },
-  upload: { maxFileSizeMb: 50, channelRetentionDays: 7 },
-  queue: { userPriority: 10, kinPriority: 5 },
-  notifications: { externalDelivery: { rateLimitPerMinute: 10, maxConsecutiveErrors: 5, maxPerUser: 5 } },
-  memory: { embeddingModel: 'text-embedding-3-small', consolidationModel: null },
-  compacting: { model: 'gpt-4.1-nano' },
-  webBrowsing: { headless: { enabled: false }, pageTimeout: 30000, maxContentLength: 100000, userAgent: 'KinBot', proxy: null },
-  mcp: { requireApproval: false },
-  wakeups: { maxPendingPerKin: 10 },
-  versionCheck: { enabled: false, intervalHours: 12, repo: 'test/test' },
-  publicUrl: 'http://localhost:3000',
-  port: 3000,
-  dataDir: '/tmp/test-data',
-  logLevel: 'info',
-  db: { path: '/tmp/test.db' },
+  ...fullMockConfig,
   version: '0.23.0',
   isDocker: false,
   environment: {
@@ -129,8 +116,8 @@ describe('getPlatformConfigTool', () => {
   it('returns platform configuration', async () => {
     const result = await execute(getPlatformConfigTool as ToolRegistration, {})
     expect(result.version).toBe('0.23.0')
-    expect(result.publicUrl).toBe('http://localhost:3000')
-    expect(result.port).toBe(3000)
+    expect(result.publicUrl).toBe('http://localhost:3333')
+    expect(result.port).toBe(3333)
     expect(result.installation.type).toBe('systemd-user')
     expect(result.installation.isDocker).toBe(false)
   })

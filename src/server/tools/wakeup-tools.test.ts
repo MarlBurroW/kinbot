@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
+import { fullMockConfig } from '../../test-helpers'
 import type { ToolRegistration } from '@/server/tools/types'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -27,19 +28,7 @@ mock.module('@/server/services/kin-resolver', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
-    wakeups: {
-      minDelaySeconds: 10,
-      maxDelaySeconds: 2_592_000,
-    },
-    upload: {
-      dir: '/tmp/test-uploads',
-      maxFileSizeMb: 50,
-      channelFileRetentionDays: 30,
-      channelFileCleanupIntervalMin: 60,
-    },
-    fileStorage: {
-      dir: '/tmp/test-storage',
-    },
+    ...fullMockConfig,
   },
 }))
 

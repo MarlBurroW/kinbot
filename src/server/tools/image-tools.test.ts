@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test'
+import { fullMockConfig } from '../../test-helpers'
 import type { ToolExecutionContext } from '@/server/tools/types'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -72,7 +73,8 @@ mock.module('@/server/services/encryption', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
-    upload: { dir: '/tmp/test-uploads' },
+    ...fullMockConfig,
+    upload: { ...fullMockConfig.upload, dir: '/tmp/test-uploads' },
   },
 }))
 

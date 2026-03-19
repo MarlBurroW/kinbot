@@ -1,5 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
-import { fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
+import { fullMockConfig, fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
 
 // ─── Mock dependencies ──────────────────────────────────────────────────────
 
@@ -51,11 +51,14 @@ mock.module('@/server/sse/index', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
+    ...fullMockConfig,
     publicUrl: 'https://kinbot.example.com',
     webhooks: {
+      ...fullMockConfig.webhooks,
       maxPerKin: 10,
     },
     queue: {
+      ...fullMockConfig.queue,
       kinPriority: 5,
     },
   },

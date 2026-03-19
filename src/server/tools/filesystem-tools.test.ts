@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test'
 import { resolve, join } from 'path'
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs'
+import { fullMockConfig } from '../../test-helpers'
 import type { ToolRegistration } from '@/server/tools/types'
 import type { ToolExecutionContext } from '@/server/tools/types'
 
@@ -13,6 +14,7 @@ const KIN_DIR = join(TEST_BASE, KIN_ID)
 
 mock.module('@/server/config', () => ({
   config: {
+    ...fullMockConfig,
     workspace: { baseDir: TEST_BASE },
   },
 }))

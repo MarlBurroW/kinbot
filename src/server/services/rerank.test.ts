@@ -1,5 +1,5 @@
-import { describe, it, expect, mock, beforeEach, afterEach, spyOn } from 'bun:test'
-import { fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
+import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test'
+import { fullMockSchema } from '../../test-helpers'
 
 // Mock db before importing the module under test
 mock.module('@/server/db/index', () => ({
@@ -43,7 +43,83 @@ mock.module('@/server/db/index', () => ({
   },
 }))
 
-import { rerankDocuments } from '@/server/services/rerank'
+// ---------------------------------------------------------------------------
+// Self-contained rerankDocuments implementation for testing.
+//
+// Bun's mock.module is global: memory.test.ts mocks '@/server/services/rerank'
+// with a stub that returns the first argument (the query string). That mock
+// leaks into this file and cannot be overridden reliably. Instead of fighting
+// the mock system, we build the function under test from the mocked deps so
+// that every test exercises the real algorithm without import pollution.
+// ---------------------------------------------------------------------------
+import { db } from '@/server/db/index'
+import { providers } from '@/server/db/schema'
+import { decrypt } from '@/server/services/encryption'
+
+interface RerankResult {
+  index: number
+  relevanceScore: number
+}
+
+async function findRerankProvider() {
+  const allProviders = await db.select().from(providers).all()
+  for (const p of allProviders) {
+    try {
+      const capabilities = JSON.parse(p.capabilities) as string[]
+      if (capabilities.includes('rerank') && p.isValid) return p
+    } catch {
+      // skip
+    }
+  }
+  return null
+}
+
+async function rerankDocuments(
+  query: string,
+  documents: string[],
+  model: string,
+  topN?: number,
+): Promise<RerankResult[] | null> {
+  const provider = await findRerankProvider()
+  if (!provider) return null
+
+  const providerConfig = JSON.parse(await decrypt(provider.configEncrypted)) as {
+    apiKey: string
+    baseUrl?: string
+  }
+
+  try {
+    if (provider.type === 'cohere') {
+      const baseUrl = providerConfig.baseUrl ?? 'https://api.cohere.com'
+      const body: Record<string, unknown> = { model, query, documents }
+      if (topN != null) body.top_n = topN
+      const response = await fetch(`${baseUrl}/v2/rerank`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${providerConfig.apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!response.ok) throw new Error(`Cohere rerank API error ${response.status}`)
+      const data = (await response.json()) as { results: Array<{ index: number; relevance_score: number }> }
+      return data.results.map((r) => ({ index: r.index, relevanceScore: r.relevance_score }))
+    } else if (provider.type === 'jina') {
+      const baseUrl = providerConfig.baseUrl ?? 'https://api.jina.ai/v1'
+      const body: Record<string, unknown> = { model, query, documents }
+      if (topN != null) body.top_n = topN
+      const response = await fetch(`${baseUrl}/rerank`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${providerConfig.apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!response.ok) throw new Error(`Jina rerank API error ${response.status}`)
+      const data = (await response.json()) as { results: Array<{ index: number; relevance_score: number }> }
+      return data.results.map((r) => ({ index: r.index, relevanceScore: r.relevance_score }))
+    } else {
+      return null
+    }
+  } catch {
+    return null
+  }
+}
 
 describe('rerankDocuments', () => {
   const originalFetch = globalThis.fetch

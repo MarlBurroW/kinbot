@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
 import type { ToolRegistration } from '@/server/tools/types'
-import { fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
+import { fullMockConfig, fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -115,24 +115,9 @@ mock.module('@/server/services/notifications', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
+    ...fullMockConfig,
     mcp: { get requireApproval() { return requireApproval } },
     workspace: { baseDir: '/tmp/test-ws' },
-    upload: { maxFileSizeMb: 50, channelRetentionDays: 7 },
-    queue: { userPriority: 10, kinPriority: 5 },
-    notifications: { externalDelivery: { rateLimitPerMinute: 10, maxConsecutiveErrors: 5, maxPerUser: 5 } },
-    memory: { embeddingModel: 'text-embedding-3-small', consolidationModel: null },
-    compacting: { model: 'gpt-4.1-nano' },
-    webBrowsing: { headless: { enabled: false }, pageTimeout: 30000, maxContentLength: 100000, userAgent: 'KinBot', proxy: null },
-    wakeups: { maxPendingPerKin: 10 },
-    versionCheck: { enabled: false, intervalHours: 12, repo: 'test/test' },
-    publicUrl: 'http://localhost:3000',
-    port: 3000,
-    dataDir: '/tmp/test-data',
-    logLevel: 'info',
-    db: { path: '/tmp/test.db' },
-    version: '0.23.0',
-    isDocker: false,
-    environment: { installationType: 'manual', envFilePath: null, serviceFilePath: null, workingDir: '/tmp', user: 'test' },
   },
 }))
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
+import { fullMockConfig } from '../../test-helpers'
 import type { ToolRegistration } from '@/server/tools/types'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -54,7 +55,9 @@ mock.module('@/server/services/file-storage', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
+    ...fullMockConfig,
     webBrowsing: {
+      ...fullMockConfig.webBrowsing,
       blockedDomains: [],
       maxConcurrentFetches: 3,
       maxContentLength: 100000,

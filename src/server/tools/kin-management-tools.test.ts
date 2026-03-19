@@ -1,6 +1,9 @@
 import { describe, it, expect, mock } from 'bun:test'
+import { fullMockConfig } from '../../test-helpers'
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
+
+mock.module('@/server/config', () => ({ config: { ...fullMockConfig } }))
 
 const mockCreateKin = mock(() => Promise.resolve({
   id: 'new-kin-id',
@@ -50,8 +53,6 @@ mock.module('@/server/services/kins', () => ({
   deleteKin: mockDeleteKin,
   getKinDetails: mockGetKinDetails,
   generateAndSaveAvatar: mockGenerateAndSaveAvatar,
-  validateKinFields: () => null,
-  kinAvatarUrl: () => null,
 }))
 
 mock.module('@/server/services/kin-resolver', () => ({

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
-import { fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
+import { fullMockConfig, fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
 
 // ─── Mock DB before importing module ─────────────────────────────────────────
 
@@ -22,10 +22,7 @@ mock.module('@/server/db/schema', () => ({
 }))
 
 mock.module('@/server/config', () => ({
-  config: {
-    workspace: { baseDir: '/tmp/test-workspace' },
-    publicUrl: 'http://localhost:3000',
-  },
+  config: { ...fullMockConfig },
 }))
 
 // Slug functions are pure — no need to mock them
@@ -74,9 +71,10 @@ mock.module('drizzle-orm', () => ({
 }))
 
 // ─── Import module under test ────────────────────────────────────────────────
-
-import { validateKinFields, kinAvatarUrl } from '@/server/services/kins'
-import type { ValidationError } from '@/server/services/kins'
+// Import from kin-validation directly to avoid Bun's global mock.module leakage
+// (kin-management-tools.test.ts mocks @/server/services/kins globally)
+import { validateKinFields, kinAvatarUrl } from '@/server/services/field-validator'
+import type { ValidationError } from '@/server/services/field-validator'
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 

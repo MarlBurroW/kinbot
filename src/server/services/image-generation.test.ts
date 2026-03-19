@@ -1,5 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
-import { fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
+import { fullMockConfig, fullMockSchema, fullMockDrizzleOrm } from '../../test-helpers'
 
 // Mock all external dependencies before importing the module
 mock.module('ai', () => ({
@@ -59,8 +59,8 @@ mock.module('@/server/db/schema', () => ({
 
 mock.module('@/server/config', () => ({
   config: {
-    memory: { embeddingModel: 'text-embedding-3-small' },
-    upload: { dir: '/tmp/test-uploads' },
+    ...fullMockConfig,
+    upload: { ...fullMockConfig.upload, dir: '/tmp/test-uploads' },
   },
 }))
 

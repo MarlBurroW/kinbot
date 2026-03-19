@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
+import { fullMockConfig } from '../../test-helpers'
 import type { ToolExecutionContext } from '@/server/tools/types'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ mock.module('@/server/logger', () => ({
   createLogger: () => ({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
 }))
 mock.module('@/server/config', () => ({
-  config: { memory: { extractionModel: undefined } },
+  config: { ...fullMockConfig },
 }))
 // Spread all real exports to avoid poisoning the module for other test files
 // Wrap in try-catch — if mock.module didn't intercept config/db, this import crashes
@@ -153,6 +154,7 @@ describe('memory-tools', () => {
         subject: 'nicolas',
         importance: 7,
         sourceChannel: 'explicit',
+        scope: 'private',
       })
       expect(result).toEqual({
         id: 'mem-new',
@@ -178,6 +180,7 @@ describe('memory-tools', () => {
         subject: undefined,
         importance: null,
         sourceChannel: 'explicit',
+        scope: 'private',
       })
     })
 
