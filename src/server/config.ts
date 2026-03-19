@@ -148,10 +148,18 @@ export const config = {
   },
 
   compacting: {
-    /** Trigger compaction when context usage reaches this % of model's context window (default: 75) */
+    /** Trigger compaction when context usage reaches this % of model's context window (default: 75).
+     *  Acts as a fallback trigger — the primary trigger is message-count-based (batchSize + minKeepMessages). */
     thresholdPercent: Number(process.env.COMPACTING_THRESHOLD_PERCENT ?? 75),
     model: process.env.COMPACTING_MODEL ?? undefined,
     maxSnapshotsPerKin: Number(process.env.COMPACTING_MAX_SNAPSHOTS ?? 10),
+    /** Number of messages per micro-compaction batch.
+     *  Instead of one big compaction, old messages are summarized in fixed-size batches
+     *  after each LLM turn, spreading the cost over time. */
+    batchSize: Number(process.env.COMPACTING_BATCH_SIZE ?? 20),
+    /** Minimum number of non-compacted messages to keep as raw context.
+     *  A batch is only taken when non-compacted count > batchSize + minKeepMessages. */
+    minKeepMessages: Number(process.env.COMPACTING_MIN_KEEP_MESSAGES ?? 15),
   },
 
   /** Max estimated tokens for conversation history injected into the LLM context.

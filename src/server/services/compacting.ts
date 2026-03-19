@@ -58,8 +58,8 @@ async function getKinContextWindow(kinId: string): Promise<number> {
   return getModelContextWindow(kin?.model ?? 'unknown')
 }
 
-/** Get non-compacted token count for a Kin (shared by shouldCompact + getCompactingProximity) */
-async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number }> {
+/** Get non-compacted stats for a Kin (shared by shouldCompact + getCompactingProximity) */
+async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; messageCount: number }> {
   const activeSnapshot = await db
     .select()
     .from(compactingSnapshots)
@@ -90,14 +90,18 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
     0,
   )
 
-  return { currentTokens }
+  return { currentTokens, messageCount: nonCompacted.length }
 }
 
 // ─── Threshold Evaluation ────────────────────────────────────────────────────
 
 /**
  * Evaluate whether compacting should trigger for a Kin.
- * Returns true if token count exceeds the configured percentage of model context window.
+ *
+ * Primary trigger (incremental): enough non-compacted messages to form a batch
+ * while still keeping minKeepMessages as raw context.
+ *
+ * Fallback trigger (legacy): token count exceeds the configured % of model context window.
  */
 async function shouldCompact(kinId: string): Promise<boolean> {
   const [stats, thresholdPercent, contextWindow] = await Promise.all([
@@ -106,7 +110,13 @@ async function shouldCompact(kinId: string): Promise<boolean> {
     getKinContextWindow(kinId),
   ])
 
-  if (stats.currentTokens === 0) return false
+  if (stats.messageCount === 0) return false
+
+  // Primary: incremental batch trigger
+  const { batchSize, minKeepMessages } = config.compacting
+  if (stats.messageCount > batchSize + minKeepMessages) return true
+
+  // Fallback: token-based threshold (safety net for very token-heavy conversations)
   const tokenThreshold = Math.floor((contextWindow * thresholdPercent) / 100)
   return stats.currentTokens > tokenThreshold
 }
@@ -187,9 +197,14 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
 
   if (nonCompacted.length === 0) return null
 
-  // Keep 30% of messages as raw context
-  const keepCount = Math.max(1, Math.ceil(nonCompacted.length * 0.3))
-  const messagesToSummarize = nonCompacted.slice(0, -keepCount)
+  // Incremental batching: take a fixed batch from the oldest end,
+  // keeping at least minKeepMessages as raw context.
+  const { batchSize, minKeepMessages } = config.compacting
+  const maxSummarizable = nonCompacted.length - minKeepMessages
+  if (maxSummarizable <= 0) return null
+
+  // Take at most batchSize messages, or everything available if fewer
+  const messagesToSummarize = nonCompacted.slice(0, Math.min(batchSize, maxSummarizable))
 
   if (messagesToSummarize.length === 0) return null
 
@@ -367,7 +382,7 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     createdAt: new Date(),
   })
 
-  log.info({ kinId, snapshotId: newSnapshotId, summarizedCount: messagesToSummarize.length, memoriesExtracted }, 'Compacting snapshot created')
+  log.info({ kinId, snapshotId: newSnapshotId, summarizedCount: messagesToSummarize.length, remainingMessages: nonCompacted.length - messagesToSummarize.length, memoriesExtracted }, 'Incremental compacting batch completed')
 
   // Emit SSE: compaction done
   sseManager.sendToKin(kinId, {
