@@ -25,6 +25,7 @@ const mockContacts = {
   deleteNotesByKin: mock(() => {}),
   getVisibleNotes: mock(() => []),
   updateContactNote: mock(() => null as any),
+  listContactsWithDetails: mock(() => Promise.resolve([])),
 }
 
 mock.module('@/server/services/contacts', () => mockContacts)

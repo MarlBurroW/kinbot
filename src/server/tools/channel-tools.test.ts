@@ -39,6 +39,12 @@ mock.module('@/server/services/channels', () => ({
   countPendingApprovals: mock(() => Promise.resolve(0)),
   countPendingApprovalsForChannel: mock(() => Promise.resolve(0)),
   listContactPlatformIds: mock(() => []),
+  addContactPlatformId: mock(() => ({})),
+  removeContactPlatformId: mock(() => true),
+  setChannelOriginMeta: () => {},
+  getChannelOriginMeta: () => undefined,
+  getActiveChannelsForKin: () => [],
+  restoreActiveChannels: async () => {},
 }))
 
 const mockSendMessage = mock(() => Promise.resolve({ platformMessageId: 'msg-123' }))
