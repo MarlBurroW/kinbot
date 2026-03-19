@@ -35,7 +35,10 @@ import {
   Wrench,
   Cpu,
   FileText,
+  ListOrdered,
+  Play,
 } from 'lucide-react'
+import { api } from '@/client/lib/api'
 import type { TaskStatus } from '@/shared/types'
 
 interface LLMModel {
@@ -63,6 +66,7 @@ const STATUS_CONFIG: Record<
     badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline'
   }
 > = {
+  queued: { icon: ListOrdered, iconClass: 'text-muted-foreground', badgeVariant: 'secondary' },
   pending: { icon: Clock, iconClass: 'text-muted-foreground', badgeVariant: 'secondary' },
   in_progress: { icon: Loader2, iconClass: 'animate-spin', badgeVariant: 'default' },
   awaiting_human_input: { icon: UserCheck, iconClass: 'text-warning animate-pulse', badgeVariant: 'outline' },
@@ -130,11 +134,26 @@ export function TaskDetailModal({
     }
   }, [open])
 
+  const [isForceStarting, setIsForceStarting] = useState(false)
+
   const statusConfig = task ? STATUS_CONFIG[task.status] : null
   const StatusIcon = statusConfig?.icon
+  const isQueued = task?.status === 'queued'
   const isActive = task?.status === 'pending' || task?.status === 'in_progress' || task?.status === 'awaiting_human_input' || task?.status === 'awaiting_kin_response'
   const initials = kinName?.slice(0, 2).toUpperCase() ?? 'K'
   const resolvedModel = task?.model ? llmModels.find((m) => m.id === task.model) : null
+
+  const handleForceStart = useCallback(async () => {
+    if (!task) return
+    setIsForceStarting(true)
+    try {
+      await api.post(`/tasks/${task.id}/force-promote`)
+    } catch {
+      // Error handled by API layer
+    } finally {
+      setIsForceStarting(false)
+    }
+  }, [task])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -244,6 +263,25 @@ export function TaskDetailModal({
             {isLoading && !task ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : isQueued ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <ListOrdered className="size-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground text-center">
+                  {t('sidebar.tasks.status.queued')}
+                </p>
+                {task?.concurrencyGroup && (
+                  <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      {t('sidebar.tasks.queueGroup', { group: task.concurrencyGroup })}
+                    </p>
+                    {task.concurrencyMax && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">
+                        {t('taskDetail.concurrencySlots', { max: task.concurrencyMax })}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : visibleMessages.length === 0 && !streamingMessage && !isStreaming ? (
               isActive ? (
@@ -369,7 +407,17 @@ export function TaskDetailModal({
 
         {/* Footer */}
         <DialogFooter className="pt-3 border-t border-border">
-          {isActive && (
+          {isQueued && (
+            <Button variant="default" size="sm" onClick={handleForceStart} disabled={isForceStarting}>
+              {isForceStarting ? (
+                <Loader2 className="size-3.5 animate-spin mr-1" />
+              ) : (
+                <Play className="size-3.5 mr-1" />
+              )}
+              {t('taskDetail.forceStart')}
+            </Button>
+          )}
+          {(isActive || isQueued) && (
             <Button variant="destructive" size="sm" onClick={cancelTask}>
               {t('taskDetail.cancel')}
             </Button>

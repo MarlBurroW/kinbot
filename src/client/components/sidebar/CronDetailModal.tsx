@@ -69,6 +69,7 @@ const TASK_STATUS_CONFIG: Record<TaskStatus, {
   icon: typeof Clock
   iconClass: string
 }> = {
+  queued: { icon: Clock, iconClass: 'text-muted-foreground' },
   pending: { icon: Clock, iconClass: 'text-muted-foreground' },
   in_progress: { icon: Loader2, iconClass: 'text-primary animate-spin' },
   completed: { icon: CheckCircle2, iconClass: 'text-success' },

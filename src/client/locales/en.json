@@ -197,10 +197,16 @@
         "awaiting_kin_response": "Waiting for Kin",
         "completed": "Done",
         "failed": "Failed",
+        "queued": "Queued",
         "cancelled": "Cancelled"
       },
       "emptyDescription": "Tasks will appear here when Kins are working",
       "activeLabel": "Active",
+      "queuedLabel": "Queued",
+      "queueFilter": {
+        "all": "All queues"
+      },
+      "queueGroup": "Queue: {{group}}",
       "toast": {
         "completed": "Task completed: {{title}}",
         "failed": "Task failed: {{title}}",
@@ -703,7 +709,9 @@
     "viewPrompt": "Prompt",
     "viewPromptTooltip": "View full task prompt",
     "prompt": "Task prompt",
-    "promptDescription": "Full task prompt content"
+    "promptDescription": "Full task prompt content",
+    "forceStart": "Force start",
+    "concurrencySlots": "Max {{max}} concurrent"
   },
   "settings": {
     "title": "Settings",

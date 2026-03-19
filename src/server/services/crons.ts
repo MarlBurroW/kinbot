@@ -302,23 +302,6 @@ async function triggerCron(cronId: string) {
   const cron = await db.select().from(crons).where(eq(crons.id, cronId)).get()
   if (!cron || !cron.isActive || cron.requiresApproval) return
 
-  // Check max concurrent cron executions
-  const activeCronTasks = await db
-    .select()
-    .from(tasks)
-    .where(
-      and(
-        eq(tasks.cronId, cronId),
-        eq(tasks.status, 'in_progress'),
-      ),
-    )
-    .all()
-
-  if (activeCronTasks.length >= config.crons.maxConcurrentExecutions) {
-    log.warn({ cronId }, 'Max concurrent cron executions reached, skipping')
-    return
-  }
-
   // Update last triggered
   await db
     .update(crons)
@@ -326,6 +309,7 @@ async function triggerCron(cronId: string) {
     .where(eq(crons.id, cronId))
 
   // Spawn sub-Kin task — async mode (result is informational, no LLM turn)
+  // Uses concurrency groups to queue tasks instead of dropping when max is reached
   const { taskId } = await spawnTask({
     parentKinId: cron.kinId,
     title: cron.name,
@@ -335,6 +319,8 @@ async function triggerCron(cronId: string) {
     sourceKinId: cron.targetKinId ?? undefined,
     model: cron.model ?? undefined,
     cronId: cron.id,
+    concurrencyGroup: `cron:${cron.id}`,
+    concurrencyMax: config.crons.maxConcurrentExecutions,
   })
 
   // Emit SSE event

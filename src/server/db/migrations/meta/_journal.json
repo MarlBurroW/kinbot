@@ -316,6 +316,13 @@
       "when": 1773852332884,
       "tag": "0044_wonderful_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "6",
+      "when": 1773950476107,
+      "tag": "0045_furry_dragon_lord",
+      "breakpoints": true
     }
   ]
 }

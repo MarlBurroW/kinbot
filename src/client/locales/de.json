@@ -197,10 +197,16 @@
         "awaiting_kin_response": "Warten auf Kin",
         "completed": "Erledigt",
         "failed": "Fehlgeschlagen",
+        "queued": "Warteschlange",
         "cancelled": "Abgesagt"
       },
       "emptyDescription": "Hier erscheinen Aufgaben, wenn deine Kins welche ausführen",
       "activeLabel": "Aktiv",
+      "queuedLabel": "Warteschlange",
+      "queueFilter": {
+        "all": "Alle Warteschlangen"
+      },
+      "queueGroup": "Warteschlange: {{group}}",
       "toast": {
         "completed": "Aufgabe abgeschlossen: {{title}}",
         "failed": "Aufgabe fehlgeschlagen: {{title}}",
@@ -696,7 +702,9 @@
     "viewPrompt": "Prompt",
     "viewPromptTooltip": "Vollständigen Aufgaben-Prompt anzeigen",
     "prompt": "Aufgaben-Prompt",
-    "promptDescription": "Vollständiger Inhalt des Aufgaben-Prompts"
+    "promptDescription": "Vollständiger Inhalt des Aufgaben-Prompts",
+    "forceStart": "Sofort starten",
+    "concurrencySlots": "Max {{max}} gleichzeitig"
   },
   "settings": {
     "title": "Einstellungen",

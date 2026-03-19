@@ -249,7 +249,7 @@ export const tasks = sqliteTable('tasks', {
   model: text('model'),
   title: text('title'),
   description: text('description').notNull(),
-  status: text('status').notNull().default('pending'), // 'pending' | 'in_progress' | 'awaiting_human_input' | 'awaiting_kin_response' | 'completed' | 'failed' | 'cancelled'
+  status: text('status').notNull().default('pending'), // 'queued' | 'pending' | 'in_progress' | 'awaiting_human_input' | 'awaiting_kin_response' | 'completed' | 'failed' | 'cancelled'
   result: text('result'),
   error: text('error'),
   depth: integer('depth').notNull().default(1),
@@ -260,12 +260,16 @@ export const tasks = sqliteTable('tasks', {
   pendingRequestId: text('pending_request_id'),
   channelOriginId: text('channel_origin_id'),
   allowHumanPrompt: integer('allow_human_prompt', { mode: 'boolean' }).notNull().default(true),
+  concurrencyGroup: text('concurrency_group'),
+  concurrencyMax: integer('concurrency_max'),
+  queuedAt: integer('queued_at', { mode: 'timestamp_ms' }),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
   index('idx_tasks_parent_kin').on(table.parentKinId),
   index('idx_tasks_status').on(table.status),
   index('idx_tasks_cron').on(table.cronId),
+  index('idx_tasks_concurrency').on(table.concurrencyGroup, table.status, table.queuedAt),
 ])
 
 export const crons = sqliteTable('crons', {

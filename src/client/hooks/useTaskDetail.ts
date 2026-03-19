@@ -16,6 +16,8 @@ interface TaskDetail {
   depth: number
   result: string | null
   error: string | null
+  concurrencyGroup: string | null
+  concurrencyMax: number | null
   createdAt: string
   updatedAt: string
 }

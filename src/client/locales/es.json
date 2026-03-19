@@ -197,10 +197,16 @@
         "awaiting_kin_response": "Esperando a un Kin",
         "completed": "Completada",
         "failed": "Fallida",
+        "queued": "En cola",
         "cancelled": "Cancelada"
       },
       "emptyDescription": "Las tareas aparecerán aquí cuando los Kins estén trabajando",
       "activeLabel": "Activas",
+      "queuedLabel": "En cola",
+      "queueFilter": {
+        "all": "Todas las colas"
+      },
+      "queueGroup": "Cola: {{group}}",
       "toast": {
         "completed": "Tarea completada: {{title}}",
         "failed": "Tarea fallida: {{title}}",
@@ -696,7 +702,9 @@
     "viewPrompt": "Prompt",
     "viewPromptTooltip": "Ver el prompt completo de la tarea",
     "prompt": "Prompt de la tarea",
-    "promptDescription": "Contenido completo del prompt de la tarea"
+    "promptDescription": "Contenido completo del prompt de la tarea",
+    "forceStart": "Iniciar ahora",
+    "concurrencySlots": "Máx {{max}} concurrentes"
   },
   "settings": {
     "title": "Ajustes",

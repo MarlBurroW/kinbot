@@ -38,13 +38,124 @@ function kinAvatarUrl(kinId: string, avatarPath: string | null, updatedAt?: Date
 export function recoverStaleTasks() {
   // Note: 'awaiting_human_input' is NOT recovered — the human can still respond after restart
   // Note: 'awaiting_kin_response' IS recovered — the timeout timer is lost on restart
+  // Note: 'queued' IS recovered — the promotion mechanism is lost on restart
   const result = sqlite.run(
-    `UPDATE tasks SET status = 'failed', error = 'Interrupted by server restart', updated_at = ? WHERE status IN ('pending', 'in_progress', 'awaiting_kin_response')`,
+    `UPDATE tasks SET status = 'failed', error = 'Interrupted by server restart', updated_at = ? WHERE status IN ('queued', 'pending', 'in_progress', 'awaiting_kin_response')`,
     [Date.now()],
   )
   if (result.changes > 0) {
     log.warn({ count: result.changes }, 'Recovered stale tasks → marked as failed')
   }
+}
+
+// ─── Concurrency Group Helpers ───────────────────────────────────────────────
+
+const ACTIVE_STATUSES: TaskStatus[] = ['pending', 'in_progress', 'awaiting_human_input', 'awaiting_kin_response']
+
+async function countActiveTasksInGroup(group: string): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tasks)
+    .where(and(eq(tasks.concurrencyGroup, group), inArray(tasks.status, ACTIVE_STATUSES)))
+    .all()
+  return result[0]?.count ?? 0
+}
+
+export async function promoteNextQueuedTask(group: string, maxConcurrent: number) {
+  const activeCount = await countActiveTasksInGroup(group)
+  if (activeCount >= maxConcurrent) return
+
+  // Get oldest queued task in this group
+  const next = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.concurrencyGroup, group), eq(tasks.status, 'queued')))
+    .orderBy(asc(tasks.queuedAt))
+    .limit(1)
+    .get()
+
+  if (!next) return
+
+  // Promote: queued → pending
+  await db
+    .update(tasks)
+    .set({ status: 'pending', queuedAt: null, updatedAt: new Date() })
+    .where(eq(tasks.id, next.id))
+
+  // Resolve executing Kin info for SSE
+  const executingKinId = next.sourceKinId ?? next.parentKinId
+  const executingKin = await db.select().from(kins).where(eq(kins.id, executingKinId)).get()
+
+  sseManager.sendToKin(next.parentKinId, {
+    type: 'task:status',
+    kinId: next.parentKinId,
+    data: {
+      taskId: next.id,
+      kinId: next.parentKinId,
+      status: 'pending',
+      title: next.title ?? next.description,
+      senderName: executingKin?.name ?? null,
+      senderAvatarUrl: kinAvatarUrl(executingKinId, executingKin?.avatarPath ?? null, executingKin?.updatedAt),
+    },
+  })
+
+  log.info({ taskId: next.id, group }, 'Queued task promoted to pending')
+
+  // Notify source Kin (for spawn_type = 'other')
+  if (next.spawnType === 'other' && next.sourceKinId) {
+    const taskLabel = next.title ?? next.description
+    const briefDesc = next.description.length > 200
+      ? next.description.slice(0, 200) + '...'
+      : next.description
+    notifySourceKin(next.sourceKinId, next.parentKinId, `[Task assigned: ${taskLabel}] ${briefDesc}`, next.id)
+      .catch((err) => log.warn({ taskId: next.id, sourceKinId: next.sourceKinId, err }, 'Failed to notify source Kin on promote'))
+  }
+
+  // Execute the sub-Kin
+  executeSubKin(next.id).catch((err) =>
+    log.error({ taskId: next.id, err }, 'Sub-Kin execution error after promotion'),
+  )
+}
+
+export async function forcePromoteTask(taskId: string): Promise<boolean> {
+  const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get()
+  if (!task || task.status !== 'queued') return false
+
+  await db
+    .update(tasks)
+    .set({ status: 'pending', queuedAt: null, updatedAt: new Date() })
+    .where(eq(tasks.id, taskId))
+
+  const executingKinId = task.sourceKinId ?? task.parentKinId
+  const executingKin = await db.select().from(kins).where(eq(kins.id, executingKinId)).get()
+
+  sseManager.sendToKin(task.parentKinId, {
+    type: 'task:status',
+    kinId: task.parentKinId,
+    data: {
+      taskId: task.id,
+      kinId: task.parentKinId,
+      status: 'pending',
+      title: task.title ?? task.description,
+      senderName: executingKin?.name ?? null,
+      senderAvatarUrl: kinAvatarUrl(executingKinId, executingKin?.avatarPath ?? null, executingKin?.updatedAt),
+    },
+  })
+
+  log.info({ taskId, group: task.concurrencyGroup }, 'Task force-promoted')
+
+  if (task.spawnType === 'other' && task.sourceKinId) {
+    const taskLabel = task.title ?? task.description
+    const briefDesc = task.description.length > 200 ? task.description.slice(0, 200) + '...' : task.description
+    notifySourceKin(task.sourceKinId, task.parentKinId, `[Task assigned: ${taskLabel}] ${briefDesc}`, task.id)
+      .catch((err) => log.warn({ taskId, sourceKinId: task.sourceKinId, err }, 'Failed to notify source Kin on force-promote'))
+  }
+
+  executeSubKin(taskId).catch((err) =>
+    log.error({ taskId, err }, 'Sub-Kin execution error after force-promote'),
+  )
+
+  return true
 }
 
 // ─── Source Kin Notification ─────────────────────────────────────────────────
@@ -114,6 +225,8 @@ interface SpawnParams {
   depth?: number
   allowHumanPrompt?: boolean
   channelOriginId?: string
+  concurrencyGroup?: string
+  concurrencyMax?: number
 }
 
 export async function spawnTask(params: SpawnParams) {
@@ -138,6 +251,18 @@ export async function spawnTask(params: SpawnParams) {
   const taskId = uuid()
   const now = new Date()
 
+  // Determine initial status — if concurrency group is full, start as 'queued'
+  const concurrencyGroup = params.concurrencyGroup ?? null
+  const concurrencyMax = params.concurrencyMax ?? null
+  let initialStatus: 'pending' | 'queued' = 'pending'
+
+  if (concurrencyGroup && concurrencyMax) {
+    const activeCount = await countActiveTasksInGroup(concurrencyGroup)
+    if (activeCount >= concurrencyMax) {
+      initialStatus = 'queued'
+    }
+  }
+
   await db.insert(tasks).values({
     id: taskId,
     parentKinId: params.parentKinId,
@@ -147,12 +272,15 @@ export async function spawnTask(params: SpawnParams) {
     model: params.model ?? null,
     title: params.title ?? null,
     description: params.description,
-    status: 'pending',
+    status: initialStatus,
     depth,
     parentTaskId: params.parentTaskId ?? null,
     cronId: params.cronId ?? null,
     channelOriginId: params.channelOriginId ?? null,
     allowHumanPrompt: params.allowHumanPrompt ?? true,
+    concurrencyGroup,
+    concurrencyMax,
+    queuedAt: initialStatus === 'queued' ? now : null,
     createdAt: now,
     updatedAt: now,
   })
@@ -168,14 +296,20 @@ export async function spawnTask(params: SpawnParams) {
     data: {
       taskId,
       kinId: params.parentKinId,
-      status: 'pending',
+      status: initialStatus,
       title: params.title ?? params.description,
       senderName: executingKin?.name ?? null,
       senderAvatarUrl: kinAvatarUrl(executingKinId, executingKin?.avatarPath ?? null, executingKin?.updatedAt),
+      concurrencyGroup,
     },
   })
 
-  log.info({ taskId, parentKinId: params.parentKinId, mode: params.mode, spawnType: params.spawnType, depth }, 'Task spawned')
+  log.info({ taskId, parentKinId: params.parentKinId, mode: params.mode, spawnType: params.spawnType, depth, queued: initialStatus === 'queued' }, 'Task spawned')
+
+  // If queued, don't execute yet — will be promoted when a slot opens
+  if (initialStatus === 'queued') {
+    return { taskId, queued: true }
+  }
 
   // Notify source Kin about being spawned (only for spawn_type = 'other')
   if (params.spawnType === 'other' && params.sourceKinId) {
@@ -197,7 +331,7 @@ export async function spawnTask(params: SpawnParams) {
     log.error({ taskId, err }, 'Sub-Kin execution error'),
   )
 
-  return { taskId }
+  return { taskId, queued: false }
 }
 
 // ─── Sub-Kin Execution ───────────────────────────────────────────────────────
@@ -807,6 +941,13 @@ export async function resolveTask(
       })
     }
   }
+
+  // Promote next queued task in the same concurrency group
+  if (task.concurrencyGroup && task.concurrencyMax) {
+    promoteNextQueuedTask(task.concurrencyGroup, task.concurrencyMax).catch((err) =>
+      log.error({ taskId, group: task.concurrencyGroup, err }, 'Failed to promote next queued task'),
+    )
+  }
 }
 
 // ─── Task Operations ─────────────────────────────────────────────────────────
@@ -866,6 +1007,13 @@ export async function cancelTask(taskId: string, kinId: string) {
       `[Task cancelled: ${taskLabel}]`,
       task.id,
     ).catch((err) => log.warn({ taskId: task.id, sourceKinId: task.sourceKinId, err }, 'Failed to notify source Kin on cancel'))
+  }
+
+  // Promote next queued task in the same concurrency group
+  if (task.concurrencyGroup && task.concurrencyMax) {
+    promoteNextQueuedTask(task.concurrencyGroup, task.concurrencyMax).catch((err) =>
+      log.error({ taskId, group: task.concurrencyGroup, err }, 'Failed to promote next queued task after cancel'),
+    )
   }
 
   return true

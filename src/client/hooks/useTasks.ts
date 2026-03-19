@@ -17,6 +17,7 @@ interface TasksResponse {
 export function useTasks() {
   const { t } = useTranslation()
   const [activeTasks, setActiveTasks] = useState<TaskSummary[]>([])
+  const [queuedTasks, setQueuedTasks] = useState<TaskSummary[]>([])
   const [historyTasks, setHistoryTasks] = useState<TaskSummary[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -36,15 +37,19 @@ export function useTasks() {
   // Fetch active tasks (no pagination — bounded by maxConcurrent)
   const fetchActiveTasks = useCallback(async () => {
     try {
-      const [pending, inProgress, awaitingHuman, awaitingKin] = await Promise.all([
+      const [pending, inProgress, awaitingHuman, awaitingKin, queued] = await Promise.all([
         api.get<TasksResponse>('/tasks?status=pending&limit=100&offset=0'),
         api.get<TasksResponse>('/tasks?status=in_progress&limit=100&offset=0'),
         api.get<TasksResponse>('/tasks?status=awaiting_human_input&limit=100&offset=0'),
         api.get<TasksResponse>('/tasks?status=awaiting_kin_response&limit=100&offset=0'),
+        api.get<TasksResponse>('/tasks?status=queued&limit=100&offset=0'),
       ])
       const all = [...awaitingHuman.tasks, ...awaitingKin.tasks, ...inProgress.tasks, ...pending.tasks]
       for (const task of all) knownTaskIdsRef.current.add(task.id)
+      for (const task of queued.tasks) knownTaskIdsRef.current.add(task.id)
       setActiveTasks(all)
+      // Reverse to oldest-first (API returns createdAt DESC, queue position is FIFO)
+      setQueuedTasks([...queued.tasks].reverse())
     } catch {
       // Silently fail — tasks are non-critical
     }
@@ -103,8 +108,26 @@ export function useTasks() {
       const now = new Date().toISOString()
 
       const isActiveStatus = status === 'pending' || status === 'in_progress' || status === 'awaiting_human_input' || status === 'awaiting_kin_response'
+      const isQueued = status === 'queued'
 
       let movedTask: TaskSummary | null = null
+
+      // Handle queued tasks list
+      setQueuedTasks((prev) => {
+        if (isQueued) {
+          // New queued task or update existing
+          const existing = prev.find((t) => t.id === taskId)
+          if (existing) {
+            return prev.map((t) => (t.id === taskId ? { ...t, status, updatedAt: now } : t))
+          }
+          // New queued task — refetch to get full data
+          knownTaskIdsRef.current.add(taskId)
+          fetchActiveTasks()
+          return prev
+        }
+        // No longer queued — remove from queued list (promoted or cancelled)
+        return prev.filter((t) => t.id !== taskId)
+      })
 
       setActiveTasks((prev) => {
         const existing = prev.find((t) => t.id === taskId)
@@ -117,7 +140,7 @@ export function useTasks() {
           return prev.filter((t) => t.id !== taskId)
         }
         if (isActiveStatus) {
-          // New active task — track and refetch to get full data
+          // New active task (or promoted from queued) — track and refetch to get full data
           knownTaskIdsRef.current.add(taskId)
           fetchActiveTasks()
         }
@@ -125,21 +148,24 @@ export function useTasks() {
       })
 
       // Move to history or update in-place
-      setHistoryTasks((prev) => {
-        const exists = prev.some((t) => t.id === taskId)
-        if (exists) {
-          return prev.map((t) => (t.id === taskId ? { ...t, status, updatedAt: now } : t))
-        }
-        // Task was in activeTasks but not in history — prepend it
-        if (movedTask) {
-          return [movedTask, ...prev]
-        }
-        return prev
-      })
+      if (!isQueued) {
+        setHistoryTasks((prev) => {
+          const exists = prev.some((t) => t.id === taskId)
+          if (exists) {
+            return prev.map((t) => (t.id === taskId ? { ...t, status, updatedAt: now } : t))
+          }
+          // Task was in activeTasks but not in history — prepend it
+          if (movedTask) {
+            return [movedTask, ...prev]
+          }
+          return prev
+        })
+      }
     },
     'task:deleted': (data) => {
       const taskId = data.taskId as string
       setActiveTasks((prev) => prev.filter((t) => t.id !== taskId))
+      setQueuedTasks((prev) => prev.filter((t) => t.id !== taskId))
       setHistoryTasks((prev) => prev.filter((t) => t.id !== taskId))
     },
     'task:done': (data) => {
@@ -152,6 +178,14 @@ export function useTasks() {
 
       setActiveTasks((prev) => {
         finishedTask = prev.find((t) => t.id === taskId) ?? null
+        return prev.filter((t) => t.id !== taskId)
+      })
+
+      // Also remove from queued if it was there
+      setQueuedTasks((prev) => {
+        if (!finishedTask) {
+          finishedTask = prev.find((t) => t.id === taskId) ?? null
+        }
         return prev.filter((t) => t.id !== taskId)
       })
 
@@ -201,6 +235,7 @@ export function useTasks() {
 
   return {
     activeTasks,
+    queuedTasks,
     historyTasks,
     hasMore,
     isLoading,

@@ -197,10 +197,16 @@
         "awaiting_kin_response": "En attente d'un Kin",
         "completed": "Terminée",
         "failed": "Échouée",
+        "queued": "En file d'attente",
         "cancelled": "Annulée"
       },
       "emptyDescription": "Les tâches apparaîtront ici quand vos Kins travaillent",
       "activeLabel": "En cours",
+      "queuedLabel": "En file d'attente",
+      "queueFilter": {
+        "all": "Toutes les files"
+      },
+      "queueGroup": "File : {{group}}",
       "toast": {
         "completed": "Tâche terminée : {{title}}",
         "failed": "Tâche échouée : {{title}}",
@@ -703,7 +709,9 @@
     "viewPrompt": "Prompt",
     "viewPromptTooltip": "Voir le prompt complet de la tâche",
     "prompt": "Prompt de la tâche",
-    "promptDescription": "Contenu complet du prompt de la tâche"
+    "promptDescription": "Contenu complet du prompt de la tâche",
+    "forceStart": "Démarrer immédiatement",
+    "concurrencySlots": "Max {{max}} concurrent"
   },
   "settings": {
     "title": "Paramètres",

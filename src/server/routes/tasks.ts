@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { eq, and, asc } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { tasks, messages, kins } from '@/server/db/schema'
-import { getTask, listTasksPaginated, cancelTask } from '@/server/services/tasks'
+import { getTask, listTasksPaginated, cancelTask, forcePromoteTask } from '@/server/services/tasks'
 import type { AppVariables } from '@/server/app'
 import type { TaskStatus } from '@/shared/types'
 import { createLogger } from '@/server/logger'
@@ -57,6 +57,9 @@ taskRoutes.get('/', async (c) => {
         model: t.model ?? parentKin?.model ?? null,
         cronId: t.cronId ?? null,
         depth: t.depth,
+        concurrencyGroup: t.concurrencyGroup ?? null,
+        concurrencyMax: t.concurrencyMax ?? null,
+        queuePosition: null, // Computed on-demand for queued tasks
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
       }
@@ -102,6 +105,8 @@ taskRoutes.get('/:id', async (c) => {
       depth: task.depth,
       result: task.result,
       error: task.error,
+      concurrencyGroup: task.concurrencyGroup ?? null,
+      concurrencyMax: task.concurrencyMax ?? null,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
     },
@@ -140,5 +145,26 @@ taskRoutes.post('/:id/cancel', async (c) => {
   }
 
   log.info({ taskId, parentKinId: task.parentKinId }, 'Task cancelled')
+  return c.json({ success: true })
+})
+
+// POST /api/tasks/:id/force-promote — force-start a queued task (ignoring concurrency limit)
+taskRoutes.post('/:id/force-promote', async (c) => {
+  const taskId = c.req.param('id')
+  const task = await getTask(taskId)
+
+  if (!task) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'Task not found' } }, 404)
+  }
+
+  const success = await forcePromoteTask(taskId)
+  if (!success) {
+    return c.json(
+      { error: { code: 'TASK_NOT_QUEUED', message: 'Task is not in queued status' } },
+      409,
+    )
+  }
+
+  log.info({ taskId }, 'Task force-promoted')
   return c.json({ success: true })
 })
