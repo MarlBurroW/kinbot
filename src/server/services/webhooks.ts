@@ -217,7 +217,7 @@ export function evaluateFilter(config: FilterConfig, payload: string): FilterRes
     try {
       parsed = JSON.parse(payload)
     } catch {
-      return { passed: true, error: 'non-json' }
+      return { passed: false, error: 'non-json' }
     }
 
     const raw = extractByPath(parsed, config.filterField)
@@ -227,7 +227,7 @@ export function evaluateFilter(config: FilterConfig, payload: string): FilterRes
     try {
       allowedValues = config.filterAllowedValues ? JSON.parse(config.filterAllowedValues) : []
     } catch {
-      return { passed: true, error: 'invalid-allowed-values' }
+      return { passed: false, error: 'invalid-allowed-values' }
     }
 
     if (allowedValues.length === 0) {
@@ -328,7 +328,7 @@ export async function getFilteredCounts(webhookIds: string[]): Promise<Record<st
 
 // ─── Trigger ────────────────────────────────────────────────────────────────
 
-const MAX_LOG_PAYLOAD_BYTES = 10_240 // 10 KB
+const MAX_LOG_PAYLOAD_BYTES = 524_288 // 512 KB
 
 export async function triggerWebhook(webhookId: string, payload: string, sourceIp?: string) {
   const webhook = await db.select().from(webhooks).where(eq(webhooks.id, webhookId)).get()

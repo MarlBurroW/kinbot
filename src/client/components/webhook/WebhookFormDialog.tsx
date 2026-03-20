@@ -147,7 +147,14 @@ export function WebhookFormDialog({
       setSuggestedFields(data.fields)
       setLastPayload(data.lastPayload)
       if (data.lastPayload && !testPayload) {
-        setTestPayload(data.lastPayload)
+        // Pretty-print JSON for readability and to prevent horizontal overflow
+        let formatted = data.lastPayload
+        try {
+          formatted = JSON.stringify(JSON.parse(data.lastPayload), null, 2)
+        } catch {
+          // Not valid JSON — use as-is
+        }
+        setTestPayload(formatted)
       }
     } catch {
       // Ignore — suggestions are optional
@@ -564,7 +571,7 @@ export function WebhookFormDialog({
 
                 {/* Test zone */}
                 {filterMode && (
-                  <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3 overflow-hidden">
                     <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
                       <FlaskConical className="size-4" />
                       {t('settings.webhooks.filterTest')}
@@ -576,8 +583,9 @@ export function WebhookFormDialog({
                         setTestResult(null)
                       }}
                       placeholder={t('settings.webhooks.filterTestPayloadPlaceholder')}
-                      rows={4}
-                      className="font-mono text-xs"
+                      rows={6}
+                      className="font-mono text-xs resize-y [overflow-wrap:break-word] [word-break:break-all]"
+                      style={{ maxWidth: '100%' }}
                     />
                     <div className="flex items-center gap-3">
                       <Button
