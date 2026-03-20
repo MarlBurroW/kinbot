@@ -160,7 +160,7 @@ function formatTree(entries: TreeEntry[], prefix: string): string {
   const lines: string[] = []
 
   for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i]
+    const entry = entries[i]!
     const isLast = i === entries.length - 1
     const connector = isLast ? '└── ' : '├── '
     const childPrefix = isLast ? '    ' : '│   '

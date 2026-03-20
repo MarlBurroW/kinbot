@@ -139,7 +139,7 @@ describe('custom-tool-tools', () => {
     })
 
     it('handles null return from createCustomTool', async () => {
-      mockCreateCustomTool.mockImplementation(() => Promise.resolve(null))
+      mockCreateCustomTool.mockImplementation(() => Promise.resolve(null) as any)
 
       const result = await execute(registerToolTool, {
         name: 'maybe_tool',

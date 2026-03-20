@@ -108,10 +108,10 @@ describe('wrapToolsWithSpill', () => {
       description: 'test tool',
       parameters: {} as any,
       execute: async () => largeOutput,
-    }
+    } as any
 
     const wrapped = wrapToolsWithSpill({ test_tool: mockTool }, TEST_DIR)
-    const result = await wrapped.test_tool.execute!({}, {}) as any
+    const result = await wrapped.test_tool!.execute!({}, {} as any) as any
 
     expect(result.__spilled).toBe(true)
     expect(result.toolName).toBe('test_tool')
@@ -123,16 +123,16 @@ describe('wrapToolsWithSpill', () => {
       description: 'read file',
       parameters: {} as any,
       execute: async () => largeOutput,
-    }
+    } as any
 
     const wrapped = wrapToolsWithSpill({ read_file: mockTool }, TEST_DIR)
-    const result = await wrapped.read_file.execute!({}, {})
+    const result = await wrapped.read_file!.execute!({}, {} as any)
 
     expect(result).toEqual(largeOutput) // not spilled
   })
 
   it('passes through tools without execute', () => {
-    const noExecTool = { description: 'no exec', parameters: {} as any }
+    const noExecTool = { description: 'no exec', parameters: {} as any } as any
     const wrapped = wrapToolsWithSpill({ no_exec: noExecTool }, TEST_DIR)
     expect(wrapped.no_exec).toBe(noExecTool)
   })
