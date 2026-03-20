@@ -42,6 +42,10 @@ log.info('Initializing virtual tables (FTS5, sqlite-vec)...')
 initVirtualTables()
 log.info('Virtual tables initialized')
 
+// One-time migration: backfill missing providerIds on kins/tasks/crons
+import { migrateModelProviders } from '@/server/services/migrate-model-providers'
+await migrateModelProviders()
+
 // Register native tools
 log.info('Registering native tools...')
 registerAllTools()

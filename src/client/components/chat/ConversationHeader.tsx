@@ -6,7 +6,7 @@ import { Badge } from '@/client/components/ui/badge'
 import { Progress } from '@/client/components/ui/progress'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/client/components/ui/popover'
-import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -43,6 +43,7 @@ interface ConversationHeaderProps {
   name: string
   role: string
   model: string
+  providerId: string | null
   avatarUrl: string | null
   llmModels: LLMModel[]
   modelUnavailable?: boolean
@@ -52,7 +53,7 @@ interface ConversationHeaderProps {
   toolCallCount: number
   isToolCallsOpen: boolean
   queueState?: { isProcessing: boolean; queueSize: number }
-  onModelChange: (model: string) => void
+  onModelChange: (modelId: string, providerId: string) => void
   onToggleToolCalls: () => void
   onForceCompact?: () => void
   isCompacting?: boolean
@@ -79,6 +80,7 @@ export const ConversationHeader = memo(function ConversationHeader({
   name,
   role,
   model,
+  providerId,
   avatarUrl,
   llmModels,
   modelUnavailable = false,
@@ -189,9 +191,9 @@ export const ConversationHeader = memo(function ConversationHeader({
               <p className="text-[11px] font-medium text-muted-foreground">{t('kin.create.model')}</p>
               <ModelPicker
                 models={llmModels}
-                value={model}
-                onValueChange={(v) => {
-                  onModelChange(v)
+                value={modelPickerValue(model, providerId ?? '')}
+                onValueChange={(modelId, pid) => {
+                  onModelChange(modelId, pid)
                   setMobileInfoOpen(false)
                 }}
                 className="h-8 text-xs"
@@ -241,7 +243,7 @@ export const ConversationHeader = memo(function ConversationHeader({
         {/* Model picker (compact) */}
         <ModelPicker
           models={llmModels}
-          value={model}
+          value={modelPickerValue(model, providerId ?? '')}
           onValueChange={onModelChange}
           className="h-7 w-auto max-w-[280px] text-xs"
         />

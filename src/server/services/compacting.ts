@@ -11,7 +11,7 @@ import {
   userProfiles,
 } from '@/server/db/schema'
 import { config } from '@/server/config'
-import { getExtractionModel } from '@/server/services/app-settings'
+import { getExtractionModel, getExtractionProviderId } from '@/server/services/app-settings'
 import { createMemory, updateMemory, isDuplicateMemory, pruneStaleMemories } from '@/server/services/memory'
 import { sseManager } from '@/server/sse/index'
 import type { KinCompactingConfig, MemoryCategory } from '@/shared/types'
@@ -498,8 +498,11 @@ async function extractMemories(
 ): Promise<number> {
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
   const settingsExtractionModel = await getExtractionModel()
+  const settingsExtractionProviderId = await getExtractionProviderId()
   const effectiveExtractionModel = settingsExtractionModel ?? config.memory.extractionModel
-  const extractionProviderId = effectiveExtractionModel ? null : kinProviderId
+  const extractionProviderId = settingsExtractionProviderId
+    ?? config.memory.extractionProviderId
+    ?? (effectiveExtractionModel ? null : kinProviderId)
   const model = await resolveLLMModel(effectiveExtractionModel ?? kinModel, extractionProviderId)
   if (!model) return 0
 

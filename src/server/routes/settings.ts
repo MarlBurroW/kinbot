@@ -14,6 +14,10 @@ import {
   setDefaultSearchProvider,
   getHubKinId,
   setHubKinId,
+  getExtractionProviderId,
+  setExtractionProviderId,
+  getEmbeddingProviderId,
+  setEmbeddingProviderId,
 } from '@/server/services/app-settings'
 import { sseManager } from '@/server/sse/index'
 import type { AppVariables } from '@/server/app'
@@ -79,17 +83,19 @@ settingsRoutes.put('/global-prompt', async (c) => {
 
 // GET /api/settings/models
 settingsRoutes.get('/models', async (c) => {
-  const [extractionModel, embeddingModel] = await Promise.all([
+  const [extractionModel, embeddingModel, extractionProviderId, embeddingProviderId] = await Promise.all([
     getExtractionModel(),
     getEmbeddingModel(),
+    getExtractionProviderId(),
+    getEmbeddingProviderId(),
   ])
-  return c.json({ extractionModel, embeddingModel })
+  return c.json({ extractionModel, embeddingModel, extractionProviderId, embeddingProviderId })
 })
 
 // PUT /api/settings/extraction-model
 settingsRoutes.put('/extraction-model', async (c) => {
   const body = await c.req.json()
-  const { model } = body as { model: string | null }
+  const { model, providerId } = body as { model: string | null; providerId?: string | null }
 
   if (model !== null && typeof model !== 'string') {
     return c.json(
@@ -100,19 +106,21 @@ settingsRoutes.put('/extraction-model', async (c) => {
 
   if (!model || model.trim() === '') {
     await deleteSetting('extraction_model')
+    await setExtractionProviderId(null)
     log.info('Extraction model cleared')
-    return c.json({ extractionModel: null })
+    return c.json({ extractionModel: null, extractionProviderId: null })
   }
 
   await setExtractionModel(model.trim())
-  log.info({ model: model.trim() }, 'Extraction model updated')
-  return c.json({ extractionModel: model.trim() })
+  await setExtractionProviderId(providerId ?? null)
+  log.info({ model: model.trim(), providerId }, 'Extraction model updated')
+  return c.json({ extractionModel: model.trim(), extractionProviderId: providerId ?? null })
 })
 
 // PUT /api/settings/embedding-model
 settingsRoutes.put('/embedding-model', async (c) => {
   const body = await c.req.json()
-  const { model } = body as { model: string }
+  const { model, providerId } = body as { model: string; providerId?: string | null }
 
   if (!model || typeof model !== 'string' || model.trim() === '') {
     return c.json(
@@ -122,8 +130,9 @@ settingsRoutes.put('/embedding-model', async (c) => {
   }
 
   await setEmbeddingModel(model.trim())
-  log.info({ model: model.trim() }, 'Embedding model updated')
-  return c.json({ embeddingModel: model.trim() })
+  await setEmbeddingProviderId(providerId ?? null)
+  log.info({ model: model.trim(), providerId }, 'Embedding model updated')
+  return c.json({ embeddingModel: model.trim(), embeddingProviderId: providerId ?? null })
 })
 
 // GET /api/settings/search-provider

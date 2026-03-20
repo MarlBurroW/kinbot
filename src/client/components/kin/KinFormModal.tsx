@@ -12,9 +12,8 @@ import { Textarea } from '@/client/components/ui/textarea'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
-import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
-import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { FormErrorAlert } from '@/client/components/common/FormErrorAlert'
@@ -270,29 +269,6 @@ export function KinFormModal({
     setIsAvatarGenerating(false)
     resetDirty()
   }, [kin, defaultCharacter, defaultExpertise, resetDirty])
-
-  // Derive providers that can serve the selected model
-  const providersForModel = useMemo(() => {
-    if (!model) return []
-    const seen = new Set<string>()
-    return llmModels
-      .filter((m) => m.id === model)
-      .filter((m) => {
-        if (seen.has(m.providerId)) return false
-        seen.add(m.providerId)
-        return true
-      })
-  }, [model, llmModels])
-
-  const showProviderSelector = providersForModel.length > 1
-
-  // Reset providerId when model changes and current provider is no longer valid
-  useEffect(() => {
-    if (providerId && providersForModel.length > 0) {
-      const stillValid = providersForModel.some((p) => p.providerId === providerId)
-      if (!stillValid) setProviderId(null)
-    }
-  }, [model, providersForModel, providerId])
 
   /** Apply a generated config to the form fields */
   const applyGeneratedConfig = (config: GeneratedKinConfig) => {
@@ -784,25 +760,12 @@ export function KinFormModal({
                                   <Label className="inline-flex items-center gap-1.5">{t('kin.create.model')} {!isEdit && <span className="text-destructive">*</span>} <InfoTip content={t('kin.create.modelTip')} /></Label>
                                   <ModelPicker
                                     models={llmModels}
-                                    value={model}
-                                    onValueChange={(v) => { setModel(v); markDirty() }}
+                                    value={modelPickerValue(model, providerId ?? '')}
+                                    onValueChange={(modelId, pid) => { setModel(modelId); setProviderId(pid || null); markDirty() }}
                                     placeholder={t('kin.create.modelPlaceholder')}
                                   />
                                 </div>
                               </div>
-                              {showProviderSelector && (
-                                <div className="space-y-2">
-                                  <Label>{t('kin.create.provider')}</Label>
-                                  <ProviderSelector
-                                    value={providerId ?? '__auto__'}
-                                    onValueChange={(v) => setProviderId(v === '__auto__' ? null : v)}
-                                    providers={providersForModel.map((p) => ({ id: p.providerId, type: p.providerType, name: p.providerName }))}
-                                    noneLabel={t('kin.create.providerAuto')}
-                                    noneValue="__auto__"
-                                  />
-                                  <p className="text-xs text-muted-foreground">{t('kin.create.providerHint')}</p>
-                                </div>
-                              )}
                               <div className="space-y-2">
                                 <Label htmlFor="kinFormSlug">{t('kin.edit.slug')}</Label>
                                 <Input
@@ -884,9 +847,9 @@ export function KinFormModal({
                             <Label className="text-xs">{t('kin.compacting.modelLabel')}</Label>
                             <ModelPicker
                               models={llmModels}
-                              value={compactingConfig?.compactingModel ?? ''}
-                              onValueChange={(v) => {
-                                setCompactingConfig({ ...compactingConfig, compactingModel: v || null, compactingProviderId: null })
+                              value={modelPickerValue(compactingConfig?.compactingModel ?? '', compactingConfig?.compactingProviderId ?? '')}
+                              onValueChange={(modelId, pid) => {
+                                setCompactingConfig({ ...compactingConfig, compactingModel: modelId || null, compactingProviderId: pid || null })
                                 markDirty()
                               }}
                               placeholder={t('kin.compacting.sameAsKinModel')}
@@ -894,29 +857,6 @@ export function KinFormModal({
                             />
                             <p className="text-[10px] text-muted-foreground">{t('kin.compacting.modelHint')}</p>
                           </div>
-
-                          {/* Compacting provider selector (only if model has multiple providers) */}
-                          {compactingConfig?.compactingModel && (() => {
-                            const seen = new Set<string>()
-                            const providers = llmModels
-                              .filter((m) => m.id === compactingConfig.compactingModel)
-                              .filter((m) => { if (seen.has(m.providerId)) return false; seen.add(m.providerId); return true })
-                            return providers.length > 1 ? (
-                              <div className="space-y-1.5">
-                                <Label className="text-xs">{t('kin.create.provider')}</Label>
-                                <ProviderSelector
-                                  value={compactingConfig.compactingProviderId ?? '__auto__'}
-                                  onValueChange={(v) => {
-                                    setCompactingConfig({ ...compactingConfig, compactingProviderId: v === '__auto__' ? null : v })
-                                    markDirty()
-                                  }}
-                                  providers={providers.map((p) => ({ id: p.providerId, type: p.providerType, name: p.providerName }))}
-                                  noneLabel={t('kin.create.providerAuto')}
-                                  noneValue="__auto__"
-                                />
-                              </div>
-                            ) : null
-                          })()}
 
                           {/* Turn threshold */}
                           <div className="space-y-1.5">

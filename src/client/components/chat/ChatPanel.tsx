@@ -45,6 +45,7 @@ interface KinInfo {
   name: string
   role: string
   model: string
+  providerId: string | null
   avatarUrl: string | null
 }
 
@@ -61,7 +62,7 @@ interface ChatPanelProps {
   llmModels: LLMModel[]
   modelUnavailable?: boolean
   queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingTurns?: number; compactingTurnThreshold?: number }
-  onModelChange: (model: string) => void
+  onModelChange: (modelId: string, providerId: string) => void
   onEditKin: () => void
 }
 
@@ -616,6 +617,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         name={kin.name}
         role={kin.role}
         model={kin.model}
+        providerId={kin.providerId}
         avatarUrl={kin.avatarUrl}
         llmModels={llmModels}
         modelUnavailable={modelUnavailable}

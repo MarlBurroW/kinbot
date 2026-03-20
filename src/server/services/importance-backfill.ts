@@ -18,7 +18,7 @@ export async function backfillImportance(kinId?: string): Promise<{ updated: num
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
   const model = await resolveLLMModel(
     config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
-    null,
+    config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
   )
   if (!model) {
     log.warn('No LLM model available for importance backfill')

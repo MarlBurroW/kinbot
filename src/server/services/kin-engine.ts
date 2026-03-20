@@ -15,6 +15,7 @@ import {
   userProfiles,
   queueItems,
 } from '@/server/db/schema'
+import { guessProviderType } from '@/shared/model-ref'
 import { decrypt } from '@/server/services/encryption'
 import { buildSystemPrompt } from '@/server/services/prompt-builder'
 import { dequeueMessage, markQueueItemDone, isKinProcessing, getQueueSize, recoverStaleProcessingItems } from '@/server/services/queue'
@@ -1899,21 +1900,10 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
 
 /**
  * Determine which provider type a model ID belongs to.
+ * @deprecated Use guessProviderType from @/shared/model-ref instead.
  */
 function getProviderTypeForModel(modelId: string): string | null {
-  if (modelId.startsWith('claude-')) return 'anthropic'
-  if (
-    modelId.startsWith('gpt-') ||
-    modelId.startsWith('chatgpt-') ||
-    modelId.startsWith('o1') ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4')
-  ) return 'openai'
-  if (modelId.startsWith('gemini-')) return 'gemini'
-  if (modelId.startsWith('deepseek')) return 'deepseek'
-  // Models with a slash (e.g. "openai/gpt-4o") are typically OpenRouter-style
-  if (modelId.includes('/')) return 'openrouter'
-  return null
+  return guessProviderType(modelId)
 }
 
 /**
@@ -2032,6 +2022,9 @@ async function tryCreateModel(
  * If preferredProviderId is set, that provider is tried first before falling back to first-match.
  */
 export async function resolveLLMModel(modelId: string, preferredProviderId?: string | null) {
+  if (!preferredProviderId) {
+    log.warn({ modelId }, 'resolveLLMModel called without providerId — using auto-detect (deprecated)')
+  }
   const allProviders = await db.select().from(providers).all()
   const expectedType = getProviderTypeForModel(modelId)
 

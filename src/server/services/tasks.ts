@@ -221,6 +221,7 @@ interface SpawnParams {
   spawnType: 'self' | 'other'
   sourceKinId?: string
   model?: string
+  providerId?: string
   parentTaskId?: string
   cronId?: string
   depth?: number
@@ -272,6 +273,7 @@ export async function spawnTask(params: SpawnParams) {
     spawnType: params.spawnType,
     mode: params.mode,
     model: params.model ?? null,
+    providerId: params.providerId ?? null,
     title: params.title ?? null,
     description: params.description,
     status: initialStatus,
@@ -408,9 +410,9 @@ async function executeSubKin(taskId: string, isNudge = false) {
       workspacePath: kinIdentity.workspacePath,
     })
 
-    // Resolve model — only use Kin's provider preference when using the Kin's own model
+    // Resolve model — use task's provider if stored, else Kin's provider when using Kin's own model
     const modelId = task.model ?? kinIdentity.model
-    const preferredProvider = task.model ? null : kinIdentity.providerId
+    const preferredProvider = task.providerId ?? (task.model ? null : kinIdentity.providerId)
     const model = await resolveLLMModel(modelId, preferredProvider)
     if (!model) {
       throw new Error('No LLM provider available')

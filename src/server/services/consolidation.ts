@@ -254,7 +254,10 @@ export async function consolidateMemories(kinId: string): Promise<number> {
 
   // Phase 2: Merge each cluster via LLM
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
-  const model = await resolveLLMModel(config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano', null)
+  const model = await resolveLLMModel(
+    config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
+    config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
+  )
 
   let totalRemoved = 0
 

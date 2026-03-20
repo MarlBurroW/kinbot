@@ -250,6 +250,7 @@ export const tasks = sqliteTable('tasks', {
   spawnType: text('spawn_type').notNull(), // 'self' | 'other'
   mode: text('mode').notNull().default('await'), // 'await' | 'async'
   model: text('model'),
+  providerId: text('provider_id'),
   title: text('title'),
   description: text('description').notNull(),
   status: text('status').notNull().default('pending'), // 'queued' | 'pending' | 'in_progress' | 'awaiting_human_input' | 'awaiting_kin_response' | 'completed' | 'failed' | 'cancelled'
@@ -285,6 +286,7 @@ export const crons = sqliteTable('crons', {
   taskDescription: text('task_description').notNull(),
   targetKinId: text('target_kin_id').references(() => kins.id),
   model: text('model'),
+  providerId: text('provider_id'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   requiresApproval: integer('requires_approval', { mode: 'boolean' }).notNull().default(false),
   runOnce: integer('run_once', { mode: 'boolean' }).notNull().default(false),

@@ -37,6 +37,7 @@ export const spawnSelfTool: ToolRegistration = {
             '"await" = result triggers a new turn; "async" = informational, no new turn',
           ),
         model: z.string().optional(),
+        provider_id: z.string().optional().describe('Provider ID for the model override'),
         allow_human_prompt: z.boolean().optional().describe('Default: true'),
         concurrency_group: z.string().optional()
           .describe('Queue name for concurrency control (e.g. "batch-issues", "api-calls"). ' +
@@ -45,7 +46,7 @@ export const spawnSelfTool: ToolRegistration = {
         concurrency_max: z.number().int().min(1).optional()
           .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
       }),
-      execute: async ({ title, task_description, mode, model, allow_human_prompt, concurrency_group, concurrency_max }) => {
+      execute: async ({ title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max }) => {
         log.debug({ kinId: ctx.kinId, mode, spawnType: 'self' }, 'Task spawn requested (spawn_self)')
         const { taskId, queued } = await spawnTask({
           parentKinId: ctx.kinId,
@@ -54,6 +55,7 @@ export const spawnSelfTool: ToolRegistration = {
           mode,
           spawnType: 'self',
           model,
+          providerId: provider_id,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
           concurrencyGroup: concurrency_group,
@@ -84,6 +86,7 @@ export const spawnKinTool: ToolRegistration = {
             '"await" = result triggers a new turn; "async" = informational, no new turn',
           ),
         model: z.string().optional(),
+        provider_id: z.string().optional().describe('Provider ID for the model override'),
         allow_human_prompt: z.boolean().optional().describe('Default: true'),
         concurrency_group: z.string().optional()
           .describe('Queue name for concurrency control (e.g. "batch-issues", "api-calls"). ' +
@@ -92,7 +95,7 @@ export const spawnKinTool: ToolRegistration = {
         concurrency_max: z.number().int().min(1).optional()
           .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
       }),
-      execute: async ({ kin_slug, title, task_description, mode, model, allow_human_prompt, concurrency_group, concurrency_max }) => {
+      execute: async ({ kin_slug, title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max }) => {
         const kinId = resolveKinId(kin_slug)
         if (!kinId) {
           return { error: `Kin not found for slug "${kin_slug}"` }
@@ -106,6 +109,7 @@ export const spawnKinTool: ToolRegistration = {
           spawnType: 'other',
           sourceKinId: kinId,
           model,
+          providerId: provider_id,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
           concurrencyGroup: concurrency_group,

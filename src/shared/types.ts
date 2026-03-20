@@ -1,5 +1,11 @@
 // Shared types used by both client and server
 
+/** A fully-qualified model reference (model + provider pair) */
+export interface ModelRef {
+  modelId: string
+  providerId: string
+}
+
 export type UserRole = 'admin' | 'member'
 
 export type Language = 'en' | 'fr'
@@ -158,6 +164,7 @@ export interface TaskSummary {
   status: TaskStatus
   mode: string
   model: string | null
+  providerId: string | null
   cronId: string | null
   depth: number
   concurrencyGroup: string | null
@@ -180,6 +187,7 @@ export interface CronSummary {
   targetKinName: string | null
   targetKinAvatarUrl: string | null
   model: string | null
+  providerId: string | null
   runOnce: boolean
   isActive: boolean
   requiresApproval: boolean

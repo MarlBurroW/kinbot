@@ -38,12 +38,16 @@ export const createCronTool: ToolRegistration = {
         model: z
           .string()
           .optional(),
+        provider_id: z
+          .string()
+          .optional()
+          .describe('Provider ID for the model override'),
         run_once: z
           .boolean()
           .optional()
           .describe('If true, fires once then auto-deactivates.'),
       }),
-      execute: async ({ name, schedule, task_description, target_kin_slug, model, run_once }) => {
+      execute: async ({ name, schedule, task_description, target_kin_slug, model, provider_id, run_once }) => {
         let targetKinId: string | undefined
         if (target_kin_slug) {
           const resolved = resolveKinId(target_kin_slug)
@@ -61,6 +65,7 @@ export const createCronTool: ToolRegistration = {
             taskDescription: task_description,
             targetKinId,
             model,
+            providerId: provider_id,
             createdBy: 'kin',
             runOnce: run_once,
           })

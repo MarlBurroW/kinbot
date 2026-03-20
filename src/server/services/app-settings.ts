@@ -80,6 +80,24 @@ export async function setDefaultSearchProvider(providerId: string | null): Promi
   return setSetting('default_search_provider', providerId)
 }
 
+export async function getExtractionProviderId(): Promise<string | null> {
+  return getSetting('extraction_provider_id')
+}
+
+export async function setExtractionProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('extraction_provider_id')
+  return setSetting('extraction_provider_id', providerId)
+}
+
+export async function getEmbeddingProviderId(): Promise<string | null> {
+  return getSetting('embedding_provider_id')
+}
+
+export async function setEmbeddingProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('embedding_provider_id')
+  return setSetting('embedding_provider_id', providerId)
+}
+
 export async function getHubKinId(): Promise<string | null> {
   return getSetting('hub_kin_id')
 }

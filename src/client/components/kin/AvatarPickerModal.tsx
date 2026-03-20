@@ -13,7 +13,7 @@ import { Button } from '@/client/components/ui/button'
 import { Textarea } from '@/client/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { ToggleGroup, ToggleGroupItem } from '@/client/components/ui/toggle-group'
-import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
 import { Label } from '@/client/components/ui/label'
 import { Slider } from '@/client/components/ui/slider'
 import { Dialog as DialogPrimitive } from 'radix-ui'
@@ -338,8 +338,7 @@ export function AvatarPickerModal({
                       <ModelPicker
                         models={imageModels ?? []}
                         value={selectedModelValue}
-                        onValueChange={setSelectedModelValue}
-                        valueFormat="providerAndModel"
+                        onValueChange={(modelId, pid) => setSelectedModelValue(modelPickerValue(modelId, pid))}
                       />
                     </div>
                   )}
@@ -393,8 +392,7 @@ export function AvatarPickerModal({
                       <ModelPicker
                         models={imageModels ?? []}
                         value={selectedModelValue}
-                        onValueChange={setSelectedModelValue}
-                        valueFormat="providerAndModel"
+                        onValueChange={(modelId, pid) => setSelectedModelValue(modelPickerValue(modelId, pid))}
                       />
                     </div>
                   )}

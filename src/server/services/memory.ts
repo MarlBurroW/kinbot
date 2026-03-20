@@ -335,7 +335,7 @@ async function generateQueryVariations(query: string, knownSubjects?: string[]):
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(multiQueryModel, null)
+    const model = await resolveLLMModel(multiQueryModel, config.memory.multiQueryProviderId ?? null)
     if (!model) return [query]
 
     const subjectHint = knownSubjects && knownSubjects.length > 0
@@ -385,7 +385,7 @@ async function generateHypotheticalMemory(query: string): Promise<string | null>
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(hydeModel, null)
+    const model = await resolveLLMModel(hydeModel, config.memory.hydeProviderId ?? null)
     if (!model) return null
 
     const result = await generateText({
@@ -823,7 +823,7 @@ async function rerankWithLLM(
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(rerankModel, null)
+    const model = await resolveLLMModel(rerankModel, config.memory.rerankProviderId ?? null)
     if (!model) return candidates.slice(0, limit)
 
     // Build a numbered list of memory snippets (truncate long ones)
@@ -948,7 +948,7 @@ export async function rewriteQueryWithContext(
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const resolved = await resolveLLMModel(model, null)
+    const resolved = await resolveLLMModel(model, config.memory.contextualRewriteProviderId ?? null)
     if (!resolved) return message
 
     // Build a compact conversation snippet (last 4 turns max)
