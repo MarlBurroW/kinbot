@@ -209,13 +209,14 @@ All session responses include an `expiresAt` field (Unix timestamp in ms, or `nu
 
 ## Tasks
 
-Sub-tasks spawned by Kins (inter-Kin delegation, subtasks).
+Sub-tasks spawned by Kins (inter-Kin delegation, subtasks). Tasks support **concurrency groups** — tasks in the same group are limited to a max number of parallel executions, with excess tasks queued and auto-promoted.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/tasks` | List all tasks |
 | `GET` | `/api/tasks/:id` | Get task details with messages |
 | `POST` | `/api/tasks/:id/cancel` | Cancel a running task |
+| `POST` | `/api/tasks/:id/force-promote` | Force-start a queued task (ignoring concurrency limit) |
 
 ## Plugins
 

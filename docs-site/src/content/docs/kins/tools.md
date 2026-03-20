@@ -68,10 +68,20 @@ These tools let a Kin spawn background sub-agents and manage delegated work:
 | `respond_to_task` | main | Respond to a completed/failed task |
 | `cancel_task` | main | Cancel a running task |
 | `list_tasks` | main | List all tasks |
+| `list_active_queues` | main | List active concurrency groups with status (active/queued counts) |
 | `get_task_detail` | main | Get details of a specific task |
 | `report_to_parent` | sub-kin | Send progress updates to the parent |
 | `update_task_status` | sub-kin | Mark the task as completed or failed (**mandatory**) |
 | `request_input` | sub-kin | Ask the parent for clarification |
+
+#### Concurrency groups
+
+`spawn_self` and `spawn_kin` support optional concurrency control:
+
+- **`concurrency_group`** — Queue name (e.g. `"batch-issues"`, `"api-calls"`). Tasks in the same group are limited to `concurrency_max` parallel executions.
+- **`concurrency_max`** — Max concurrent tasks in the group. Required if `concurrency_group` is set. Default: 1.
+
+Excess tasks enter `queued` status and are automatically promoted (FIFO) when a slot opens. Use `list_active_queues` to monitor queue status.
 
 ### Inter-Kin communication
 

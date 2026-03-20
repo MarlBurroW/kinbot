@@ -159,12 +159,19 @@ Pruned memories are permanently deleted. The number of pruned memories is record
 
 ## Session Compacting
 
-When conversations grow long, KinBot automatically **compacts** them:
+When conversations grow long, KinBot automatically **compacts** them using **incremental micro-batch summarization**:
 
-1. Context usage reaches a percentage of the model's context window (default: 75%)
-2. A summarization model distills the conversation into a compact snapshot
+1. After each LLM turn, the system checks if the number of non-compacted messages exceeds a threshold (`COMPACTING_BATCH_SIZE` + `COMPACTING_MIN_KEEP_MESSAGES`, default: 35)
+2. A fixed-size batch of the oldest messages is summarized by a dedicated model, keeping at least `COMPACTING_MIN_KEEP_MESSAGES` (default: 15) as raw context
 3. The snapshot replaces the full history, preserving context while reducing token usage
 4. Multiple snapshots are kept (up to `COMPACTING_MAX_SNAPSHOTS`) for layered context
+
+Before compacting runs, a **progressive context pipeline** reduces in-memory context size without any LLM calls:
+- **Intact zone** — Recent tool results kept in full
+- **Observation zone** — Middle-aged tool results truncated
+- **Collapsed zone** — Oldest tool results collapsed to one-line summaries
+
+The token-based threshold (`COMPACTING_THRESHOLD_PERCENT`, default: 75%) acts as a fallback safety net.
 
 ## Data Flow
 
@@ -180,9 +187,10 @@ User message
   → New memories stored as embeddings
   → Retrieval counts updated
 
-Compacting cycle (periodic):
-  → Summarize long conversations
-  → Extract new memories
+Compacting cycle (after each LLM turn):
+  → Progressive context pipeline (tool masking + observation compaction)
+  → Message-count check → micro-batch summarization if needed
+  → Extract new memories from compacted batch
   → Consolidate similar memories
   → Recalibrate importance scores
   → Prune stale memories (low importance, never retrieved, old)

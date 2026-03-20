@@ -55,6 +55,15 @@ Real-time message streaming and conversation events.
 | `reaction:added` | Reaction added to a message | Per-Kin |
 | `reaction:removed` | Reaction removed from a message | Per-Kin |
 
+### Tasks
+
+| Event | Description | Scope |
+|-------|-------------|-------|
+| `task:status` | Task status changed (pending, in_progress, queued, etc.) | Broadcast |
+| `task:done` | Task completed or failed | Broadcast |
+| `task:deleted` | Task deleted | Broadcast |
+| `queue:update` | Concurrency queue state changed (task promoted, new task queued) | Broadcast |
+
 ### Mini-Apps
 
 | Event | Description | Scope |
@@ -62,6 +71,7 @@ Real-time message streaming and conversation events.
 | `miniapp:created` | A mini-app was created | Broadcast |
 | `miniapp:updated` | A mini-app was updated | Broadcast |
 | `miniapp:deleted` | A mini-app was deleted | Broadcast |
+| `miniapp:file-updated` | A mini-app file was changed | Broadcast |
 
 ### Memories
 
@@ -77,12 +87,16 @@ Real-time message streaming and conversation events.
 |-------|-------------|-------|
 | `compacting:start` | Compaction started | Per-Kin |
 | `compacting:done` | Compaction completed (includes summary and memories extracted) | Per-Kin |
+| `compacting:error` | Compaction failed (prevents infinite spinner in the UI) | Per-Kin |
 
 ### Kins
 
 | Event | Description | Scope |
 |-------|-------------|-------|
+| `kin:error` | Kin processing error | Per-Kin |
+| `kin:created` | New Kin created | Broadcast |
 | `kin:updated` | Kin metadata changed (avatar, provider, etc.) | Broadcast |
+| `kin:deleted` | Kin deleted | Broadcast |
 
 ### Providers
 
@@ -104,14 +118,54 @@ Real-time message streaming and conversation events.
 
 | Event | Description | Scope |
 |-------|-------------|-------|
+| `contact:created` | Contact created | Broadcast |
 | `contact:updated` | Contact updated | Broadcast |
+| `contact:deleted` | Contact deleted | Broadcast |
 
 ### Cron Jobs
 
 | Event | Description | Scope |
 |-------|-------------|-------|
-| `cron:updated` | Cron job created or updated | Broadcast |
+| `cron:triggered` | Cron job triggered | Broadcast |
+| `cron:created` | Cron job created | Broadcast |
+| `cron:updated` | Cron job updated | Broadcast |
 | `cron:deleted` | Cron job deleted | Broadcast |
+
+### Webhooks
+
+| Event | Description | Scope |
+|-------|-------------|-------|
+| `webhook:created` | Webhook created | Broadcast |
+| `webhook:updated` | Webhook updated | Broadcast |
+| `webhook:deleted` | Webhook deleted | Broadcast |
+| `webhook:triggered` | Webhook received a payload | Per-Kin |
+
+### Channels
+
+| Event | Description | Scope |
+|-------|-------------|-------|
+| `channel:created` | Channel created | Broadcast |
+| `channel:updated` | Channel updated | Broadcast |
+| `channel:deleted` | Channel deleted | Broadcast |
+| `channel:message-received` | Message received from external platform | Per-Kin |
+| `channel:message-sent` | Message sent to external platform | Per-Kin |
+| `channel:user-pending` | New user pending approval | Broadcast |
+| `channel:user-approved` | User approved | Broadcast |
+
+### Human Prompts
+
+| Event | Description | Scope |
+|-------|-------------|-------|
+| `prompt:pending` | New prompt awaiting human response | Per-Kin |
+| `prompt:answered` | Human responded to a prompt | Per-Kin |
+
+### Notifications
+
+| Event | Description | Scope |
+|-------|-------------|-------|
+| `notification:new` | New notification | Per-User |
+| `notification:read` | Notification marked as read | Per-User |
+| `notification:read-all` | All notifications marked as read | Per-User |
 
 ### Quick Sessions
 
@@ -119,23 +173,43 @@ Real-time message streaming and conversation events.
 |-------|-------------|-------|
 | `quick-session:closed` | Quick session closed | Per-Kin |
 
-### Tasks
+### Knowledge
 
 | Event | Description | Scope |
 |-------|-------------|-------|
-| `task:deleted` | Task deleted | Broadcast |
+| `knowledge:source-created` | Knowledge source added | Per-Kin |
+| `knowledge:source-updated` | Knowledge source updated | Per-Kin |
+| `knowledge:source-deleted` | Knowledge source deleted | Per-Kin |
 
-### Webhooks
+### Plugins
 
 | Event | Description | Scope |
 |-------|-------------|-------|
-| `webhook:deleted` | Webhook deleted | Broadcast |
+| `plugin:installed` | Plugin installed | Broadcast |
+| `plugin:uninstalled` | Plugin uninstalled | Broadcast |
+| `plugin:enabled` | Plugin enabled | Broadcast |
+| `plugin:disabled` | Plugin disabled | Broadcast |
+| `plugin:configUpdated` | Plugin config changed | Broadcast |
+| `plugin:autoDisabled` | Plugin auto-disabled due to errors | Broadcast |
 
 ### Settings
 
 | Event | Description | Scope |
 |-------|-------------|-------|
 | `settings:hub-changed` | Hub configuration changed | Broadcast |
+| `settings:compacting-threshold-changed` | Compacting threshold changed | Broadcast |
+
+### Version
+
+| Event | Description | Scope |
+|-------|-------------|-------|
+| `version:update-available` | New KinBot version available | Broadcast |
+
+### System
+
+| Event | Description | Scope |
+|-------|-------------|-------|
+| `log:entry` | Platform log entry | Broadcast |
 
 ## Delivery Scope
 
@@ -143,6 +217,7 @@ Events are delivered based on scope:
 
 - **Broadcast** — Sent to all connected clients (provider changes, MCP updates, settings)
 - **Per-Kin** — Sent to clients viewing a specific Kin (chat, memories, compacting, reactions)
+- **Per-User** — Sent to a specific user's connections (notifications)
 
 ## Client Usage
 

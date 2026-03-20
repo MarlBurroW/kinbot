@@ -44,13 +44,14 @@ kinbot/
 │   │   │   ├── memory.ts           # Mémoire long terme (extraction, recall, memorize, search hybride)
 │   │   │   ├── embeddings.ts       # Génération d'embeddings via provider
 │   │   │   ├── contacts.ts         # CRUD contacts + injection résumé compact
-│   │   │   ├── tasks.ts            # Cycle de vie des tâches (spawn, status, résolution)
+│   │   │   ├── tasks.ts            # Cycle de vie des tâches (spawn, status, résolution, concurrence)
 │   │   │   ├── crons.ts            # Scheduler (croner) + spawn des sous-Kins
 │   │   │   ├── inter-kin.ts        # Communication inter-Kins (send_message, reply, garde-fous)
 │   │   │   ├── vault.ts            # Gestion des secrets (chiffrement, get_secret, redact)
 │   │   │   ├── webhooks.ts         # Gestion des webhooks (CRUD, filtrage payload, logs)
 │   │   │   ├── channels.ts         # Gestion des canaux de messagerie (enqueue, delivery)
 │   │   │   ├── files.ts            # Upload, stockage, référencement des fichiers
+│   │   │   ├── field-validator.ts  # Validation des champs Kin (nom, rôle, modèle, provider)
 │   │   │   └── events.ts           # Event bus (emit, on, listeners)
 │   │   │
 │   │   ├── channels/               # Adaptateurs de canaux de messagerie
@@ -79,7 +80,7 @@ kinbot/
 │   │   │   ├── contact-tools.ts    # get_contact, search_contacts, create_contact, update_contact
 │   │   │   ├── history-tools.ts    # search_history
 │   │   │   ├── inter-kin-tools.ts  # send_message, reply, list_kins
-│   │   │   ├── task-tools.ts       # spawn_self, spawn_kin, respond_to_task, cancel_task, list_tasks
+│   │   │   ├── task-tools.ts       # spawn_self, spawn_kin, respond_to_task, cancel_task, list_tasks, list_active_queues
 │   │   │   ├── subtask-tools.ts    # report_to_parent, update_task_status, request_input
 │   │   │   ├── cron-tools.ts       # create_cron, update_cron, delete_cron, list_crons
 │   │   │   ├── webhook-tools.ts    # create_webhook, update_webhook, delete_webhook, list_webhooks
@@ -99,188 +100,45 @@ kinbot/
 │   │   │
 │   │   ├── auth/                   # Authentification
 │   │   │   ├── index.ts            # Configuration Better Auth
-│   │   │   └── middleware.ts       # Hono middleware (vérification session)
-│   │   │
-│   │   ├── hooks/                  # Hooks du cycle de vie
-│   │   │   ├── index.ts            # Registry des hooks + exécution
-│   │   │   └── types.ts            # Types (HookContext, HookHandler)
+│   │   │   └── middleware.ts       # Middleware d'authentification Hono
 │   │   │
 │   │   ├── sse/                    # Server-Sent Events
-│   │   │   ├── index.ts            # Gestionnaire SSE (connexions, broadcast)
-│   │   │   └── types.ts            # Types d'événements SSE
+│   │   │   ├── index.ts            # SSE manager (connexions, broadcast)
+│   │   │   └── types.ts            # Types des événements SSE
 │   │   │
-│   │   └── config.ts              # Configuration centralisée (valeurs par défaut, env vars)
+│   │   ├── hooks/                  # Hook system
+│   │   │   └── index.ts            # Hook registry and dispatch
+│   │   │
+│   │   ├── logger.ts               # Logger (pino)
+│   │   └── config.ts               # Configuration centralisée
 │   │
 │   ├── client/                     # Frontend (React + Vite)
 │   │   ├── main.tsx                # Point d'entrée React
 │   │   ├── App.tsx                 # Router principal
-│   │   │
-│   │   ├── pages/                  # Pages / vues
-│   │   │   ├── onboarding/         # Wizard d'onboarding
-│   │   │   │   ├── OnboardingPage.tsx
-│   │   │   │   └── StepProviders.tsx
-│   │   │   ├── chat/               # Vue principale (sidebar + chat)
-│   │   │   │   └── ChatPage.tsx
-│   │   │   ├── settings/           # Pages settings
-│   │   │   │   ├── SettingsPage.tsx
-│   │   │   │   ├── ProvidersSettings.tsx
-│   │   │   │   ├── McpSettings.tsx
-│   │   │   │   ├── WebhooksSettings.tsx
-│   │   │   │   └── VaultSettings.tsx
-│   │   │   ├── account/            # Mon compte
-│   │   │   │   └── AccountPage.tsx
-│   │   │   └── login/
-│   │   │       └── LoginPage.tsx
-│   │   │
-│   │   ├── components/             # Composants réutilisables
-│   │   │   ├── ui/                 # shadcn/ui (boutons, inputs, dialogs, etc.)
-│   │   │   ├── sidebar/
-│   │   │   │   ├── Sidebar.tsx
-│   │   │   │   ├── KinList.tsx
-│   │   │   │   └── TaskList.tsx
-│   │   │   ├── chat/
-│   │   │   │   ├── ChatPanel.tsx
-│   │   │   │   ├── MessageBubble.tsx
-│   │   │   │   ├── MessageInput.tsx
-│   │   │   │   ├── WebhookMessageCard.tsx  # Carte dédiée pour les messages webhook
-│   │   │   │   └── TypingIndicator.tsx
-│   │   │   ├── webhook/
-│   │   │   │   ├── WebhookCard.tsx
-│   │   │   │   ├── WebhookFormDialog.tsx
-│   │   │   │   └── WebhookLogDialog.tsx
-│   │   │   ├── kin/
-│   │   │   │   ├── KinCard.tsx
-│   │   │   │   ├── KinCreateModal.tsx
-│   │   │   │   └── KinSettingsModal.tsx
-│   │   │   └── common/
-│   │   │       ├── Avatar.tsx
-│   │   │       └── Badge.tsx
-│   │   │
-│   │   ├── hooks/                  # React hooks custom
-│   │   │   ├── useAuth.ts
-│   │   │   ├── useKins.ts
-│   │   │   ├── useChat.ts          # Wrapper autour de useChat du Vercel AI SDK
-│   │   │   ├── useSSE.ts           # Gestion de la connexion SSE globale
-│   │   │   └── useTasks.ts
-│   │   │
+│   │   ├── components/             # Composants React
+│   │   ├── hooks/                  # Hooks React custom
 │   │   ├── lib/                    # Utilitaires client
-│   │   │   ├── api.ts              # Client API (fetch wrapper avec auth cookie)
-│   │   │   ├── i18n.ts             # Configuration i18next (init, détection langue)
-│   │   │   └── utils.ts            # Fonctions utilitaires
-│   │   │
-│   │   ├── locales/                # Traductions i18n
-│   │   │   ├── en.json             # Anglais (langue de base)
-│   │   │   └── fr.json             # Français
-│   │   │
-│   │   └── styles/
-│   │       └── globals.css         # Tailwind base + custom properties (design tokens)
+│   │   └── locales/                # Traductions i18n (fr, en, de, es)
 │   │
-│   └── shared/                     # Code partagé frontend/backend
-│       ├── types.ts                # Types communs (Kin, Message, Task, etc.)
-│       └── constants.ts            # Constantes partagées
+│   ├── shared/                     # Code partagé client/serveur
+│   │   ├── types.ts                # Types TypeScript partagés
+│   │   └── constants.ts            # Constantes partagées
+│   │
+│   └── test-helpers.ts             # Helpers et mocks pour les tests
 │
-├── data/                           # Données persistantes (volume Docker)
-│   ├── kinbot.db                   # Base de données SQLite
-│   ├── uploads/                    # Fichiers uploadés
-│   └── workspaces/                 # Workspaces des Kins
-│       ├── <kin-id>/
-│       │   ├── tools/              # Outils custom du Kin
-│       │   └── ...                 # Fichiers de travail
-│       └── ...
+├── docs-site/                      # Documentation publique (Astro + Starlight)
+│   ├── astro.config.mjs
+│   └── src/content/docs/           # Pages de documentation Markdown
 │
-├── docs-site/                      # Site de documentation (Astro Starlight)
-│   └── src/content/docs/           # Fichiers Markdown de la doc publique
+├── store/                          # Plugins intégrés
+│   ├── home-automation/            # Plugin Home Assistant
+│   └── rss-reader/                 # Plugin RSS reader
 │
-├── plugins/                        # Plugins intégrés
-│   └── home-automation/            # Plugin Home Assistant
-│
-├── store/                          # Custom tool scripts (RSS reader, etc.)
-│
-└── public/                         # Assets statiques (favicon, etc.)
+└── data/                           # Données persistantes (gitignored)
+    ├── kinbot.db                   # Base SQLite
+    ├── uploads/                    # Fichiers uploadés
+    ├── workspaces/                 # Workspaces des Kins
+    ├── mini-apps/                  # Fichiers des mini-apps
+    ├── storage/                    # File storage partagé
+    └── vault/                      # Pièces jointes du coffre-fort
 ```
-
----
-
-## Conventions
-
-### Nommage
-
-| Élément | Convention | Exemple |
-|---|---|---|
-| **Fichiers TS** | kebab-case | `kin-engine.ts`, `prompt-builder.ts` |
-| **Composants React** | PascalCase | `ChatPanel.tsx`, `MessageBubble.tsx` |
-| **Types/Interfaces** | PascalCase | `KinConfig`, `ProviderCapability` |
-| **Fonctions** | camelCase | `buildSystemPrompt()`, `enqueueMessage()` |
-| **Constantes** | SCREAMING_SNAKE_CASE | `MAX_TASK_DEPTH`, `DEFAULT_MODEL` |
-| **Tables DB** | snake_case | `vault_secrets`, `queue_items` |
-| **Routes API** | kebab-case | `/api/mcp-servers`, `/api/vault` |
-| **Variables d'env** | SCREAMING_SNAKE_CASE | `KINBOT_DATA_DIR`, `ENCRYPTION_KEY` |
-
-### Imports
-
-- Imports absolus depuis `src/` (via tsconfig paths) :
-  ```typescript
-  import { buildSystemPrompt } from '@/server/services/prompt-builder'
-  import type { Kin } from '@/shared/types'
-  ```
-- Pas d'index barrels dans les dossiers profonds (imports explicites)
-
-### Internationalisation (i18n)
-
-- **Librairie** : `react-i18next` + `i18next`
-- **Langue de base** : anglais (`en.json`). Toutes les clés sont en anglais
-- **Langues supportées** : `en`, `fr`
-- **Fichiers de traduction** : `src/client/locales/{lang}.json` (un fichier plat par langue)
-- **Détection de la langue** : a partir de la préférence utilisateur (`user_profiles.language`), pas du navigateur
-- **Convention des clés** : `namespace.element.action` (ex: `sidebar.kins.title`, `chat.input.placeholder`, `settings.providers.add`)
-- **Composants** : utiliser le hook `useTranslation()` dans les composants, jamais de texte en dur dans le JSX
-
-### Erreurs
-
-- Les services retournent des `Result<T, Error>` ou throw des erreurs typées
-- Les routes Hono catchent les erreurs et retournent des réponses JSON standardisées :
-  ```json
-  { "error": { "code": "KIN_NOT_FOUND", "message": "..." } }
-  ```
-
-### Fichiers de configuration racine
-
-| Fichier | Rôle |
-|---|---|
-| `package.json` | Dépendances, scripts (`dev`, `build`, `start`, `db:migrate`) |
-| `tsconfig.json` | Config TypeScript (strict, paths) |
-| `drizzle.config.ts` | Config Drizzle (SQLite, chemin DB, migrations) |
-| `vite.config.ts` | Config Vite (proxy API en dev, build output) |
-| `tailwind.config.ts` | Config Tailwind (design tokens, dark mode) |
-| `components.json` | Config shadcn/ui |
-
----
-
-## Build et déploiement
-
-### Développement
-
-```bash
-bun run dev
-```
-
-- Vite dev server sur le port 5173 (frontend) avec proxy vers le backend
-- Hono dev server sur le port 3000 (backend)
-- Hot reload sur les deux
-
-### Production
-
-```bash
-bun run build   # Build Vite → dist/client/
-bun run start   # Hono sert l'API + les fichiers statiques
-```
-
-Le backend Hono sert les assets statiques depuis `dist/client/` en production. Un seul process, un seul port.
-
-### Docker
-
-```bash
-docker run -v ./data:/app/data -p 3000:3000 kinbot
-```
-
-Le volume `data/` contient la DB, les uploads et les workspaces. Tout le reste est stateless.

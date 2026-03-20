@@ -8,9 +8,9 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 
 | Clé | Env var | Default | Description |
 |---|---|---|---|
-| `port` | `PORT` | `3000` | Port du serveur HTTP |
+| `port` | `PORT` | `3333` | Port du serveur HTTP |
 | `dataDir` | `KINBOT_DATA_DIR` | `./data` | Répertoire des données persistantes (DB, uploads, workspaces) |
-| `encryptionKey` | `ENCRYPTION_KEY` | — (requis) | Clé de chiffrement pour les secrets du Vault et les configs provider. Doit être générée au premier lancement si absente |
+| `encryptionKey` | `ENCRYPTION_KEY` | auto-generated | Clé de chiffrement pour les secrets du Vault et les configs provider. Auto-générée et persistée dans le répertoire data si absente |
 | `logLevel` | `LOG_LEVEL` | `info` | Niveau de log : 'debug', 'info', 'warn', 'error' |
 
 ---
@@ -27,10 +27,22 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 
 | Clé | Env var | Default | Description |
 |---|---|---|---|
-| `compacting.messageThreshold` | `COMPACTING_MESSAGE_THRESHOLD` | `50` | Nombre de messages non compactés avant déclenchement du compacting |
-| `compacting.tokenThreshold` | `COMPACTING_TOKEN_THRESHOLD` | `30000` | Nombre estimé de tokens dans les messages non compactés avant déclenchement |
+| `compacting.thresholdPercent` | `COMPACTING_THRESHOLD_PERCENT` | `75` | Seuil de fallback : déclenche le compacting quand l'usage du contexte atteint ce % de la fenêtre du modèle. Le déclencheur principal est basé sur le nombre de messages |
 | `compacting.model` | `COMPACTING_MODEL` | — | Modèle utilisé pour le compacting. Si non défini, utilise le modèle du Kin |
 | `compacting.maxSnapshotsPerKin` | `COMPACTING_MAX_SNAPSHOTS` | `10` | Nombre max de snapshots conservés par Kin (les plus anciens sont supprimés) |
+| `compacting.batchSize` | `COMPACTING_BATCH_SIZE` | `20` | Nombre de messages par micro-batch de compacting incrémental |
+| `compacting.minKeepMessages` | `COMPACTING_MIN_KEEP_MESSAGES` | `15` | Nombre minimum de messages non compactés à garder comme contexte brut |
+
+---
+
+## Pipeline de compaction progressive du contexte
+
+| Clé | Env var | Default | Description |
+|---|---|---|---|
+| `historyTokenBudget` | `HISTORY_TOKEN_BUDGET` | `0` (désactivé) | Budget max de tokens estimés pour l'historique. Filet de sécurité d'urgence — le pipeline progressif gère normalement la taille du contexte |
+| `toolResultMaskKeepLast` | `TOOL_RESULT_MASK_KEEP_LAST` | `2` | Nombre de groupes d'appels d'outils récents à garder intacts. Les plus anciens sont compactés en résumés d'une ligne |
+| `observationCompactionWindow` | `OBSERVATION_COMPACTION_WINDOW` | `10` | Nombre de tours récents à garder en résolution complète. Les tours plus anciens voient leurs résultats d'outils tronqués. 0 = désactivé |
+| `observationMaxChars` | `OBSERVATION_MAX_CHARS` | `200` | Nombre max de caractères pour les résultats d'outils tronqués dans la zone d'observation |
 
 ---
 
@@ -107,73 +119,3 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 |---|---|---|---|
 | `upload.dir` | `UPLOAD_DIR` | `{dataDir}/uploads` | Répertoire de stockage des fichiers |
 | `upload.maxFileSizeMb` | `UPLOAD_MAX_FILE_SIZE` | `50` | Taille max d'un fichier uploadé (Mo) |
-
----
-
-## Exemple `config.ts`
-
-```typescript
-import { env } from 'bun'
-
-export const config = {
-  port: Number(env.PORT ?? 3000),
-  dataDir: env.KINBOT_DATA_DIR ?? './data',
-  encryptionKey: env.ENCRYPTION_KEY ?? '',
-  logLevel: env.LOG_LEVEL ?? 'info',
-
-  db: {
-    path: env.DB_PATH ?? `${env.KINBOT_DATA_DIR ?? './data'}/kinbot.db`,
-  },
-
-  compacting: {
-    messageThreshold: Number(env.COMPACTING_MESSAGE_THRESHOLD ?? 50),
-    tokenThreshold: Number(env.COMPACTING_TOKEN_THRESHOLD ?? 30000),
-    model: env.COMPACTING_MODEL ?? undefined,
-    maxSnapshotsPerKin: Number(env.COMPACTING_MAX_SNAPSHOTS ?? 10),
-  },
-
-  memory: {
-    extractionModel: env.MEMORY_EXTRACTION_MODEL ?? undefined,
-    maxRelevantMemories: Number(env.MEMORY_MAX_RELEVANT ?? 10),
-    similarityThreshold: Number(env.MEMORY_SIMILARITY_THRESHOLD ?? 0.7),
-    embeddingModel: env.MEMORY_EMBEDDING_MODEL ?? 'text-embedding-3-small',
-    embeddingDimension: Number(env.MEMORY_EMBEDDING_DIMENSION ?? 1536),
-  },
-
-  queue: {
-    userPriority: 100,
-    kinPriority: 50,
-    taskPriority: 50,
-    pollIntervalMs: Number(env.QUEUE_POLL_INTERVAL ?? 500),
-  },
-
-  tasks: {
-    maxDepth: Number(env.TASKS_MAX_DEPTH ?? 3),
-    maxRequestInput: Number(env.TASKS_MAX_REQUEST_INPUT ?? 3),
-    maxConcurrent: Number(env.TASKS_MAX_CONCURRENT ?? 10),
-  },
-
-  crons: {
-    maxActive: Number(env.CRONS_MAX_ACTIVE ?? 50),
-    maxConcurrentExecutions: Number(env.CRONS_MAX_CONCURRENT_EXEC ?? 5),
-  },
-
-  interKin: {
-    maxChainDepth: Number(env.INTER_KIN_MAX_CHAIN_DEPTH ?? 5),
-    rateLimitPerMinute: Number(env.INTER_KIN_RATE_LIMIT ?? 20),
-  },
-
-  vault: {
-    algorithm: 'aes-256-gcm' as const,
-  },
-
-  workspace: {
-    baseDir: env.WORKSPACE_BASE_DIR ?? `${env.KINBOT_DATA_DIR ?? './data'}/workspaces`,
-  },
-
-  upload: {
-    dir: env.UPLOAD_DIR ?? `${env.KINBOT_DATA_DIR ?? './data'}/uploads`,
-    maxFileSizeMb: Number(env.UPLOAD_MAX_FILE_SIZE ?? 50),
-  },
-} as const
-```

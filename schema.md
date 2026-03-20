@@ -201,6 +201,13 @@ Mémoire long terme des Kins (faits, préférences, décisions, connaissances).
 | `subject` | text | | Contact ou contexte concerné |
 | `source_message_id` | text | FK → messages.id | Message d'origine |
 | `source_channel` | text | NOT NULL, DEFAULT 'automatic' | 'automatic' (pipeline) ou 'explicit' (outil memorize) |
+| `source_context` | text | | Bref contexte conversationnel autour de la mémoire extraite |
+| `importance` | real | | Score de 1 à 10, null = non scoré (traité comme 5) |
+| `retrieval_count` | integer | NOT NULL, DEFAULT 0 | Nombre de fois que cette mémoire a été récupérée |
+| `last_retrieved_at` | integer | | Dernière récupération |
+| `consolidation_generation` | integer | NOT NULL, DEFAULT 0 | 0 = originale, 1+ = consolidée |
+| `consolidated_from_ids` | text | | JSON array des IDs source (null pour les originales) |
+| `scope` | text | NOT NULL, DEFAULT 'private' | 'private' (Kin seul) ou 'shared' (visible par tous les Kins) |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
 
@@ -208,6 +215,8 @@ Mémoire long terme des Kins (faits, préférences, décisions, connaissances).
 - `idx_memories_kin_id` sur `kin_id`
 - `idx_memories_kin_category` sur (`kin_id`, `category`)
 - `idx_memories_kin_subject` sur (`kin_id`, `subject`)
+- `idx_memories_scope` sur `scope`
+- `idx_memories_scope_category` sur (`scope`, `category`)
 
 ---
 
@@ -265,7 +274,7 @@ Sous-Kins éphémères (tâches déléguées).
 | `model` | text | | Override du modèle LLM (NULL = héritage) |
 | `title` | text | | Titre optionnel de la tâche |
 | `description` | text | NOT NULL | Instructions de la tâche |
-| `status` | text | NOT NULL, DEFAULT 'pending' | 'pending', 'in_progress', 'awaiting_human_input', 'awaiting_kin_response', 'completed', 'failed', 'cancelled' |
+| `status` | text | NOT NULL, DEFAULT 'pending' | 'queued', 'pending', 'in_progress', 'awaiting_human_input', 'awaiting_kin_response', 'completed', 'failed', 'cancelled' |
 | `result` | text | | Résultat final de la tâche |
 | `error` | text | | Détail de l'erreur si failed |
 | `depth` | integer | NOT NULL, DEFAULT 1 | Profondeur de nesting |
@@ -276,6 +285,9 @@ Sous-Kins éphémères (tâches déléguées).
 | `pending_request_id` | text | | request_id en attente de réponse inter-Kin |
 | `channel_origin_id` | text | | ID de la chaîne causale canal pour auto-delivery |
 | `allow_human_prompt` | integer | NOT NULL, DEFAULT 1 | Si la tâche peut utiliser prompt_human |
+| `concurrency_group` | text | | Nom du groupe de concurrence (ex: "batch-issues") |
+| `concurrency_max` | integer | | Nombre max de tâches concurrentes dans ce groupe |
+| `queued_at` | integer | | Timestamp de mise en queue (pour FIFO) |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
 
@@ -283,6 +295,7 @@ Sous-Kins éphémères (tâches déléguées).
 - `idx_tasks_parent_kin` sur `parent_kin_id`
 - `idx_tasks_status` sur `status`
 - `idx_tasks_cron` sur `cron_id`
+- `idx_tasks_concurrency` sur (`concurrency_group`, `status`, `queued_at`)
 
 ---
 

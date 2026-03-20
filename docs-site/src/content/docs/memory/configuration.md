@@ -60,19 +60,35 @@ Consolidation clusters are capped at 3 memories to preserve detail. Larger group
 
 ## Compacting Settings
 
-Session compacting summarizes long conversations when they approach the model's context window limit.
+Session compacting uses **incremental micro-batch summarization**: instead of compacting all messages at once, old messages are summarized in fixed-size batches from the oldest end after each LLM turn, spreading LLM cost over time.
+
+### Primary trigger (message-count based)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COMPACTING_THRESHOLD_PERCENT` | `75` | Trigger compaction when context usage reaches this % of the model's context window (50-95) |
+| `COMPACTING_BATCH_SIZE` | `20` | Number of messages per micro-compaction batch |
+| `COMPACTING_MIN_KEEP_MESSAGES` | `15` | Minimum non-compacted messages to keep as raw context. A batch is only taken when non-compacted count exceeds `COMPACTING_BATCH_SIZE` + `COMPACTING_MIN_KEEP_MESSAGES` |
+
+### Fallback trigger and general settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COMPACTING_THRESHOLD_PERCENT` | `75` | Fallback trigger: compact when context usage reaches this % of the model's context window (50-95). The primary trigger is message-count-based |
 | `COMPACTING_MODEL` | Provider default | Model used for session compacting/summarization |
 | `COMPACTING_MAX_SNAPSHOTS` | `10` | Maximum compacting snapshots kept per Kin |
 
 The threshold can also be configured per-Kin (overrides the global setting) or via **Settings > Memory** in the UI.
 
-:::note
-The older `COMPACTING_MESSAGE_THRESHOLD` and `COMPACTING_TOKEN_THRESHOLD` env vars are still accepted for backward compatibility but no longer drive the compaction logic. Use `COMPACTING_THRESHOLD_PERCENT` instead.
-:::
+### Progressive context pipeline
+
+Before compacting runs, KinBot applies a progressive pipeline to reduce context size without LLM calls:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TOOL_RESULT_MASK_KEEP_LAST` | `2` | Number of recent tool call groups kept fully intact. Older groups are collapsed to one-line summaries |
+| `OBSERVATION_COMPACTION_WINDOW` | `10` | Number of recent turns kept at full resolution. Older turns have tool results truncated. `0` = disabled |
+| `OBSERVATION_MAX_CHARS` | `200` | Max characters for truncated tool results in the observation zone |
+| `HISTORY_TOKEN_BUDGET` | `0` (disabled) | Emergency safety net: max tokens for conversation history. Messages trimmed from oldest end if exceeded. `0` = no limit |
 
 ## Embedding Provider
 
@@ -100,7 +116,8 @@ Without an embedding provider, memory storage and retrieval will not work. The K
 ### Basic Tuning
 - **Lower `MEMORY_SIMILARITY_THRESHOLD`** (e.g., 0.5) to retrieve more memories at the cost of relevance
 - **Raise `MEMORY_MAX_RELEVANT`** if your Kin needs broader context awareness
-- **Lower `COMPACTING_THRESHOLD_PERCENT`** (e.g., 60) for Kins with very long conversations to compact earlier
+- **Lower `COMPACTING_BATCH_SIZE`** for more frequent, smaller compaction cycles
+- **Raise `COMPACTING_MIN_KEEP_MESSAGES`** to keep more raw context visible to the LLM
 
 ### Search Quality
 - **Enable multi-query** (`MEMORY_MULTI_QUERY_MODEL=gpt-4.1-mini`) for better recall on complex queries
