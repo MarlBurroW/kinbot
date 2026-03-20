@@ -216,9 +216,8 @@ settingsRoutes.put('/hub', async (c) => {
 
 settingsRoutes.get('/compacting-threshold', async (c) => {
   const { getCompactingThresholdPercent } = await import('@/server/services/app-settings')
-  const { config } = await import('@/server/config')
   const dbValue = await getCompactingThresholdPercent()
-  return c.json({ thresholdPercent: dbValue ?? config.compacting.thresholdPercent })
+  return c.json({ thresholdPercent: dbValue ?? 75 })
 })
 
 settingsRoutes.put('/compacting-threshold', async (c) => {

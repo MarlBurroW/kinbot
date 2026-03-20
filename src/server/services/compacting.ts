@@ -24,7 +24,7 @@ function estimateTokens(text: string): number {
 }
 
 /** Get non-compacted stats for a Kin (shared by shouldCompact + getCompactingProximity) */
-async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; messageCount: number }> {
+async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; messageCount: number; turnCount: number }> {
   const activeSnapshot = await db
     .select()
     .from(compactingSnapshots)
@@ -32,7 +32,7 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
     .get()
 
   const allMessages = await db
-    .select({ content: messages.content, createdAt: messages.createdAt })
+    .select({ content: messages.content, createdAt: messages.createdAt, role: messages.role })
     .from(messages)
     .where(
       and(
@@ -55,7 +55,9 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
     0,
   )
 
-  return { currentTokens, messageCount: nonCompacted.length }
+  const turnCount = nonCompacted.filter((m) => m.role === 'user').length
+
+  return { currentTokens, messageCount: nonCompacted.length, turnCount }
 }
 
 // ─── Threshold Evaluation ────────────────────────────────────────────────────
@@ -63,34 +65,33 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
 /**
  * Evaluate whether compacting should trigger for a Kin.
  *
- * Uses message count only: trigger when non-compacted messages exceed
- * batchSize + minKeepMessages. Token-based threshold was removed because
- * the pipeline (tool masking + observation compaction) already handles
- * context size — raw DB tokens are not representative of actual LLM context.
+ * Uses turn count: a "turn" = one user message + all following messages
+ * until the next user message. This avoids false triggers in tool-heavy
+ * conversations where a single turn can produce 10-30 messages.
  */
 async function shouldCompact(kinId: string): Promise<boolean> {
   const stats = await getNonCompactedStats(kinId)
-  if (stats.messageCount === 0) return false
+  if (stats.turnCount === 0) return false
 
-  const { batchSize, minKeepMessages } = config.compacting
-  return stats.messageCount > batchSize + minKeepMessages
+  const { batchTurns, minKeepTurns } = config.compacting
+  return stats.turnCount > batchTurns + minKeepTurns
 }
 
 // ─── Public: compacting proximity for UI ─────────────────────────────────────
 
 export interface CompactingProximity {
-  currentMessages: number
-  messageThreshold: number
+  currentTurns: number
+  turnThreshold: number
 }
 
-/** Get compacting proximity data for display in the chat UI (message-count based) */
+/** Get compacting proximity data for display in the chat UI (turn-based) */
 export async function getCompactingProximity(kinId: string): Promise<CompactingProximity> {
   const stats = await getNonCompactedStats(kinId)
-  const { batchSize, minKeepMessages } = config.compacting
+  const { batchTurns, minKeepTurns } = config.compacting
 
   return {
-    currentMessages: stats.messageCount,
-    messageThreshold: batchSize + minKeepMessages,
+    currentTurns: stats.turnCount,
+    turnThreshold: batchTurns + minKeepTurns,
   }
 }
 
@@ -143,14 +144,31 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
 
   if (nonCompacted.length === 0) return null
 
-  // Incremental batching: take a fixed batch from the oldest end,
-  // keeping at least minKeepMessages as raw context.
-  const { batchSize, minKeepMessages } = config.compacting
-  const maxSummarizable = nonCompacted.length - minKeepMessages
-  if (maxSummarizable <= 0) return null
+  // Turn-based batching: a "turn" = one user message + all following messages
+  // until the next user message. Select the oldest batchTurns turns, keeping
+  // at least minKeepTurns recent turns as raw context.
+  const { batchTurns, minKeepTurns } = config.compacting
 
-  // Take at most batchSize messages, or everything available if fewer
-  const messagesToSummarize = nonCompacted.slice(0, Math.min(batchSize, maxSummarizable))
+  // Find the cut point: after batchTurns user messages
+  let turnsSeen = 0
+  let cutIndex = 0
+  for (let i = 0; i < nonCompacted.length; i++) {
+    if (nonCompacted[i]!.role === 'user') {
+      turnsSeen++
+      if (turnsSeen > batchTurns) {
+        cutIndex = i // everything before this index is the batch
+        break
+      }
+    }
+  }
+  // If we counted exactly batchTurns (or fewer) without finding the next, take all
+  if (cutIndex === 0 && turnsSeen > 0) cutIndex = nonCompacted.length
+
+  // Verify we're keeping at least minKeepTurns
+  const remainingTurns = nonCompacted.slice(cutIndex).filter((m) => m.role === 'user').length
+  if (remainingTurns < minKeepTurns) return null
+
+  const messagesToSummarize = nonCompacted.slice(0, cutIndex)
 
   if (messagesToSummarize.length === 0) return null
 
@@ -170,7 +188,7 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     if (profile?.pseudonym) pseudonymMap.set(uid, profile.pseudonym)
   }
 
-  // Format messages for the prompt
+  // Format messages for the prompt, masking verbose tool results
   const formattedMessages = messagesToSummarize
     .map((m) => {
       const sender =
@@ -180,7 +198,29 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
             ? kin.name
             : m.role
       const ts = m.createdAt ? new Date(m.createdAt as unknown as number).toISOString() : ''
-      return `[${ts}] ${sender}: ${m.content ?? ''}`
+
+      let content = m.content ?? ''
+
+      // Mask tool results — the summarization LLM doesn't need raw JSON
+      if (m.role === 'tool' && content.length > 500) {
+        content = `[Tool result — ${content.length} chars, collapsed for summarization]`
+      }
+
+      // For assistant messages with toolCalls JSON, keep only the text content
+      if (m.role === 'assistant' && m.toolCalls) {
+        try {
+          const calls = JSON.parse(m.toolCalls as string) as Array<{ toolName?: string }>
+          const toolNames = calls.map((c) => c.toolName ?? 'unknown').join(', ')
+          const textContent = content || ''
+          content = textContent
+            ? `${textContent}\n[Called tools: ${toolNames}]`
+            : `[Called tools: ${toolNames}]`
+        } catch {
+          // keep original content if toolCalls isn't valid JSON
+        }
+      }
+
+      return `[${ts}] ${sender}: ${content}`
     })
     .join('\n\n')
 
@@ -330,7 +370,7 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     createdAt: new Date(),
   })
 
-  log.info({ kinId, snapshotId: newSnapshotId, summarizedCount: messagesToSummarize.length, remainingMessages: nonCompacted.length - messagesToSummarize.length, memoriesExtracted }, 'Incremental compacting batch completed')
+  log.info({ kinId, snapshotId: newSnapshotId, summarizedMessages: messagesToSummarize.length, summarizedTurns: turnsSeen > batchTurns ? batchTurns : turnsSeen, memoriesExtracted }, 'Incremental compacting batch completed')
 
   // Emit SSE: compaction done
   sseManager.sendToKin(kinId, {

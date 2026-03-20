@@ -493,8 +493,9 @@ export function useChat(kinId: string | null) {
           ? { ...prev, status: 'error', error: data.error as string }
           : null,
       )
-      // Auto-clear error card after 10 seconds
-      setTimeout(() => setLiveCompacting(null), 10_000)
+      toast.error(`${t('chat.compacting.error')}: ${data.error as string}`)
+      // Auto-clear error card after 30 seconds
+      setTimeout(() => setLiveCompacting(null), 30_000)
     },
 
     'chat:cleared': (data) => {

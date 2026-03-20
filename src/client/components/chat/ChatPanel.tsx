@@ -60,7 +60,7 @@ interface ChatPanelProps {
   kin: KinInfo
   llmModels: LLMModel[]
   modelUnavailable?: boolean
-  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingMessages?: number; compactingMessageThreshold?: number }
+  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingTurns?: number; compactingTurnThreshold?: number }
   onModelChange: (model: string) => void
   onEditKin: () => void
 }
@@ -624,8 +624,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         maxTokens={queueState?.contextWindow ?? 0}
         contextBreakdown={queueState?.contextBreakdown}
         pipelineStatus={queueState?.pipelineStatus}
-        compactingMessages={queueState?.compactingMessages}
-        compactingMessageThreshold={queueState?.compactingMessageThreshold}
+        compactingTurns={queueState?.compactingTurns}
+        compactingTurnThreshold={queueState?.compactingTurnThreshold}
         toolCallCount={toolCallCount}
         isToolCallsOpen={isToolCallsOpen}
         queueState={queueState}

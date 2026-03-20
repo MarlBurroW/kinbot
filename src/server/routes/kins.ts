@@ -355,8 +355,8 @@ kinRoutes.get('/:id/context-usage', async (c) => {
       contextWindow: cached.contextWindow,
       contextBreakdown: cached.breakdown ?? null,
       pipelineStatus: cached.pipelineStatus ?? null,
-      compactingMessages: compacting.currentMessages,
-      compactingMessageThreshold: compacting.messageThreshold,
+      compactingTurns: compacting.currentTurns,
+      compactingTurnThreshold: compacting.turnThreshold,
     })
   }
 
@@ -409,8 +409,8 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     contextWindow,
     contextBreakdown: { systemPrompt: systemPromptTokens, messages: messagesTokens, tools: 0, summary: 0, total: contextTokens },
     pipelineStatus: null,
-    compactingMessages: compacting.currentMessages,
-    compactingMessageThreshold: compacting.messageThreshold,
+    compactingTurns: compacting.currentTurns,
+    compactingTurnThreshold: compacting.turnThreshold,
   })
 })
 
@@ -755,7 +755,7 @@ kinRoutes.post('/:id/compacting/run', async (c) => {
   const { runCompacting } = await import('@/server/services/compacting')
   const result = await runCompacting(existing.id)
   if (!result) {
-    return c.json({ error: { code: 'NOTHING_TO_COMPACT', message: 'Not enough messages to compact' } }, 422)
+    return c.json({ error: { code: 'NOTHING_TO_COMPACT', message: 'Not enough turns to compact' } }, 422)
   }
 
   return c.json({ success: true, summary: result.summary, memoriesExtracted: result.memoriesExtracted })

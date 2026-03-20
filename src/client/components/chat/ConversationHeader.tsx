@@ -64,8 +64,8 @@ interface ConversationHeaderProps {
   onClearConversation?: () => void
   contextBreakdown?: ContextTokenBreakdown
   pipelineStatus?: ContextPipelineStatus
-  compactingMessages?: number
-  compactingMessageThreshold?: number
+  compactingTurns?: number
+  compactingTurnThreshold?: number
   messages?: ChatMessage[]
   scrollViewportRef?: React.RefObject<HTMLElement | null>
 }
@@ -100,8 +100,8 @@ export const ConversationHeader = memo(function ConversationHeader({
   onClearConversation,
   contextBreakdown,
   pipelineStatus,
-  compactingMessages,
-  compactingMessageThreshold,
+  compactingTurns,
+  compactingTurnThreshold,
   messages,
   scrollViewportRef,
 }: ConversationHeaderProps) {
@@ -118,8 +118,8 @@ export const ConversationHeader = memo(function ConversationHeader({
     ? `${formatTokenCount(estimatedTokens)} / ${formatTokenCount(maxTokens)}`
     : '— / —'
 
-  const hasCompactingData = (compactingMessageThreshold ?? 0) > 0
-  const compactingPercent = hasCompactingData ? Math.min(100, Math.round(((compactingMessages ?? 0) / compactingMessageThreshold!) * 100)) : 0
+  const hasCompactingData = (compactingTurnThreshold ?? 0) > 0
+  const compactingPercent = hasCompactingData ? Math.min(100, Math.round(((compactingTurns ?? 0) / compactingTurnThreshold!) * 100)) : 0
 
   const selectedModelName = llmModels.find((m) => m.id === model)?.name ?? model
 
@@ -227,8 +227,8 @@ export const ConversationHeader = memo(function ConversationHeader({
             {hasCompactingData && (
               <p className="text-[10px] text-muted-foreground/70">
                 {t('chat.compactingProximity', {
-                  current: compactingMessages ?? 0,
-                  threshold: compactingMessageThreshold ?? 0,
+                  current: compactingTurns ?? 0,
+                  threshold: compactingTurnThreshold ?? 0,
                 })}
               </p>
             )}
@@ -284,8 +284,8 @@ export const ConversationHeader = memo(function ConversationHeader({
               {hasCompactingData && (
                 <p className="truncate text-[9px] text-muted-foreground">
                   {t('chat.compactingProximity', {
-                    current: compactingMessages ?? 0,
-                    threshold: compactingMessageThreshold ?? 0,
+                    current: compactingTurns ?? 0,
+                    threshold: compactingTurnThreshold ?? 0,
                   })}
                 </p>
               )}
@@ -408,8 +408,8 @@ export const ConversationHeader = memo(function ConversationHeader({
                 />
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                   <span>{t('chat.compactingProximity', {
-                    current: compactingMessages ?? 0,
-                    threshold: compactingMessageThreshold ?? 0,
+                    current: compactingTurns ?? 0,
+                    threshold: compactingTurnThreshold ?? 0,
                   })}</span>
                 </div>
               </div>

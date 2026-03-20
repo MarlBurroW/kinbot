@@ -85,7 +85,8 @@ describe('config', () => {
 
   describe('default values', () => {
     it('compacting defaults are sensible', () => {
-      expect(config.compacting.thresholdPercent).toBe(75)
+      expect(config.compacting.batchTurns).toBe(10)
+      expect(config.compacting.minKeepTurns).toBe(15)
       expect(config.compacting.maxSnapshotsPerKin).toBe(10)
     })
 
@@ -221,11 +222,13 @@ describe('config', () => {
 
     it('numeric env vars are parsed as numbers', async () => {
       const c = await loadConfigWithEnv({
-        COMPACTING_THRESHOLD_PERCENT: '80',
+        COMPACTING_BATCH_TURNS: '5',
+        COMPACTING_MIN_KEEP_TURNS: '20',
         MEMORY_MAX_RELEVANT: '20',
         TOOLS_MAX_STEPS: '25',
       })
-      expect(c.compacting.thresholdPercent).toBe(80)
+      expect(c.compacting.batchTurns).toBe(5)
+      expect(c.compacting.minKeepTurns).toBe(20)
       expect(c.memory.maxRelevantMemories).toBe(20)
       expect(c.tools.maxSteps).toBe(25)
     })

@@ -485,7 +485,7 @@
     "forceCompact": "Forcer la compaction",
     "tooltipContext": "Fenêtre de contexte",
     "tooltipCompacting": "Compaction",
-    "compactingProximity": "{{current}} / {{threshold}} messages",
+    "compactingProximity": "{{current}} / {{threshold}} tours",
     "compactingMarker": "Seuil de compaction",
     "breakdown": {
       "tools": "Outils",
@@ -507,7 +507,7 @@
       "memories": "{{count}} souvenir(s) extrait(s)",
       "showSummary": "Voir le résumé",
       "inputDisabled": "Veuillez patienter - compaction de l'historique...",
-      "nothingToCompact": "Rien à compacter - pas assez de messages",
+      "nothingToCompact": "Rien à compacter - pas assez de tours",
       "error": "Échec de la compaction"
     },
     "taskResult": {

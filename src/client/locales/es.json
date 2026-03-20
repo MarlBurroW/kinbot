@@ -485,7 +485,7 @@
     "forceCompact": "Forzar compactación",
     "tooltipContext": "Ventana de contexto",
     "tooltipCompacting": "Compactación",
-    "compactingProximity": "{{current}} / {{threshold}} mensajes",
+    "compactingProximity": "{{current}} / {{threshold}} turnos",
     "compactingMarker": "Umbral de compactación",
     "moreActions": "Más acciones",
     "compacting": {
@@ -495,7 +495,7 @@
       "memories": "{{count}} memorias extraídas",
       "showSummary": "Mostrar resumen",
       "inputDisabled": "Por favor espera - compactando historial de conversación...",
-      "nothingToCompact": "Nada que compactar - aún no hay suficientes mensajes",
+      "nothingToCompact": "Nada que compactar - aún no hay suficientes turnos",
       "error": "Error en la compactación"
     },
     "taskResult": {
