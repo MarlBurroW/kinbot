@@ -136,10 +136,12 @@ export interface KinToolConfig {
 
 /** Per-Kin compacting configuration (stored as JSON in kins.compacting_config) */
 export interface KinCompactingConfig {
-  /** @deprecated Use thresholdPercent instead */
-  tokenThreshold?: number | null
-  /** Trigger compaction at this % of model's context window (null = use global default) */
-  thresholdPercent?: number | null
+  /** Model used for compaction (null = same as Kin's model) */
+  compactingModel?: string | null
+  /** Provider ID for compacting model (null = auto-resolve) */
+  compactingProviderId?: string | null
+  /** Total turn threshold before compaction triggers (null = use global default) */
+  turnThreshold?: number | null
 }
 
 /** Task summary as returned by GET /api/tasks */

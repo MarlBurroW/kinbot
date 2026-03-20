@@ -420,10 +420,12 @@ export function KinFormModal({
 
     try {
       if (isEdit && onUpdateKin) {
-        // Normalize compactingConfig: if both fields are empty, send null to clear the override
-        const effectiveCompactingConfig = (compactingConfig?.thresholdPercent != null)
-          ? compactingConfig
-          : null
+        // Normalize compactingConfig: if all fields are empty, send null to clear the override
+        const effectiveCompactingConfig = (
+          compactingConfig?.compactingModel != null ||
+          compactingConfig?.compactingProviderId != null ||
+          compactingConfig?.turnThreshold != null
+        ) ? compactingConfig : null
         await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig, compactingConfig: effectiveCompactingConfig })
         if (avatarFile) await onUploadAvatar(kin.id, avatarFile)
       } else if (onCreateKin) {
@@ -866,29 +868,70 @@ export function KinFormModal({
                         <div className="space-y-6">
                           <MemoryList kinId={kin.id} compact />
 
-                          {/* Compacting thresholds */}
+                          {/* Compaction settings */}
                           <div className="space-y-3 border-t border-border/40 pt-4">
                             <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
                               <Archive className="size-4" />
                               {t('kin.compacting.title')}
                             </Label>
                             <p className="text-xs text-muted-foreground">{t('kin.compacting.overrideHint')}</p>
+
+                            {/* Compacting model */}
                             <div className="space-y-1.5">
-                              <Label className="text-xs">{t('kin.compacting.thresholdPercent')}</Label>
+                              <Label className="text-xs">{t('kin.compacting.modelLabel')}</Label>
+                              <ModelPicker
+                                models={llmModels}
+                                value={compactingConfig?.compactingModel ?? ''}
+                                onValueChange={(v) => {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: v || null, compactingProviderId: null })
+                                  markDirty()
+                                }}
+                                placeholder={t('kin.compacting.sameAsKinModel')}
+                                allowClear
+                              />
+                              <p className="text-[10px] text-muted-foreground">{t('kin.compacting.modelHint')}</p>
+                            </div>
+
+                            {/* Compacting provider selector (only if model has multiple providers) */}
+                            {compactingConfig?.compactingModel && (() => {
+                              const seen = new Set<string>()
+                              const providers = llmModels
+                                .filter((m) => m.id === compactingConfig.compactingModel)
+                                .filter((m) => { if (seen.has(m.providerId)) return false; seen.add(m.providerId); return true })
+                              return providers.length > 1 ? (
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">{t('kin.create.provider')}</Label>
+                                  <ProviderSelector
+                                    value={compactingConfig.compactingProviderId ?? '__auto__'}
+                                    onValueChange={(v) => {
+                                      setCompactingConfig({ ...compactingConfig, compactingProviderId: v === '__auto__' ? null : v })
+                                      markDirty()
+                                    }}
+                                    providers={providers.map((p) => ({ id: p.providerId, type: p.providerType, name: p.providerName }))}
+                                    noneLabel={t('kin.create.providerAuto')}
+                                    noneValue="__auto__"
+                                  />
+                                </div>
+                              ) : null
+                            })()}
+
+                            {/* Turn threshold */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">{t('kin.compacting.turnThresholdLabel')}</Label>
                               <Input
                                 type="number"
-                                min={50}
-                                max={95}
-                                step={5}
-                                placeholder={t('kin.compacting.thresholdPercentPlaceholder', { default: '75%' })}
-                                value={compactingConfig?.thresholdPercent ?? ''}
+                                min={10}
+                                max={100}
+                                step={1}
+                                placeholder={t('kin.compacting.turnThresholdPlaceholder', { default: 25 })}
+                                value={compactingConfig?.turnThreshold ?? ''}
                                 onChange={(e) => {
                                   const val = e.target.value ? Number(e.target.value) : null
-                                  setCompactingConfig({ ...compactingConfig, thresholdPercent: val })
+                                  setCompactingConfig({ ...compactingConfig, turnThreshold: val })
                                   markDirty()
                                 }}
                               />
-                              <p className="text-[10px] text-muted-foreground">{t('kin.compacting.thresholdPercentHint', { default: 75 })}</p>
+                              <p className="text-[10px] text-muted-foreground">{t('kin.compacting.turnThresholdHint')}</p>
                             </div>
                           </div>
                         </div>

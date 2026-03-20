@@ -347,17 +347,14 @@
       "expertise": "Tu as des connaissances générales étendues et tu peux aider sur un large éventail de sujets :\n- Rédaction, édition et synthèse de texte\n- Recherche, analyse et résolution de problèmes\n- Brainstorming et tâches créatives\n- Explication de concepts complexes de manière simple\n- Planification et organisation\n\nTu adaptes ton niveau de détail et de technicité en fonction des besoins de l'utilisateur."
     },
     "compacting": {
-      "title": "Seuils de compaction",
-      "overrideHint": "Laisser vide pour utiliser les défauts globaux. Remplir uniquement pour personnaliser ce Kin.",
-      "messageThreshold": "Seuil de messages",
-      "tokenThreshold": "Seuil de tokens",
-      "messageThresholdPlaceholder": "Défaut : {{default}}",
-      "tokenThresholdPlaceholder": "Défaut : {{default}}",
-      "messageThresholdHint": "Défaut global : {{default}}",
-      "tokenThresholdHint": "Défaut global : {{default}}",
-      "thresholdPercent": "Seuil (%)",
-      "thresholdPercentPlaceholder": "Defaut global ({{default}})",
-      "thresholdPercentHint": "Compacter quand le contexte atteint ce % de la fenetre du modele. Vide = defaut global ({{default}}%)."
+      "title": "Compaction",
+      "overrideHint": "Laisser vide pour utiliser les valeurs globales.",
+      "modelLabel": "Modèle de compaction",
+      "modelHint": "Modèle utilisé pour la synthèse. Laisser vide pour utiliser le modèle du Kin.",
+      "sameAsKinModel": "Même modèle que le Kin",
+      "turnThresholdLabel": "Tours avant compaction",
+      "turnThresholdPlaceholder": "Valeur globale ({{default}})",
+      "turnThresholdHint": "Nombre de tours de conversation avant déclenchement de la compaction."
     },
     "avatar": {
       "title": "Choisir l'avatar",
@@ -508,7 +505,8 @@
       "showSummary": "Voir le résumé",
       "inputDisabled": "Veuillez patienter - compaction de l'historique...",
       "nothingToCompact": "Rien à compacter - pas assez de tours",
-      "error": "Échec de la compaction"
+      "error": "Échec de la compaction",
+      "runningCycle": "Compaction... (cycle {{cycle}}/{{total}})"
     },
     "taskResult": {
       "showResult": "Voir le résultat",

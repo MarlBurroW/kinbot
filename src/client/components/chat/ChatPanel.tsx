@@ -791,6 +791,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     status={liveCompacting.status}
                     summary={liveCompacting.summary}
                     memoriesExtracted={liveCompacting.memoriesExtracted}
+                    cycle={liveCompacting.cycle}
+                    estimatedTotal={liveCompacting.estimatedTotal}
                     error={liveCompacting.error}
                   />
                 )}

@@ -68,7 +68,6 @@ export type SSEEventType =
   | 'plugin:configUpdated'
   | 'plugin:autoDisabled'
   | 'settings:hub-changed'
-| 'settings:compacting-threshold-changed'
   | 'version:update-available'
   | 'log:entry'
   | 'connected'

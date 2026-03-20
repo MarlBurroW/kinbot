@@ -13,6 +13,8 @@ interface CompactingCardProps {
   status: 'running' | 'done' | 'error'
   summary: string | null
   memoriesExtracted: number | null
+  cycle?: number
+  estimatedTotal?: number
   error?: string
 }
 
@@ -20,6 +22,8 @@ export const CompactingCard = memo(function CompactingCard({
   status,
   summary,
   memoriesExtracted,
+  cycle,
+  estimatedTotal,
   error,
 }: CompactingCardProps) {
   const { t } = useTranslation()
@@ -60,7 +64,9 @@ export const CompactingCard = memo(function CompactingCard({
               <div className="mt-0.5 flex items-center gap-1.5">
                 {isRunning ? (
                   <span className="text-xs font-medium text-primary">
-                    {t('chat.compacting.running')}
+                    {cycle && estimatedTotal && estimatedTotal > 1
+                      ? t('chat.compacting.runningCycle', { cycle, total: estimatedTotal })
+                      : t('chat.compacting.running')}
                   </span>
                 ) : isError ? (
                   <span className="text-xs font-medium text-destructive">

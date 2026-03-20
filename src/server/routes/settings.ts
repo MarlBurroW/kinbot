@@ -212,32 +212,4 @@ settingsRoutes.put('/hub', async (c) => {
   return c.json({ hubKinId: kinId })
 })
 
-// ─── Compacting Threshold ────────────────────────────────────────────────────
-
-settingsRoutes.get('/compacting-threshold', async (c) => {
-  const { getCompactingThresholdPercent } = await import('@/server/services/app-settings')
-  const dbValue = await getCompactingThresholdPercent()
-  return c.json({ thresholdPercent: dbValue ?? 75 })
-})
-
-settingsRoutes.put('/compacting-threshold', async (c) => {
-  const body = await c.req.json<{ thresholdPercent: number }>()
-  const { thresholdPercent } = body
-
-  if (typeof thresholdPercent !== 'number' || thresholdPercent < 50 || thresholdPercent > 95) {
-    return c.json({ error: { code: 'INVALID_VALUE', message: 'thresholdPercent must be between 50 and 95' } }, 400)
-  }
-
-  const { setCompactingThresholdPercent } = await import('@/server/services/app-settings')
-  await setCompactingThresholdPercent(thresholdPercent)
-
-  sseManager.broadcast({
-    type: 'settings:compacting-threshold-changed',
-    data: { thresholdPercent },
-  })
-
-  log.info({ thresholdPercent }, 'Compacting threshold updated')
-  return c.json({ thresholdPercent })
-})
-
 export { settingsRoutes }

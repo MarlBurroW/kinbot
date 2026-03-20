@@ -347,17 +347,14 @@
       "expertise": "Tienes un amplio conocimiento general y puedes ayudar con una gran variedad de temas:\n- Redacción, edición y resumen de textos\n- Investigación, análisis y resolución de problemas\n- Lluvia de ideas y tareas creativas\n- Explicar conceptos complejos de forma simple\n- Planificación y organización\n\nAdaptas tu nivel de detalle y tecnicismo según lo que el usuario necesite."
     },
     "compacting": {
-      "title": "Umbrales de compactación",
-      "overrideHint": "Dejar vacío para usar los valores globales por defecto. Solo rellenar para sobrescribir para este Kin.",
-      "messageThreshold": "Umbral de mensajes",
-      "tokenThreshold": "Umbral de tokens",
-      "messageThresholdPlaceholder": "Por defecto: {{default}}",
-      "tokenThresholdPlaceholder": "Por defecto: {{default}}",
-      "messageThresholdHint": "Valor global por defecto: {{default}}",
-      "tokenThresholdHint": "Valor global por defecto: {{default}}",
-      "thresholdPercent": "Umbral (%)",
-      "thresholdPercentPlaceholder": "Valor global por defecto ({{default}})",
-      "thresholdPercentHint": "Compactar cuando el contexto alcance este % de la ventana del modelo. Dejar vacío para el valor global por defecto ({{default}}%)."
+      "title": "Compactación",
+      "overrideHint": "Dejar vacío para usar los valores globales.",
+      "modelLabel": "Modelo de compactación",
+      "modelHint": "Modelo usado para el resumen. Dejar vacío para usar el modelo del Kin.",
+      "sameAsKinModel": "Mismo modelo que el Kin",
+      "turnThresholdLabel": "Turnos antes de compactación",
+      "turnThresholdPlaceholder": "Valor global ({{default}})",
+      "turnThresholdHint": "Número de turnos de conversación antes de activar la compactación."
     },
     "avatar": {
       "title": "Elegir avatar",
@@ -496,7 +493,8 @@
       "showSummary": "Mostrar resumen",
       "inputDisabled": "Por favor espera - compactando historial de conversación...",
       "nothingToCompact": "Nada que compactar - aún no hay suficientes turnos",
-      "error": "Error en la compactación"
+      "error": "Error en la compactación",
+      "runningCycle": "Compactando... (ciclo {{cycle}}/{{total}})"
     },
     "taskResult": {
       "showResult": "Mostrar resultado",

@@ -50,6 +50,8 @@ export interface LiveCompacting {
   summary: string | null
   memoriesExtracted: number | null
   startedAt: string
+  cycle?: number
+  estimatedTotal?: number
   error?: string
 }
 
@@ -467,23 +469,29 @@ export function useChat(kinId: string | null) {
         summary: null,
         memoriesExtracted: null,
         startedAt: new Date().toISOString(),
+        cycle: data.cycle as number | undefined,
+        estimatedTotal: data.estimatedTotal as number | undefined,
       })
     },
 
     'compacting:done': (data) => {
       if (data.kinId !== kinId) return
-      setLiveCompacting((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: 'done',
-              summary: data.summary as string,
-              memoriesExtracted: data.memoriesExtracted as number,
-            }
-          : null,
-      )
-      // Refresh messages — the persisted compacting trace will appear, then clear live card
-      fetchMessages().then(() => setLiveCompacting(null))
+      setLiveCompacting((prev) => {
+        if (!prev) return null
+        const updated = {
+          ...prev,
+          status: 'done' as const,
+          summary: data.summary as string,
+          memoriesExtracted: data.memoriesExtracted as number,
+        }
+        // During catch-up, more cycles may follow — don't clear yet
+        if (prev.cycle && prev.estimatedTotal && prev.cycle < prev.estimatedTotal) {
+          return updated
+        }
+        // Last cycle or single cycle — refresh and clear
+        fetchMessages().then(() => setLiveCompacting(null))
+        return updated
+      })
     },
 
     'compacting:error': (data) => {

@@ -347,17 +347,14 @@
       "expertise": "Du hast breites Allgemeinwissen und kannst bei vielen Themen helfen:\n- Texte schreiben, überarbeiten und zusammenfassen\n- Recherchieren, analysieren und Probleme lösen\n- Brainstormen und kreative Aufgaben angehen\n- Komplexe Konzepte einfach erklären\n- Planen und organisieren\n\nPasse Detailtiefe und Fachsprache daran an, was die Person gerade braucht."
     },
     "compacting": {
-      "title": "Schwellenwerte komprimieren",
-      "overrideHint": "Lasse das Feld leer, um die globalen Standardeinstellungen zu verwenden. Nur zum Überschreiben dieses Kin ausfüllen.",
-      "messageThreshold": "Nachrichtenschwellenwert",
-      "tokenThreshold": "Token-Schwellenwert",
-      "messageThresholdPlaceholder": "Standard: {{default}}",
-      "tokenThresholdPlaceholder": "Standard: {{default}}",
-      "messageThresholdHint": "Globaler Standard: {{default}}",
-      "tokenThresholdHint": "Globaler Standard: {{default}}",
-      "thresholdPercent": "Schwellenwert (%)",
-      "thresholdPercentHint": "Kompaktieren, wenn der Kontext diesen % des Modellfensters erreicht. Leer lassen für globalen Standard ({{default}}%).",
-      "thresholdPercentPlaceholder": "Globaler Standard ({{default}})"
+      "title": "Kompaktierung",
+      "overrideHint": "Leer lassen, um globale Standardwerte zu verwenden.",
+      "modelLabel": "Kompaktierungsmodell",
+      "modelHint": "Modell für die Zusammenfassung. Leer lassen, um das Modell des Kin zu verwenden.",
+      "sameAsKinModel": "Gleiches Modell wie der Kin",
+      "turnThresholdLabel": "Runden vor Kompaktierung",
+      "turnThresholdPlaceholder": "Globaler Standard ({{default}})",
+      "turnThresholdHint": "Anzahl der Gesprächsrunden vor Auslösung der Kompaktierung."
     },
     "avatar": {
       "title": "Wähle einen Avatar",
@@ -495,7 +492,8 @@
       "showSummary": "Zusammenfassung anzeigen",
       "inputDisabled": "Bitte warten – Konversationsverlauf wird komprimiert...",
       "nothingToCompact": "Nichts zum Komprimieren – noch nicht genügend Runden",
-      "error": "Komprimierung fehlgeschlagen"
+      "error": "Komprimierung fehlgeschlagen",
+      "runningCycle": "Kompaktierung... (Zyklus {{cycle}}/{{total}})"
     },
     "taskResult": {
       "showResult": "Ergebnis anzeigen",
