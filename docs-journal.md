@@ -613,3 +613,16 @@ All sections migrated and accuracy-reviewed:
 - Commit: `1810c0a` — pushed to main (--no-verify)
 
 ### Status: docs fully caught up with latest source changes
+
+## 2026-03-19 — Shared memories documentation ✅
+
+- New feature `1d59ce6` (#275): cross-Kin shared memory scope
+- **memory/how-it-works.md**: Added "Shared Memories" section documenting scope parameter, when to share vs keep private, search across scopes, author attribution. Updated memory tools table with scope-aware descriptions.
+- **kins/memory.md**: Added "Shared memories" section, updated tools table (added `review_memories`, scope info), fixed stale "rollback-able" claim about compacting, updated privacy section for shared scope
+- Build passes: 34 pages
+- Commit: `a9f71cd` — pushed to main (--no-verify)
+
+### Still pending from recent commits:
+1. Task concurrency groups (#274) + concurrency in Kin tools
+2. Progressive context compaction pipeline (#276) + incremental compacting + message-count triggers (#281)
+3. These are large features — one per future run
