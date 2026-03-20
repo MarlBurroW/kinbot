@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Cropper from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
 import { Input } from '@/client/components/ui/input'
+import { PasswordInput } from '@/client/components/ui/password-input'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { Badge } from '@/client/components/ui/badge'
@@ -369,27 +370,24 @@ export function AccountDialog({ open, onOpenChange }: AccountDialogProps) {
                 <div className="space-y-3 rounded-lg border p-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="currentPassword">{t('account.password.current')}</Label>
-                    <Input
+                    <PasswordInput
                       id="currentPassword"
-                      type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="newPassword">{t('account.password.new')}</Label>
-                    <Input
+                    <PasswordInput
                       id="newPassword"
-                      type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="confirmPassword">{t('account.password.confirm')}</Label>
-                    <Input
+                    <PasswordInput
                       id="confirmPassword"
-                      type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                     />
