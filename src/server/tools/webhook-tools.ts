@@ -37,8 +37,16 @@ export const createWebhookTool: ToolRegistration = {
           .describe('List of allowed values for the extracted field (simple mode). Case-insensitive matching.'),
         filter_expression: z.string().nullable().optional()
           .describe('Regex pattern to test against raw payload body (advanced mode).'),
+        dispatch_mode: z.enum(['conversation', 'task']).optional()
+          .describe('"conversation" (default) = payload injected as message in your main session. "task" = payload spawns a sub-task with the configured prompt template.'),
+        task_title_template: z.string().optional()
+          .describe('Template for task title (task mode only). Use {{field.path}} placeholders resolved against the JSON payload. e.g. "GitHub: {{action}} on #{{issue.number}}"'),
+        task_prompt_template: z.string().optional()
+          .describe('Template for task description/prompt (task mode only). Use {{field.path}} placeholders. {{__payload__}} = full raw payload. Multi-line supported.'),
+        max_concurrent_tasks: z.number().int().min(0).optional()
+          .describe('Max concurrent webhook-spawned tasks (task mode only). Default: 1. 0 = unlimited.'),
       }),
-      execute: async ({ name, description, filter_mode, filter_field, filter_allowed_values, filter_expression }) => {
+      execute: async ({ name, description, filter_mode, filter_field, filter_allowed_values, filter_expression, dispatch_mode, task_title_template, task_prompt_template, max_concurrent_tasks }) => {
         log.debug({ kinId: ctx.kinId, name }, 'Webhook creation requested')
         try {
           const webhook = await createWebhook({
@@ -50,6 +58,10 @@ export const createWebhookTool: ToolRegistration = {
             filterField: filter_field ?? null,
             filterAllowedValues: filter_allowed_values ? JSON.stringify(filter_allowed_values) : null,
             filterExpression: filter_expression ?? null,
+            dispatchMode: dispatch_mode,
+            taskTitleTemplate: task_title_template ?? null,
+            taskPromptTemplate: task_prompt_template ?? null,
+            maxConcurrentTasks: max_concurrent_tasks,
           })
           return {
             webhookId: webhook.id,
@@ -57,6 +69,7 @@ export const createWebhookTool: ToolRegistration = {
             url: buildWebhookUrl(webhook.id),
             token: webhook.token,
             filterMode: webhook.filterMode ?? null,
+            dispatchMode: webhook.dispatchMode,
             message: 'Webhook created. Store the token securely — it will not be shown again.',
           }
         } catch (err) {
@@ -89,8 +102,16 @@ export const updateWebhookTool: ToolRegistration = {
           .describe('List of allowed values for the extracted field (simple mode). Case-insensitive.'),
         filter_expression: z.string().nullable().optional()
           .describe('Regex pattern to test against raw payload body (advanced mode).'),
+        dispatch_mode: z.enum(['conversation', 'task']).optional()
+          .describe('"conversation" = payload injected as message. "task" = payload spawns a sub-task.'),
+        task_title_template: z.string().nullable().optional()
+          .describe('Template for task title (task mode). Use {{field.path}} placeholders.'),
+        task_prompt_template: z.string().nullable().optional()
+          .describe('Template for task description/prompt (task mode). Use {{field.path}} and {{__payload__}}.'),
+        max_concurrent_tasks: z.number().int().min(0).optional()
+          .describe('Max concurrent webhook-spawned tasks (task mode). 0 = unlimited.'),
       }),
-      execute: async ({ webhook_id, name, description, is_active, filter_mode, filter_field, filter_allowed_values, filter_expression }) => {
+      execute: async ({ webhook_id, name, description, is_active, filter_mode, filter_field, filter_allowed_values, filter_expression, dispatch_mode, task_title_template, task_prompt_template, max_concurrent_tasks }) => {
         // Verify ownership
         const existing = await getWebhook(webhook_id)
         if (!existing || existing.kinId !== ctx.kinId) {
@@ -122,6 +143,19 @@ export const updateWebhookTool: ToolRegistration = {
           }
         }
 
+        // Handle dispatch fields
+        if (dispatch_mode !== undefined) {
+          updates.dispatchMode = dispatch_mode
+          if (dispatch_mode === 'conversation') {
+            updates.taskTitleTemplate = null
+            updates.taskPromptTemplate = null
+            updates.maxConcurrentTasks = 1
+          }
+        }
+        if (task_title_template !== undefined) updates.taskTitleTemplate = task_title_template
+        if (task_prompt_template !== undefined) updates.taskPromptTemplate = task_prompt_template
+        if (max_concurrent_tasks !== undefined) updates.maxConcurrentTasks = max_concurrent_tasks
+
         try {
           const updated = await updateWebhook(webhook_id, updates)
           if (!updated) return { error: 'Webhook not found' }
@@ -134,6 +168,10 @@ export const updateWebhookTool: ToolRegistration = {
             filterField: updated.filterField ?? null,
             filterAllowedValues: updated.filterAllowedValues ? JSON.parse(updated.filterAllowedValues) : null,
             filterExpression: updated.filterExpression ?? null,
+            dispatchMode: updated.dispatchMode ?? 'conversation',
+            taskTitleTemplate: updated.taskTitleTemplate ?? null,
+            taskPromptTemplate: updated.taskPromptTemplate ?? null,
+            maxConcurrentTasks: updated.maxConcurrentTasks ?? 1,
           }
         } catch (err) {
           return { error: err instanceof Error ? err.message : 'Unknown error' }
@@ -202,6 +240,10 @@ export const listWebhooksTool: ToolRegistration = {
             filterField: w.filterField ?? null,
             filterAllowedValues: w.filterAllowedValues ? JSON.parse(w.filterAllowedValues) : null,
             filterExpression: w.filterExpression ?? null,
+            dispatchMode: w.dispatchMode ?? 'conversation',
+            taskTitleTemplate: w.taskTitleTemplate ?? null,
+            taskPromptTemplate: w.taskPromptTemplate ?? null,
+            maxConcurrentTasks: w.maxConcurrentTasks ?? 1,
           })),
         }
       },

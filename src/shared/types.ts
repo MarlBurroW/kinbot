@@ -187,6 +187,7 @@ export interface CronSummary {
 }
 
 export type WebhookFilterMode = 'simple' | 'advanced'
+export type WebhookDispatchMode = 'conversation' | 'task'
 
 /** Webhook summary as returned by GET /api/webhooks */
 export interface WebhookSummary {
@@ -204,6 +205,10 @@ export interface WebhookSummary {
   filterAllowedValues: string[] | null
   filterExpression: string | null
   filteredCount: number
+  dispatchMode: WebhookDispatchMode
+  taskTitleTemplate: string | null
+  taskPromptTemplate: string | null
+  maxConcurrentTasks: number
   createdBy: 'user' | 'kin'
   createdAt: number
   /** Full incoming URL (scheme + host + path) */

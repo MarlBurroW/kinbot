@@ -225,6 +225,7 @@ interface SpawnParams {
   depth?: number
   allowHumanPrompt?: boolean
   channelOriginId?: string
+  webhookId?: string
   concurrencyGroup?: string
   concurrencyMax?: number
 }
@@ -277,6 +278,7 @@ export async function spawnTask(params: SpawnParams) {
     parentTaskId: params.parentTaskId ?? null,
     cronId: params.cronId ?? null,
     channelOriginId: params.channelOriginId ?? null,
+    webhookId: params.webhookId ?? null,
     allowHumanPrompt: params.allowHumanPrompt ?? true,
     concurrencyGroup,
     concurrencyMax,

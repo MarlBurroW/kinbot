@@ -49,6 +49,10 @@ function serializeWebhook(webhook: any, kinInfo?: KinInfo, filteredCount = 0) {
     filterAllowedValues: webhook.filterAllowedValues ? JSON.parse(webhook.filterAllowedValues) : null,
     filterExpression: webhook.filterExpression ?? null,
     filteredCount,
+    dispatchMode: webhook.dispatchMode ?? 'conversation',
+    taskTitleTemplate: webhook.taskTitleTemplate ?? null,
+    taskPromptTemplate: webhook.taskPromptTemplate ?? null,
+    maxConcurrentTasks: webhook.maxConcurrentTasks ?? 1,
     createdBy: webhook.createdBy,
     createdAt: new Date(webhook.createdAt).getTime(),
     url: buildWebhookUrl(webhook.id),
@@ -88,6 +92,10 @@ webhookRoutes.post('/', async (c) => {
     kinId: string
     name: string
     description?: string
+    dispatchMode?: string
+    taskTitleTemplate?: string | null
+    taskPromptTemplate?: string | null
+    maxConcurrentTasks?: number
   }>()
 
   const trimmedName = body.name?.trim()
@@ -112,6 +120,21 @@ webhookRoutes.post('/', async (c) => {
     )
   }
 
+  // Validate dispatch mode
+  if (body.dispatchMode !== undefined && body.dispatchMode !== 'conversation' && body.dispatchMode !== 'task') {
+    return c.json(
+      { error: { code: 'VALIDATION_ERROR', message: 'dispatchMode must be "conversation" or "task"' } },
+      400,
+    )
+  }
+
+  if (body.maxConcurrentTasks !== undefined && (typeof body.maxConcurrentTasks !== 'number' || body.maxConcurrentTasks < 0 || !Number.isInteger(body.maxConcurrentTasks))) {
+    return c.json(
+      { error: { code: 'VALIDATION_ERROR', message: 'maxConcurrentTasks must be a non-negative integer' } },
+      400,
+    )
+  }
+
   // Validate that the Kin exists before attempting to create the webhook
   const targetKin = await db.select({ id: kins.id }).from(kins).where(eq(kins.id, body.kinId)).get()
   if (!targetKin) {
@@ -127,6 +150,10 @@ webhookRoutes.post('/', async (c) => {
       name: trimmedName,
       description: body.description,
       createdBy: 'user',
+      dispatchMode: body.dispatchMode as 'conversation' | 'task' | undefined,
+      taskTitleTemplate: body.taskTitleTemplate,
+      taskPromptTemplate: body.taskPromptTemplate,
+      maxConcurrentTasks: body.maxConcurrentTasks,
     })
 
     log.info({ webhookId: webhook.id, kinId: webhook.kinId, name: webhook.name }, 'Webhook created via API')
@@ -162,6 +189,10 @@ webhookRoutes.patch('/:id', async (c) => {
     filterField?: string | null
     filterAllowedValues?: string[] | null
     filterExpression?: string | null
+    dispatchMode?: string
+    taskTitleTemplate?: string | null
+    taskPromptTemplate?: string | null
+    maxConcurrentTasks?: number
   }>()
 
   // Validate name is non-empty after trimming if provided
@@ -252,6 +283,35 @@ webhookRoutes.patch('/:id', async (c) => {
       updates.filterAllowedValues = null
       updates.filterExpression = body.filterExpression?.trim() ?? null
     }
+  }
+
+  // Dispatch mode fields
+  if (body.dispatchMode !== undefined) {
+    if (body.dispatchMode !== 'conversation' && body.dispatchMode !== 'task') {
+      return c.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'dispatchMode must be "conversation" or "task"' } },
+        400,
+      )
+    }
+    updates.dispatchMode = body.dispatchMode
+    if (body.dispatchMode === 'conversation') {
+      // Clear task-specific fields when switching to conversation
+      updates.taskTitleTemplate = null
+      updates.taskPromptTemplate = null
+      updates.maxConcurrentTasks = 1
+    }
+  }
+
+  if (body.taskTitleTemplate !== undefined) updates.taskTitleTemplate = body.taskTitleTemplate
+  if (body.taskPromptTemplate !== undefined) updates.taskPromptTemplate = body.taskPromptTemplate
+  if (body.maxConcurrentTasks !== undefined) {
+    if (typeof body.maxConcurrentTasks !== 'number' || body.maxConcurrentTasks < 0 || !Number.isInteger(body.maxConcurrentTasks)) {
+      return c.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'maxConcurrentTasks must be a non-negative integer' } },
+        400,
+      )
+    }
+    updates.maxConcurrentTasks = body.maxConcurrentTasks
   }
 
   try {

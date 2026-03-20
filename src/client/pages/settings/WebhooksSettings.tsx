@@ -33,7 +33,7 @@ import { useKinList } from '@/client/hooks/useKinList'
 import { WebhookCard } from '@/client/components/webhook/WebhookCard'
 import { WebhookFormDialog } from '@/client/components/webhook/WebhookFormDialog'
 import { WebhookLogDialog } from '@/client/components/webhook/WebhookLogDialog'
-import type { WebhookSummary, WebhookFilterMode } from '@/shared/types'
+import type { WebhookSummary, WebhookFilterMode, WebhookDispatchMode } from '@/shared/types'
 import type { KinOption } from '@/client/components/common/KinSelectItem'
 
 interface WebhookWithToken extends WebhookSummary {
@@ -93,11 +93,22 @@ export function WebhooksSettings() {
     'webhook:triggered': () => fetchWebhooks(),
   })
 
-  const handleCreate = async (kinId: string, data: { name: string; description?: string }) => {
+  const handleCreate = async (kinId: string, data: {
+    name: string
+    description?: string
+    dispatchMode?: WebhookDispatchMode
+    taskTitleTemplate?: string | null
+    taskPromptTemplate?: string | null
+    maxConcurrentTasks?: number
+  }) => {
     const result = await api.post<{ webhook: WebhookWithToken }>('/webhooks', {
       kinId,
       name: data.name,
       description: data.description,
+      dispatchMode: data.dispatchMode,
+      taskTitleTemplate: data.taskTitleTemplate,
+      taskPromptTemplate: data.taskPromptTemplate,
+      maxConcurrentTasks: data.maxConcurrentTasks,
     })
     await fetchWebhooks()
     // Show token reveal dialog
@@ -117,6 +128,10 @@ export function WebhooksSettings() {
     filterField?: string | null
     filterAllowedValues?: string[] | null
     filterExpression?: string | null
+    dispatchMode?: WebhookDispatchMode
+    taskTitleTemplate?: string | null
+    taskPromptTemplate?: string | null
+    maxConcurrentTasks?: number
   }) => {
     await api.patch(`/webhooks/${webhookId}`, data)
     await fetchWebhooks()

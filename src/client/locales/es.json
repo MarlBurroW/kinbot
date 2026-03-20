@@ -1177,7 +1177,20 @@
       "filtered": "Filtrado",
       "statsReceived": "{{count}} recibidos",
       "statsTransmitted": "{{count}} transmitidos",
-      "statsFiltered": "{{count}} filtrados"
+      "statsFiltered": "{{count}} filtrados",
+      "dispatchMode": "Modo de despacho",
+      "dispatchModeConversation": "Conversación",
+      "dispatchModeTask": "Tarea",
+      "dispatchModeTip": "El modo Conversación inyecta el payload como mensaje en la sesión del Kin. El modo Tarea crea una subtarea autónoma con una plantilla de prompt configurable.",
+      "taskTitleTemplate": "Plantilla de título de tarea",
+      "taskTitleTemplatePlaceholder": "ej. GitHub: {{action}} en #{{issue.number}}",
+      "taskTitleTemplateTip": "Plantilla para el título de la tarea creada. Use {{field.path}} para insertar valores del payload JSON. Deje vacío para un título predeterminado.",
+      "taskPromptTemplate": "Plantilla de prompt de tarea",
+      "taskPromptTemplatePlaceholder": "ej. Analiza este evento y actúa en consecuencia.\n\n```json\n{{__payload__}}\n```",
+      "taskPromptTemplateTip": "Plantilla para la descripción enviada al Kin. Use {{field.path}} para campos específicos o {{__payload__}} para el payload completo. Deje vacío para usar el payload sin procesar.",
+      "maxConcurrentTasks": "Tareas simultáneas máx.",
+      "maxConcurrentTasksTip": "Número máximo de tareas creadas por webhook que pueden ejecutarse simultáneamente. Los webhooks adicionales se ponen en cola. 0 = ilimitado.",
+      "templatePreview": "Vista previa (basada en el último payload recibido)"
     },
     "users": {
       "title": "Usuarios",

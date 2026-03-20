@@ -5,6 +5,7 @@ import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { webhooks, webhookLogs, kins } from '@/server/db/schema'
 import { enqueueMessage } from '@/server/services/queue'
+import { spawnTask } from '@/server/services/tasks'
 import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
 
@@ -41,6 +42,10 @@ interface CreateWebhookParams {
   filterField?: string | null
   filterAllowedValues?: string | null
   filterExpression?: string | null
+  dispatchMode?: 'conversation' | 'task'
+  taskTitleTemplate?: string | null
+  taskPromptTemplate?: string | null
+  maxConcurrentTasks?: number
 }
 
 export async function createWebhook(params: CreateWebhookParams) {
@@ -71,6 +76,10 @@ export async function createWebhook(params: CreateWebhookParams) {
     filterField: params.filterField ?? null,
     filterAllowedValues: params.filterAllowedValues ?? null,
     filterExpression: params.filterExpression ?? null,
+    dispatchMode: params.dispatchMode ?? 'conversation',
+    taskTitleTemplate: params.taskTitleTemplate ?? null,
+    taskPromptTemplate: params.taskPromptTemplate ?? null,
+    maxConcurrentTasks: params.maxConcurrentTasks ?? 1,
     createdBy: params.createdBy,
     createdAt: now,
     updatedAt: now,
@@ -102,6 +111,10 @@ export async function updateWebhook(
     filterField: string | null
     filterAllowedValues: string | null
     filterExpression: string | null
+    dispatchMode: string
+    taskTitleTemplate: string | null
+    taskPromptTemplate: string | null
+    maxConcurrentTasks: number
   }>,
 ) {
   await db
@@ -247,6 +260,33 @@ export function evaluateFilter(config: FilterConfig, payload: string): FilterRes
   return { passed: true }
 }
 
+// ─── Template resolution ─────────────────────────────────────────────────────
+
+export function resolveTemplate(template: string | null | undefined, payload: string): string | null {
+  if (!template) return null
+
+  let parsed: unknown = null
+  try {
+    parsed = JSON.parse(payload)
+  } catch {
+    // Non-JSON payload — only {{__payload__}} will resolve
+  }
+
+  return template.replace(/\{\{(.+?)\}\}/g, (_match, path: string) => {
+    const trimmed = path.trim()
+    if (trimmed === '__payload__') return payload
+    if (parsed == null) return ''
+    const value = extractByPath(parsed, trimmed)
+    if (value == null) return ''
+    if (typeof value === 'object') {
+      try { return JSON.stringify(value) } catch { return '' }
+    }
+    return String(value)
+  })
+}
+
+// ─── Field path extraction ───────────────────────────────────────────────────
+
 export function extractFieldPaths(obj: unknown, prefix = '', depth = 0): string[] {
   if (depth > 5 || obj == null || typeof obj !== 'object' || Array.isArray(obj)) return []
 
@@ -344,10 +384,21 @@ export async function triggerWebhook(webhookId: string, payload: string, sourceI
     createdAt: now,
   })
 
-  // Format content for the Kin
+  // Dispatch based on mode
+  if (webhook.dispatchMode === 'task') {
+    return triggerWebhookAsTask(webhook, payload)
+  }
+
+  return triggerWebhookAsConversation(webhook, payload, webhookId)
+}
+
+async function triggerWebhookAsConversation(
+  webhook: typeof webhooks.$inferSelect,
+  payload: string,
+  webhookId: string,
+) {
   const content = `[Webhook: ${webhook.name}]\n${payload}`
 
-  // Enqueue message to the target Kin
   const { id: queueItemId } = await enqueueMessage({
     kinId: webhook.kinId,
     messageType: 'webhook',
@@ -357,16 +408,46 @@ export async function triggerWebhook(webhookId: string, payload: string, sourceI
     priority: config.queue.kinPriority,
   })
 
-  // Emit SSE event
   sseManager.sendToKin(webhook.kinId, {
     type: 'webhook:triggered',
     kinId: webhook.kinId,
     data: { webhookId: webhook.id, kinId: webhook.kinId, queueItemId },
   })
 
-  log.info({ webhookId, kinId: webhook.kinId, webhookName: webhook.name }, 'Webhook triggered')
-
+  log.info({ webhookId, kinId: webhook.kinId, webhookName: webhook.name }, 'Webhook triggered (conversation)')
   return { queueItemId }
+}
+
+async function triggerWebhookAsTask(
+  webhook: typeof webhooks.$inferSelect,
+  payload: string,
+) {
+  const title = resolveTemplate(webhook.taskTitleTemplate, payload) ?? `Webhook: ${webhook.name}`
+  const description = resolveTemplate(webhook.taskPromptTemplate, payload) ?? payload
+
+  const { taskId, queued } = await spawnTask({
+    parentKinId: webhook.kinId,
+    title,
+    description,
+    mode: 'async',
+    spawnType: 'self',
+    webhookId: webhook.id,
+    concurrencyGroup: `webhook:${webhook.id}`,
+    concurrencyMax: webhook.maxConcurrentTasks,
+  })
+
+  sseManager.sendToKin(webhook.kinId, {
+    type: 'webhook:triggered',
+    kinId: webhook.kinId,
+    data: { webhookId: webhook.id, kinId: webhook.kinId, taskId, queued },
+  })
+
+  log.info(
+    { webhookId: webhook.id, kinId: webhook.kinId, webhookName: webhook.name, taskId, queued },
+    'Webhook triggered (task)',
+  )
+
+  return { taskId, queued }
 }
 
 // ─── Logs ────────────────────────────────────────────────────────────────────

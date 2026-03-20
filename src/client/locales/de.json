@@ -1177,7 +1177,20 @@
       "filtered": "Gefiltert",
       "statsReceived": "{{count}} empfangen",
       "statsTransmitted": "{{count}} übermittelt",
-      "statsFiltered": "{{count}} gefiltert"
+      "statsFiltered": "{{count}} gefiltert",
+      "dispatchMode": "Dispatch-Modus",
+      "dispatchModeConversation": "Konversation",
+      "dispatchModeTask": "Aufgabe",
+      "dispatchModeTip": "Der Konversationsmodus fügt den Payload als Nachricht in die Kin-Sitzung ein. Der Aufgabenmodus erstellt eine autonome Unteraufgabe mit einem konfigurierbaren Prompt-Template.",
+      "taskTitleTemplate": "Aufgabentitel-Template",
+      "taskTitleTemplatePlaceholder": "z.B. GitHub: {{action}} bei #{{issue.number}}",
+      "taskTitleTemplateTip": "Template für den Titel der erstellten Aufgabe. Verwenden Sie {{field.path}} um Werte aus dem JSON-Payload einzufügen. Leer lassen für einen Standardtitel.",
+      "taskPromptTemplate": "Aufgaben-Prompt-Template",
+      "taskPromptTemplatePlaceholder": "z.B. Analysiere dieses Ereignis und handle entsprechend.\n\n```json\n{{__payload__}}\n```",
+      "taskPromptTemplateTip": "Template für die Aufgabenbeschreibung. Verwenden Sie {{field.path}} für bestimmte Felder oder {{__payload__}} für den gesamten Payload. Leer lassen für den rohen Payload.",
+      "maxConcurrentTasks": "Max. gleichzeitige Aufgaben",
+      "maxConcurrentTasksTip": "Maximale Anzahl gleichzeitig laufender Webhook-Aufgaben. Weitere Webhooks werden in die Warteschlange gestellt. 0 = unbegrenzt.",
+      "templatePreview": "Vorschau (basierend auf dem zuletzt empfangenen Payload)"
     },
     "users": {
       "title": "Benutzer",
