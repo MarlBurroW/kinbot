@@ -20,10 +20,10 @@ const log = createLogger('tools:tasks')
 
 /**
  * spawn_self — clone the current Kin with a specific mission.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks (enables router → worker pattern).
  */
 export const spawnSelfTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:
@@ -66,10 +66,10 @@ export const spawnSelfTool: ToolRegistration = {
 
 /**
  * spawn_kin — instantiate another Kin from the platform with a specific mission.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks (enables router → worker pattern).
  */
 export const spawnKinTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:
@@ -164,10 +164,10 @@ export const cancelTaskTool: ToolRegistration = {
 
 /**
  * list_tasks — list all current tasks and their status.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks.
  */
 export const listTasksTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:
@@ -242,10 +242,10 @@ export const listTasksTool: ToolRegistration = {
 
 /**
  * list_active_queues — list all active concurrency groups with status.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks.
  */
 export const listActiveQueuesTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (_ctx) =>
     tool({
       description:
@@ -286,7 +286,7 @@ export const listActiveQueuesTool: ToolRegistration = {
  * Works for tasks you spawned OR tasks where you were the executing Kin.
  */
 export const getTaskDetailTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:
