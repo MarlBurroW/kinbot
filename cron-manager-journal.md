@@ -1,3 +1,55 @@
+## 2026-03-21 13:07 UTC
+### Audit summary
+- **Active crons:** 19 (17 KinBot + PinchChat + reddit-token-refresh)
+- **Disabled crons:** 20
+
+### Healthy crons (doing good work)
+- **kinbot-add-tests** (8h, Opus) — 3131 tests now, very productive, last run added mini-app-docs tests
+- **kinbot-ci-watchdog** (6h, Opus) — essential, catches breaks, recently re-triggered a flaky cron-tools test
+- **kinbot-promo** (daily 14:00, Opus) — GitHub PRs, Reddit posts, working well
+- **kinbot-docs-content** (6h, Opus) — writing docs, last run updated multiple doc pages
+- **kinbot-code-scanning-fixer** (12h, Opus) — fixing CodeQL alerts, last fixed double escaping
+- **kinbot-memory-research** (12h, Opus) — R&D, shipped improvements
+- **kinbot-github-maintenance** (12h, Opus) — repo hygiene
+- **kinbot-improve-site** (12h, Opus) — landing polish
+- **kinbot-qa-explorer** (12h, Opus) — browser QA
+- **kinbot-plugin-improve** (8h, Opus) — plugin system
+- **kinbot-improve-cli** (daily, Opus) — installer improvements
+- **kinbot-sse-reactivity** (daily, Opus) — SSE event coverage
+- **kinbot-i18n-audit** (2 days, Opus) — i18n completeness
+- **kinbot-consistency-guardian** (2 days, Opus) — refactoring, ran 347s last time
+- **kinbot-community** (daily, Opus) — handles issues/PRs, last run 104s
+- **kinbot-release** (daily 17:00 UTC, Opus) — "Nothing to release" last run (good)
+- **PinchChat** (3x/day, Opus) — project in excellent shape, mostly finding nothing to do
+- **reddit-token-refresh** (12h, Gemini Flash) — cheap, quick, 1.4s
+
+### Issues found
+None critical. All active crons are running cleanly.
+
+### Disabled crons — status check
+- **kinbot-e2e-tests** — correctly disabled, 3 consecutive 900s timeouts (agent keeps running Playwright locally despite explicit instructions). Leave disabled.
+- **kinbot-dynamic-platforms** — disabled, never ran. Issue #239 scope. Leave disabled until Nicolas re-enables.
+- **kinbot-teams** — disabled, feat/teams branch work. Leave disabled.
+- All other disabled crons (Twitter, Moltbook, infra, email, etc.) — appropriately disabled.
+
+### No action taken
+Everything is running well. No changes needed.
+
+### Standing proposals (for Nicolas to decide)
+- **kinbot-ci-watchdog → Gemini Flash** (14th time proposing). 95%+ runs are "CI green ✅" in 8-11s on Opus. The watchdog just runs `gh run list` and checks the conclusion. When CI breaks, the fix usually involves `bun run build` + code edits which Flash can handle for TypeScript fixes. Massive cost savings potential.
+- **PinchChat frequency reduction** — The project is feature-complete and in "excellent shape" per its own assessment. 3x/day on Opus is overkill when most runs find nothing to do. Suggest reducing to 1x/day or even every 2 days.
+
+### Cost observations
+- 19 active crons, 17 on Opus 4.6
+- Cheapest: reddit-token-refresh (Flash, 1.4s)
+- PinchChat runs are increasingly finding nothing to do (last ~10 runs: "nothing actionable", "codebase in excellent shape", "no changes needed")
+- kinbot-ci-watchdog averages 8-11s for the "green" path on Opus
+
+### Next audit focus
+- Monitor if PinchChat continues to have nothing to do (candidate for frequency reduction)
+- Check if kinbot-code-scanning-fixer self-disables when all alerts are fixed
+- Review if any new coverage gaps have appeared in KinBot src/
+
 ## 2026-03-17 13:08 UTC
 ### Audit summary
 - **Active crons:** 17 KinBot + 3 other (PinchChat, reddit-token-refresh, woodbrass-reply-check)

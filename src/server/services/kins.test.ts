@@ -58,7 +58,16 @@ mock.module('@/server/services/channels', () => ({
 }))
 
 mock.module('@/server/services/crons', () => ({
+  createCron: mock(() => Promise.resolve()),
+  updateCron: mock(() => Promise.resolve()),
+  deleteCron: mock(() => Promise.resolve()),
+  getCron: mock(() => Promise.resolve(null)),
+  listCrons: mock(() => Promise.resolve([])),
+  approveCron: mock(() => Promise.resolve()),
   stopJob: mock(() => {}),
+  triggerCronManually: mock(() => Promise.resolve()),
+  initCronScheduler: mock(() => Promise.resolve()),
+  stopAllCrons: mock(() => {}),
 }))
 
 mock.module('drizzle-orm', () => ({

@@ -633,3 +633,10 @@ All sections migrated and accuracy-reviewed:
 - Commit: `fix: inject OAuth system block for all standalone generateText calls`
 - Docker build passed, Install Test passed — only `Build & Test` workflow failed
 - **Skipping docs work until CI is green again**
+
+## 2026-03-21 — Pre-flight STOP: CI still failing
+
+- CI run `23377193426` failed: `SyntaxError: Export named 'deleteCron' not found in module crons.ts`
+- Test failure in `cron-tools.test.ts` — source code issue, not docs-related
+- Has been failing since Mar 20 (multiple commits)
+- **Skipping docs work until CI is green again**
