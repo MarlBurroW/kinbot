@@ -299,7 +299,8 @@ export function extractLinksFromHtml(
 
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href')
-    if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return
+    const lowerHref = href.toLowerCase().trim()
+    if (!href || lowerHref.startsWith('#') || lowerHref.startsWith('javascript:') || lowerHref.startsWith('vbscript:') || lowerHref.startsWith('data:') || lowerHref.startsWith('mailto:') || lowerHref.startsWith('file:')) return
 
     let absoluteUrl: string
     try {
