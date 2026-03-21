@@ -179,7 +179,7 @@ export const deleteKinTool: ToolRegistration = {
         'Permanently delete a Kin and all its data. Irreversible. Cannot delete yourself.',
       inputSchema: z.object({
         kin_id: z.string().describe('Slug or UUID'),
-        confirm: z.literal(true).describe('Must be true'),
+        confirm: z.boolean().describe('Must be true to confirm the deletion'),
       }),
       execute: async ({ kin_id, confirm }) => {
         if (!confirm) {

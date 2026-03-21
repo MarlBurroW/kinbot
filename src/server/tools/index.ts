@@ -9,6 +9,10 @@ class ToolRegistry {
   private tools = new Map<string, ToolRegistration>()
 
   register(name: string, registration: ToolRegistration): void {
+    if (!registration.availability || !Array.isArray(registration.availability)) {
+      log.warn({ toolName: name }, 'Tool registered without an availability array. Defaulting to ["main"]')
+      registration.availability = ['main']
+    }
     this.tools.set(name, registration)
     log.debug({ toolName: name }, 'Tool registered')
   }
