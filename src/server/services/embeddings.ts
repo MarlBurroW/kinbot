@@ -7,6 +7,7 @@ import { providers } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { getEmbeddingModel } from '@/server/services/app-settings'
 import { decrypt } from '@/server/services/encryption'
+import { PROVIDER_META } from '@/shared/provider-metadata'
 
 const log = createLogger('embeddings')
 
@@ -41,7 +42,15 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
     model = google.embedding(embeddingModelId)
   } else {
-    throw new Error(`Provider type ${provider.type} does not support embeddings`)
+    // Assume other configured embedding providers are OpenAI-compatible
+    const pm = (PROVIDER_META as Record<string, { defaultBaseUrl?: string }>)[provider.type]
+    const baseUrl = providerConfig.baseUrl ?? pm?.defaultBaseUrl
+
+    const openai = createOpenAI({
+      apiKey: providerConfig.apiKey || 'not-needed',
+      baseURL: baseUrl,
+    })
+    model = openai.embedding(embeddingModelId)
   }
 
   const result = await embed({ model, value: text })
