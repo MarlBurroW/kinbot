@@ -28,20 +28,31 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   const embeddingModelId = (await getEmbeddingModel()) ?? config.memory.embeddingModel
 
   let model
-  if (provider.type === 'openai') {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = openai.embedding(embeddingModelId)
-  } else if (provider.type === 'voyage') {
-    const voyage = createOpenAI({
-      apiKey: providerConfig.apiKey,
-      baseURL: providerConfig.baseUrl ?? 'https://api.voyageai.com/v1',
-    })
-    model = voyage.embedding(embeddingModelId)
-  } else if (provider.type === 'gemini') {
+  if (provider.type === 'gemini') {
     const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
     model = google.embedding(embeddingModelId)
   } else {
-    throw new Error(`Provider type ${provider.type} does not support embeddings`)
+    // Assume other configured embedding providers are OpenAI-compatible
+    let baseUrl = providerConfig.baseUrl
+
+    if (!baseUrl) {
+      if (provider.type === 'openai') baseUrl = 'https://api.openai.com/v1'
+      else if (provider.type === 'voyage') baseUrl = 'https://api.voyageai.com/v1'
+      else if (provider.type === 'mistral') baseUrl = 'https://api.mistral.ai/v1'
+      else if (provider.type === 'deepseek') baseUrl = 'https://api.deepseek.com/v1'
+      else if (provider.type === 'xai') baseUrl = 'https://api.x.ai/v1'
+      else if (provider.type === 'jina') baseUrl = 'https://api.jina.ai/v1'
+      else if (provider.type === 'nomic') baseUrl = 'https://api-atlas.nomic.ai/v1'
+      else if (provider.type === 'together') baseUrl = 'https://api.together.xyz/v1'
+      else if (provider.type === 'fireworks') baseUrl = 'https://api.fireworks.ai/inference/v1'
+      else if (provider.type === 'ollama') baseUrl = 'http://localhost:11434/v1'
+    }
+
+    const openai = createOpenAI({
+      apiKey: providerConfig.apiKey || 'not-needed',
+      baseURL: baseUrl,
+    })
+    model = openai.embedding(embeddingModelId)
   }
 
   const result = await embed({ model, value: text })
