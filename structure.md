@@ -48,10 +48,14 @@ kinbot/
 │   │   │   ├── crons.ts            # Scheduler (croner) + spawn des sous-Kins
 │   │   │   ├── inter-kin.ts        # Communication inter-Kins (send_message, reply, garde-fous)
 │   │   │   ├── vault.ts            # Gestion des secrets (chiffrement, get_secret, redact)
-│   │   │   ├── webhooks.ts         # Gestion des webhooks (CRUD, filtrage payload, logs)
+│   │   │   ├── webhooks.ts         # Gestion des webhooks (CRUD, filtrage payload, logs, dispatch modes)
 │   │   │   ├── channels.ts         # Gestion des canaux de messagerie (enqueue, delivery)
 │   │   │   ├── files.ts            # Upload, stockage, référencement des fichiers
 │   │   │   ├── field-validator.ts  # Validation des champs Kin (nom, rôle, modèle, provider)
+│   │   │   ├── tool-output-spill.ts # Spill des résultats d'outils volumineux vers fichiers temporaires
+│   │   │   ├── workspace-tree.ts   # Génération de l'arbre de fichiers du workspace (pour le prompt système)
+│   │   │   ├── migrate-model-providers.ts # Migration one-shot : backfill des providerId manquants sur kins/crons/tasks
+│   │   │   ├── llm-helpers.ts      # Helpers LLM (safeGenerateText avec injection OAuth)
 │   │   │   └── events.ts           # Event bus (emit, on, listeners)
 │   │   │
 │   │   ├── channels/               # Adaptateurs de canaux de messagerie
@@ -122,6 +126,7 @@ kinbot/
 │   │
 │   ├── shared/                     # Code partagé client/serveur
 │   │   ├── types.ts                # Types TypeScript partagés
+│   │   ├── model-ref.ts            # Parsing model references (providerId:modelId), provider type guessing
 │   │   └── constants.ts            # Constantes partagées
 │   │
 │   └── test-helpers.ts             # Helpers et mocks pour les tests

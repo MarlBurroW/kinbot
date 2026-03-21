@@ -27,11 +27,12 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 
 | Clé | Env var | Default | Description |
 |---|---|---|---|
-| `compacting.thresholdPercent` | `COMPACTING_THRESHOLD_PERCENT` | `75` | Seuil de fallback : déclenche le compacting quand l'usage du contexte atteint ce % de la fenêtre du modèle. Le déclencheur principal est basé sur le nombre de messages |
-| `compacting.model` | `COMPACTING_MODEL` | — | Modèle utilisé pour le compacting. Si non défini, utilise le modèle du Kin |
+| `compacting.model` | `COMPACTING_MODEL` | — | Modèle utilisé pour le compacting (format `providerId:modelId` supporté). Si non défini, utilise le modèle du Kin |
 | `compacting.maxSnapshotsPerKin` | `COMPACTING_MAX_SNAPSHOTS` | `10` | Nombre max de snapshots conservés par Kin (les plus anciens sont supprimés) |
-| `compacting.batchSize` | `COMPACTING_BATCH_SIZE` | `20` | Nombre de messages par micro-batch de compacting incrémental |
-| `compacting.minKeepMessages` | `COMPACTING_MIN_KEEP_MESSAGES` | `15` | Nombre minimum de messages non compactés à garder comme contexte brut |
+| `compacting.batchTurns` | `COMPACTING_BATCH_TURNS` | `10` | Nombre de tours (user message + réponses suivantes) par micro-batch de compacting incrémental |
+| `compacting.minKeepTurns` | `COMPACTING_MIN_KEEP_TURNS` | `15` | Nombre minimum de tours non compactés à garder comme contexte brut. Le compacting se déclenche quand les tours non compactés > `batchTurns` + `minKeepTurns` |
+
+> **Per-Kin override** : chaque Kin peut surcharger le seuil de compacting via son `compactingConfig` (stocké en JSON dans `kins.compacting_config`). L'interface de configuration se trouve dans l'onglet Compaction des paramètres du Kin. Les champs disponibles sont : `turnThreshold` (seuil total de tours), `compactingModel`, et `compactingProviderId`.
 
 ---
 
