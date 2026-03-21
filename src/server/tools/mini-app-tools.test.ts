@@ -215,7 +215,7 @@ describe('mini-app-tools', () => {
     })
 
     it('returns error for non-existent app', async () => {
-      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null))
+      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null as any))
       const tool = mod.updateMiniAppTool.create(ctx)
       const result = await tool.execute({ app_id: 'nope', name: 'x' }, execOpts)
       expect(result.error).toBe('App not found')
@@ -247,7 +247,7 @@ describe('mini-app-tools', () => {
     })
 
     it('returns error for non-existent app', async () => {
-      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null))
+      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null as any))
       const tool = mod.deleteMiniAppTool.create(ctx)
       const result = await tool.execute({ app_id: 'nope' }, execOpts)
       expect(result.error).toBe('App not found')
@@ -296,7 +296,7 @@ describe('mini-app-tools', () => {
       )
       expect(result.success).toBe(true)
       // Verify Buffer was passed
-      const callArgs = mockMiniApps.writeAppFile.mock.calls[0]
+      const callArgs = mockMiniApps.writeAppFile.mock.calls[0] as any
       expect(callArgs[2]).toBeInstanceOf(Buffer)
     })
 
@@ -310,7 +310,7 @@ describe('mini-app-tools', () => {
     })
 
     it('returns error for missing app', async () => {
-      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null))
+      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null as any))
       const tool = mod.writeMiniAppFileTool.create(ctx)
       const result = await tool.execute(
         { app_id: 'nope', path: 'x.html', content: 'x' },
@@ -512,7 +512,7 @@ describe('mini-app-tools', () => {
     })
 
     it('returns error when no files to snapshot', async () => {
-      mockMiniApps.createSnapshot.mockImplementation(() => Promise.resolve(null))
+      mockMiniApps.createSnapshot.mockImplementation(() => Promise.resolve(null as any))
       const tool = mod.createMiniAppSnapshotTool.create(ctx)
       const result = await tool.execute({ app_id: 'app-1' }, execOpts)
       expect(result.error).toContain('No files')
@@ -527,13 +527,13 @@ describe('mini-app-tools', () => {
 
   describe('listMiniAppSnapshotsTool', () => {
     it('lists snapshots with current version', async () => {
-      mockMiniApps.listSnapshots.mockImplementation(() =>
+      mockMiniApps.listSnapshots.mockImplementation((() =>
         Promise.resolve([{
           version: 1,
           label: 'initial',
           files: [{ path: 'index.html' }],
           createdAt: Date.now(),
-        }])
+        }])) as any
       )
       const tool = mod.listMiniAppSnapshotsTool.create(ctx)
       const result = await tool.execute({ app_id: 'app-1' }, execOpts)
@@ -578,7 +578,7 @@ describe('mini-app-tools', () => {
     })
 
     it('returns error for missing app', async () => {
-      mockMiniApps.getMiniAppRow.mockImplementation(() => Promise.resolve(null))
+      mockMiniApps.getMiniAppRow.mockImplementation(() => Promise.resolve(null as any))
       const tool = mod.generateMiniAppIconTool.create(ctx)
       const result = await tool.execute({ app_id: 'nope' }, execOpts)
       expect(result.error).toContain('not found')
@@ -615,9 +615,9 @@ describe('mini-app-tools', () => {
 
     it('returns entries with summary counts', async () => {
       // Push real console entries
-      realConsole!.pushConsoleEntry('app-1', { level: 'log', args: ['hello'], timestamp: Date.now() })
+      realConsole!.pushConsoleEntry('app-1', { level: 'log', args: ['hello'], stack: null, timestamp: Date.now() })
       realConsole!.pushConsoleEntry('app-1', { level: 'error', args: ['oops'], stack: 'Error at line 1', timestamp: Date.now() })
-      realConsole!.pushConsoleEntry('app-1', { level: 'warn', args: ['careful'], timestamp: Date.now() })
+      realConsole!.pushConsoleEntry('app-1', { level: 'warn', args: ['careful'], stack: null, timestamp: Date.now() })
 
       const tool = mod.getMiniAppConsoleTool.create(ctx)
       const result = await tool.execute({ app_id: 'app-1' }, execOpts)
@@ -629,7 +629,7 @@ describe('mini-app-tools', () => {
     })
 
     it('clears buffer when requested', async () => {
-      realConsole!.pushConsoleEntry('app-1', { level: 'log', args: ['data'], timestamp: Date.now() })
+      realConsole!.pushConsoleEntry('app-1', { level: 'log', args: ['data'], stack: null, timestamp: Date.now() })
       const tool = mod.getMiniAppConsoleTool.create(ctx)
       await tool.execute({ app_id: 'app-1', clear: true }, execOpts)
       // After clearing, entries should be empty
@@ -638,8 +638,8 @@ describe('mini-app-tools', () => {
     })
 
     it('filters by level', async () => {
-      realConsole!.pushConsoleEntry('app-1', { level: 'log', args: ['info'], timestamp: Date.now() })
-      realConsole!.pushConsoleEntry('app-1', { level: 'error', args: ['bad'], timestamp: Date.now() })
+      realConsole!.pushConsoleEntry('app-1', { level: 'log', args: ['info'], stack: null, timestamp: Date.now() })
+      realConsole!.pushConsoleEntry('app-1', { level: 'error', args: ['bad'], stack: null, timestamp: Date.now() })
 
       const tool = mod.getMiniAppConsoleTool.create(ctx)
       const result = await tool.execute({ app_id: 'app-1', level: 'error' }, execOpts)
