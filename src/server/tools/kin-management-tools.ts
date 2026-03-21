@@ -34,7 +34,7 @@ export const createKinTool: ToolRegistration = {
         generate_avatar: z
           .boolean()
           .optional()
-          .default(false),
+          .describe('Whether to generate an avatar for the new Kin. Default: false'),
       }),
       execute: async ({ name, role, character, expertise, model, generate_avatar }) => {
         log.info({ kinId: ctx.kinId, newKinName: name }, 'Kin creation requested via tool')
@@ -101,7 +101,7 @@ export const updateKinTool: ToolRegistration = {
         generate_avatar: z
           .boolean()
           .optional()
-          .default(false),
+          .describe('Whether to generate a new avatar. Default: false'),
       }),
       execute: async ({ kin_id, name, role, character, expertise, model, slug, tool_config, generate_avatar }) => {
         const targetKinId = resolveKinId(kin_id)
@@ -179,7 +179,7 @@ export const deleteKinTool: ToolRegistration = {
         'Permanently delete a Kin and all its data. Irreversible. Cannot delete yourself.',
       inputSchema: z.object({
         kin_id: z.string().describe('Slug or UUID'),
-        confirm: z.literal(true).describe('Must be true'),
+        confirm: z.boolean().describe('Must be true to confirm the deletion'),
       }),
       execute: async ({ kin_id, confirm }) => {
         if (!confirm) {

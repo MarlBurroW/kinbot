@@ -1981,34 +1981,34 @@ async function tryCreateModel(
       return google(modelId)
     } else if (provider.type === 'openrouter') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://openrouter.ai/api/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'deepseek') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.deepseek.com/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'groq') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.groq.com/openai/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'together') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.together.xyz/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'fireworks') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.fireworks.ai/inference/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'mistral') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.mistral.ai/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'xai') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.x.ai/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'perplexity') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.perplexity.ai' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'cohere') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.cohere.com/v2' })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'ollama') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey || 'ollama', baseURL: providerConfig.baseUrl ?? 'http://localhost:11434/v1' })
-      return openai(modelId)
+      return openai.chat(modelId)
     }
   } catch {
     return null

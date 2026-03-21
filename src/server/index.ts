@@ -83,7 +83,8 @@ channelAdapters.register(new MatrixAdapter())
 restoreActiveChannels().catch((err) => log.error({ err }, 'Failed to restore active channels'))
 
 // File storage cleanup cron
-new Cron(`*/${config.fileStorage.cleanupIntervalMin} * * * *`, async () => {
+const fileStorageInterval = Math.min(Math.max(1, config.fileStorage.cleanupIntervalMin), 59)
+new Cron(`*/${fileStorageInterval} * * * *`, async () => {
   const count = await cleanExpiredFiles()
   if (count > 0) log.info({ count }, 'File storage cleanup completed')
 })
