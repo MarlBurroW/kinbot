@@ -1661,9 +1661,23 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   recentMessages.reverse()
 
   // If we have a compacted snapshot, only include messages after it
-  const postSnapshotMessages = activeSnapshot
+  // Filter messages after the snapshot's cutoff point.
+  // IMPORTANT: use the createdAt of the message referenced by messagesUpToId,
+  // NOT the snapshot's own createdAt (which is when the snapshot was created,
+  // and would exclude all historical messages during catch-up compaction).
+  let cutoffTimestamp: number | null = null
+  if (activeSnapshot?.messagesUpToId) {
+    const cutoffMsg = await db
+      .select({ createdAt: messages.createdAt })
+      .from(messages)
+      .where(eq(messages.id, activeSnapshot.messagesUpToId))
+      .get()
+    cutoffTimestamp = (cutoffMsg?.createdAt as unknown as number) ?? null
+  }
+
+  const postSnapshotMessages = cutoffTimestamp
     ? recentMessages.filter(
-        (m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt,
+        (m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp,
       )
     : recentMessages
 

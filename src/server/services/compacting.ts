@@ -72,6 +72,23 @@ async function getEffectiveCompactingConfig(kinId: string): Promise<EffectiveCom
   return { turnThreshold, batchTurns, minKeepTurns, model, providerId }
 }
 
+/**
+ * Resolve the cutoff timestamp from a snapshot's messagesUpToId.
+ * This returns the createdAt of the actual message referenced by the snapshot,
+ * NOT the snapshot's own createdAt (which is when the snapshot was created).
+ */
+async function getSnapshotCutoffTimestamp(
+  snapshot: { messagesUpToId: string | null } | null | undefined,
+): Promise<number | null> {
+  if (!snapshot?.messagesUpToId) return null
+  const cutoffMessage = await db
+    .select({ createdAt: messages.createdAt })
+    .from(messages)
+    .where(eq(messages.id, snapshot.messagesUpToId))
+    .get()
+  return (cutoffMessage?.createdAt as unknown as number) ?? null
+}
+
 /** Get non-compacted stats for a Kin (shared by shouldCompact + getCompactingProximity) */
 async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; messageCount: number; turnCount: number }> {
   const activeSnapshot = await db
@@ -79,6 +96,8 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
     .from(compactingSnapshots)
     .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
     .get()
+
+  const cutoffTimestamp = await getSnapshotCutoffTimestamp(activeSnapshot)
 
   const allMessages = await db
     .select({ content: messages.content, createdAt: messages.createdAt, role: messages.role })
@@ -95,8 +114,8 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
     .orderBy(asc(messages.createdAt))
     .all()
 
-  const nonCompacted = activeSnapshot
-    ? allMessages.filter((m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt)
+  const nonCompacted = cutoffTimestamp
+    ? allMessages.filter((m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp)
     : allMessages
 
   const currentTokens = nonCompacted.reduce(
@@ -185,9 +204,11 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     .orderBy(asc(messages.createdAt))
     .all()
 
-  const nonCompacted = activeSnapshot
+  const cutoffTimestamp = await getSnapshotCutoffTimestamp(activeSnapshot)
+
+  const nonCompacted = cutoffTimestamp
     ? allMainMessages.filter(
-        (m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt,
+        (m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp,
       )
     : allMainMessages
 
