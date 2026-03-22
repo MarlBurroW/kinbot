@@ -8,6 +8,8 @@ export interface ToolExecutionContext {
   kinId: string
   userId?: string
   taskId?: string
+  /** Current task depth (1-based). Present only when executing inside a task. */
+  taskDepth?: number
   isSubKin: boolean
   /** ID of the originating channel queue item (causal chain tracking) */
   channelOriginId?: string

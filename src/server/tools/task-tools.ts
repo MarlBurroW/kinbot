@@ -58,6 +58,8 @@ export const spawnSelfTool: ToolRegistration = {
           providerId: provider_id,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
+          parentTaskId: ctx.taskId ?? undefined,
+          depth: ctx.taskDepth ? ctx.taskDepth + 1 : undefined,
           concurrencyGroup: concurrency_group,
           concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
         })
@@ -112,6 +114,8 @@ export const spawnKinTool: ToolRegistration = {
           providerId: provider_id,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
+          parentTaskId: ctx.taskId ?? undefined,
+          depth: ctx.taskDepth ? ctx.taskDepth + 1 : undefined,
           concurrencyGroup: concurrency_group,
           concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
         })

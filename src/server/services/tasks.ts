@@ -427,6 +427,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const nativeTools = toolRegistry.resolve({
       kinId: kinIdentity.id,
       taskId,
+      taskDepth: task.depth,
       isSubKin: false,
       channelOriginId: task.channelOriginId ?? undefined,
     })
@@ -465,6 +466,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const subKinTools = toolRegistry.resolve({
       kinId: task.parentKinId,
       taskId,
+      taskDepth: task.depth,
       isSubKin: true,
       channelOriginId: task.channelOriginId ?? undefined,
     })
