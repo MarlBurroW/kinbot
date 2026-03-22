@@ -79,6 +79,10 @@ export function useChat(kinId: string | null) {
   // persisted messages that may lack resolvedTaskId in their server metadata.
   const taskIdByTitleRef = useRef(new Map<string, string>())
 
+  // Ref to track messages for pagination without causing dependency churn
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+
   // Fetch message history
   const fetchMessages = useCallback(async () => {
     if (!kinId) {
@@ -208,9 +212,12 @@ export function useChat(kinId: string | null) {
   }, [fetchMessages, fetchActiveTasks])
 
   // Fetch older messages (pagination — prepend to existing)
+  // Uses messagesRef to avoid recreating this callback on every message change,
+  // which would cause the IntersectionObserver in ChatPanel to reconnect and
+  // potentially trigger an infinite fetch loop.
   const fetchOlderMessages = useCallback(async () => {
     if (!kinId || !hasMore || isLoadingMore) return
-    const firstMsg = messages[0]
+    const firstMsg = messagesRef.current[0]
     if (!firstMsg) return
 
     setIsLoadingMore(true)
@@ -238,7 +245,7 @@ export function useChat(kinId: string | null) {
     } finally {
       setIsLoadingMore(false)
     }
-  }, [kinId, hasMore, isLoadingMore, messages])
+  }, [kinId, hasMore, isLoadingMore])
 
   // SSE handlers
   useSSE({

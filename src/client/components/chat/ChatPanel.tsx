@@ -280,7 +280,14 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     return () => observer.disconnect()
   }, [checkNearBottom])
 
-  // IntersectionObserver — trigger loading older messages when top sentinel is visible
+  // Stable ref for fetchOlderMessages so the IntersectionObserver doesn't
+  // need to reconnect whenever the callback identity changes.
+  const fetchOlderMessagesRef = useRef(fetchOlderMessages)
+  fetchOlderMessagesRef.current = fetchOlderMessages
+
+  // IntersectionObserver — trigger loading older messages when top sentinel is visible.
+  // Uses a ref for the callback + hasMore to keep the observer stable and avoid
+  // reconnection loops that would cause infinite fetch cascades.
   useEffect(() => {
     const sentinel = topSentinelRef.current
     const scrollArea = scrollAreaRef.current
@@ -294,21 +301,25 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
           // Save scroll height before fetch so we can restore position after prepend
           prevScrollHeightRef.current = viewport.scrollHeight
           isLoadingMoreRef.current = true
-          fetchOlderMessages()
+          fetchOlderMessagesRef.current()
         }
       },
       { root: viewport, threshold: 0 },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchOlderMessages])
+  // Only reconnect observer when hasMore or kin changes — NOT on every message/callback change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, kin.id])
 
   // Keep isLoadingMoreRef in sync for the observer guard
   useEffect(() => {
     isLoadingMoreRef.current = isLoadingMore
   }, [isLoadingMore])
 
-  // Restore scroll position after older messages are prepended
+  // Restore scroll position after older messages are prepended.
+  // Only runs when messages.length changes to avoid consuming prevScrollHeightRef
+  // on unrelated re-renders (e.g. isLoadingMore toggling before messages arrive).
   useLayoutEffect(() => {
     if (prevScrollHeightRef.current === null) return
     const scrollArea = scrollAreaRef.current
@@ -321,7 +332,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       viewport.scrollTop += delta
     }
     prevScrollHeightRef.current = null
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length])
 
   // Track new messages arriving while scrolled up
   useEffect(() => {
