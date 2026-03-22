@@ -107,7 +107,7 @@ versionCheckRoutes.post('/update', async (c) => {
     }
 
     // Schedule restart after response is sent
-    setTimeout(() => process.exit(0), 2000)
+    setTimeout(() => process.exit(1), 2000)
 
     return c.json({ success: true, message: 'Update applied. Server will restart shortly.' })
   } catch (err) {
