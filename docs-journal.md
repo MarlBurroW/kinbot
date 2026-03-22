@@ -640,3 +640,15 @@ All sections migrated and accuracy-reviewed:
 - Test failure in `cron-tools.test.ts` — source code issue, not docs-related
 - Has been failing since Mar 20 (multiple commits)
 - **Skipping docs work until CI is green again**
+
+## 2026-03-21 — System prompts: workspace block + accuracy check ✅
+
+- CI green again after 2 days of failures (type errors in tests)
+- Reviewed all source changes since Mar 19: ~30 commits including v0.26.0 and v0.27.1
+- Two automated docs commits (`0b86afc`, `db460cb`) already covered most features: incremental compacting, spill, concurrency groups, webhook dispatch modes, tool output spill env vars
+- **system-prompts.md**: Added block [12] "Workspace" — Kin workspace path + file tree injection. Updated total from 15 to 16 blocks.
+- Other changes verified as already documented by automated commits: task concurrency, webhook dispatch modes, spill threshold config, model references refactor (minor API addition of `providerId` to cron endpoints)
+- Build passes: 34 pages
+- Commit: `c7445a5` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with v0.27.1
