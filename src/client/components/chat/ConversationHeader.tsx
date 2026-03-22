@@ -24,8 +24,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, Download, FileText, FileJson, Search, Trash2, MoreVertical } from 'lucide-react'
+import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, FileText, FileJson, Search, Trash2, MoreVertical } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
+import { ContextBar } from '@/client/components/chat/ContextBar'
 import { ConversationStats } from '@/client/components/chat/ConversationStats'
 import { DateNavigator } from '@/client/components/chat/DateNavigator'
 import type { ChatMessage } from '@/client/hooks/useChat'
@@ -40,6 +41,7 @@ interface LLMModel {
 }
 
 interface ConversationHeaderProps {
+  kinId: string
   name: string
   role: string
   model: string
@@ -71,12 +73,8 @@ interface ConversationHeaderProps {
   scrollViewportRef?: React.RefObject<HTMLElement | null>
 }
 
-function formatTokenCount(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-  return String(n)
-}
-
 export const ConversationHeader = memo(function ConversationHeader({
+  kinId,
   name,
   role,
   model,
@@ -116,12 +114,6 @@ export const ConversationHeader = memo(function ConversationHeader({
   const queueSize = queueState?.queueSize ?? 0
   const hasContextData = maxTokens > 0
   const contextPercent = hasContextData ? Math.min(100, Math.round((estimatedTokens / maxTokens) * 100)) : 0
-  const contextLabel = hasContextData
-    ? `${formatTokenCount(estimatedTokens)} / ${formatTokenCount(maxTokens)}`
-    : '— / —'
-
-  const hasCompactingData = (compactingTurnThreshold ?? 0) > 0
-  const compactingPercent = hasCompactingData ? Math.min(100, Math.round(((compactingTurns ?? 0) / compactingTurnThreshold!) * 100)) : 0
 
   const selectedModelName = llmModels.find((m) => m.id === model)?.name ?? model
 
@@ -199,41 +191,18 @@ export const ConversationHeader = memo(function ConversationHeader({
                 className="h-8 text-xs"
               />
             </div>
-            {/* Context usage */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="size-3" />
-                  {messageCount} {t('chat.mobileInfo.messages')}
-                </span>
-                <span>{contextLabel}</span>
-              </div>
-              <div className="relative">
-                <Progress
-                  value={contextPercent}
-                  variant={contextPercent > 80 ? 'glow' : 'default'}
-                  className="h-2"
-                />
-                              </div>
-              <p className="text-[10px] text-muted-foreground/70">
-                {hasContextData
-                  ? t('chat.contextUsage', {
-                      tokens: formatTokenCount(estimatedTokens),
-                      max: formatTokenCount(maxTokens),
-                      percent: contextPercent,
-                    })
-                  : t('chat.contextNoData')}
-              </p>
-            </div>
-            {/* Compacting proximity */}
-            {hasCompactingData && (
-              <p className="text-[10px] text-muted-foreground/70">
-                {t('chat.compactingProximity', {
-                  current: compactingTurns ?? 0,
-                  threshold: compactingTurnThreshold ?? 0,
-                })}
-              </p>
-            )}
+            {/* Context usage — reuse ContextBar (compact) */}
+            <ContextBar
+              kinId={kinId}
+              estimatedTokens={estimatedTokens}
+              maxTokens={maxTokens}
+              contextBreakdown={contextBreakdown}
+              pipelineStatus={pipelineStatus}
+              compactingTurns={compactingTurns}
+              compactingTurnThreshold={compactingTurnThreshold}
+              messageCount={messageCount}
+              compact
+            />
           </PopoverContent>
         </Popover>
       </div>
@@ -249,175 +218,16 @@ export const ConversationHeader = memo(function ConversationHeader({
         />
 
         {/* Context usage + compacting proximity */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex w-56 flex-col gap-1">
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="size-3" />
-                  {messageCount}
-                </span>
-                <span>{contextLabel}</span>
-              </div>
-              <div className="relative">
-                {contextBreakdown && hasContextData ? (
-                  <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
-                    {contextBreakdown.tools > 0 && (
-                      <div className="bg-blue-500" style={{ width: `${Math.max(0.5, (contextBreakdown.tools / maxTokens) * 100)}%` }} />
-                    )}
-                    {contextBreakdown.systemPrompt > 0 && (
-                      <div className="bg-purple-500" style={{ width: `${Math.max(0.5, (contextBreakdown.systemPrompt / maxTokens) * 100)}%` }} />
-                    )}
-                    {(contextBreakdown.summary ?? 0) > 0 && (
-                      <div className="bg-amber-500" style={{ width: `${Math.max(0.5, (contextBreakdown.summary! / maxTokens) * 100)}%` }} />
-                    )}
-                    {contextBreakdown.messages > 0 && (
-                      <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (contextBreakdown.messages / maxTokens) * 100)}%` }} />
-                    )}
-                  </div>
-                ) : (
-                  <Progress
-                    value={contextPercent}
-                    variant={contextPercent > 80 ? 'glow' : 'default'}
-                    className="h-1.5"
-                  />
-                )}
-              </div>
-              {hasCompactingData && (
-                <p className="truncate text-[9px] text-muted-foreground">
-                  {t('chat.compactingProximity', {
-                    current: compactingTurns ?? 0,
-                    threshold: compactingTurnThreshold ?? 0,
-                  })}
-                </p>
-              )}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" hideArrow className="w-64 space-y-3 border border-border bg-popover p-3 text-popover-foreground shadow-md">
-            {/* Context window */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-medium">{t('chat.tooltipContext')}</span>
-                <span className="text-muted-foreground">{contextLabel}</span>
-              </div>
-              <div className="relative">
-                {contextBreakdown && hasContextData ? (
-                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-primary/20">
-                    {contextBreakdown.tools > 0 && (
-                      <div className="bg-blue-500" style={{ width: `${Math.max(0.5, (contextBreakdown.tools / maxTokens) * 100)}%` }} />
-                    )}
-                    {contextBreakdown.systemPrompt > 0 && (
-                      <div className="bg-purple-500" style={{ width: `${Math.max(0.5, (contextBreakdown.systemPrompt / maxTokens) * 100)}%` }} />
-                    )}
-                    {(contextBreakdown.summary ?? 0) > 0 && (
-                      <div className="bg-amber-500" style={{ width: `${Math.max(0.5, (contextBreakdown.summary! / maxTokens) * 100)}%` }} />
-                    )}
-                    {contextBreakdown.messages > 0 && (
-                      <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (contextBreakdown.messages / maxTokens) * 100)}%` }} />
-                    )}
-                  </div>
-                ) : (
-                  <Progress
-                    value={contextPercent}
-                    variant={contextPercent > 80 ? 'glow' : 'default'}
-                    className="h-2.5"
-                  />
-                )}
-              </div>
-              {contextBreakdown && hasContextData ? (
-                <div className="space-y-1 text-[10px]">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block size-2 rounded-sm bg-blue-500" />
-                      {t('chat.breakdown.tools', 'Tools')}
-                    </span>
-                    <span>{formatTokenCount(contextBreakdown.tools)} ({Math.round((contextBreakdown.tools / contextBreakdown.total) * 100)}%)</span>
-                  </div>
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block size-2 rounded-sm bg-purple-500" />
-                      {t('chat.breakdown.systemPrompt', 'System prompt')}
-                    </span>
-                    <span>{formatTokenCount(contextBreakdown.systemPrompt)} ({Math.round((contextBreakdown.systemPrompt / contextBreakdown.total) * 100)}%)</span>
-                  </div>
-                  {(contextBreakdown.summary ?? 0) > 0 && (
-                    <div className="flex items-center justify-between text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <span className="inline-block size-2 rounded-sm bg-amber-500" />
-                        {t('chat.breakdown.summary', 'Summary')}
-                      </span>
-                      <span>{formatTokenCount(contextBreakdown.summary!)} ({Math.round((contextBreakdown.summary! / contextBreakdown.total) * 100)}%)</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block size-2 rounded-sm bg-emerald-500" />
-                      {t('chat.breakdown.messages', 'Messages')}
-                    </span>
-                    <span>{formatTokenCount(contextBreakdown.messages)} ({Math.round((contextBreakdown.messages / contextBreakdown.total) * 100)}%)</span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-border/40 pt-1 text-foreground">
-                    <span className="font-medium">{t('chat.breakdown.total', 'Total')}</span>
-                    <span>{formatTokenCount(contextBreakdown.total)} / {formatTokenCount(maxTokens)} ({contextPercent}%)</span>
-                  </div>
-                  {pipelineStatus && (pipelineStatus.maskedToolGroups > 0 || pipelineStatus.observationCompactedCount > 0 || pipelineStatus.emergencyTrimmedCount > 0) && (
-                    <div className="space-y-0.5 border-t border-border/40 pt-1">
-                      {pipelineStatus.maskedToolGroups > 0 && (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Wrench className="size-2.5 shrink-0" />
-                          <span>{t('chat.pipeline.maskedTools', { count: pipelineStatus.maskedToolGroups, tokens: formatTokenCount(pipelineStatus.estimatedTokensSavedByMasking) })}</span>
-                        </div>
-                      )}
-                      {pipelineStatus.observationCompactedCount > 0 && (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Archive className="size-2.5 shrink-0" />
-                          <span>{t('chat.pipeline.observationCompacted', { count: pipelineStatus.observationCompactedCount })}</span>
-                        </div>
-                      )}
-                      {pipelineStatus.emergencyTrimmedCount > 0 && (
-                        <div className="flex items-center gap-1 text-amber-500">
-                          <AlertTriangle className="size-2.5 shrink-0" />
-                          <span>{t('chat.pipeline.emergencyTrim', { count: pipelineStatus.emergencyTrimmedCount })}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[10px] text-muted-foreground">
-                  {hasContextData
-                    ? t('chat.contextUsage', {
-                        tokens: formatTokenCount(estimatedTokens),
-                        max: formatTokenCount(maxTokens),
-                        percent: contextPercent,
-                      })
-                    : t('chat.contextNoData')}
-                </p>
-              )}
-            </div>
-
-            {/* Compacting proximity */}
-            {hasCompactingData && (
-              <div className="space-y-1.5 border-t border-border/40 pt-2.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-medium">{t('chat.tooltipCompacting')}</span>
-                  <span className="text-muted-foreground">{compactingPercent}%</span>
-                </div>
-                <Progress
-                  value={compactingPercent}
-                  variant={compactingPercent > 80 ? 'glow' : 'default'}
-                  className="h-2.5"
-                />
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>{t('chat.compactingProximity', {
-                    current: compactingTurns ?? 0,
-                    threshold: compactingTurnThreshold ?? 0,
-                  })}</span>
-                </div>
-              </div>
-            )}
-          </TooltipContent>
-        </Tooltip>
+        <ContextBar
+          kinId={kinId}
+          estimatedTokens={estimatedTokens}
+          maxTokens={maxTokens}
+          contextBreakdown={contextBreakdown}
+          pipelineStatus={pipelineStatus}
+          compactingTurns={compactingTurns}
+          compactingTurnThreshold={compactingTurnThreshold}
+          messageCount={messageCount}
+        />
       </div>
 
       {/* Tool calls toggle */}
@@ -573,6 +383,7 @@ export const ConversationHeader = memo(function ConversationHeader({
         </TooltipTrigger>
         <TooltipContent side="bottom">{t('accessibility.kinSettings')}</TooltipContent>
       </Tooltip>
+
     </div>
   )
 })

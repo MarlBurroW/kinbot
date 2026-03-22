@@ -414,6 +414,18 @@ kinRoutes.get('/:id/context-usage', async (c) => {
   })
 })
 
+// GET /api/kins/:id/context-preview — build and return the full system prompt
+// Useful for debugging / transparency: shows the actual prompt the LLM would receive.
+kinRoutes.get('/:id/context-preview', async (c) => {
+  const kin = resolveKinByIdOrSlug(c.req.param('id'))
+  if (!kin) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+  const { buildContextPreview } = await import('@/server/services/context-preview')
+  const preview = await buildContextPreview(kin.id)
+  return c.json(preview)
+})
+
 // ─── Kin CRUD (parameterized routes) ───────────────────────────────────────
 
 // GET /api/kins/:id — get a single kin (accepts UUID or slug)

@@ -499,6 +499,20 @@
       "observationCompacted": "{{count}} messages compacted",
       "emergencyTrim": "{{count}} messages trimmed"
     },
+    "contextViewer": {
+      "title": "Context Viewer",
+      "structured": "Structured",
+      "raw": "Raw",
+      "tools": "Available tools",
+      "loading": "Building context preview...",
+      "error": "Failed to load context preview",
+      "retry": "Retry",
+      "copy": "Copy",
+      "copied": "Copied",
+      "generatedAt": "Generated at {{time}}",
+      "structuredHint": "Rendered view of the system prompt sent to the LLM, including identity, memories, instructions, and available tools. This is the same markdown the model receives as its system message.",
+      "rawHint": "JSON approximation of the full payload sent to the LLM provider: system prompt, conversation history, and tool schemas. This is a reconstruction for inspection — the actual API call may differ slightly (token masking, message formatting, provider-specific adaptations)."
+    },
     "moreActions": "More actions",
     "compacting": {
       "title": "Compacting conversation",
