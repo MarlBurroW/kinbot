@@ -282,6 +282,47 @@ Upload ou génération d'avatar.
 { avatarUrl: string }
 ```
 
+### `GET /api/kins/:id/context-preview`
+
+Reconstruit et retourne le contexte LLM complet tel qu'il serait envoyé au modèle.
+Utile pour le debugging et la transparence. Accepte des query params optionnels pour les tâches et sessions rapides.
+
+```typescript
+// Query params optionnels :
+// ?taskId={string}     — contexte d'une tâche spécifique
+// ?sessionId={string}  — contexte d'une session rapide
+
+// Response 200
+{
+  systemPrompt: string           // Prompt système complet (avec outils en annexe)
+  compactingSummary: string | null // Résumé de compacting (null si pas de compacting)
+  rawPayload: {
+    system: string
+    messages: Array<{
+      role: string
+      content: string | null
+      hasToolCalls: boolean
+      createdAt: number | null
+    }>
+    tools: Array<{
+      name: string
+      description: string
+      parameters: Record<string, unknown> | null
+    }>
+  }
+  tokenEstimate: {
+    systemPrompt: number
+    summary: number
+    messages: number
+    tools: number
+    total: number
+  }
+  contextWindow: number          // Taille max du contexte du modèle (en tokens)
+  messageCount: number
+  generatedAt: number
+}
+```
+
 ---
 
 ## Messages / Chat

@@ -25,6 +25,7 @@ Auth routes (`/api/auth/*`) are handled by [Better Auth](https://www.better-auth
 | `DELETE` | `/api/kins/:id` | Delete a Kin |
 | `GET` | `/api/kins/:id/tools` | List available tools (grouped by domain) |
 | `GET` | `/api/kins/:id/context-usage` | Get context window usage |
+| `GET` | `/api/kins/:id/context-preview` | Get full LLM context preview (system prompt, messages, tools, token estimates). Accepts `?taskId` or `?sessionId` query params |
 | `POST` | `/api/kins/:id/avatar` | Upload avatar (multipart) |
 | `POST` | `/api/kins/:id/avatar/generate` | Generate avatar with AI |
 | `POST` | `/api/kins/avatar/preview` | Preview generated avatar |

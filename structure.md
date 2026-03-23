@@ -39,6 +39,7 @@ kinbot/
 │   │   ├── services/               # Logique métier
 │   │   │   ├── kin-engine.ts       # Orchestration LLM : construction du contexte, appels, streaming
 │   │   │   ├── prompt-builder.ts   # Construction du prompt système d'un Kin
+│   │   │   ├── context-preview.ts  # Reconstruction du contexte LLM complet pour inspection (debug/transparence)
 │   │   │   ├── queue.ts            # Queue FIFO par Kin (enqueue, dequeue, priorité)
 │   │   │   ├── compacting.ts       # Compacting des sessions (résumé, snapshots, rollback)
 │   │   │   ├── memory.ts           # Mémoire long terme (extraction, recall, memorize, search hybride)
