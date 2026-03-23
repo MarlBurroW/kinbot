@@ -677,3 +677,15 @@ All sections migrated and accuracy-reviewed:
 - v0.27.2 released — all features already documented
 - All 34 pages remain accurate and complete
 - **Status: docs fully caught up with source code**
+
+## 2026-03-23 — Maintenance check: no changes needed (run 2)
+
+- Checked source commits since last journal entry: `dc8906d` (webhook filter tests), `b0824ed` (kin-engine tests), `518c484` (automated docs update already pushed) — all tests, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-23 — Maintenance check: no changes needed (run 3)
+
+- Checked source commits since last journal entry: `dc8906d` (webhook filter tests), `b0824ed` (kin-engine tests) — all tests, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
