@@ -31,6 +31,7 @@ interface MessagePreview {
 
 interface ContextPreviewData {
   systemPrompt: string
+  compactingSummary: string | null
   rawPayload: {
     system: string
     messages: MessagePreview[]
@@ -40,13 +41,17 @@ interface ContextPreviewData {
   generatedAt: number
 }
 
+const SUMMARY_HEADER = '## Previous conversation summary'
+
 interface ContextViewerDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   kinId: string
+  taskId?: string
+  sessionId?: string
 }
 
-export function ContextViewerDialog({ open, onOpenChange, kinId }: ContextViewerDialogProps) {
+export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, sessionId }: ContextViewerDialogProps) {
   const { t } = useTranslation()
   const { copy, copied } = useCopyToClipboard()
   const [data, setData] = useState<ContextPreviewData | null>(null)
@@ -59,11 +64,24 @@ export function ContextViewerDialog({ open, onOpenChange, kinId }: ContextViewer
     return JSON.stringify(data.rawPayload, null, 2)
   }, [data])
 
+  // Split system prompt: remove the summary section (it's shown separately)
+  const systemPromptWithoutSummary = useMemo(() => {
+    if (!data) return ''
+    const system = data.rawPayload.system
+    const idx = system.indexOf(SUMMARY_HEADER)
+    if (idx === -1) return system
+    return system.slice(0, idx).trimEnd()
+  }, [data])
+
   const fetchPreview = async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/kins/${kinId}/context-preview`)
+      const params = new URLSearchParams()
+      if (taskId) params.set('taskId', taskId)
+      if (sessionId) params.set('sessionId', sessionId)
+      const qs = params.toString()
+      const res = await fetch(`/api/kins/${kinId}/context-preview${qs ? `?${qs}` : ''}`)
       if (!res.ok) {
         const body = await res.json().catch(() => null)
         throw new Error(body?.error?.message ?? `HTTP ${res.status}`)
@@ -172,15 +190,125 @@ export function ContextViewerDialog({ open, onOpenChange, kinId }: ContextViewer
               <p className="mb-4 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 {t('chat.contextViewer.structuredHint')}
               </p>
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+
+              {/* Legend */}
+              <div className="mb-5 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block size-2.5 rounded-sm bg-purple-500" />
+                  {t('chat.contextViewer.legend.systemPrompt')}
+                </span>
+                {data.compactingSummary && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block size-2.5 rounded-sm bg-amber-500" />
+                    {t('chat.contextViewer.legend.summary')}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block size-2.5 rounded-sm bg-emerald-500" />
+                  {t('chat.contextViewer.legend.messages')}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block size-2.5 rounded-sm bg-blue-500" />
+                  {t('chat.contextViewer.legend.tools')}
+                </span>
+              </div>
+
+              {/* System prompt section (purple) */}
+              <div className="mb-6 rounded-lg ring-1 ring-purple-500/50 bg-purple-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(168 85 247)' }}>
+                <p className="mb-2 text-xs font-medium text-purple-500">
+                  {t('chat.contextViewer.legend.systemPrompt')}
+                </p>
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                    </div>
+                  }
+                >
+                  <MarkdownContent content={systemPromptWithoutSummary} />
+                </Suspense>
+              </div>
+
+              {/* Summary section (amber) — only if compacting has occurred */}
+              {data.compactingSummary && (
+                <div className="mb-6 rounded-lg ring-1 ring-amber-500/50 bg-amber-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(245 158 11)' }}>
+                  <p className="mb-2 text-xs font-medium text-amber-500">
+                    {t('chat.contextViewer.legend.summary')}
+                  </p>
+                  <Suspense
+                    fallback={
+                      <div className="flex items-center justify-center py-10">
+                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                      </div>
+                    }
+                  >
+                    <MarkdownContent content={data.compactingSummary} />
+                  </Suspense>
+                </div>
+              )}
+
+              {/* Messages section (green) */}
+              <div className="mb-6 rounded-lg ring-1 ring-emerald-500/50 bg-emerald-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(16 185 129)' }}>
+                <p className="mb-2 text-xs font-medium text-emerald-500">
+                  {t('chat.contextViewer.legend.messages')} — {t('chat.contextViewer.messagesCount', { count: data.rawPayload.messages.length })}
+                </p>
+                {data.rawPayload.messages.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t('chat.contextViewer.noMessages')}</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                    {data.rawPayload.messages.map((msg, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs">
+                        <span className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ${
+                          msg.role === 'user'
+                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                            : msg.role === 'assistant'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {t(`chat.contextViewer.messageRole.${msg.role}`, msg.role)}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                          {msg.content
+                            ? msg.content.length > 120
+                              ? msg.content.slice(0, 120) + '…'
+                              : msg.content
+                            : msg.hasToolCalls
+                              ? t('chat.contextViewer.withToolCalls')
+                              : '—'}
+                        </span>
+                        {msg.createdAt && (
+                          <span className="shrink-0 text-[10px] text-muted-foreground/50">
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                }
-              >
-                <MarkdownContent content={data.systemPrompt} />
-              </Suspense>
+                )}
+              </div>
+
+              {/* Tools section (blue) */}
+              <div className="mb-2 rounded-lg ring-1 ring-blue-500/50 bg-blue-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(59 130 246)' }}>
+                <p className="mb-2 text-xs font-medium text-blue-500">
+                  {t('chat.contextViewer.legend.tools')} — {t('chat.contextViewer.toolsCount', { count: data.rawPayload.tools.length })}
+                </p>
+                {data.rawPayload.tools.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t('chat.contextViewer.noTools')}</p>
+                ) : (
+                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                    {data.rawPayload.tools.map((tool) => (
+                      <div key={tool.name} className="text-xs">
+                        <span className="font-medium text-foreground">{tool.name}</span>
+                        {tool.description && (
+                          <span className="ml-1.5 text-muted-foreground">
+                            — {tool.description.length > 100 ? tool.description.slice(0, 100) + '…' : tool.description}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="raw" className="mt-0 overflow-y-auto px-6 py-4" style={{ maxHeight: 'calc(85vh - 10rem)' }}>

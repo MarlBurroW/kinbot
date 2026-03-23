@@ -25,6 +25,10 @@ interface ContextBarProps {
   messageCount?: number
   /** Compact mode: smaller width, no compacting proximity line */
   compact?: boolean
+  /** If set, context preview will show the task's context instead of the main conversation */
+  taskId?: string
+  /** If set, context preview will show the quick session's context */
+  sessionId?: string
 }
 
 export function ContextBar({
@@ -37,6 +41,8 @@ export function ContextBar({
   compactingTurnThreshold,
   messageCount,
   compact = false,
+  taskId,
+  sessionId,
 }: ContextBarProps) {
   const { t } = useTranslation()
   const [contextViewerOpen, setContextViewerOpen] = useState(false)
@@ -234,6 +240,8 @@ export function ContextBar({
             open={contextViewerOpen}
             onOpenChange={setContextViewerOpen}
             kinId={kinId}
+            taskId={taskId}
+            sessionId={sessionId}
           />
         </Suspense>
       )}

@@ -40,7 +40,7 @@ import {
   Play,
 } from 'lucide-react'
 import { api } from '@/client/lib/api'
-import type { TaskStatus, ContextTokenBreakdown, ContextPipelineStatus } from '@/shared/types'
+import type { TaskStatus, ContextTokenBreakdown } from '@/shared/types'
 
 interface LLMModel {
   id: string
@@ -104,21 +104,18 @@ export function TaskDetailModal({
   const bottomRef = useRef<HTMLDivElement>(null)
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
 
-  // Fetch context-usage for the parent kin
+  // Fetch context-preview for the task (shows the task's actual context, not the parent's)
   const [contextData, setContextData] = useState<{
-    contextTokens: number
+    tokenEstimate: ContextTokenBreakdown
     contextWindow: number
-    contextBreakdown: ContextTokenBreakdown | null
-    pipelineStatus: ContextPipelineStatus | null
-    compactingTurns: number
-    compactingTurnThreshold: number
   } | null>(null)
   useEffect(() => {
-    if (!open || !task?.parentKinId) { setContextData(null); return }
-    api.get(`/kins/${task.parentKinId}/context-usage`)
-      .then((data) => setContextData(data as typeof contextData))
+    if (!open || !task?.parentKinId || !task?.id) { setContextData(null); return }
+    fetch(`/api/kins/${task.parentKinId}/context-preview?taskId=${task.id}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.tokenEstimate) setContextData({ tokenEstimate: data.tokenEstimate, contextWindow: data.contextWindow ?? 0 }) })
       .catch(() => {})
-  }, [open, task?.parentKinId])
+  }, [open, task?.parentKinId, task?.id])
   const [isPromptOpen, setIsPromptOpen] = useState(false)
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
 
@@ -267,13 +264,13 @@ export function TaskDetailModal({
                       <TooltipContent>{t('taskDetail.viewPromptTooltip')}</TooltipContent>
                     </Tooltip>
                   )}
-                  {contextData && contextData.contextWindow > 0 && (
+                  {contextData && (
                     <ContextBar
                       kinId={task.parentKinId}
-                      estimatedTokens={contextData.contextTokens}
+                      taskId={task.id}
+                      estimatedTokens={contextData.tokenEstimate.total}
                       maxTokens={contextData.contextWindow}
-                      contextBreakdown={contextData.contextBreakdown ?? undefined}
-                      pipelineStatus={contextData.pipelineStatus ?? undefined}
+                      contextBreakdown={contextData.tokenEstimate}
                       compact
                     />
                   )}

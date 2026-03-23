@@ -510,8 +510,24 @@
       "copy": "Copier",
       "copied": "Copié",
       "generatedAt": "Généré à {{time}}",
-      "structuredHint": "Vue rendue du prompt système envoyé au LLM, incluant l'identité, les souvenirs, les instructions et les outils disponibles. C'est le même markdown que le modèle reçoit comme message système.",
-      "rawHint": "Approximation JSON du payload complet envoyé au fournisseur LLM : prompt système, historique de conversation et schémas d'outils. C'est une reconstruction pour inspection — l'appel API réel peut différer légèrement (masquage de tokens, formatage des messages, adaptations spécifiques au fournisseur)."
+      "structuredHint": "Vue rendue du contexte envoyé au LLM. Chaque section est colorée pour correspondre à la barre de contexte. C'est une reconstruction pour inspection — le payload réel peut différer légèrement.",
+      "rawHint": "Approximation JSON du payload complet envoyé au fournisseur LLM : prompt système, historique de conversation et schémas d'outils. C'est une reconstruction pour inspection — l'appel API réel peut différer légèrement (masquage de tokens, formatage des messages, adaptations spécifiques au fournisseur).",
+      "legend": {
+        "systemPrompt": "Prompt système",
+        "summary": "Résumé",
+        "messages": "Messages",
+        "tools": "Outils"
+      },
+      "messagesCount": "{{count}} messages",
+      "toolsCount": "{{count}} outils",
+      "noMessages": "Aucun message dans l'historique",
+      "noTools": "Aucun outil configuré",
+      "messageRole": {
+        "user": "Utilisateur",
+        "assistant": "Assistant",
+        "system": "Système"
+      },
+      "withToolCalls": "(+ appels d'outils)"
     },
     "moreActions": "Plus d'actions",
     "compacting": {

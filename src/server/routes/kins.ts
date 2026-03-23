@@ -421,6 +421,22 @@ kinRoutes.get('/:id/context-preview', async (c) => {
   if (!kin) {
     return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
   }
+
+  const taskId = c.req.query('taskId')
+  const sessionId = c.req.query('sessionId')
+
+  if (taskId) {
+    const { buildTaskContextPreview } = await import('@/server/services/context-preview')
+    const preview = await buildTaskContextPreview(taskId)
+    return c.json(preview)
+  }
+
+  if (sessionId) {
+    const { buildQuickSessionContextPreview } = await import('@/server/services/context-preview')
+    const preview = await buildQuickSessionContextPreview(kin.id, sessionId)
+    return c.json(preview)
+  }
+
   const { buildContextPreview } = await import('@/server/services/context-preview')
   const preview = await buildContextPreview(kin.id)
   return c.json(preview)

@@ -27,8 +27,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/
 // ModelPicker removed from quick chat to avoid changing Kin model globally (#71)
 import { X, Zap, MessageSquare, LogOut, History } from 'lucide-react'
 import { ContextBar } from '@/client/components/chat/ContextBar'
-import { api } from '@/client/lib/api'
-import type { ContextTokenBreakdown, ContextPipelineStatus } from '@/shared/types'
+import type { ContextTokenBreakdown } from '@/shared/types'
 
 interface LLMModel {
   id: string
@@ -65,20 +64,17 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
   const bottomRef = useRef<HTMLDivElement>(null)
   const [timeLeft, setTimeLeft] = useState<string | null>(null)
 
-  // Fetch context-usage for the kin
+  // Fetch context-preview for the quick session (shows the session's actual context)
   const [contextData, setContextData] = useState<{
-    contextTokens: number
+    tokenEstimate: ContextTokenBreakdown
     contextWindow: number
-    contextBreakdown: ContextTokenBreakdown | null
-    pipelineStatus: ContextPipelineStatus | null
-    compactingTurns: number
-    compactingTurnThreshold: number
   } | null>(null)
   useEffect(() => {
-    api.get(`/kins/${kinId}/context-usage`)
-      .then((data) => setContextData(data as typeof contextData))
+    fetch(`/api/kins/${kinId}/context-preview?sessionId=${sessionId}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.tokenEstimate) setContextData({ tokenEstimate: data.tokenEstimate, contextWindow: data.contextWindow ?? 0 }) })
       .catch(() => {})
-  }, [kinId])
+  }, [kinId, sessionId])
 
   // Update remaining time display
   useEffect(() => {
@@ -151,13 +147,13 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
               {timeLeft && <span className="ml-1.5 opacity-60">· {timeLeft}</span>}
             </p>
           </div>
-          {contextData && contextData.contextWindow > 0 && (
+          {contextData && (
             <ContextBar
               kinId={kinId}
-              estimatedTokens={contextData.contextTokens}
+              sessionId={sessionId}
+              estimatedTokens={contextData.tokenEstimate.total}
               maxTokens={contextData.contextWindow}
-              contextBreakdown={contextData.contextBreakdown ?? undefined}
-              pipelineStatus={contextData.pipelineStatus ?? undefined}
+              contextBreakdown={contextData.tokenEstimate}
               compact
             />
           )}

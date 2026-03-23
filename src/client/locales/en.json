@@ -510,8 +510,24 @@
       "copy": "Copy",
       "copied": "Copied",
       "generatedAt": "Generated at {{time}}",
-      "structuredHint": "Rendered view of the system prompt sent to the LLM, including identity, memories, instructions, and available tools. This is the same markdown the model receives as its system message.",
-      "rawHint": "JSON approximation of the full payload sent to the LLM provider: system prompt, conversation history, and tool schemas. This is a reconstruction for inspection — the actual API call may differ slightly (token masking, message formatting, provider-specific adaptations)."
+      "structuredHint": "Rendered view of the context sent to the LLM. Each section is color-coded to match the context bar. This is a reconstruction for inspection — the actual payload may differ slightly.",
+      "rawHint": "JSON approximation of the full payload sent to the LLM provider: system prompt, conversation history, and tool schemas. This is a reconstruction for inspection — the actual API call may differ slightly (token masking, message formatting, provider-specific adaptations).",
+      "legend": {
+        "systemPrompt": "System prompt",
+        "summary": "Summary",
+        "messages": "Messages",
+        "tools": "Tools"
+      },
+      "messagesCount": "{{count}} messages",
+      "toolsCount": "{{count}} tools",
+      "noMessages": "No messages in history",
+      "noTools": "No tools configured",
+      "messageRole": {
+        "user": "User",
+        "assistant": "Assistant",
+        "system": "System"
+      },
+      "withToolCalls": "(+ tool calls)"
     },
     "moreActions": "More actions",
     "compacting": {
