@@ -37,11 +37,24 @@ interface ContextPreviewData {
     messages: MessagePreview[]
     tools: ToolDefinition[]
   }
+  tokenEstimate?: {
+    systemPrompt: number
+    summary: number
+    messages: number
+    tools: number
+    total: number
+  }
+  contextWindow?: number
   messageCount: number
   generatedAt: number
 }
 
 const SUMMARY_HEADER = '## Previous conversation summary'
+
+function formatTokenCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return String(n)
+}
 
 interface ContextViewerDialogProps {
   open: boolean
@@ -141,6 +154,28 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
               </div>
             )}
           </div>
+          {data?.tokenEstimate && data.contextWindow && data.contextWindow > 0 && (
+            <div className="mt-3 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>{formatTokenCount(data.tokenEstimate.total)} / {formatTokenCount(data.contextWindow)}</span>
+                <span>{Math.round((data.tokenEstimate.total / data.contextWindow) * 100)}%</span>
+              </div>
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-primary/20">
+                {data.tokenEstimate.tools > 0 && (
+                  <div className="bg-blue-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.tools / data.contextWindow) * 100)}%` }} />
+                )}
+                {data.tokenEstimate.systemPrompt > 0 && (
+                  <div className="bg-purple-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.systemPrompt / data.contextWindow) * 100)}%` }} />
+                )}
+                {data.tokenEstimate.summary > 0 && (
+                  <div className="bg-amber-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.summary / data.contextWindow) * 100)}%` }} />
+                )}
+                {data.tokenEstimate.messages > 0 && (
+                  <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.messages / data.contextWindow) * 100)}%` }} />
+                )}
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         {loading && !data && (
