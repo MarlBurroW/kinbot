@@ -408,7 +408,11 @@ Pending approval prompts (e.g. tool use confirmations).
 |--------|----------|-------------|
 | `GET` | `/api/settings/global-prompt` | Get global system prompt |
 | `PUT` | `/api/settings/global-prompt` | Update global prompt |
-| `GET` | `/api/settings/models` | Get model configuration |
+| `GET` | `/api/settings/models` | Get extraction + embedding model config (legacy) |
+| `GET` | `/api/settings/default-models` | Get all model/service defaults (LLM, image, compacting, extraction, embedding, search) |
+| `PUT` | `/api/settings/default-llm` | Set default LLM model + provider |
+| `PUT` | `/api/settings/default-image` | Set default image generation model + provider |
+| `PUT` | `/api/settings/default-compacting` | Set default compacting model + provider |
 | `PUT` | `/api/settings/extraction-model` | Set memory extraction model |
 | `PUT` | `/api/settings/embedding-model` | Set embedding model |
 | `GET` | `/api/settings/search-provider` | Get search provider config |

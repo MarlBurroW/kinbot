@@ -267,6 +267,8 @@ The system prompt includes a tool selection table that steers Kins toward struct
 | `update_platform_config` | Modify a config value in the .env file (opt-in) |
 | `restart_platform` | Trigger a graceful restart of KinBot (opt-in) |
 | `get_system_info` | Get system/platform information |
+| `list_providers` | List all configured AI providers with their capabilities |
+| `list_models` | List available models across providers, optionally filtered by capability (llm, image, embedding, search, rerank) |
 | `execute_sql` | Run raw SQL on the database (opt-in, dangerous) |
 
 ### MCP Server Management
