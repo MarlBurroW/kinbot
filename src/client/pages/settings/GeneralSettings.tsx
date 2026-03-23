@@ -163,7 +163,7 @@ export function GeneralSettings() {
             placeholder={t('settings.general.hubKinPlaceholder')}
             noneLabel={t('settings.general.hubKinNone', 'None')}
             noneValue="__none__"
-            triggerClassName="w-full max-w-sm"
+            triggerClassName="w-full max-w-sm h-auto min-h-9"
           />
           <p className="text-xs text-muted-foreground">
             {t('settings.general.hubKinHint')}

@@ -10,7 +10,7 @@ export interface KinOption {
 export function KinSelectItem({ kin }: { kin: KinOption }) {
   const initials = kin.name.slice(0, 2).toUpperCase()
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-2.5 min-w-0 text-left">
       <Avatar className="size-6 shrink-0">
         {kin.avatarUrl && <AvatarImage src={kin.avatarUrl} alt={kin.name} />}
         <AvatarFallback className="text-[9px] bg-secondary">{initials}</AvatarFallback>
