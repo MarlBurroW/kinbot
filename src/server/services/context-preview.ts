@@ -1,5 +1,5 @@
 import { db } from '@/server/db/index'
-import { kins, messages, userProfiles, compactingSnapshots, tasks } from '@/server/db/schema'
+import { kins, messages, userProfiles, compactingSummaries, tasks } from '@/server/db/schema'
 import { eq, and, isNull, desc, ne, asc } from 'drizzle-orm'
 import { buildSystemPrompt } from '@/server/services/prompt-builder'
 import { getRelevantMemories } from '@/server/services/memory'
@@ -165,27 +165,26 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
     )
   }
 
-  // Compacting summary (from active snapshot)
-  const activeSnapshot = db
-    .select({ summary: compactingSnapshots.summary, createdAt: compactingSnapshots.createdAt, messagesUpToId: compactingSnapshots.messagesUpToId })
-    .from(compactingSnapshots)
-    .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
-    .orderBy(desc(compactingSnapshots.createdAt))
-    .limit(1)
-    .get()
-  const compactingSummary = activeSnapshot?.summary ?? null
-  const compactedUpTo = activeSnapshot?.createdAt ? new Date(activeSnapshot.createdAt as unknown as number) : null
+  // Compacting summaries (from active in-context summaries)
+  const activeSummaries = db
+    .select()
+    .from(compactingSummaries)
+    .where(and(eq(compactingSummaries.kinId, kinId), eq(compactingSummaries.isInContext, true)))
+    .orderBy(asc(compactingSummaries.lastMessageAt))
+    .all()
 
-  // Resolve cutoff timestamp from the message referenced by the snapshot
-  let cutoffTimestamp: number | null = null
-  if (activeSnapshot?.messagesUpToId) {
-    const cutoffMsg = db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .where(eq(messages.id, activeSnapshot.messagesUpToId))
-      .get()
-    cutoffTimestamp = (cutoffMsg?.createdAt as unknown as number) ?? null
-  }
+  const compactingSummariesData = activeSummaries.length > 0
+    ? activeSummaries.map((s) => ({
+        summary: s.summary,
+        firstMessageAt: new Date(s.firstMessageAt as unknown as number),
+        lastMessageAt: new Date(s.lastMessageAt as unknown as number),
+        depth: s.depth ?? 0,
+      }))
+    : null
+
+  // Resolve cutoff timestamp from the latest summary
+  const latestSummary = activeSummaries.length > 0 ? activeSummaries[activeSummaries.length - 1]! : null
+  const cutoffTimestamp = latestSummary ? (latestSummary.lastMessageAt as unknown as number) : null
 
   // Fetch recent messages for history preview
   const recentMessages = db
@@ -229,7 +228,7 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
     .length
 
   const visibleMessageCount = visibleMessages.length
-  const hasCompactedHistory = compactingSummary !== null
+  const hasCompactedHistory = activeSummaries.length > 0
 
   // User language — get from first user profile as fallback
   let userLanguage: 'fr' | 'en' = 'fr'
@@ -252,8 +251,7 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
     userLanguage,
     isHub,
     hubKinDirectory,
-    compactingSummary,
-    compactedUpTo,
+    compactingSummaries: compactingSummariesData,
     conversationState: {
       visibleMessageCount,
       totalMessageCount,
@@ -288,7 +286,10 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
 
   const toolDefinitions = buildToolDefs(allTools)
 
-  return formatResult(systemPrompt, toolDefinitions, messagesPreviews, totalMessageCount, getModelContextWindow(kin.model), compactingSummary)
+  const combinedSummary = compactingSummariesData
+    ? compactingSummariesData.map((s) => s.summary).join('\n\n---\n\n')
+    : null
+  return formatResult(systemPrompt, toolDefinitions, messagesPreviews, totalMessageCount, getModelContextWindow(kin.model), combinedSummary)
 }
 
 /** Extract JSON Schema tool definitions from a tools map */

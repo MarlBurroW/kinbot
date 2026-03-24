@@ -61,7 +61,7 @@ interface ChatPanelProps {
   kin: KinInfo
   llmModels: LLMModel[]
   modelUnavailable?: boolean
-  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingTurns?: number; compactingTurnThreshold?: number }
+  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }
   onModelChange: (modelId: string, providerId: string) => void
   onEditKin: () => void
 }
@@ -641,8 +641,12 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         maxTokens={queueState?.contextWindow ?? 0}
         contextBreakdown={queueState?.contextBreakdown}
         pipelineStatus={queueState?.pipelineStatus}
-        compactingTurns={queueState?.compactingTurns}
-        compactingTurnThreshold={queueState?.compactingTurnThreshold}
+        compactingPercent={queueState?.compactingPercent}
+        compactingThresholdPercent={queueState?.compactingThresholdPercent}
+        summaryCount={queueState?.summaryCount}
+        maxSummaries={queueState?.maxSummaries}
+        summaryTokens={queueState?.summaryTokens}
+        summaryBudgetTokens={queueState?.summaryBudgetTokens}
         toolCallCount={toolCallCount}
         isToolCallsOpen={isToolCallsOpen}
         queueState={queueState}
@@ -719,14 +723,16 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     : null
 
                   if (msg.sourceType === 'compacting') {
+                    const isCompactingError = !!msg.compactingError
                     return (
                       <React.Fragment key={msg.id}>
                         {dateSeparator}
                         {timeGap}
                         <CompactingCard
-                          status="done"
-                          summary={msg.content}
+                          status={isCompactingError ? 'error' : 'done'}
+                          summary={msg.content || null}
                           memoriesExtracted={msg.memoriesExtracted}
+                          error={msg.compactingError ?? undefined}
                           timestamp={msg.createdAt}
                         />
                       </React.Fragment>

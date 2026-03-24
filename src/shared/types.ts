@@ -146,8 +146,14 @@ export interface KinCompactingConfig {
   compactingModel?: string | null
   /** Provider ID for compacting model (null = auto-resolve) */
   compactingProviderId?: string | null
-  /** Total turn threshold before compaction triggers (null = use global default) */
-  turnThreshold?: number | null
+  /** Trigger compaction when context exceeds this % of context window (null = use global default) */
+  thresholdPercent?: number | null
+  /** Keep recent messages fitting within this % of context window (null = use global default) */
+  keepPercent?: number | null
+  /** Max % of context window for summaries before merging (null = use global default) */
+  summaryBudgetPercent?: number | null
+  /** Max active summaries in context before forcing merge (null = use global default) */
+  maxSummaries?: number | null
 }
 
 /** Task summary as returned by GET /api/tasks */

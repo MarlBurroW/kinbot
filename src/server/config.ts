@@ -150,15 +150,16 @@ export const config = {
 
   compacting: {
     ...parseModelEnv(process.env.COMPACTING_MODEL) as { model?: string; providerId?: string },
-    maxSnapshotsPerKin: Number(process.env.COMPACTING_MAX_SNAPSHOTS ?? 10),
-    /** Number of oldest turns to summarize per compaction cycle.
-     *  A "turn" = one user message + all following messages until the next user message.
-     *  This avoids the problem of message-count triggers firing every turn in
-     *  tool-heavy conversations where a single turn can produce 10-30 messages. */
-    batchTurns: Number(process.env.COMPACTING_BATCH_TURNS ?? 10),
-    /** Minimum number of recent turns to keep as raw context.
-     *  Compaction triggers when non-compacted turns > batchTurns + minKeepTurns. */
-    minKeepTurns: Number(process.env.COMPACTING_MIN_KEEP_TURNS ?? 15),
+    /** Trigger compaction when total context tokens exceed this % of the model's context window. */
+    thresholdPercent: Number(process.env.COMPACTING_THRESHOLD_PERCENT ?? 75),
+    /** Keep the most recent messages fitting within this % of the context window as raw context. */
+    keepPercent: Number(process.env.COMPACTING_KEEP_PERCENT ?? 40),
+    /** Max % of context window that summaries may occupy before triggering telescopic merge. */
+    summaryBudgetPercent: Number(process.env.COMPACTING_SUMMARY_BUDGET_PERCENT ?? 20),
+    /** Max number of active summaries in context before forcing merge. */
+    maxSummaries: Number(process.env.COMPACTING_MAX_SUMMARIES ?? 10),
+    /** Max summaries to retain in DB (old archived summaries beyond this are deleted). */
+    maxSummariesPerKin: Number(process.env.COMPACTING_MAX_SUMMARIES_PER_KIN ?? 50),
   },
 
   /** Max estimated tokens for conversation history injected into the LLM context.

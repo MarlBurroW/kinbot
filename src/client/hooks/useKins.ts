@@ -129,7 +129,7 @@ export function useKins() {
   }, [sseStatus, fetchKins])
 
   // Track which kins are currently processing (queue state from SSE)
-  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingTurns?: number; compactingTurnThreshold?: number }>>(new Map())
+  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }>>(new Map())
 
   // Listen for kin lifecycle and queue updates via SSE to keep the list in sync
   useSSE({
@@ -193,8 +193,13 @@ export function useKins() {
           contextWindow: (data.contextWindow as number | undefined) ?? existing?.contextWindow,
           contextBreakdown: (data.contextBreakdown as ContextTokenBreakdown | undefined) ?? existing?.contextBreakdown,
           pipelineStatus: (data.pipelineStatus as ContextPipelineStatus | undefined) ?? existing?.pipelineStatus,
-          compactingTurns: (data.compactingTurns as number | undefined) ?? existing?.compactingTurns,
-          compactingTurnThreshold: (data.compactingTurnThreshold as number | undefined) ?? existing?.compactingTurnThreshold,
+          compactingPercent: (data.compactingPercent as number | undefined) ?? existing?.compactingPercent,
+          compactingThresholdPercent: (data.compactingThresholdPercent as number | undefined) ?? existing?.compactingThresholdPercent,
+          summaryCount: (data.summaryCount as number | undefined) ?? existing?.summaryCount,
+          maxSummaries: (data.maxSummaries as number | undefined) ?? existing?.maxSummaries,
+          summaryTokens: (data.summaryTokens as number | undefined) ?? existing?.summaryTokens,
+          summaryBudgetTokens: (data.summaryBudgetTokens as number | undefined) ?? existing?.summaryBudgetTokens,
+          keepPercent: (data.keepPercent as number | undefined) ?? existing?.keepPercent,
         })
         return next
       })
@@ -231,7 +236,7 @@ export function useKins() {
   // Fetch initial context usage for a kin (so the counter doesn't show "— / —")
   const fetchContextUsage = useCallback(async (kinId: string) => {
     try {
-      const data = await api.get<{ contextTokens: number; contextWindow: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingTurns?: number; compactingTurnThreshold?: number }>(`/kins/${kinId}/context-usage`)
+      const data = await api.get<{ contextTokens: number; contextWindow: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }>(`/kins/${kinId}/context-usage`)
       setKinQueueState((prev) => {
         const existing = prev.get(kinId)
         // Don't overwrite if SSE already provided fresh data
@@ -244,8 +249,13 @@ export function useKins() {
           contextWindow: data.contextWindow,
           contextBreakdown: data.contextBreakdown,
           pipelineStatus: data.pipelineStatus ?? undefined,
-          compactingTurns: data.compactingTurns,
-          compactingTurnThreshold: data.compactingTurnThreshold,
+          compactingPercent: data.compactingPercent,
+          compactingThresholdPercent: data.compactingThresholdPercent,
+          summaryCount: data.summaryCount,
+          maxSummaries: data.maxSummaries,
+          summaryTokens: data.summaryTokens,
+          summaryBudgetTokens: data.summaryBudgetTokens,
+          keepPercent: data.keepPercent,
         })
         return next
       })

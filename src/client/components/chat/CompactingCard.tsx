@@ -98,7 +98,7 @@ export const CompactingCard = memo(function CompactingCard({
               </div>
               {isError && error && (
                 <p className="mt-1 text-[10px] text-muted-foreground truncate">
-                  {error}
+                  {error === 'NOTHING_TO_COMPACT' ? t('chat.compacting.nothingToCompact') : error}
                 </p>
               )}
             </div>

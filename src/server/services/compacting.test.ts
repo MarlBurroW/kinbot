@@ -149,9 +149,9 @@ describe('memory extraction JSON parsing', () => {
   })
 })
 
-// ─── Snapshot cleanup logic ─────────────────────────────────────────────────
+// ─── Summary cleanup logic ──────────────────────────────────────────────────
 
-// The module keeps maxSnapshotsPerKin snapshots, deletes oldest inactive ones.
+// The module keeps maxSummariesPerKin summaries, deletes oldest archived ones.
 
 interface Snapshot {
   id: string

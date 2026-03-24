@@ -70,8 +70,12 @@ interface PromptParams {
   userLanguage: 'fr' | 'en'
   isHub?: boolean
   hubKinDirectory?: HubKinDirectoryEntry[]
-  compactingSummary?: string | null
-  compactedUpTo?: Date | null
+  compactingSummaries?: Array<{
+    summary: string
+    firstMessageAt: Date
+    lastMessageAt: Date
+    depth: number
+  }> | null
   participants?: Array<{ name: string; platform: string | null; messageCount: number; lastSeenAt: Date }>
   currentMessageSource?: {
     platform: string  // e.g. "telegram", "discord", "whatsapp", "web"
@@ -891,16 +895,21 @@ export function buildSystemPrompt(params: PromptParams): string {
     blocks.push(stateBlock)
   }
 
-  // [6.9] Compacting summary (older conversation context)
-  if (params.compactingSummary) {
-    const timeInfo = params.compactedUpTo
-      ? ` This summary covers exchanges up to ${formatRelativeTime(params.compactedUpTo)} (${params.compactedUpTo.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}).`
-      : ''
+  // [6.9] Compacting summaries (older conversation context)
+  if (params.compactingSummaries && params.compactingSummaries.length > 0) {
+    const summaryBlocks = params.compactingSummaries.map((s) => {
+      const fromDate = s.firstMessageAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+      const toDate = s.lastMessageAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+      const compressed = s.depth > 0 ? ' [compressed]' : ''
+      return `### Summary (${fromDate} → ${toDate})${compressed}\n\n${s.summary}`
+    })
     blocks.push(
-      `## Previous conversation summary\n\n` +
-      `The following is a summary of older exchanges that are no longer in the message history. ` +
-      `Use this as background context — it is a faithful summary of what was discussed previously.${timeInfo}\n\n` +
-      params.compactingSummary,
+      `## Conversation history summaries\n\n` +
+      `The following summaries cover older exchanges no longer in the message history. ` +
+      `Use them as background context — they are faithful summaries of what was discussed previously. ` +
+      `You can use the list_summaries and read_summary tools to access archived summaries, ` +
+      `or browse_history / search_history to explore past messages.\n\n` +
+      summaryBlocks.join('\n\n'),
     )
   }
 

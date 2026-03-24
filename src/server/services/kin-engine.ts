@@ -11,7 +11,7 @@ import {
   messages,
   providers,
   memories,
-  compactingSnapshots,
+  compactingSummaries,
   userProfiles,
   queueItems,
 } from '@/server/db/schema'
@@ -92,7 +92,7 @@ export async function getLastContextUsage(kinId: string) {
 }
 
 // Cache of last computed compacting proximity per Kin
-const lastCompactingProximity = new Map<string, { compactingTurns: number; compactingTurnThreshold: number }>()
+const lastCompactingProximity = new Map<string, { compactingPercent: number; compactingThresholdPercent: number; summaryCount: number }>()
 
 /**
  * Extract a human-readable message from a raw API error object.
@@ -704,8 +704,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       )
     }
 
-    // Build message history (also returns compacting summary for system prompt injection)
-    const { messages: messageHistory, compactingSummary, compactedUpTo, participants, visibleMessageCount, totalMessageCount, hasCompactedHistory, oldestVisibleMessageAt, maskedToolGroups, observationCompactedCount, estimatedTokensSavedByMasking, emergencyTrimmedCount } = await buildMessageHistory(kinId)
+    // Build message history (also returns compacting summaries for system prompt injection)
+    const { messages: messageHistory, compactingSummaries: compactingSummariesData, participants, visibleMessageCount, totalMessageCount, hasCompactedHistory, oldestVisibleMessageAt, maskedToolGroups, observationCompactedCount, estimatedTokensSavedByMasking, emergencyTrimmedCount } = await buildMessageHistory(kinId)
 
     // Resolve the current message's originating platform for formatting hints
     let currentMessageSource: { platform: string; senderName?: string } | undefined
@@ -770,8 +770,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       userLanguage,
       isHub,
       hubKinDirectory,
-      compactingSummary,
-      compactedUpTo,
+      compactingSummaries: compactingSummariesData,
       participants: participants.length > 0 ? participants : undefined,
       currentMessageSource,
       pendingChannelContext,
@@ -882,7 +881,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const hasTools = Object.keys(tools).length > 0
 
     // Estimate total context tokens and resolve model context window
-    const summaryTokens = compactingSummary ? estimateTokens(compactingSummary) : 0
+    const summaryTokens = compactingSummariesData
+      ? compactingSummariesData.reduce((sum, s) => sum + estimateTokens(s.summary), 0)
+      : 0
     const contextBreakdown = estimateContextTokens(systemPrompt, messageHistory, hasTools ? tools : undefined, summaryTokens)
     const contextTokens = contextBreakdown.total
     const contextWindow = getModelContextWindow(kin.model)
@@ -899,8 +900,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const { getCompactingProximity } = await import('@/server/services/compacting')
     const compactingData = await getCompactingProximity(kinId)
     lastCompactingProximity.set(kinId, {
-      compactingTurns: compactingData.currentTurns,
-      compactingTurnThreshold: compactingData.turnThreshold,
+      compactingPercent: compactingData.currentPercent,
+      compactingThresholdPercent: compactingData.thresholdPercent,
+      summaryCount: compactingData.summaryCount,
     })
 
     // Update the queue event with real context usage (the initial queue:update
@@ -1188,7 +1190,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       ;(async () => {
         compactingKins.add(kinId)
         try {
-          await maybeCompact(kinId)
+          await maybeCompact(kinId, contextTokens, contextWindow)
         } catch (err) {
           log.error({ kinId, err }, 'Post-turn compacting error')
         } finally {
@@ -1638,15 +1640,20 @@ export interface ConversationParticipant {
   lastSeenAt: Date
 }
 
-async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null; compactedUpTo: Date | null; participants: ConversationParticipant[]; visibleMessageCount: number; totalMessageCount: number; hasCompactedHistory: boolean; oldestVisibleMessageAt?: Date; maskedToolGroups: number; observationCompactedCount: number; estimatedTokensSavedByMasking: number; emergencyTrimmedCount: number }> {
+async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummaries: Array<{ summary: string; firstMessageAt: Date; lastMessageAt: Date; depth: number }> | null; participants: ConversationParticipant[]; visibleMessageCount: number; totalMessageCount: number; hasCompactedHistory: boolean; oldestVisibleMessageAt?: Date; maskedToolGroups: number; observationCompactedCount: number; estimatedTokensSavedByMasking: number; emergencyTrimmedCount: number }> {
   const history: ModelMessage[] = []
 
-  // Fetch active compacting snapshot (used to filter messages, summary is injected via system prompt)
-  const activeSnapshot = await db
+  // Fetch all active (in-context) summaries, ordered oldest to newest
+  const activeSummaries = await db
     .select()
-    .from(compactingSnapshots)
-    .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
-    .get()
+    .from(compactingSummaries)
+    .where(and(eq(compactingSummaries.kinId, kinId), eq(compactingSummaries.isInContext, true)))
+    .orderBy(asc(compactingSummaries.lastMessageAt))
+    .all()
+
+  // Use the latest summary's lastMessageAt as the cutoff for message filtering
+  const latestSummary = activeSummaries.length > 0 ? activeSummaries[activeSummaries.length - 1]! : null
+  const cutoffTimestamp = latestSummary ? (latestSummary.lastMessageAt as unknown as number) : null
 
   // [10] Recent messages (main session only, not task or quick session messages)
   const recentMessages = await db
@@ -1660,21 +1667,7 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   // Reverse to get chronological order
   recentMessages.reverse()
 
-  // If we have a compacted snapshot, only include messages after it
-  // Filter messages after the snapshot's cutoff point.
-  // IMPORTANT: use the createdAt of the message referenced by messagesUpToId,
-  // NOT the snapshot's own createdAt (which is when the snapshot was created,
-  // and would exclude all historical messages during catch-up compaction).
-  let cutoffTimestamp: number | null = null
-  if (activeSnapshot?.messagesUpToId) {
-    const cutoffMsg = await db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .where(eq(messages.id, activeSnapshot.messagesUpToId))
-      .get()
-    cutoffTimestamp = (cutoffMsg?.createdAt as unknown as number) ?? null
-  }
-
+  // Only include messages after the latest summary's cutoff
   const postSnapshotMessages = cutoffTimestamp
     ? recentMessages.filter(
         (m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp,
@@ -1908,15 +1901,24 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   const participants: ConversationParticipant[] = [...participantMap.values()]
     .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
 
-  const hasCompactedHistory = !!activeSnapshot?.summary
+  const hasCompactedHistory = activeSummaries.length > 0
   const visibleMessageCount = filteredMessages.length
   const totalMessageCount = recentMessages.length + (hasCompactedHistory ? (recentMessages.length - postSnapshotMessages.length) : 0)
   const oldestVisibleMessageAt = filteredMessages.length > 0 ? (filteredMessages[0]!.createdAt ?? undefined) : undefined
 
+  // Map summaries to the format expected by prompt builder
+  const summariesForPrompt = activeSummaries.length > 0
+    ? activeSummaries.map((s) => ({
+        summary: s.summary,
+        firstMessageAt: new Date(s.firstMessageAt as unknown as number),
+        lastMessageAt: new Date(s.lastMessageAt as unknown as number),
+        depth: s.depth ?? 0,
+      }))
+    : null
+
   return {
     messages: maskedHistory,
-    compactingSummary: activeSnapshot?.summary ?? null,
-    compactedUpTo: activeSnapshot?.createdAt ?? null,
+    compactingSummaries: summariesForPrompt,
     participants,
     visibleMessageCount,
     totalMessageCount: Math.max(totalMessageCount, visibleMessageCount),
