@@ -379,9 +379,9 @@ describe('config', () => {
       expect(c.versionCheck.intervalHours).toBe(24)
     })
 
-    it('COMPACTING_MAX_SNAPSHOTS override', async () => {
-      const c = await loadConfigWithEnv({ COMPACTING_MAX_SNAPSHOTS: '25' })
-      expect(c.compacting.maxSnapshotsPerKin).toBe(25)
+    it('COMPACTING_MAX_SUMMARIES_PER_KIN override', async () => {
+      const c = await loadConfigWithEnv({ COMPACTING_MAX_SUMMARIES_PER_KIN: '25' })
+      expect(c.compacting.maxSummariesPerKin).toBe(25)
     })
 
     it('TASKS_MAX_INTER_KIN_REQUESTS override', async () => {

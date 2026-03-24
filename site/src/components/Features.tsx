@@ -35,7 +35,7 @@ const features = [
     icon: Layers,
     title: 'Session Compacting',
     description:
-      'Automatic smart summarization keeps conversations within token limits without losing context. Original messages are always preserved, and snapshots are rollback-able. Months of history, zero context loss.',
+      'Token-aware compaction with multi-summary accumulation. When context fills up, older messages compress into dated summaries that stack chronologically. Too many summaries? The oldest merge telescopically. Original messages are always preserved.',
     accent: 'var(--color-glow-3)',
   },
   {

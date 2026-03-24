@@ -60,25 +60,25 @@ Consolidation clusters are capped at 3 memories to preserve detail. Larger group
 
 ## Compacting Settings
 
-Session compacting uses **incremental micro-batch summarization**: instead of compacting all messages at once, old messages are summarized in fixed-size batches (by turn count) from the oldest end after each LLM turn, spreading LLM cost over time.
+Session compacting uses **token-aware multi-summary accumulation**: when context usage exceeds a configurable threshold, older messages outside a keep-window are summarized into dated summaries that stack chronologically. When summaries accumulate beyond the budget, the oldest merge telescopically.
 
-A **turn** is defined as one user message plus all following messages (assistant responses, tool calls, tool results) until the next user message. This avoids false triggers in tool-heavy conversations where a single turn can produce 10-30 messages.
-
-### Primary trigger (turn-count based)
+### Token-based trigger
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COMPACTING_BATCH_TURNS` | `10` | Number of oldest turns to summarize per micro-compaction batch |
-| `COMPACTING_MIN_KEEP_TURNS` | `15` | Minimum non-compacted turns to keep as raw context. A batch is only taken when non-compacted turns exceed `COMPACTING_BATCH_TURNS` + `COMPACTING_MIN_KEEP_TURNS` |
+| `COMPACTING_THRESHOLD_PERCENT` | `75` | Context usage % before compaction triggers |
+| `COMPACTING_KEEP_PERCENT` | `40` | % of context window preserved as raw messages (keep-window) |
+| `COMPACTING_SUMMARY_BUDGET_PERCENT` | `20` | Max % of context window for summary tokens before telescopic merge |
+| `COMPACTING_MAX_SUMMARIES` | `10` | Max active summaries before telescopic merge |
+| `COMPACTING_MAX_SUMMARIES_PER_KIN` | `50` | Total summary retention per Kin (active + archived) |
 
 ### General settings
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `COMPACTING_MODEL` | Provider default | Model used for session compacting/summarization. Supports `providerId:modelId` format |
-| `COMPACTING_MAX_SNAPSHOTS` | `10` | Maximum compacting snapshots kept per Kin |
 
-The threshold can also be configured **per-Kin** (overrides the global setting) via the **Compaction** tab in the Kin's settings. Available per-Kin fields: `turnThreshold` (total turn threshold), `compactingModel`, and `compactingProviderId`.
+All compacting settings can be configured **per-Kin** (overrides global values) via the **Compaction** tab in the Kin's settings. Available per-Kin fields: `thresholdPercent`, `keepPercent`, `summaryBudgetPercent`, `maxSummaries`, `compactingModel`, and `compactingProviderId`.
 
 ### Progressive context pipeline
 
@@ -127,8 +127,8 @@ Without an embedding provider, memory storage and retrieval will not work. The K
 ### Basic Tuning
 - **Lower `MEMORY_SIMILARITY_THRESHOLD`** (e.g., 0.5) to retrieve more memories at the cost of relevance
 - **Raise `MEMORY_MAX_RELEVANT`** if your Kin needs broader context awareness
-- **Lower `COMPACTING_BATCH_TURNS`** for more frequent, smaller compaction cycles
-- **Raise `COMPACTING_MIN_KEEP_TURNS`** to keep more raw context visible to the LLM
+- **Lower `COMPACTING_THRESHOLD_PERCENT`** (e.g., 60) for earlier compaction triggers
+- **Raise `COMPACTING_KEEP_PERCENT`** (e.g., 50) to keep more raw context visible to the LLM
 
 ### Search Quality
 - **Enable multi-query** (`MEMORY_MULTI_QUERY_MODEL=gpt-4.1-mini`) for better recall on complex queries

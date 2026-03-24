@@ -49,7 +49,7 @@ const memoryFeatures = [
     icon: Layers,
     title: 'Smart Compaction',
     description:
-      'When conversations grow long, KinBot summarizes older messages while preserving 30% as raw context. Open threads and unfinished business are never lost.',
+      'When the context window fills past the threshold, older messages compress into dated summaries. Summaries accumulate chronologically and merge telescopically when they exceed the budget — keeping recent detail sharp and older context compact.',
     color: 'var(--color-glow-3)',
   },
   {

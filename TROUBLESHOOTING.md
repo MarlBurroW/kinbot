@@ -171,7 +171,7 @@ docker build -f docker/Dockerfile .
 
 ### High memory usage
 
-- **Session compacting** reduces context size — check `COMPACTING_MESSAGE_THRESHOLD` and `COMPACTING_TOKEN_THRESHOLD`
+- **Session compacting** reduces context size — check `COMPACTING_THRESHOLD_PERCENT` and `COMPACTING_KEEP_PERCENT`
 - Reduce `MEMORY_MAX_RELEVANT` if too many memories are injected per turn
 - Lower `WEB_BROWSING_MAX_CONCURRENT` and `WEB_BROWSING_MAX_BROWSERS` if web browsing is active
 
