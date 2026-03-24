@@ -352,7 +352,7 @@ describe('KNOWN_CHANNEL_PLATFORMS', () => {
 
   it('all entries are lowercase', () => {
     for (const platform of KNOWN_CHANNEL_PLATFORMS) {
-      expect(platform).toBe(platform.toLowerCase())
+      expect(platform === platform.toLowerCase()).toBe(true)
     }
   })
 })
