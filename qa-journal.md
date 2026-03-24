@@ -1416,3 +1416,28 @@
 ### Next run
 - Area 11: Contacts
 - Area 12: Webhooks
+
+## 2026-03-23 21:53 UTC
+### Area tested: Contacts (Area 11)
+- **Pages visited:** Code review of ContactsSettings.tsx, ContactCard.tsx, ContactFormDialog.tsx, ContactNotes.tsx, ContactPlatformIds.tsx, routes/contacts.ts, services/contacts.ts, services/channels.ts (addContactPlatformId), migration 0015
+- **Note:** Browser unavailable (sandbox disabled), testing done via thorough code review
+
+- **Bugs found:** 3 (issues created: #299, #300, #301)
+  - #299: Contact note "add" silently overwrites existing note for same kin+scope (setContactNote upserts without UI warning)
+  - #300: Contact identifier edits are non-atomic, sequential API calls can leave partial state on failure
+  - #301: Platform ID creation returns misleading 409 DUPLICATE_PLATFORM_ID when contact doesn't exist (FK error caught generically)
+
+- **UX suggestions:** 1 (issues created: #302)
+  - #302: Contact search should include platform IDs and notes (currently only searches name + identifiers)
+
+#### All clear:
+- ContactsSettings: proper loading skeleton, empty state with action, search bar appears when contacts exist, SSE real-time updates for create/update/delete
+- ContactCard: clean layout with icon (User/Bot), type badge, linked user badge, identifiers as badges, edit/delete with confirmation, cascade warning on delete mentioning platform IDs
+- ContactFormDialog: proper form reset on open/close, name validation (required, max 200), type selector (human/kin), conditional linked user/kin selectors, identifier CRUD with combobox label picker (suggestions + custom), proper error display
+- ContactNotes: per-kin notes with avatar, scope icons (global/private), inline edit with textarea, add note flow with kin selector + scope selector, proper empty states
+- ContactPlatformIds: platform selector with extra platforms (IRC, webchat), inline add form with Enter/Escape support, revoke with confirmation dialog explaining consequences
+- Server routes: solid input validation (name trim, max lengths, type enum check, required fields), proper 404/409 error codes, user-link uniqueness check
+- Server services: batch-fetched listContactsWithDetails (efficient), search across names/identifiers/notes, FK cascade on delete, SSE broadcasts on all mutations, duplicate identifier prevention
+
+### Next run
+- Area 12: Webhooks

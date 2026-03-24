@@ -127,7 +127,9 @@
       "guidanceFooter": "Puedes añadir más proveedores después en Ajustes. ¡Elige uno para empezar!",
       "advancedSetup": "Personalizar memoria y búsqueda",
       "quickFinish": "Finalización rápida con valores por defecto",
-      "quickFinishHint": "La memoria y la búsqueda se pueden configurar después en Ajustes"
+      "quickFinishHint": "La memoria y la búsqueda se pueden configurar después en Ajustes",
+      "aiTab": "Proveedores de IA",
+      "searchTab": "Búsqueda"
     },
     "memory": {
       "title": "Memoria",
@@ -146,6 +148,35 @@
       "addProvider": "Añadir un proveedor de búsqueda",
       "skip": "Omitir por ahora",
       "finish": "Finalizar configuración"
+    },
+    "models": {
+      "compactingModel": "Modelo de compactación",
+      "compactingModelHint": "Opcional — usa el modelo de cada Kin si está vacío.",
+      "compactingModelPlaceholder": "Opcional — usa el modelo del Kin si está vacío",
+      "compactingModelTip": "Resume conversaciones antiguas para ahorrar espacio de contexto. Un modelo rápido funciona bien.",
+      "defaultLlm": "LLM predeterminado",
+      "defaultLlmHint": "Los nuevos Kins usarán este modelo por defecto.",
+      "defaultLlmPlaceholder": "Seleccionar LLM predeterminado",
+      "defaultLlmTip": "El modelo de lenguaje predeterminado para nuevos Kins. Cada Kin puede cambiarlo después.",
+      "embeddingModel": "Modelo de embedding",
+      "embeddingModelHint": "Permite búsqueda semántica en los recuerdos de los Kins.",
+      "embeddingModelPlaceholder": "Seleccionar un modelo de embedding",
+      "embeddingModelTip": "Convierte recuerdos en datos buscables. Un modelo pequeño es suficiente.",
+      "extractionModel": "Modelo de extracción",
+      "extractionModelHint": "Dejar vacío para usar el modelo de cada Kin.",
+      "extractionModelPlaceholder": "Opcional — usa el modelo del Kin si está vacío",
+      "extractionModelTip": "Analiza conversaciones para extraer recuerdos. Un modelo rápido funciona muy bien aquí.",
+      "finish": "Finalizar configuración",
+      "imageModel": "Modelo de imagen",
+      "imageModelHint": "Opcional — detección automática si está vacío.",
+      "imageModelPlaceholder": "Opcional — detección automática",
+      "imageModelTip": "Modelo predeterminado para generación de imágenes cuando no se solicita uno específico.",
+      "searchProvider": "Proveedor de búsqueda",
+      "searchProviderAutomatic": "Automático (primer válido)",
+      "searchProviderHint": "Opcional — selecciona automáticamente el primer proveedor válido.",
+      "searchProviderTip": "Proveedor de búsqueda web predeterminado para tus Kins.",
+      "subtitle": "Elige los modelos predeterminados para tus Kins",
+      "title": "Modelos predeterminados"
     }
   },
   "hub": {
@@ -303,6 +334,8 @@
       "totalPromptTokens": "Prompt del sistema total: ~{{tokens}} tokens",
       "memoryEmptyTitle": "La memoria se configura después de la creación",
       "memoryEmptyDescription": "Una vez creado tu Kin, construirá memorias automáticamente a partir de las conversaciones. También puedes añadir memorias manualmente desde el diálogo de edición.",
+      "compactionEmptyTitle": "La compactación se configura después de la creación",
+      "compactionEmptyDescription": "Una vez creado tu Kin, podrás personalizar los ajustes de compactación aquí.",
       "nameHint": "Un nombre corto y memorable para este Kin.",
       "roleHint": "Una breve descripción de lo que hace este Kin (se muestra en la barra lateral).",
       "nameTip": "Un nombre corto y reconocible. Así aparece el Kin en la barra lateral y en las conversaciones.",
@@ -322,7 +355,8 @@
     "tabs": {
       "general": "General",
       "tools": "Herramientas",
-      "memory": "Memoria"
+      "memory": "Memoria",
+      "compaction": "Compactación"
     },
     "tools": {
       "native": "Herramientas nativas",
@@ -347,17 +381,18 @@
       "expertise": "Tienes un amplio conocimiento general y puedes ayudar con una gran variedad de temas:\n- Redacción, edición y resumen de textos\n- Investigación, análisis y resolución de problemas\n- Lluvia de ideas y tareas creativas\n- Explicar conceptos complejos de forma simple\n- Planificación y organización\n\nAdaptas tu nivel de detalle y tecnicismo según lo que el usuario necesite."
     },
     "compacting": {
-      "title": "Umbrales de compactación",
-      "overrideHint": "Dejar vacío para usar los valores globales por defecto. Solo rellenar para sobrescribir para este Kin.",
-      "messageThreshold": "Umbral de mensajes",
-      "tokenThreshold": "Umbral de tokens",
-      "messageThresholdPlaceholder": "Por defecto: {{default}}",
-      "tokenThresholdPlaceholder": "Por defecto: {{default}}",
-      "messageThresholdHint": "Valor global por defecto: {{default}}",
-      "tokenThresholdHint": "Valor global por defecto: {{default}}",
-      "thresholdPercent": "Umbral (%)",
-      "thresholdPercentPlaceholder": "Valor global por defecto ({{default}})",
-      "thresholdPercentHint": "Compactar cuando el contexto alcance este % de la ventana del modelo. Dejar vacío para el valor global por defecto ({{default}}%)."
+      "title": "Compactación",
+      "overrideHint": "Dejar vacío para usar los valores globales.",
+      "modelLabel": "Modelo de compactación",
+      "modelHint": "Modelo usado para el resumen. Dejar vacío para usar el modelo del Kin.",
+      "sameAsKinModel": "Mismo modelo que el Kin",
+      "turnThresholdLabel": "Turnos antes de compactación",
+      "turnThresholdPlaceholder": "Valor global ({{default}})",
+      "turnThresholdHint": "Número de turnos de conversación antes de activar la compactación.",
+      "modeCustom": "Modelo personalizado",
+      "modeDefault": "Usar el predeterminado global",
+      "modeKinOwn": "Usar el modelo de este Kin",
+      "selectCustomModel": "Seleccionar un modelo"
     },
     "avatar": {
       "title": "Elegir avatar",
@@ -485,7 +520,7 @@
     "forceCompact": "Forzar compactación",
     "tooltipContext": "Ventana de contexto",
     "tooltipCompacting": "Compactación",
-    "compactingProximity": "{{current}} / {{threshold}} mensajes",
+    "compactingProximity": "{{current}} / {{threshold}} turnos",
     "compactingMarker": "Umbral de compactación",
     "moreActions": "Más acciones",
     "compacting": {
@@ -495,8 +530,9 @@
       "memories": "{{count}} memorias extraídas",
       "showSummary": "Mostrar resumen",
       "inputDisabled": "Por favor espera - compactando historial de conversación...",
-      "nothingToCompact": "Nada que compactar - aún no hay suficientes mensajes",
-      "error": "Error en la compactación"
+      "nothingToCompact": "Nada que compactar - aún no hay suficientes turnos",
+      "error": "Error en la compactación",
+      "runningCycle": "Compactando... (ciclo {{cycle}}/{{total}})"
     },
     "taskResult": {
       "showResult": "Mostrar resultado",
@@ -677,6 +713,36 @@
     "webhook": {
       "received": "Webhook recibido",
       "showPayload": "Mostrar payload"
+    },
+    "contextViewer": {
+      "copied": "Copiado",
+      "copy": "Copiar",
+      "error": "Error al cargar la vista previa del contexto",
+      "generatedAt": "Generado a las {{time}}",
+      "legend": {
+        "messages": "Mensajes",
+        "summary": "Resumen",
+        "systemPrompt": "Prompt del sistema",
+        "tools": "Herramientas"
+      },
+      "loading": "Construyendo vista previa del contexto...",
+      "messageRole": {
+        "assistant": "Asistente",
+        "system": "Sistema",
+        "user": "Usuario"
+      },
+      "messagesCount": "{{count}} mensajes",
+      "noMessages": "No hay mensajes en el historial",
+      "noTools": "No hay herramientas configuradas",
+      "raw": "Sin formato",
+      "rawHint": "Aproximación JSON del payload completo enviado al proveedor LLM: prompt del sistema, historial de conversación y esquemas de herramientas. Es una reconstrucción para inspección — la llamada API real puede diferir ligeramente (enmascaramiento de tokens, formato de mensajes, adaptaciones específicas del proveedor).",
+      "retry": "Reintentar",
+      "structured": "Estructurado",
+      "structuredHint": "Vista renderizada del contexto enviado al LLM. Cada sección está codificada por colores según la barra de contexto. Es una reconstrucción para inspección — el payload real puede diferir ligeramente.",
+      "title": "Visor de contexto",
+      "tools": "Herramientas disponibles",
+      "toolsCount": "{{count}} herramientas",
+      "withToolCalls": "(+ llamadas a herramientas)"
     }
   },
   "quickChat": {
@@ -794,7 +860,8 @@
         "bullet2": "Establece un proveedor por defecto o deja que KinBot elija automáticamente el primero válido",
         "bullet3": "Los Kins individuales pueden sobrescribir el proveedor de búsqueda por defecto en sus ajustes",
         "bullet4": "La mayoría de los proveedores de búsqueda requieren una clave API del sitio web del proveedor"
-      }
+      },
+      "defaultProviderRedirect": "El proveedor de búsqueda predeterminado se configura en Modelos y Servicios."
     },
     "mcp": {
       "title": "Servidores MCP",
@@ -1034,7 +1101,8 @@
       "compactingThresholdLabel": "Umbral de compactación",
       "compactingThresholdDescription": "Compacta la conversación cuando el uso del contexto alcance este porcentaje de la ventana de contexto del modelo. Valores más bajos compactan más frecuentemente, valores más altos usan más contexto antes de compactar.",
       "compactingThresholdSaved": "Umbral de compactación guardado",
-      "compactingThresholdError": "Error al guardar el umbral de compactación"
+      "compactingThresholdError": "Error al guardar el umbral de compactación",
+      "modelConfigRedirect": "Los modelos de extracción y embedding ahora se configuran en Modelos y Servicios."
     },
     "contacts": {
       "title": "Contactos",
@@ -1177,7 +1245,20 @@
       "filtered": "Filtrado",
       "statsReceived": "{{count}} recibidos",
       "statsTransmitted": "{{count}} transmitidos",
-      "statsFiltered": "{{count}} filtrados"
+      "statsFiltered": "{{count}} filtrados",
+      "dispatchMode": "Modo de despacho",
+      "dispatchModeConversation": "Conversación",
+      "dispatchModeTask": "Tarea",
+      "dispatchModeTip": "El modo Conversación inyecta el payload como mensaje en la sesión del Kin. El modo Tarea crea una subtarea autónoma con una plantilla de prompt configurable.",
+      "taskTitleTemplate": "Plantilla de título de tarea",
+      "taskTitleTemplatePlaceholder": "ej. GitHub: {{action}} en #{{issue.number}}",
+      "taskTitleTemplateTip": "Plantilla para el título de la tarea creada. Use {{field.path}} para insertar valores del payload JSON. Deje vacío para un título predeterminado.",
+      "taskPromptTemplate": "Plantilla de prompt de tarea",
+      "taskPromptTemplatePlaceholder": "ej. Analiza este evento y actúa en consecuencia.\n\n```json\n{{__payload__}}\n```",
+      "taskPromptTemplateTip": "Plantilla para la descripción enviada al Kin. Use {{field.path}} para campos específicos o {{__payload__}} para el payload completo. Deje vacío para usar el payload sin procesar.",
+      "maxConcurrentTasks": "Tareas simultáneas máx.",
+      "maxConcurrentTasksTip": "Número máximo de tareas creadas por webhook que pueden ejecutarse simultáneamente. Los webhooks adicionales se ponen en cola. 0 = ilimitado.",
+      "templatePreview": "Vista previa (basada en el último payload recibido)"
     },
     "users": {
       "title": "Usuarios",
@@ -1456,6 +1537,41 @@
       "clear": "Limpiar",
       "noLogs": "No hay entradas de registro",
       "entries": "{{count}} entradas"
+    },
+    "models": {
+      "defaultCompacting": "Modelo de compactación predeterminado",
+      "defaultCompactingHint": "Se usa para compactación a menos que un Kin tenga su propia configuración. Dejar vacío para usar el modelo de cada Kin.",
+      "defaultCompactingPlaceholder": "Usar el modelo de cada Kin (predeterminado)",
+      "defaultCompactingTip": "Modelo para resumir conversaciones antiguas. Un modelo rápido y económico funciona bien. Si no se establece, cada Kin usa su propio modelo.",
+      "defaultImage": "Modelo de imagen predeterminado",
+      "defaultImageHint": "Usado por la herramienta generate_image cuando no se especifica un modelo.",
+      "defaultImagePlaceholder": "Detección automática (predeterminado)",
+      "defaultImageTip": "Modelo para generación de imágenes cuando no se solicita uno específico.",
+      "defaultLlm": "LLM predeterminado",
+      "defaultLlmHint": "Los nuevos Kins usarán este modelo por defecto, salvo que se indique otro.",
+      "defaultLlmPlaceholder": "Seleccionar LLM predeterminado",
+      "defaultLlmTip": "El modelo de lenguaje predeterminado para nuevos Kins. Cada Kin puede cambiarlo por uno propio.",
+      "defaultSearchProvider": "Proveedor de búsqueda predeterminado",
+      "defaultSearchProviderHint": "Usado por todos los Kins a menos que lo cambien individualmente.",
+      "defaultSearchProviderTip": "El proveedor de búsqueda web de los Kins. Cada Kin puede cambiarlo en sus ajustes.",
+      "description": "Configura los modelos y servicios predeterminados de toda la plataforma.",
+      "embeddingModel": "Modelo de embedding",
+      "embeddingModelHint": "Convierte recuerdos en datos buscables para que tus Kins encuentren información relevante por significado.",
+      "embeddingModelPlaceholder": "Seleccionar un modelo de embedding",
+      "embeddingModelTip": "Convierte texto en números (vectores) para que tus Kins busquen recuerdos por significado. Cambiar este modelo requiere reprocesar todos los recuerdos existentes.",
+      "extractionModel": "Modelo de extracción",
+      "extractionModelHint": "Lee tus conversaciones e identifica lo que vale la pena recordar. Un modelo rápido y económico funciona muy bien aquí.",
+      "extractionModelPlaceholder": "Usar el modelo de cada Kin (predeterminado)",
+      "extractionModelTip": "Este modelo analiza conversaciones y decide qué hechos, preferencias y decisiones guardar como recuerdos a largo plazo. Un modelo pequeño y rápido es suficiente. Si no se establece, cada Kin usa su propio modelo de chat.",
+      "help": {
+        "bullet1": "El LLM predeterminado se preselecciona al crear nuevos Kins, ahorrando tiempo en la configuración",
+        "bullet2": "Los modelos de compactación y extracción pueden ser ligeros — no necesitan ser el mismo modelo que el chat",
+        "bullet3": "Cambiar el modelo de embedding requiere reindexar todos los recuerdos existentes",
+        "content": "Los modelos predeterminados se usan como respaldo al crear nuevos Kins o cuando no hay un modelo específico configurado a nivel de Kin."
+      },
+      "saved": "Ajuste guardado",
+      "searchProviderAutomatic": "Automático (primer válido)",
+      "title": "Modelos y Servicios"
     }
   },
   "notifications": {

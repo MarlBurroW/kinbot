@@ -1,7 +1,7 @@
 import { db, sqlite } from '@/server/db/index'
 import { memories } from '@/server/db/schema'
 import { eq, isNull, and } from 'drizzle-orm'
-import { generateText } from 'ai'
+import { safeGenerateText } from '@/server/services/llm-helpers'
 import { config } from '@/server/config'
 import { createLogger } from '@/server/logger'
 
@@ -18,7 +18,7 @@ export async function backfillImportance(kinId?: string): Promise<{ updated: num
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
   const model = await resolveLLMModel(
     config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
-    null,
+    config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
   )
   if (!model) {
     log.warn('No LLM model available for importance backfill')
@@ -67,9 +67,10 @@ export async function backfillImportance(kinId?: string): Promise<{ updated: num
       `Include ALL memories. Return ONLY the JSON array.`
 
     try {
-      const result = await generateText({
+      const result = await safeGenerateText({
         model,
-        messages: [{ role: 'user', content: prompt }],
+        providerId: config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
+        prompt,
       })
 
       const jsonMatch = result.text.match(/\[[\s\S]*\]/)

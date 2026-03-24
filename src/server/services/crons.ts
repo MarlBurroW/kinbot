@@ -23,6 +23,7 @@ interface CreateCronParams {
   taskDescription: string
   targetKinId?: string
   model?: string
+  providerId?: string
   createdBy: 'user' | 'kin'
   runOnce?: boolean
 }
@@ -67,6 +68,7 @@ export async function createCron(params: CreateCronParams) {
     taskDescription: params.taskDescription,
     targetKinId: params.targetKinId ?? null,
     model: params.model ?? null,
+    providerId: params.providerId ?? null,
     isActive: !isKinCreated,
     requiresApproval: isKinCreated,
     runOnce: params.runOnce ?? false,
@@ -115,6 +117,7 @@ export async function updateCron(
     taskDescription: string
     targetKinId: string | null
     model: string | null
+    providerId: string | null
     isActive: boolean
     runOnce: boolean
   }>,
@@ -285,6 +288,7 @@ export async function triggerCronManually(cronId: string): Promise<{ taskId: str
     spawnType: cron.targetKinId ? 'other' : 'self',
     sourceKinId: cron.targetKinId ?? undefined,
     model: cron.model ?? undefined,
+    providerId: cron.providerId ?? undefined,
     cronId: cron.id,
   })
 
@@ -318,6 +322,7 @@ async function triggerCron(cronId: string) {
     spawnType: cron.targetKinId ? 'other' : 'self',
     sourceKinId: cron.targetKinId ?? undefined,
     model: cron.model ?? undefined,
+    providerId: cron.providerId ?? undefined,
     cronId: cron.id,
     concurrencyGroup: `cron:${cron.id}`,
     concurrencyMax: config.crons.maxConcurrentExecutions,

@@ -8,19 +8,26 @@ import {
 import { Loader2, Archive, CheckCircle2, ChevronRight, Brain, AlertTriangle } from 'lucide-react'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { cn } from '@/client/lib/utils'
+import { RelativeTimestamp } from '@/client/components/chat/RelativeTimestamp'
 
 interface CompactingCardProps {
   status: 'running' | 'done' | 'error'
   summary: string | null
   memoriesExtracted: number | null
+  cycle?: number
+  estimatedTotal?: number
   error?: string
+  timestamp?: string
 }
 
 export const CompactingCard = memo(function CompactingCard({
   status,
   summary,
   memoriesExtracted,
+  cycle,
+  estimatedTotal,
   error,
+  timestamp,
 }: CompactingCardProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -54,13 +61,18 @@ export const CompactingCard = memo(function CompactingCard({
             </div>
 
             <div className="min-w-0 flex-1">
+            {timestamp && (
+              <RelativeTimestamp timestamp={timestamp} className="float-right text-[10px] text-muted-foreground/70 mt-0.5" />
+            )}
               <p className="text-sm font-medium text-foreground">
                 {t('chat.compacting.title')}
               </p>
               <div className="mt-0.5 flex items-center gap-1.5">
                 {isRunning ? (
                   <span className="text-xs font-medium text-primary">
-                    {t('chat.compacting.running')}
+                    {cycle && estimatedTotal && estimatedTotal > 1
+                      ? t('chat.compacting.runningCycle', { cycle, total: estimatedTotal })
+                      : t('chat.compacting.running')}
                   </span>
                 ) : isError ? (
                   <span className="text-xs font-medium text-destructive">

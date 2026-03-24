@@ -1,4 +1,5 @@
 import { config } from '@/server/config'
+import { generateWorkspaceTree } from '@/server/services/workspace-tree'
 
 interface ContactSummary {
   id: string
@@ -96,6 +97,8 @@ interface PromptParams {
     contactNotes?: string[]   // Global notes (visible to all Kins)
     kinNotes?: string[]       // Private notes (this Kin only)
   }
+  /** Absolute path to the Kin's workspace directory */
+  workspacePath?: string
 }
 
 /**
@@ -926,6 +929,18 @@ export function buildSystemPrompt(params: PromptParams): string {
       `you do NOT need to call send_channel_message().\n` +
       `If you need to send a file back (image, document, etc.), call attach_file() before your text response.\n` +
       `Adapt your formatting to ${ctx.platform} (keep concise, avoid web-only elements).`,
+    )
+  }
+
+  // [7.7] Workspace awareness
+  if (params.workspacePath) {
+    const tree = generateWorkspaceTree(params.workspacePath)
+    const treeLine = tree ? `\nContents:\n${tree}` : '\n(empty — use this to organize your files)'
+    blocks.push(
+      `## Workspace\n\n` +
+      `Your workspace directory is your dedicated storage area. Use it to organize files, clone repos, create scripts, and store any persistent data.\n\n` +
+      `Path: ${params.workspacePath}${treeLine}\n\n` +
+      `> Always create files, clone repos, and store data inside your workspace. Never write to the home folder or other system paths.`,
     )
   }
 

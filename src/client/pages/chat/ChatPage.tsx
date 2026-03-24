@@ -139,9 +139,9 @@ export function ChatPage() {
     if (selectedKin?.id === id) navigate('/')
   }
 
-  const handleModelChange = useCallback(async (kinId: string, model: string) => {
+  const handleModelChange = useCallback(async (kinId: string, modelId: string, providerId: string) => {
     try {
-      await updateKin(kinId, { model })
+      await updateKin(kinId, { model: modelId, providerId: providerId || null })
     } catch {
       // Ignore errors
     }
@@ -290,12 +290,13 @@ export function ChatPage() {
                       name: selectedKin.name,
                       role: selectedKin.role,
                       model: selectedKin.model,
+                      providerId: selectedKin.providerId ?? null,
                       avatarUrl: selectedKin.avatarUrl,
                     }}
                     llmModels={llmModels}
                     modelUnavailable={unavailableKinIds.has(selectedKin.id)}
                     queueState={kinQueueState.get(selectedKin.id)}
-                    onModelChange={(model) => handleModelChange(selectedKin.id, model)}
+                    onModelChange={(modelId, providerId) => handleModelChange(selectedKin.id, modelId, providerId)}
                     onEditKin={() => handleOpenEditModal()}
                   />
                 ) : (

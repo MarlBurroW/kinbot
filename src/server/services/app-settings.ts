@@ -80,6 +80,24 @@ export async function setDefaultSearchProvider(providerId: string | null): Promi
   return setSetting('default_search_provider', providerId)
 }
 
+export async function getExtractionProviderId(): Promise<string | null> {
+  return getSetting('extraction_provider_id')
+}
+
+export async function setExtractionProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('extraction_provider_id')
+  return setSetting('extraction_provider_id', providerId)
+}
+
+export async function getEmbeddingProviderId(): Promise<string | null> {
+  return getSetting('embedding_provider_id')
+}
+
+export async function setEmbeddingProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('embedding_provider_id')
+  return setSetting('embedding_provider_id', providerId)
+}
+
 export async function getHubKinId(): Promise<string | null> {
   return getSetting('hub_kin_id')
 }
@@ -89,11 +107,63 @@ export async function setHubKinId(kinId: string | null): Promise<void> {
   return setSetting('hub_kin_id', kinId)
 }
 
-export async function getCompactingThresholdPercent(): Promise<number | null> {
-  const v = await getSetting('compacting_threshold_percent')
-  return v ? Number(v) : null
+// ─── Default LLM (for new kins) ──────────────────────────────────────────────
+
+export async function getDefaultLlmModel(): Promise<string | null> {
+  return getSetting('default_llm_model')
 }
 
-export async function setCompactingThresholdPercent(percent: number): Promise<void> {
-  return setSetting('compacting_threshold_percent', String(Math.max(50, Math.min(95, Math.round(percent)))))
+export async function setDefaultLlmModel(model: string | null): Promise<void> {
+  if (model === null) return deleteSetting('default_llm_model')
+  return setSetting('default_llm_model', model)
 }
+
+export async function getDefaultLlmProviderId(): Promise<string | null> {
+  return getSetting('default_llm_provider_id')
+}
+
+export async function setDefaultLlmProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('default_llm_provider_id')
+  return setSetting('default_llm_provider_id', providerId)
+}
+
+// ─── Default Image Model ─────────────────────────────────────────────────────
+
+export async function getDefaultImageModel(): Promise<string | null> {
+  return getSetting('default_image_model')
+}
+
+export async function setDefaultImageModel(model: string | null): Promise<void> {
+  if (model === null) return deleteSetting('default_image_model')
+  return setSetting('default_image_model', model)
+}
+
+export async function getDefaultImageProviderId(): Promise<string | null> {
+  return getSetting('default_image_provider_id')
+}
+
+export async function setDefaultImageProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('default_image_provider_id')
+  return setSetting('default_image_provider_id', providerId)
+}
+
+// ─── Default Compacting Model ────────────────────────────────────────────────
+
+export async function getDefaultCompactingModel(): Promise<string | null> {
+  return getSetting('default_compacting_model')
+}
+
+export async function setDefaultCompactingModel(model: string | null): Promise<void> {
+  if (model === null) return deleteSetting('default_compacting_model')
+  return setSetting('default_compacting_model', model)
+}
+
+export async function getDefaultCompactingProviderId(): Promise<string | null> {
+  return getSetting('default_compacting_provider_id')
+}
+
+export async function setDefaultCompactingProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('default_compacting_provider_id')
+  return setSetting('default_compacting_provider_id', providerId)
+}
+

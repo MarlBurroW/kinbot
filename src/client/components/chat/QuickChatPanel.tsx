@@ -26,6 +26,8 @@ import { useAuth } from '@/client/hooks/useAuth'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 // ModelPicker removed from quick chat to avoid changing Kin model globally (#71)
 import { X, Zap, MessageSquare, LogOut, History } from 'lucide-react'
+import { ContextBar } from '@/client/components/chat/ContextBar'
+import type { ContextTokenBreakdown } from '@/shared/types'
 
 interface LLMModel {
   id: string
@@ -45,7 +47,7 @@ interface QuickChatPanelProps {
   expiresAt?: number | null
   onHide: () => void
   onEnd: (saveMemory?: boolean, memorySummary?: string) => void
-  onModelChange?: (model: string) => void
+  onModelChange?: (modelId: string, providerId: string) => void
   onShowHistory?: () => void
 }
 
@@ -61,6 +63,18 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
   const [memorySummary, setMemorySummary] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const [timeLeft, setTimeLeft] = useState<string | null>(null)
+
+  // Fetch context-preview for the quick session (shows the session's actual context)
+  const [contextData, setContextData] = useState<{
+    tokenEstimate: ContextTokenBreakdown
+    contextWindow: number
+  } | null>(null)
+  useEffect(() => {
+    fetch(`/api/kins/${kinId}/context-preview?sessionId=${sessionId}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.tokenEstimate) setContextData({ tokenEstimate: data.tokenEstimate, contextWindow: data.contextWindow ?? 0 }) })
+      .catch(() => {})
+  }, [kinId, sessionId])
 
   // Update remaining time display
   useEffect(() => {
@@ -133,6 +147,16 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
               {timeLeft && <span className="ml-1.5 opacity-60">· {timeLeft}</span>}
             </p>
           </div>
+          {contextData && (
+            <ContextBar
+              kinId={kinId}
+              sessionId={sessionId}
+              estimatedTokens={contextData.tokenEstimate.total}
+              maxTokens={contextData.contextWindow}
+              contextBreakdown={contextData.tokenEstimate}
+              compact
+            />
+          )}
         </div>
         <div className="flex items-center gap-1">
           {onShowHistory && (

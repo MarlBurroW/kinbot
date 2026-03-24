@@ -1,4 +1,4 @@
-import { generateText } from 'ai'
+import { safeGenerateText } from '@/server/services/llm-helpers'
 import { eq } from 'drizzle-orm'
 import { db, sqlite } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
@@ -102,6 +102,7 @@ function clusterPairs(pairs: Array<[MemoryRow, MemoryRow]>): MemoryRow[][] {
 async function mergeCluster(
   cluster: MemoryRow[],
   model: Awaited<ReturnType<typeof import('@/server/services/kin-engine').resolveLLMModel>>,
+  providerId?: string | null,
 ): Promise<{ content: string; category: string; subject: string | null; importance: number } | null> {
   if (!model) return null
 
@@ -124,9 +125,10 @@ async function mergeCluster(
     `Or if memories should NOT be merged: {"abort": true}`
 
   try {
-    const result = await generateText({
+    const result = await safeGenerateText({
       model,
-      messages: [{ role: 'user', content: prompt }],
+      providerId,
+      prompt,
     })
 
     const jsonMatch = result.text.match(/\{[\s\S]*\}/)
@@ -254,12 +256,15 @@ export async function consolidateMemories(kinId: string): Promise<number> {
 
   // Phase 2: Merge each cluster via LLM
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
-  const model = await resolveLLMModel(config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano', null)
+  const model = await resolveLLMModel(
+    config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
+    config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
+  )
 
   let totalRemoved = 0
 
   for (const cluster of clusters) {
-    const merged = await mergeCluster(cluster, model)
+    const merged = await mergeCluster(cluster, model, config.memory.consolidationProviderId ?? config.compacting.providerId ?? null)
     if (!merged) continue
 
     // Compute the new generation: max of sources + 1

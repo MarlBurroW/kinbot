@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, resolve } from 'path'
 import os from 'os'
+import { parseModelEnv } from '@/shared/model-ref'
 
 const dataDir = process.env.KINBOT_DATA_DIR ?? './data'
 
@@ -148,18 +149,16 @@ export const config = {
   },
 
   compacting: {
-    /** Trigger compaction when context usage reaches this % of model's context window (default: 75).
-     *  Acts as a fallback trigger — the primary trigger is message-count-based (batchSize + minKeepMessages). */
-    thresholdPercent: Number(process.env.COMPACTING_THRESHOLD_PERCENT ?? 75),
-    model: process.env.COMPACTING_MODEL ?? undefined,
+    ...parseModelEnv(process.env.COMPACTING_MODEL) as { model?: string; providerId?: string },
     maxSnapshotsPerKin: Number(process.env.COMPACTING_MAX_SNAPSHOTS ?? 10),
-    /** Number of messages per micro-compaction batch.
-     *  Instead of one big compaction, old messages are summarized in fixed-size batches
-     *  after each LLM turn, spreading the cost over time. */
-    batchSize: Number(process.env.COMPACTING_BATCH_SIZE ?? 20),
-    /** Minimum number of non-compacted messages to keep as raw context.
-     *  A batch is only taken when non-compacted count > batchSize + minKeepMessages. */
-    minKeepMessages: Number(process.env.COMPACTING_MIN_KEEP_MESSAGES ?? 15),
+    /** Number of oldest turns to summarize per compaction cycle.
+     *  A "turn" = one user message + all following messages until the next user message.
+     *  This avoids the problem of message-count triggers firing every turn in
+     *  tool-heavy conversations where a single turn can produce 10-30 messages. */
+    batchTurns: Number(process.env.COMPACTING_BATCH_TURNS ?? 10),
+    /** Minimum number of recent turns to keep as raw context.
+     *  Compaction triggers when non-compacted turns > batchTurns + minKeepTurns. */
+    minKeepTurns: Number(process.env.COMPACTING_MIN_KEEP_TURNS ?? 15),
   },
 
   /** Max estimated tokens for conversation history injected into the LLM context.
@@ -180,31 +179,47 @@ export const config = {
   /** Max characters for truncated tool results in the observation compaction zone. */
   observationMaxChars: Number(process.env.OBSERVATION_MAX_CHARS ?? 200),
 
-  memory: {
-    extractionModel: process.env.MEMORY_EXTRACTION_MODEL ?? undefined,
-    maxRelevantMemories: Number(process.env.MEMORY_MAX_RELEVANT ?? 10),
-    similarityThreshold: Number(process.env.MEMORY_SIMILARITY_THRESHOLD ?? 0.7),
-    embeddingModel: process.env.MEMORY_EMBEDDING_MODEL ?? 'text-embedding-3-small',
-    embeddingDimension: Number(process.env.MEMORY_EMBEDDING_DIMENSION ?? 1536),
-    temporalDecayLambda: Number(process.env.MEMORY_TEMPORAL_DECAY_LAMBDA ?? 0.01),
-    temporalDecayFloor: Number(process.env.MEMORY_TEMPORAL_DECAY_FLOOR ?? 0.7),
-    consolidationSimilarityThreshold: Number(process.env.MEMORY_CONSOLIDATION_SIMILARITY ?? 0.85),
-    consolidationMaxGeneration: Number(process.env.MEMORY_CONSOLIDATION_MAX_GEN ?? 5),
-    consolidationModel: process.env.MEMORY_CONSOLIDATION_MODEL ?? undefined,
-    multiQueryModel: process.env.MEMORY_MULTI_QUERY_MODEL ?? undefined,
-    hydeModel: process.env.MEMORY_HYDE_MODEL ?? undefined,
-    rerankModel: process.env.MEMORY_RERANK_MODEL ?? undefined,
-    adaptiveK: process.env.MEMORY_ADAPTIVE_K !== 'false',
-    adaptiveKMinScoreRatio: Number(process.env.MEMORY_ADAPTIVE_K_MIN_SCORE_RATIO ?? 0.3),
-    rrfK: Number(process.env.MEMORY_RRF_K ?? 60),
-    ftsBoost: Number(process.env.MEMORY_FTS_BOOST ?? 0.5),
-    subjectBoost: Number(process.env.MEMORY_SUBJECT_BOOST ?? 1.3),
-    categoryBoost: Number(process.env.MEMORY_CATEGORY_BOOST ?? 1.25),
-    contextualRewriteModel: process.env.MEMORY_CONTEXTUAL_REWRITE_MODEL ?? undefined,
-    contextualRewriteThreshold: Number(process.env.MEMORY_CONTEXTUAL_REWRITE_THRESHOLD ?? 80),
-    tokenBudget: Number(process.env.MEMORY_TOKEN_BUDGET || 0), // 0 = unlimited (no budget enforcement)
-    recencyBoostEnabled: process.env.MEMORY_RECENCY_BOOST !== 'false', // Boost very recent memories (default: true)
-  },
+  memory: (() => {
+    const extraction = parseModelEnv(process.env.MEMORY_EXTRACTION_MODEL)
+    const embedding = parseModelEnv(process.env.MEMORY_EMBEDDING_MODEL || 'text-embedding-3-small')
+    const consolidation = parseModelEnv(process.env.MEMORY_CONSOLIDATION_MODEL)
+    const multiQuery = parseModelEnv(process.env.MEMORY_MULTI_QUERY_MODEL)
+    const hyde = parseModelEnv(process.env.MEMORY_HYDE_MODEL)
+    const rerank = parseModelEnv(process.env.MEMORY_RERANK_MODEL)
+    const contextualRewrite = parseModelEnv(process.env.MEMORY_CONTEXTUAL_REWRITE_MODEL)
+    return {
+      extractionModel: extraction.model,
+      extractionProviderId: extraction.providerId,
+      maxRelevantMemories: Number(process.env.MEMORY_MAX_RELEVANT ?? 10),
+      similarityThreshold: Number(process.env.MEMORY_SIMILARITY_THRESHOLD ?? 0.7),
+      embeddingModel: embedding.model ?? 'text-embedding-3-small',
+      embeddingProviderId: embedding.providerId,
+      embeddingDimension: Number(process.env.MEMORY_EMBEDDING_DIMENSION ?? 1536),
+      temporalDecayLambda: Number(process.env.MEMORY_TEMPORAL_DECAY_LAMBDA ?? 0.01),
+      temporalDecayFloor: Number(process.env.MEMORY_TEMPORAL_DECAY_FLOOR ?? 0.7),
+      consolidationSimilarityThreshold: Number(process.env.MEMORY_CONSOLIDATION_SIMILARITY ?? 0.85),
+      consolidationMaxGeneration: Number(process.env.MEMORY_CONSOLIDATION_MAX_GEN ?? 5),
+      consolidationModel: consolidation.model,
+      consolidationProviderId: consolidation.providerId,
+      multiQueryModel: multiQuery.model,
+      multiQueryProviderId: multiQuery.providerId,
+      hydeModel: hyde.model,
+      hydeProviderId: hyde.providerId,
+      rerankModel: rerank.model,
+      rerankProviderId: rerank.providerId,
+      adaptiveK: process.env.MEMORY_ADAPTIVE_K !== 'false',
+      adaptiveKMinScoreRatio: Number(process.env.MEMORY_ADAPTIVE_K_MIN_SCORE_RATIO ?? 0.3),
+      rrfK: Number(process.env.MEMORY_RRF_K ?? 60),
+      ftsBoost: Number(process.env.MEMORY_FTS_BOOST ?? 0.5),
+      subjectBoost: Number(process.env.MEMORY_SUBJECT_BOOST ?? 1.3),
+      categoryBoost: Number(process.env.MEMORY_CATEGORY_BOOST ?? 1.25),
+      contextualRewriteModel: contextualRewrite.model,
+      contextualRewriteProviderId: contextualRewrite.providerId,
+      contextualRewriteThreshold: Number(process.env.MEMORY_CONTEXTUAL_REWRITE_THRESHOLD ?? 80),
+      tokenBudget: Number(process.env.MEMORY_TOKEN_BUDGET || 0), // 0 = unlimited (no budget enforcement)
+      recencyBoostEnabled: process.env.MEMORY_RECENCY_BOOST !== 'false', // Boost very recent memories (default: true)
+    }
+  })(),
 
   queue: {
     userPriority: 100,
@@ -228,6 +243,12 @@ export const config = {
 
   tools: {
     maxSteps: Number(process.env.TOOLS_MAX_STEPS ?? 0), // 0 = unlimited (capped at 100 internally)
+  },
+
+  toolOutputs: {
+    spillThreshold: Number(process.env.TOOL_OUTPUT_SPILL_THRESHOLD ?? 10000), // bytes before spilling to file
+    previewLines: Number(process.env.TOOL_OUTPUT_PREVIEW_LINES ?? 200),       // lines to include in preview
+    ttlHours: Number(process.env.TOOL_OUTPUT_TTL_HOURS ?? 24),                // cleanup after N hours
   },
 
   humanPrompts: {

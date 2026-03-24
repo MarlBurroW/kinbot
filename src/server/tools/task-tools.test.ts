@@ -62,6 +62,7 @@ const {
   respondToTaskTool,
   cancelTaskTool,
   listTasksTool,
+  listActiveQueuesTool,
   getTaskDetailTool,
 } = await import('@/server/tools/task-tools')
 
@@ -96,9 +97,16 @@ describe('task-tools', () => {
   // ── Availability ──────────────────────────────────────────────────────────
 
   describe('availability', () => {
-    it('all task tools are main-only', () => {
-      const tools = [spawnSelfTool, spawnKinTool, respondToTaskTool, cancelTaskTool, listTasksTool, getTaskDetailTool]
-      for (const t of tools) {
+    it('spawn and query tools are available to main and sub-kin', () => {
+      const subKinTools = [spawnSelfTool, spawnKinTool, listTasksTool, listActiveQueuesTool, getTaskDetailTool]
+      for (const t of subKinTools) {
+        expect(t.availability).toEqual(['main', 'sub-kin'])
+      }
+    })
+
+    it('respond and cancel tools are main-only', () => {
+      const mainOnlyTools = [respondToTaskTool, cancelTaskTool]
+      for (const t of mainOnlyTools) {
         expect(t.availability).toEqual(['main'])
       }
     })

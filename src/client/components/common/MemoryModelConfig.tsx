@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { AlertTriangle, RefreshCw, Sparkles, Brain } from 'lucide-react'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
-import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, toastError } from '@/client/lib/api'
 import { useModels, type ProviderModel } from '@/client/hooks/useModels'
@@ -29,9 +29,13 @@ export const MemoryModelConfig = forwardRef<MemoryModelConfigRef, MemoryModelCon
     const { models: allModels } = useModels()
 
     const [extractionModel, setExtractionModel] = useState('')
+    const [extractionProviderId, setExtractionProviderId] = useState('')
     const [initialExtractionModel, setInitialExtractionModel] = useState('')
+    const [initialExtractionProviderId, setInitialExtractionProviderId] = useState('')
     const [embeddingModel, setEmbeddingModel] = useState('')
+    const [embeddingProviderId, setEmbeddingProviderId] = useState('')
     const [initialEmbeddingModel, setInitialEmbeddingModel] = useState('')
+    const [initialEmbeddingProviderId, setInitialEmbeddingProviderId] = useState('')
 
     const [savingExtraction, setSavingExtraction] = useState(false)
     const [savingEmbedding, setSavingEmbedding] = useState(false)
@@ -50,14 +54,18 @@ export const MemoryModelConfig = forwardRef<MemoryModelConfigRef, MemoryModelCon
     useEffect(() => {
       if (variant === 'settings') {
         api
-          .get<{ extractionModel: string | null; embeddingModel: string | null }>(
+          .get<{ extractionModel: string | null; embeddingModel: string | null; extractionProviderId: string | null; embeddingProviderId: string | null }>(
             '/settings/models',
           )
           .then((data) => {
             setExtractionModel(data.extractionModel ?? '')
+            setExtractionProviderId(data.extractionProviderId ?? '')
             setInitialExtractionModel(data.extractionModel ?? '')
+            setInitialExtractionProviderId(data.extractionProviderId ?? '')
             setEmbeddingModel(data.embeddingModel ?? '')
+            setEmbeddingProviderId(data.embeddingProviderId ?? '')
             setInitialEmbeddingModel(data.embeddingModel ?? '')
+            setInitialEmbeddingProviderId(data.embeddingProviderId ?? '')
           })
           .catch(() => {})
       }
@@ -65,21 +73,23 @@ export const MemoryModelConfig = forwardRef<MemoryModelConfigRef, MemoryModelCon
 
     // Pre-select first embedding model (onboarding variant)
     useEffect(() => {
-      if (variant === 'onboarding' && embeddingModels.length > 0) {
-        setEmbeddingModel((prev) => prev || embeddingModels[0]!.id)
+      if (variant === 'onboarding' && embeddingModels.length > 0 && !embeddingModel) {
+        const first = embeddingModels[0]!
+        setEmbeddingModel(first.id)
+        setEmbeddingProviderId(first.providerId)
       }
-    }, [variant, embeddingModels])
+    }, [variant, embeddingModels, embeddingModel])
 
-    const hasExtractionChanges = extractionModel !== initialExtractionModel
-    const hasEmbeddingChanges = embeddingModel !== initialEmbeddingModel
+    const hasExtractionChanges = extractionModel !== initialExtractionModel || extractionProviderId !== initialExtractionProviderId
+    const hasEmbeddingChanges = embeddingModel !== initialEmbeddingModel || embeddingProviderId !== initialEmbeddingProviderId
 
     // Expose save for onboarding parent
     useImperativeHandle(ref, () => ({
       save: async () => {
         await Promise.all([
-          api.put('/settings/extraction-model', { model: extractionModel || null }),
+          api.put('/settings/extraction-model', { model: extractionModel || null, providerId: extractionProviderId || null }),
           embeddingModel
-            ? api.put('/settings/embedding-model', { model: embeddingModel })
+            ? api.put('/settings/embedding-model', { model: embeddingModel, providerId: embeddingProviderId || null })
             : Promise.resolve(),
         ])
       },
@@ -89,8 +99,9 @@ export const MemoryModelConfig = forwardRef<MemoryModelConfigRef, MemoryModelCon
     const handleSaveExtraction = async () => {
       setSavingExtraction(true)
       try {
-        await api.put('/settings/extraction-model', { model: extractionModel || null })
+        await api.put('/settings/extraction-model', { model: extractionModel || null, providerId: extractionProviderId || null })
         setInitialExtractionModel(extractionModel)
+        setInitialExtractionProviderId(extractionProviderId)
         toast.success(t('settings.memories.modelSaved'))
       } catch (err: unknown) {
         toastError(err)
@@ -102,8 +113,9 @@ export const MemoryModelConfig = forwardRef<MemoryModelConfigRef, MemoryModelCon
     const handleSaveEmbedding = async () => {
       setSavingEmbedding(true)
       try {
-        await api.put('/settings/embedding-model', { model: embeddingModel })
+        await api.put('/settings/embedding-model', { model: embeddingModel, providerId: embeddingProviderId || null })
         setInitialEmbeddingModel(embeddingModel)
+        setInitialEmbeddingProviderId(embeddingProviderId)
         toast.success(t('settings.memories.modelSaved'))
       } catch (err: unknown) {
         toastError(err)
@@ -160,8 +172,8 @@ export const MemoryModelConfig = forwardRef<MemoryModelConfigRef, MemoryModelCon
           </Label>
           <ModelPicker
             models={llmModels}
-            value={extractionModel}
-            onValueChange={setExtractionModel}
+            value={modelPickerValue(extractionModel, extractionProviderId)}
+            onValueChange={(modelId, pid) => { setExtractionModel(modelId); setExtractionProviderId(pid) }}
             placeholder={t('settings.memories.extractionModelPlaceholder')}
             allowClear
           />
@@ -198,8 +210,8 @@ export const MemoryModelConfig = forwardRef<MemoryModelConfigRef, MemoryModelCon
           </Label>
           <ModelPicker
             models={embeddingModels}
-            value={embeddingModel}
-            onValueChange={setEmbeddingModel}
+            value={modelPickerValue(embeddingModel, embeddingProviderId)}
+            onValueChange={(modelId, pid) => { setEmbeddingModel(modelId); setEmbeddingProviderId(pid) }}
             placeholder={t(
               isSettings
                 ? 'settings.memories.embeddingModelPlaceholder'

@@ -20,10 +20,10 @@ const log = createLogger('tools:tasks')
 
 /**
  * spawn_self — clone the current Kin with a specific mission.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks (enables router → worker pattern).
  */
 export const spawnSelfTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:
@@ -37,6 +37,7 @@ export const spawnSelfTool: ToolRegistration = {
             '"await" = result triggers a new turn; "async" = informational, no new turn',
           ),
         model: z.string().optional(),
+        provider_id: z.string().optional().describe('Provider ID for the model override'),
         allow_human_prompt: z.boolean().optional().describe('Default: true'),
         concurrency_group: z.string().optional()
           .describe('Queue name for concurrency control (e.g. "batch-issues", "api-calls"). ' +
@@ -45,7 +46,7 @@ export const spawnSelfTool: ToolRegistration = {
         concurrency_max: z.number().int().min(1).optional()
           .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
       }),
-      execute: async ({ title, task_description, mode, model, allow_human_prompt, concurrency_group, concurrency_max }) => {
+      execute: async ({ title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max }) => {
         log.debug({ kinId: ctx.kinId, mode, spawnType: 'self' }, 'Task spawn requested (spawn_self)')
         const { taskId, queued } = await spawnTask({
           parentKinId: ctx.kinId,
@@ -54,8 +55,11 @@ export const spawnSelfTool: ToolRegistration = {
           mode,
           spawnType: 'self',
           model,
+          providerId: provider_id,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
+          parentTaskId: ctx.taskId ?? undefined,
+          depth: ctx.taskDepth ? ctx.taskDepth + 1 : undefined,
           concurrencyGroup: concurrency_group,
           concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
         })
@@ -66,10 +70,10 @@ export const spawnSelfTool: ToolRegistration = {
 
 /**
  * spawn_kin — instantiate another Kin from the platform with a specific mission.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks (enables router → worker pattern).
  */
 export const spawnKinTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:
@@ -84,6 +88,7 @@ export const spawnKinTool: ToolRegistration = {
             '"await" = result triggers a new turn; "async" = informational, no new turn',
           ),
         model: z.string().optional(),
+        provider_id: z.string().optional().describe('Provider ID for the model override'),
         allow_human_prompt: z.boolean().optional().describe('Default: true'),
         concurrency_group: z.string().optional()
           .describe('Queue name for concurrency control (e.g. "batch-issues", "api-calls"). ' +
@@ -92,7 +97,7 @@ export const spawnKinTool: ToolRegistration = {
         concurrency_max: z.number().int().min(1).optional()
           .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
       }),
-      execute: async ({ kin_slug, title, task_description, mode, model, allow_human_prompt, concurrency_group, concurrency_max }) => {
+      execute: async ({ kin_slug, title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max }) => {
         const kinId = resolveKinId(kin_slug)
         if (!kinId) {
           return { error: `Kin not found for slug "${kin_slug}"` }
@@ -106,8 +111,11 @@ export const spawnKinTool: ToolRegistration = {
           spawnType: 'other',
           sourceKinId: kinId,
           model,
+          providerId: provider_id,
           allowHumanPrompt: allow_human_prompt,
           channelOriginId: ctx.channelOriginId,
+          parentTaskId: ctx.taskId ?? undefined,
+          depth: ctx.taskDepth ? ctx.taskDepth + 1 : undefined,
           concurrencyGroup: concurrency_group,
           concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
         })
@@ -164,10 +172,10 @@ export const cancelTaskTool: ToolRegistration = {
 
 /**
  * list_tasks — list all current tasks and their status.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks.
  */
 export const listTasksTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:
@@ -242,10 +250,10 @@ export const listTasksTool: ToolRegistration = {
 
 /**
  * list_active_queues — list all active concurrency groups with status.
- * Available to main agents only.
+ * Available to main agents and sub-kin tasks.
  */
 export const listActiveQueuesTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (_ctx) =>
     tool({
       description:
@@ -286,7 +294,7 @@ export const listActiveQueuesTool: ToolRegistration = {
  * Works for tasks you spawned OR tasks where you were the executing Kin.
  */
 export const getTaskDetailTool: ToolRegistration = {
-  availability: ['main'],
+  availability: ['main', 'sub-kin'],
   create: (ctx) =>
     tool({
       description:

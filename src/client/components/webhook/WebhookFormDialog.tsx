@@ -21,15 +21,22 @@ import {
 } from '@/client/components/ui/collapsible'
 import { KinSelector } from '@/client/components/common/KinSelector'
 import type { KinOption } from '@/client/components/common/KinSelectItem'
-import { Loader2, AlertCircle, ChevronDown, Filter, X, Check, CircleX, FlaskConical } from 'lucide-react'
+import { Loader2, AlertCircle, ChevronDown, Filter, X, Check, CircleX, FlaskConical, MessageSquare, ListTodo } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
-import type { WebhookSummary, WebhookFilterMode, WebhookFilterTestResult } from '@/shared/types'
+import type { WebhookSummary, WebhookFilterMode, WebhookDispatchMode, WebhookFilterTestResult } from '@/shared/types'
 import { api } from '@/client/lib/api'
 
 interface WebhookFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (kinId: string, data: { name: string; description?: string }) => Promise<void>
+  onSave: (kinId: string, data: {
+    name: string
+    description?: string
+    dispatchMode?: WebhookDispatchMode
+    taskTitleTemplate?: string | null
+    taskPromptTemplate?: string | null
+    maxConcurrentTasks?: number
+  }) => Promise<void>
   onUpdate?: (webhookId: string, data: {
     name?: string
     description?: string | null
@@ -38,6 +45,10 @@ interface WebhookFormDialogProps {
     filterField?: string | null
     filterAllowedValues?: string[] | null
     filterExpression?: string | null
+    dispatchMode?: WebhookDispatchMode
+    taskTitleTemplate?: string | null
+    taskPromptTemplate?: string | null
+    maxConcurrentTasks?: number
   }) => Promise<void>
   webhook?: WebhookSummary | null
   kins: KinOption[]
@@ -61,6 +72,12 @@ export function WebhookFormDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Dispatch mode state
+  const [dispatchMode, setDispatchMode] = useState<WebhookDispatchMode>('conversation')
+  const [taskTitleTemplate, setTaskTitleTemplate] = useState('')
+  const [taskPromptTemplate, setTaskPromptTemplate] = useState('')
+  const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(1)
+
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterMode, setFilterMode] = useState<WebhookFilterMode | null>(null)
@@ -74,6 +91,9 @@ export function WebhookFormDialog({
   const [testPayload, setTestPayload] = useState('')
   const [testResult, setTestResult] = useState<WebhookFilterTestResult | null>(null)
   const [testLoading, setTestLoading] = useState(false)
+
+  // Last payload for template preview
+  const [lastPayload, setLastPayload] = useState<string | null>(null)
 
   // Regex validation
   const [regexError, setRegexError] = useState<string | null>(null)
@@ -89,6 +109,10 @@ export function WebhookFormDialog({
       setFilterAllowedValues(webhook.filterAllowedValues ?? [])
       setFilterExpression(webhook.filterExpression ?? '')
       setFilterOpen(!!webhook.filterMode)
+      setDispatchMode(webhook.dispatchMode ?? 'conversation')
+      setTaskTitleTemplate(webhook.taskTitleTemplate ?? '')
+      setTaskPromptTemplate(webhook.taskPromptTemplate ?? '')
+      setMaxConcurrentTasks(webhook.maxConcurrentTasks ?? 1)
     } else {
       setName('')
       setDescription('')
@@ -99,10 +123,15 @@ export function WebhookFormDialog({
       setFilterAllowedValues([])
       setFilterExpression('')
       setFilterOpen(false)
+      setDispatchMode('conversation')
+      setTaskTitleTemplate('')
+      setTaskPromptTemplate('')
+      setMaxConcurrentTasks(1)
     }
     setError(null)
     setTestResult(null)
     setTestPayload('')
+    setLastPayload(null)
     setSuggestedFields([])
     setAllowedValueInput('')
     setRegexError(null)
@@ -116,8 +145,16 @@ export function WebhookFormDialog({
         `/webhooks/${webhook.id}/suggest-fields`,
       )
       setSuggestedFields(data.fields)
+      setLastPayload(data.lastPayload)
       if (data.lastPayload && !testPayload) {
-        setTestPayload(data.lastPayload)
+        // Pretty-print JSON for readability and to prevent horizontal overflow
+        let formatted = data.lastPayload
+        try {
+          formatted = JSON.stringify(JSON.parse(data.lastPayload), null, 2)
+        } catch {
+          // Not valid JSON — use as-is
+        }
+        setTestPayload(formatted)
       }
     } catch {
       // Ignore — suggestions are optional
@@ -159,6 +196,10 @@ export function WebhookFormDialog({
           filterField: filterMode === 'simple' ? filterField || null : null,
           filterAllowedValues: filterMode === 'simple' ? filterAllowedValues : null,
           filterExpression: filterMode === 'advanced' ? filterExpression || null : null,
+          dispatchMode,
+          taskTitleTemplate: dispatchMode === 'task' ? taskTitleTemplate || null : null,
+          taskPromptTemplate: dispatchMode === 'task' ? taskPromptTemplate || null : null,
+          maxConcurrentTasks: dispatchMode === 'task' ? maxConcurrentTasks : 1,
         })
       } else {
         const targetKinId = selectedKinId
@@ -166,6 +207,10 @@ export function WebhookFormDialog({
         await onSave(targetKinId, {
           name,
           description: description || undefined,
+          dispatchMode,
+          taskTitleTemplate: dispatchMode === 'task' ? taskTitleTemplate || null : null,
+          taskPromptTemplate: dispatchMode === 'task' ? taskPromptTemplate || null : null,
+          maxConcurrentTasks: dispatchMode === 'task' ? maxConcurrentTasks : 1,
         })
       }
       onOpenChange(false)
@@ -218,6 +263,29 @@ export function WebhookFormDialog({
   const handleFieldSuggestionClick = (field: string) => {
     setFilterField(field)
   }
+
+  // Client-side template preview
+  const resolvePreview = useCallback((template: string, payload: string): string => {
+    let parsed: Record<string, unknown> | null = null
+    try { parsed = JSON.parse(payload) } catch { /* non-JSON */ }
+
+    return template.replace(/\{\{(.+?)\}\}/g, (_match, path: string) => {
+      const trimmed = path.trim()
+      if (trimmed === '__payload__') return payload
+      if (!parsed) return ''
+      const parts = trimmed.split('.')
+      let current: unknown = parsed
+      for (const part of parts) {
+        if (current == null || typeof current !== 'object') return ''
+        current = (current as Record<string, unknown>)[part]
+      }
+      if (current == null) return ''
+      if (typeof current === 'object') {
+        try { return JSON.stringify(current) } catch { return '' }
+      }
+      return String(current)
+    })
+  }, [])
 
   const canSubmit = name.trim() && (isEdit || selectedKinId)
 
@@ -275,6 +343,95 @@ export function WebhookFormDialog({
               <Switch checked={isActive} onCheckedChange={setIsActive} />
             </div>
           )}
+
+          {/* Dispatch mode */}
+          <div className="space-y-3">
+            <Label className="inline-flex items-center gap-1.5">
+              {t('settings.webhooks.dispatchMode')}
+              <InfoTip content={t('settings.webhooks.dispatchModeTip')} />
+            </Label>
+            <div className="flex gap-1">
+              {(['conversation', 'task'] as const).map((mode) => (
+                <Button
+                  key={mode}
+                  type="button"
+                  variant={dispatchMode === mode ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDispatchMode(mode)}
+                  className="gap-1.5"
+                >
+                  {mode === 'conversation' && <MessageSquare className="size-3.5" />}
+                  {mode === 'task' && <ListTodo className="size-3.5" />}
+                  {t(`settings.webhooks.dispatchMode${mode === 'conversation' ? 'Conversation' : 'Task'}`)}
+                </Button>
+              ))}
+            </div>
+
+            {/* Task mode fields */}
+            {dispatchMode === 'task' && (
+              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+                <div className="space-y-2">
+                  <Label className="inline-flex items-center gap-1.5">
+                    {t('settings.webhooks.taskTitleTemplate')}
+                    <InfoTip content={t('settings.webhooks.taskTitleTemplateTip')} />
+                  </Label>
+                  <Input
+                    value={taskTitleTemplate}
+                    onChange={(e) => setTaskTitleTemplate(e.target.value)}
+                    placeholder={t('settings.webhooks.taskTitleTemplatePlaceholder')}
+                    className="font-mono text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="inline-flex items-center gap-1.5">
+                    {t('settings.webhooks.taskPromptTemplate')}
+                    <InfoTip content={t('settings.webhooks.taskPromptTemplateTip')} />
+                  </Label>
+                  <Textarea
+                    value={taskPromptTemplate}
+                    onChange={(e) => setTaskPromptTemplate(e.target.value)}
+                    placeholder={t('settings.webhooks.taskPromptTemplatePlaceholder')}
+                    rows={5}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="inline-flex items-center gap-1.5">
+                    {t('settings.webhooks.maxConcurrentTasks')}
+                    <InfoTip content={t('settings.webhooks.maxConcurrentTasksTip')} />
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={maxConcurrentTasks}
+                    onChange={(e) => setMaxConcurrentTasks(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-24"
+                  />
+                </div>
+
+                {/* Template preview */}
+                {lastPayload && (taskTitleTemplate || taskPromptTemplate) && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">{t('settings.webhooks.templatePreview')}</Label>
+                    {taskTitleTemplate && (
+                      <div className="rounded-md bg-muted/50 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t('settings.webhooks.taskTitleTemplate')}</p>
+                        <p className="text-sm font-medium truncate">{resolvePreview(taskTitleTemplate, lastPayload)}</p>
+                      </div>
+                    )}
+                    {taskPromptTemplate && (
+                      <div className="rounded-md bg-muted/50 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t('settings.webhooks.taskPromptTemplate')}</p>
+                        <pre className="text-xs whitespace-pre-wrap break-words max-h-32 overflow-y-auto">{resolvePreview(taskPromptTemplate, lastPayload)}</pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Filter section (edit only) */}
           {isEdit && (
@@ -414,7 +571,7 @@ export function WebhookFormDialog({
 
                 {/* Test zone */}
                 {filterMode && (
-                  <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3 overflow-hidden">
                     <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
                       <FlaskConical className="size-4" />
                       {t('settings.webhooks.filterTest')}
@@ -426,8 +583,9 @@ export function WebhookFormDialog({
                         setTestResult(null)
                       }}
                       placeholder={t('settings.webhooks.filterTestPayloadPlaceholder')}
-                      rows={4}
-                      className="font-mono text-xs"
+                      rows={6}
+                      className="font-mono text-xs resize-y [overflow-wrap:break-word] [word-break:break-all]"
+                      style={{ maxWidth: '100%' }}
                     />
                     <div className="flex items-center gap-3">
                       <Button

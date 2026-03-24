@@ -25,6 +25,7 @@ Auth routes (`/api/auth/*`) are handled by [Better Auth](https://www.better-auth
 | `DELETE` | `/api/kins/:id` | Delete a Kin |
 | `GET` | `/api/kins/:id/tools` | List available tools (grouped by domain) |
 | `GET` | `/api/kins/:id/context-usage` | Get context window usage |
+| `GET` | `/api/kins/:id/context-preview` | Get full LLM context preview (system prompt, messages, tools, token estimates). Accepts `?taskId` or `?sessionId` query params |
 | `POST` | `/api/kins/:id/avatar` | Upload avatar (multipart) |
 | `POST` | `/api/kins/:id/avatar/generate` | Generate avatar with AI |
 | `POST` | `/api/kins/avatar/preview` | Preview generated avatar |
@@ -407,15 +408,17 @@ Pending approval prompts (e.g. tool use confirmations).
 |--------|----------|-------------|
 | `GET` | `/api/settings/global-prompt` | Get global system prompt |
 | `PUT` | `/api/settings/global-prompt` | Update global prompt |
-| `GET` | `/api/settings/models` | Get model configuration |
+| `GET` | `/api/settings/models` | Get extraction + embedding model config (legacy) |
+| `GET` | `/api/settings/default-models` | Get all model/service defaults (LLM, image, compacting, extraction, embedding, search) |
+| `PUT` | `/api/settings/default-llm` | Set default LLM model + provider |
+| `PUT` | `/api/settings/default-image` | Set default image generation model + provider |
+| `PUT` | `/api/settings/default-compacting` | Set default compacting model + provider |
 | `PUT` | `/api/settings/extraction-model` | Set memory extraction model |
 | `PUT` | `/api/settings/embedding-model` | Set embedding model |
 | `GET` | `/api/settings/search-provider` | Get search provider config |
 | `PUT` | `/api/settings/search-provider` | Update search provider |
 | `GET` | `/api/settings/hub` | Get Hub settings |
 | `PUT` | `/api/settings/hub` | Update Hub settings |
-| `GET` | `/api/settings/compacting-threshold` | Get compacting threshold percent |
-| `PUT` | `/api/settings/compacting-threshold` | Set compacting threshold percent (50-95) |
 
 ## Current User
 

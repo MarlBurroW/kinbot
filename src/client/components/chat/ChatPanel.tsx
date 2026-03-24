@@ -45,6 +45,7 @@ interface KinInfo {
   name: string
   role: string
   model: string
+  providerId: string | null
   avatarUrl: string | null
 }
 
@@ -60,8 +61,8 @@ interface ChatPanelProps {
   kin: KinInfo
   llmModels: LLMModel[]
   modelUnavailable?: boolean
-  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingMessages?: number; compactingMessageThreshold?: number }
-  onModelChange: (model: string) => void
+  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingTurns?: number; compactingTurnThreshold?: number }
+  onModelChange: (modelId: string, providerId: string) => void
   onEditKin: () => void
 }
 
@@ -152,6 +153,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       const code = (err as { error?: { code?: string } })?.error?.code
       if (code === 'NOTHING_TO_COMPACT') {
         toast.info(t('chat.compacting.nothingToCompact'))
+      } else {
+        toast.error(t('chat.compacting.error'))
       }
     }
   }, [kin.id, t])
@@ -279,7 +282,14 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     return () => observer.disconnect()
   }, [checkNearBottom])
 
-  // IntersectionObserver — trigger loading older messages when top sentinel is visible
+  // Stable ref for fetchOlderMessages so the IntersectionObserver doesn't
+  // need to reconnect whenever the callback identity changes.
+  const fetchOlderMessagesRef = useRef(fetchOlderMessages)
+  fetchOlderMessagesRef.current = fetchOlderMessages
+
+  // IntersectionObserver — trigger loading older messages when top sentinel is visible.
+  // Uses a ref for the callback + hasMore to keep the observer stable and avoid
+  // reconnection loops that would cause infinite fetch cascades.
   useEffect(() => {
     const sentinel = topSentinelRef.current
     const scrollArea = scrollAreaRef.current
@@ -293,21 +303,25 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
           // Save scroll height before fetch so we can restore position after prepend
           prevScrollHeightRef.current = viewport.scrollHeight
           isLoadingMoreRef.current = true
-          fetchOlderMessages()
+          fetchOlderMessagesRef.current()
         }
       },
       { root: viewport, threshold: 0 },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchOlderMessages])
+  // Only reconnect observer when hasMore or kin changes — NOT on every message/callback change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, kin.id])
 
   // Keep isLoadingMoreRef in sync for the observer guard
   useEffect(() => {
     isLoadingMoreRef.current = isLoadingMore
   }, [isLoadingMore])
 
-  // Restore scroll position after older messages are prepended
+  // Restore scroll position after older messages are prepended.
+  // Only runs when messages.length changes to avoid consuming prevScrollHeightRef
+  // on unrelated re-renders (e.g. isLoadingMore toggling before messages arrive).
   useLayoutEffect(() => {
     if (prevScrollHeightRef.current === null) return
     const scrollArea = scrollAreaRef.current
@@ -320,7 +334,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       viewport.scrollTop += delta
     }
     prevScrollHeightRef.current = null
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length])
 
   // Track new messages arriving while scrolled up
   useEffect(() => {
@@ -613,9 +628,11 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
 
       {/* Conversation header */}
       <ConversationHeader
+        kinId={kin.id}
         name={kin.name}
         role={kin.role}
         model={kin.model}
+        providerId={kin.providerId}
         avatarUrl={kin.avatarUrl}
         llmModels={llmModels}
         modelUnavailable={modelUnavailable}
@@ -624,8 +641,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         maxTokens={queueState?.contextWindow ?? 0}
         contextBreakdown={queueState?.contextBreakdown}
         pipelineStatus={queueState?.pipelineStatus}
-        compactingMessages={queueState?.compactingMessages}
-        compactingMessageThreshold={queueState?.compactingMessageThreshold}
+        compactingTurns={queueState?.compactingTurns}
+        compactingTurnThreshold={queueState?.compactingTurnThreshold}
         toolCallCount={toolCallCount}
         isToolCallsOpen={isToolCallsOpen}
         queueState={queueState}
@@ -710,6 +727,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                           status="done"
                           summary={msg.content}
                           memoriesExtracted={msg.memoriesExtracted}
+                          timestamp={msg.createdAt}
                         />
                       </React.Fragment>
                     )
@@ -791,7 +809,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     status={liveCompacting.status}
                     summary={liveCompacting.summary}
                     memoriesExtracted={liveCompacting.memoriesExtracted}
+                    cycle={liveCompacting.cycle}
+                    estimatedTotal={liveCompacting.estimatedTotal}
                     error={liveCompacting.error}
+                    timestamp={liveCompacting.startedAt}
                   />
                 )}
                 {pendingPrompts.map((prompt) => (
@@ -910,7 +931,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
 
       {/* Quick session side panel */}
       <Sheet open={isQuickOpen} onOpenChange={(open) => { setQuickOpen(open); if (!open) setShowQuickHistory(false) }}>
-        <SheetContent side="right" className="w-full sm:w-[400px] md:w-[500px] p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:w-[520px] md:w-[680px] lg:w-[780px] p-0" showCloseButton={false}>
           <SheetTitle className="sr-only">{t('chat.quickChat')}</SheetTitle>
           {showQuickHistory ? (
             <Suspense fallback={null}>

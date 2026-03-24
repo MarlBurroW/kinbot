@@ -1,6 +1,6 @@
 import { eq, and, like, or, desc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
-import { generateText } from 'ai'
+import { safeGenerateText } from '@/server/services/llm-helpers'
 import { db, sqlite } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { memories } from '@/server/db/schema'
@@ -335,24 +335,22 @@ async function generateQueryVariations(query: string, knownSubjects?: string[]):
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(multiQueryModel, null)
+    const model = await resolveLLMModel(multiQueryModel, config.memory.multiQueryProviderId ?? null)
     if (!model) return [query]
 
     const subjectHint = knownSubjects && knownSubjects.length > 0
       ? `\nKnown subjects in memory: ${knownSubjects.join(', ')}\nUse these to generate targeted queries about specific entities when relevant.`
       : ''
 
-    const result = await generateText({
+    const result = await safeGenerateText({
       model,
-      messages: [{
-        role: 'user',
-        content:
-          `Generate 3 alternative search queries for retrieving relevant memories based on this message. ` +
-          `Each query should target a DIFFERENT aspect, entity, or sub-topic to maximize recall. ` +
-          `Use specific nouns and keywords rather than abstract rephrasing.\n\n` +
-          `Original: "${query}"\n${subjectHint}\n` +
-          `Return ONLY a JSON array of 3 strings, no explanation. Example: ["query1", "query2", "query3"]`,
-      }],
+      providerId: config.memory.multiQueryProviderId ?? null,
+      prompt:
+        `Generate 3 alternative search queries for retrieving relevant memories based on this message. ` +
+        `Each query should target a DIFFERENT aspect, entity, or sub-topic to maximize recall. ` +
+        `Use specific nouns and keywords rather than abstract rephrasing.\n\n` +
+        `Original: "${query}"\n${subjectHint}\n` +
+        `Return ONLY a JSON array of 3 strings, no explanation. Example: ["query1", "query2", "query3"]`,
     })
 
     const jsonMatch = result.text.match(/\[[\s\S]*\]/)
@@ -385,19 +383,17 @@ async function generateHypotheticalMemory(query: string): Promise<string | null>
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(hydeModel, null)
+    const model = await resolveLLMModel(hydeModel, config.memory.hydeProviderId ?? null)
     if (!model) return null
 
-    const result = await generateText({
+    const result = await safeGenerateText({
       model,
-      messages: [{
-        role: 'user',
-        content:
-          `You are a personal AI companion that stores memories about its user. ` +
-          `Given a search query, write a SHORT hypothetical memory entry (1-2 sentences) that would answer it. ` +
-          `Write it as a factual statement, not a question. Be specific and use natural language.\n\n` +
-          `Query: "${query}"\n\nHypothetical memory:`,
-      }],
+      providerId: config.memory.hydeProviderId ?? null,
+      prompt:
+        `You are a personal AI companion that stores memories about its user. ` +
+        `Given a search query, write a SHORT hypothetical memory entry (1-2 sentences) that would answer it. ` +
+        `Write it as a factual statement, not a question. Be specific and use natural language.\n\n` +
+        `Query: "${query}"\n\nHypothetical memory:`,
     })
 
     const doc = result.text.trim().replace(/^["']|["']$/g, '')
@@ -823,7 +819,7 @@ async function rerankWithLLM(
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(rerankModel, null)
+    const model = await resolveLLMModel(rerankModel, config.memory.rerankProviderId ?? null)
     if (!model) return candidates.slice(0, limit)
 
     // Build a numbered list of memory snippets (truncate long ones)
@@ -831,18 +827,16 @@ async function rerankWithLLM(
       .map((m, i) => `[${i}] (${m.category}${m.subject ? `, subject: ${m.subject}` : ''}) ${m.content.slice(0, 300)}`)
       .join('\n')
 
-    const result = await generateText({
+    const result = await safeGenerateText({
       model,
-      messages: [{
-        role: 'user',
-        content:
-          `You are a relevance judge. Given a user query and a list of memory snippets, ` +
-          `score each memory's relevance to the query from 0 (irrelevant) to 10 (highly relevant).\n\n` +
-          `Query: "${query}"\n\n` +
-          `Memories:\n${memoryList}\n\n` +
-          `Return ONLY a JSON array of objects with "index" and "score" fields, sorted by score descending. ` +
-          `Example: [{"index":2,"score":9},{"index":0,"score":7},{"index":1,"score":3}]`,
-      }],
+      providerId: config.memory.rerankProviderId ?? null,
+      prompt:
+        `You are a relevance judge. Given a user query and a list of memory snippets, ` +
+        `score each memory's relevance to the query from 0 (irrelevant) to 10 (highly relevant).\n\n` +
+        `Query: "${query}"\n\n` +
+        `Memories:\n${memoryList}\n\n` +
+        `Return ONLY a JSON array of objects with "index" and "score" fields, sorted by score descending. ` +
+        `Example: [{"index":2,"score":9},{"index":0,"score":7},{"index":1,"score":3}]`,
     })
 
     const jsonMatch = result.text.match(/\[[\s\S]*\]/)
@@ -948,7 +942,7 @@ export async function rewriteQueryWithContext(
 
   try {
     const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const resolved = await resolveLLMModel(model, null)
+    const resolved = await resolveLLMModel(model, config.memory.contextualRewriteProviderId ?? null)
     if (!resolved) return message
 
     // Build a compact conversation snippet (last 4 turns max)
@@ -957,17 +951,15 @@ export async function rewriteQueryWithContext(
       .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 200)}`)
       .join('\n')
 
-    const result = await generateText({
+    const result = await safeGenerateText({
       model: resolved,
-      messages: [{
-        role: 'user',
-        content:
-          `Rewrite the user's last message into a standalone search query for retrieving relevant memories. ` +
-          `The query should capture the full intent by incorporating context from the conversation.\n\n` +
-          `Conversation:\n${context}\n\nLast message: "${message}"\n\n` +
-          `Return ONLY the rewritten query, nothing else. Keep it concise (1-2 sentences max). ` +
-          `If the message is already self-contained, return it unchanged.`,
-      }],
+      providerId: config.memory.contextualRewriteProviderId ?? null,
+      prompt:
+        `Rewrite the user's last message into a standalone search query for retrieving relevant memories. ` +
+        `The query should capture the full intent by incorporating context from the conversation.\n\n` +
+        `Conversation:\n${context}\n\nLast message: "${message}"\n\n` +
+        `Return ONLY the rewritten query, nothing else. Keep it concise (1-2 sentences max). ` +
+        `If the message is already self-contained, return it unchanged.`,
     })
 
     const rewritten = result.text.trim().replace(/^["']|["']$/g, '')

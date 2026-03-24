@@ -42,6 +42,10 @@ log.info('Initializing virtual tables (FTS5, sqlite-vec)...')
 initVirtualTables()
 log.info('Virtual tables initialized')
 
+// One-time migration: backfill missing providerIds on kins/tasks/crons
+import { migrateModelProviders } from '@/server/services/migrate-model-providers'
+await migrateModelProviders()
+
 // Register native tools
 log.info('Registering native tools...')
 registerAllTools()
@@ -83,6 +87,13 @@ const fileStorageInterval = Math.min(Math.max(1, config.fileStorage.cleanupInter
 new Cron(`*/${fileStorageInterval} * * * *`, async () => {
   const count = await cleanExpiredFiles()
   if (count > 0) log.info({ count }, 'File storage cleanup completed')
+})
+
+// Tool output spill cleanup (delete old temp files from workspaces)
+import { cleanupSpilledOutputs } from '@/server/services/tool-output-spill'
+new Cron('0 * * * *', async () => {
+  const count = cleanupSpilledOutputs(config.workspace.baseDir)
+  if (count > 0) log.info({ count }, 'Tool output spill cleanup completed')
 })
 
 // Channel file cleanup (old downloads from platforms)

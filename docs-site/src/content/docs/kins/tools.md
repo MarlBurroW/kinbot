@@ -161,10 +161,10 @@ Excess tasks enter `queued` status and are automatically promoted (FIFO) when a 
 
 | Tool | Description |
 |---|---|
-| `create_webhook` | Create an incoming webhook with optional payload filtering |
-| `update_webhook` | Update webhook configuration, including filters |
+| `create_webhook` | Create an incoming webhook with optional payload filtering and dispatch mode |
+| `update_webhook` | Update webhook configuration, including filters and dispatch mode |
 | `delete_webhook` | Remove a webhook |
-| `list_webhooks` | List all webhooks with filter and stats info |
+| `list_webhooks` | List all webhooks with filter, dispatch, and stats info |
 
 Webhooks support **payload filtering** to drop irrelevant events before they reach the Kin queue, saving LLM tokens. Two filter modes are available:
 
@@ -172,6 +172,22 @@ Webhooks support **payload filtering** to drop irrelevant events before they rea
 - **Advanced mode** (`filter_mode: "advanced"`): Test the raw payload body against a regex pattern (`filter_expression`).
 
 Set `filter_mode` to `null` to disable filtering.
+
+#### Dispatch modes
+
+Webhooks support two dispatch modes:
+
+- **`conversation`** (default): The payload is injected as a message in the Kin's main conversation session.
+- **`task`**: The payload spawns an autonomous sub-task with a configurable prompt template.
+
+Task mode parameters:
+
+| Parameter | Description |
+|---|---|
+| `dispatch_mode` | `"conversation"` or `"task"` |
+| `task_title_template` | Template for task title. Use `{{field.path}}` placeholders resolved against the JSON payload (e.g. `"GitHub: {{action}} on #{{issue.number}}"`) |
+| `task_prompt_template` | Template for the task description/prompt. Use `{{field.path}}` placeholders and `{{__payload__}}` for the full raw payload |
+| `max_concurrent_tasks` | Max concurrent webhook-spawned tasks. Default: 1. `0` = unlimited. Uses the concurrency group system internally |
 
 ### Kin Management
 
@@ -251,6 +267,8 @@ The system prompt includes a tool selection table that steers Kins toward struct
 | `update_platform_config` | Modify a config value in the .env file (opt-in) |
 | `restart_platform` | Trigger a graceful restart of KinBot (opt-in) |
 | `get_system_info` | Get system/platform information |
+| `list_providers` | List all configured AI providers with their capabilities |
+| `list_models` | List available models across providers, optionally filtered by capability (llm, image, embedding, search, rerank) |
 | `execute_sql` | Run raw SQL on the database (opt-in, dangerous) |
 
 ### MCP Server Management

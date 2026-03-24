@@ -30,14 +30,18 @@ interface ModelPickerModel {
 interface ModelPickerProps {
   models: ModelPickerModel[]
   value: string
-  onValueChange: (value: string) => void
+  onValueChange: (modelId: string, providerId: string) => void
   placeholder?: string
-  /** 'modelId' = m.id (default), 'providerAndModel' = `${m.providerId}:${m.id}` */
-  valueFormat?: 'modelId' | 'providerAndModel'
   disabled?: boolean
   className?: string
   /** Show a "None" option at the top to clear the selection */
   allowClear?: boolean
+}
+
+/** Build the composite value used for matching: `providerId:modelId` */
+export function modelPickerValue(modelId: string, providerId: string): string {
+  if (!modelId) return ''
+  return `${providerId}:${modelId}`
 }
 
 export function ModelPicker({
@@ -45,7 +49,6 @@ export function ModelPicker({
   value,
   onValueChange,
   placeholder,
-  valueFormat = 'modelId',
   disabled = false,
   className,
   allowClear = false,
@@ -54,8 +57,7 @@ export function ModelPicker({
   const [open, setOpen] = useState(false)
   const [providerFilter, setProviderFilter] = useState<string | null>(null)
 
-  const getItemValue = (m: ModelPickerModel) =>
-    valueFormat === 'providerAndModel' ? `${m.providerId}:${m.id}` : m.id
+  const getItemValue = (m: ModelPickerModel) => `${m.providerId}:${m.id}`
 
   const selectedModel = models.find((m) => getItemValue(m) === value)
 
@@ -165,7 +167,7 @@ export function ModelPicker({
                 <CommandItem
                   value="__clear__"
                   onSelect={() => {
-                    onValueChange('')
+                    onValueChange('', '')
                     setOpen(false)
                   }}
                 >
@@ -196,7 +198,7 @@ export function ModelPicker({
                       key={itemValue}
                       value={`${m.name} ${providerType}`}
                       onSelect={() => {
-                        onValueChange(itemValue)
+                        onValueChange(m.id, m.providerId)
                         setOpen(false)
                       }}
                     >

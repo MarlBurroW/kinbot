@@ -23,11 +23,10 @@ export const fullMockConfig = {
   db: { path: '/tmp/kinbot-test/kinbot.db' },
 
   compacting: {
-    thresholdPercent: 75,
     model: undefined,
     maxSnapshotsPerKin: 10,
-    batchSize: 20,
-    minKeepMessages: 15,
+    batchTurns: 10,
+    minKeepTurns: 15,
   },
 
   historyTokenBudget: 0,

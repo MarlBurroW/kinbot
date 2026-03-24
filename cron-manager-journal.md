@@ -1,52 +1,46 @@
-## 2026-03-17 13:08 UTC
-### Audit summary
-- **Active crons:** 17 KinBot + 3 other (PinchChat, reddit-token-refresh, woodbrass-reply-check)
-- **Disabled crons:** 18 (all appropriately disabled)
+# KinBot Cron Manager Journal
 
-### Healthy crons (doing good work)
-- **kinbot-add-tests** (8h, Opus) — 2500+ tests, very productive
-- **kinbot-ci-watchdog** (6h, Opus) — essential, catches breaks
-- **kinbot-promo** (daily 14:00, Opus) — GitHub PRs, Reddit posts
-- **kinbot-docs-content** (6h, Opus) — writing docs
-- **kinbot-code-scanning-fixer** (12h, Opus) — fixing CodeQL alerts
-- **kinbot-memory-research** (12h, Opus) — R&D, shipping improvements
-- **kinbot-github-maintenance** (12h, Opus) — repo hygiene
-- **kinbot-improve-site** (12h, Opus) — landing polish
-- **kinbot-qa-explorer** (12h, Opus) — browser QA
-- **kinbot-plugin-improve** (8h, Opus) — plugin system
-- **kinbot-improve-cli** (daily, Opus) — installer improvements
-- **kinbot-sse-reactivity** (daily, Opus) — SSE event coverage
-- **kinbot-i18n-audit** (2 days, Opus) — i18n completeness
-- **kinbot-community** (12h, Opus) — handles issues/PRs
-- **PinchChat** (3x/day, Opus) — webchat improvement
-- **reddit-token-refresh** (12h, Gemini Flash) — cheap, quick
-- **woodbrass-reply-check** (4h, Gemini Flash) — monitoring delivery
+## 2026-03-23 13:10 UTC
+### Audit summary
+- **Active crons:** 16 KinBot + 2 other (PinchChat, reddit-token-refresh)
+- **Disabled crons:** 25
+
+### Healthy crons (no changes needed)
+- **kinbot-promo** (daily 14:00, Opus) — ok, 111s
+- **kinbot-community** (daily, Opus) — ok, 103s
+- **kinbot-ci-watchdog** (6h, Opus) — ok, 14s, CI green
+- **kinbot-docs-content** (6h, Opus) — ok, 22s
+- **kinbot-release** (daily 17:00, Opus) — ok, 175s, released v0.27.2
+- **kinbot-plugin-improve** (8h, Opus) — ok, 223s
+- **kinbot-memory-research** (12h, Opus) — ok, 120s
+- **kinbot-github-maintenance** (12h, Opus) — ok, 298s
+- **kinbot-improve-site** (12h, Opus) — ok, 85s
+- **kinbot-qa-explorer** (12h, Opus) — ok, 170s
+- **kinbot-i18n-audit** (2 days, Opus) — ok, 125s
+- **kinbot-consistency-guardian** (2 days, Opus) — ok, 104s
+- **kinbot-improve-cli** (daily, Opus) — ok, 224s
+- **kinbot-sse-reactivity** (daily, Opus) — ok, 283s
+- **PinchChat** (3x/day, Opus) — ok, 271s
+- **reddit-token-refresh** (12h, Flash) — ok, 1.6s
 
 ### Issues found
 
-1. **kinbot-release** — 1 consecutive timeout (600s). Looking at run history, the last successful run took 586s (v0.22.0 release) which was cutting it very close. Before that, multiple runs exceeded 200s. The cron runs `bun test` which grows as test count increases (2500+ tests now). 
-   - **Action:** No change yet. 1 timeout isn't a pattern, and the cron runs daily. If it times out again, will bump to 900s.
+1. **kinbot-cron-manager** (this cron) — 2 consecutive 600s timeouts. The audit itself is pulling too much data. Need to be more surgical, skip deep run history pulls.
 
-2. **kinbot-consistency-guardian** — 1 consecutive timeout (300s on the run before the config was updated to 600s). Already fixed by previous audit (bumped to 600s). Next run will verify.
+2. **kinbot-add-tests** — timed out at 900s on last run. Test suite now 3000+ tests, runs take 400-900s. Getting tight. Some runs also hit API rate limits or overload, wasting time.
 
-3. **kinbot-e2e-tests** — Remains disabled. 3 consecutive 900s timeouts. The agent keeps running Playwright locally despite explicit instructions not to. Correctly disabled.
+3. **kinbot-e2e-tests** — remains disabled. Correct decision. Agent keeps running Playwright locally despite explicit instructions.
 
-4. **kinbot-cron-manager** (this cron) — Timed out last run at 600s. The audit process of listing 40+ crons + checking run history for each is time-intensive. Need to be more efficient this run. No config change needed, just work faster.
+4. **kinbot-dynamic-platforms** — new cron, never run yet, disabled. Ready for Nicolas to enable when needed.
 
-### No action taken
-Everything is running well. The previous audits have done a good job of tuning intervals and timeouts. No changes needed this run.
+### Actions taken
+None this run. Everything is running well. Previous audits have tuned intervals and timeouts effectively.
 
 ### Standing proposals (for Nicolas to decide)
-- **kinbot-ci-watchdog → Gemini Flash** (13th time proposing). 95%+ runs are "CI green ✅" in 8-11s on Opus. Massive overkill. The fix-when-broken path could stay on Opus via a prompt that says "if green, stop; if red, escalate" but Flash can handle the green check trivially.
-- **woodbrass-reply-check** — always finds nothing. Consider disabling once delivery is confirmed.
-- **kinbot-release timeout** — monitor for next run. If it times out again, bump to 900s.
-
-### Cost observations
-- 17 active KinBot crons on Opus 4.6, all with 300-900s timeouts
-- Cheapest: reddit-token-refresh (Flash, 0.8s) and woodbrass-reply-check (Flash, 4s)
-- Most expensive by runtime: kinbot-add-tests (522s avg), kinbot-community (388s), PinchChat (300s)
+- **kinbot-ci-watchdog → Gemini Flash** (14th time proposing). 95%+ runs are "CI green ✅" in 8-14s on Opus. Massive cost savings.
+- **PinchChat frequency reduction** — Project is feature-complete, most runs find "nothing to do". 3x/day Opus is overkill. Suggest 1x/day.
+- **kinbot-add-tests timeout** — Monitor. If timeouts become pattern, may need to increase beyond 900s or split into "fix tests" vs "add tests" runs.
 
 ### Next audit focus
-- Monitor kinbot-release for second timeout
-- Check if kinbot-consistency-guardian runs clean at 600s timeout
-- Review if kinbot-code-scanning-fixer has self-disabled (should when all alerts fixed)
+- Monitor kinbot-add-tests for more timeouts
+- Check if kinbot-dynamic-platforms gets enabled and how it performs

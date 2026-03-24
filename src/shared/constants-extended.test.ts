@@ -11,6 +11,10 @@ import {
   TOOL_DOMAIN_META,
   TOOL_DOMAIN_MAP,
   PROVIDER_TYPES,
+  MEMORY_SCOPES,
+  MAX_MESSAGE_LENGTH,
+  MEMORY_CATEGORIES,
+  KNOWN_CHANNEL_PLATFORMS,
 } from './constants'
 
 // ─── MENTION_REGEX ──────────────────────────────────────────────────────────
@@ -288,5 +292,78 @@ describe('TOOL_DOMAIN_MAP', () => {
   it('has a reasonable number of mapped tools', () => {
     const count = Object.keys(TOOL_DOMAIN_MAP).length
     expect(count).toBeGreaterThan(30) // There are many tools mapped
+  })
+})
+
+// ─── MEMORY_SCOPES ──────────────────────────────────────────────────────────
+
+describe('MEMORY_SCOPES', () => {
+  it('includes private and shared', () => {
+    expect(MEMORY_SCOPES).toContain('private')
+    expect(MEMORY_SCOPES).toContain('shared')
+  })
+
+  it('has exactly 2 scopes', () => {
+    expect(MEMORY_SCOPES).toHaveLength(2)
+  })
+
+  it('has no duplicates', () => {
+    const unique = new Set(MEMORY_SCOPES)
+    expect(unique.size).toBe(MEMORY_SCOPES.length)
+  })
+
+  it('private is the first scope (default convention)', () => {
+    expect(MEMORY_SCOPES[0]).toBe('private')
+  })
+})
+
+// ─── MAX_MESSAGE_LENGTH ─────────────────────────────────────────────────────
+
+describe('MAX_MESSAGE_LENGTH', () => {
+  it('is a positive number', () => {
+    expect(MAX_MESSAGE_LENGTH).toBeGreaterThan(0)
+  })
+
+  it('is at least 1000 characters', () => {
+    expect(MAX_MESSAGE_LENGTH).toBeGreaterThanOrEqual(1000)
+  })
+
+  it('is 32000', () => {
+    expect(MAX_MESSAGE_LENGTH).toBe(32_000)
+  })
+})
+
+// ─── KNOWN_CHANNEL_PLATFORMS ────────────────────────────────────────────────
+
+describe('KNOWN_CHANNEL_PLATFORMS', () => {
+  it('includes core platforms', () => {
+    expect(KNOWN_CHANNEL_PLATFORMS).toContain('telegram')
+    expect(KNOWN_CHANNEL_PLATFORMS).toContain('discord')
+    expect(KNOWN_CHANNEL_PLATFORMS).toContain('slack')
+    expect(KNOWN_CHANNEL_PLATFORMS).toContain('whatsapp')
+    expect(KNOWN_CHANNEL_PLATFORMS).toContain('signal')
+    expect(KNOWN_CHANNEL_PLATFORMS).toContain('matrix')
+  })
+
+  it('has no duplicates', () => {
+    const unique = new Set(KNOWN_CHANNEL_PLATFORMS)
+    expect(unique.size).toBe(KNOWN_CHANNEL_PLATFORMS.length)
+  })
+
+  it('all entries are lowercase', () => {
+    for (const platform of KNOWN_CHANNEL_PLATFORMS) {
+      expect(platform === platform.toLowerCase()).toBe(true)
+    }
+  })
+})
+
+// ─── MEMORY_CATEGORIES cross-check ──────────────────────────────────────────
+
+describe('MEMORY_CATEGORIES and MEMORY_SCOPES cross-validation', () => {
+  it('categories and scopes are disjoint (no overlap)', () => {
+    const scopeSet = new Set<string>(MEMORY_SCOPES)
+    for (const cat of MEMORY_CATEGORIES) {
+      expect(scopeSet.has(cat)).toBe(false)
+    }
   })
 })

@@ -13,7 +13,7 @@ import { db } from '@/server/db/index'
 import { kins } from '@/server/db/schema'
 import { createLogger } from '@/server/logger'
 import { config } from '@/server/config'
-import { getExtractionModel } from '@/server/services/app-settings'
+import { getExtractionModel, getExtractionProviderId } from '@/server/services/app-settings'
 import type { ToolRegistration } from '@/server/tools/types'
 import type { MemoryCategory, MemoryScope } from '@/shared/types'
 
@@ -318,7 +318,8 @@ export const reviewMemoriesTool: ToolRegistration = {
         const { resolveLLMModel } = await import('@/server/services/kin-engine')
         const settingsExtractionModel = await getExtractionModel()
         const effectiveModel = settingsExtractionModel ?? config.memory.extractionModel
-        const model = await resolveLLMModel(effectiveModel ?? 'gpt-4.1-mini', null)
+        const settingsProviderId = await getExtractionProviderId()
+        const model = await resolveLLMModel(effectiveModel ?? 'gpt-4.1-mini', settingsProviderId ?? config.memory.extractionProviderId ?? null)
 
         if (!model) {
           return { issues: [], summary: 'No LLM model available for review.' }

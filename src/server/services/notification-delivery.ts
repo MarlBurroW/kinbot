@@ -70,7 +70,8 @@ function formatNotification(payload: NotificationPayload, platform: string): str
 }
 
 function escapeTelegramMarkdown(text: string): string {
-  return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
+  // Escape backslashes first, then all Telegram MarkdownV2 special characters
+  return text.replace(/\\/g, '\\\\').replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
 }
 
 // ─── External delivery ──────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import {
 import { Webhook, ChevronRight, GitPullRequest, MessageSquareText, CircleDot, Tag, GitCommit } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
+import { RelativeTimestamp } from '@/client/components/chat/RelativeTimestamp'
 
 interface WebhookMessageCardProps {
   content: string
@@ -117,6 +118,7 @@ function formatGitHubEvent(parsed: Record<string, unknown>): GitHubSummary | nul
 
 export const WebhookMessageCard = memo(function WebhookMessageCard({
   content,
+  timestamp,
 }: WebhookMessageCardProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -139,9 +141,14 @@ export const WebhookMessageCard = memo(function WebhookMessageCard({
 
             <div className="min-w-0 flex-1">
               {/* Webhook name */}
-              <p className="text-sm font-medium text-foreground truncate">
-                {webhook.name}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {webhook.name}
+                </p>
+                {timestamp && (
+                  <RelativeTimestamp timestamp={timestamp} className="shrink-0 text-[10px] text-muted-foreground/70" />
+                )}
+              </div>
 
               {/* GitHub summary or generic label */}
               <div className="mt-0.5 flex items-center gap-1.5">

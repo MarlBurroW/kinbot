@@ -168,6 +168,10 @@ describe('webhook-tools', () => {
         filterField: null,
         filterAllowedValues: null,
         filterExpression: null,
+        dispatchMode: undefined,
+        taskTitleTemplate: null,
+        taskPromptTemplate: null,
+        maxConcurrentTasks: undefined,
       })
     })
 
@@ -186,6 +190,10 @@ describe('webhook-tools', () => {
         filterField: null,
         filterAllowedValues: null,
         filterExpression: null,
+        dispatchMode: undefined,
+        taskTitleTemplate: null,
+        taskPromptTemplate: null,
+        maxConcurrentTasks: undefined,
       })
     })
 

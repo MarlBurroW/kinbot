@@ -29,7 +29,7 @@ import {
   getKinDetails,
 } from '@/server/services/kins'
 import { kinAvatarUrl, validateKinFields } from '@/server/services/field-validator'
-import { getHubKinId } from '@/server/services/app-settings'
+import { getHubKinId, getDefaultLlmModel, getDefaultLlmProviderId } from '@/server/services/app-settings'
 import { listModelsForProvider } from '@/server/providers/index'
 import type { AppVariables } from '@/server/app'
 
@@ -348,15 +348,15 @@ kinRoutes.get('/:id/context-usage', async (c) => {
   const compacting = await getCompactingProximity(kin.id)
 
   // Use cached context usage from the last LLM call if available
-  const cached = getLastContextUsage(kin.id)
+  const cached = await getLastContextUsage(kin.id)
   if (cached) {
     return c.json({
       contextTokens: cached.contextTokens,
       contextWindow: cached.contextWindow,
       contextBreakdown: cached.breakdown ?? null,
       pipelineStatus: cached.pipelineStatus ?? null,
-      compactingMessages: compacting.currentMessages,
-      compactingMessageThreshold: compacting.messageThreshold,
+      compactingTurns: compacting.currentTurns,
+      compactingTurnThreshold: compacting.turnThreshold,
     })
   }
 
@@ -409,9 +409,37 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     contextWindow,
     contextBreakdown: { systemPrompt: systemPromptTokens, messages: messagesTokens, tools: 0, summary: 0, total: contextTokens },
     pipelineStatus: null,
-    compactingMessages: compacting.currentMessages,
-    compactingMessageThreshold: compacting.messageThreshold,
+    compactingTurns: compacting.currentTurns,
+    compactingTurnThreshold: compacting.turnThreshold,
   })
+})
+
+// GET /api/kins/:id/context-preview — build and return the full system prompt
+// Useful for debugging / transparency: shows the actual prompt the LLM would receive.
+kinRoutes.get('/:id/context-preview', async (c) => {
+  const kin = resolveKinByIdOrSlug(c.req.param('id'))
+  if (!kin) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  const taskId = c.req.query('taskId')
+  const sessionId = c.req.query('sessionId')
+
+  if (taskId) {
+    const { buildTaskContextPreview } = await import('@/server/services/context-preview')
+    const preview = await buildTaskContextPreview(taskId)
+    return c.json(preview)
+  }
+
+  if (sessionId) {
+    const { buildQuickSessionContextPreview } = await import('@/server/services/context-preview')
+    const preview = await buildQuickSessionContextPreview(kin.id, sessionId)
+    return c.json(preview)
+  }
+
+  const { buildContextPreview } = await import('@/server/services/context-preview')
+  const preview = await buildContextPreview(kin.id)
+  return c.json(preview)
 })
 
 // ─── Kin CRUD (parameterized routes) ───────────────────────────────────────
@@ -463,7 +491,7 @@ kinRoutes.get('/:id', async (c) => {
 kinRoutes.post('/', async (c) => {
   const user = c.get('user') as { id: string }
   const body = await c.req.json()
-  const { name, slug, role, character, expertise, model, providerId, mcpServerIds } = body as {
+  let { name, slug, role, character, expertise, model, providerId, mcpServerIds } = body as {
     name: string
     slug?: string
     role: string
@@ -472,6 +500,16 @@ kinRoutes.post('/', async (c) => {
     model: string
     providerId?: string | null
     mcpServerIds?: string[]
+  }
+
+  // Fall back to default LLM if no model specified
+  if (!model || !model.trim()) {
+    const defaultModel = await getDefaultLlmModel()
+    const defaultProviderId = await getDefaultLlmProviderId()
+    if (defaultModel) {
+      model = defaultModel
+      providerId = providerId ?? defaultProviderId
+    }
   }
 
   const validationError = validateKinFields({ name, role, character, expertise, model, providerId }, 'create')
@@ -752,10 +790,22 @@ kinRoutes.post('/:id/compacting/run', async (c) => {
     return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
   }
 
-  const { runCompacting } = await import('@/server/services/compacting')
+  const { runCompacting, shouldCompact } = await import('@/server/services/compacting')
+
+  const canCompact = await shouldCompact(existing.id)
+  if (!canCompact) {
+    return c.json({ error: { code: 'NOTHING_TO_COMPACT', message: 'Not enough turns to compact' } }, 422)
+  }
+
+  sseManager.sendToKin(existing.id, {
+    type: 'compacting:start',
+    kinId: existing.id,
+    data: { kinId: existing.id, cycle: 1, estimatedTotal: 1 },
+  })
+
   const result = await runCompacting(existing.id)
   if (!result) {
-    return c.json({ error: { code: 'NOTHING_TO_COMPACT', message: 'Not enough messages to compact' } }, 422)
+    return c.json({ error: { code: 'NOTHING_TO_COMPACT', message: 'Not enough turns to compact' } }, 422)
   }
 
   return c.json({ success: true, summary: result.summary, memoriesExtracted: result.memoriesExtracted })

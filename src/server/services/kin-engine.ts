@@ -15,6 +15,7 @@ import {
   userProfiles,
   queueItems,
 } from '@/server/db/schema'
+import { guessProviderType } from '@/shared/model-ref'
 import { decrypt } from '@/server/services/encryption'
 import { buildSystemPrompt } from '@/server/services/prompt-builder'
 import { dequeueMessage, markQueueItemDone, isKinProcessing, getQueueSize, recoverStaleProcessingItems } from '@/server/services/queue'
@@ -37,7 +38,8 @@ import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
 import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel, findContactByPlatformId, getChannelOriginMeta } from '@/server/services/channels'
 import { popStagedAttachments, clearStagedAttachments } from '@/server/tools/attach-file-tool'
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
-import { getGlobalPrompt, getHubKinId } from '@/server/services/app-settings'
+import { getGlobalPrompt, getHubKinId, getSetting, setSetting } from '@/server/services/app-settings'
+import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -64,16 +66,33 @@ const lastContextUsage = new Map<string, { contextTokens: number; contextWindow:
 
 /** Store the latest context usage for a Kin (called after LLM estimation). */
 export function setLastContextUsage(kinId: string, contextTokens: number, contextWindow: number, breakdown?: ContextTokenBreakdown, pipelineStatus?: ContextPipelineStatus) {
-  lastContextUsage.set(kinId, { contextTokens, contextWindow, updatedAt: Date.now(), breakdown, pipelineStatus })
+  const data = { contextTokens, contextWindow, updatedAt: Date.now(), breakdown, pipelineStatus }
+  lastContextUsage.set(kinId, data)
+  // Persist to DB so the value survives server restarts
+  setSetting(`context_usage:${kinId}`, JSON.stringify(data)).catch(() => {})
 }
 
 /** Get the cached context usage for a Kin, if available. */
-export function getLastContextUsage(kinId: string) {
-  return lastContextUsage.get(kinId) ?? null
+export async function getLastContextUsage(kinId: string) {
+  // Check in-memory cache first
+  const mem = lastContextUsage.get(kinId)
+  if (mem) return mem
+
+  // Fall back to DB (survives restarts)
+  const persisted = await getSetting(`context_usage:${kinId}`)
+  if (persisted) {
+    try {
+      const data = JSON.parse(persisted)
+      lastContextUsage.set(kinId, data)
+      return data as { contextTokens: number; contextWindow: number; updatedAt: number; breakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus }
+    } catch { /* ignore corrupt data */ }
+  }
+
+  return null
 }
 
 // Cache of last computed compacting proximity per Kin
-const lastCompactingProximity = new Map<string, { compactingMessages: number; compactingMessageThreshold: number }>()
+const lastCompactingProximity = new Map<string, { compactingTurns: number; compactingTurnThreshold: number }>()
 
 /**
  * Extract a human-readable message from a raw API error object.
@@ -763,6 +782,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         hasCompactedHistory,
         oldestVisibleMessageAt,
       },
+      workspacePath: kin.workspacePath,
     })
 
     // ── E2E Mock LLM: stream a fake response without calling any provider ──
@@ -847,14 +867,17 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     const mcpTools = await resolveMCPTools(kinId, toolConfig)
     const customToolDefs = await resolveCustomTools(kinId)
-    const tools = { ...nativeTools, ...mcpTools, ...customToolDefs }
+    const mergedTools = { ...nativeTools, ...mcpTools, ...customToolDefs }
 
     // When processing a kin_reply, remove inter-kin tools to prevent ping-pong
     if (queueItem.messageType === 'kin_reply') {
-      delete tools['send_message']
-      delete tools['reply']
-      delete tools['list_kins']
+      delete mergedTools['send_message']
+      delete mergedTools['reply']
+      delete mergedTools['list_kins']
     }
+
+    // Wrap tools to spill large results to temp files
+    const tools = wrapToolsWithSpill(mergedTools, kin.workspacePath)
 
     const hasTools = Object.keys(tools).length > 0
 
@@ -876,8 +899,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const { getCompactingProximity } = await import('@/server/services/compacting')
     const compactingData = await getCompactingProximity(kinId)
     lastCompactingProximity.set(kinId, {
-      compactingMessages: compactingData.currentMessages,
-      compactingMessageThreshold: compactingData.messageThreshold,
+      compactingTurns: compactingData.currentTurns,
+      compactingTurnThreshold: compactingData.turnThreshold,
     })
 
     // Update the queue event with real context usage (the initial queue:update
@@ -1351,6 +1374,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       isQuickSession: true,
       globalPrompt,
       userLanguage,
+      workspacePath: kin.workspacePath,
     })
 
     // Build quick session message history (only messages from this session, no compacting)
@@ -1428,7 +1452,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     // Apply quick session exclusion list
     for (const name of QUICK_SESSION_EXCLUDED_TOOLS) delete nativeTools[name]
 
-    const tools = { ...nativeTools }
+    const tools = wrapToolsWithSpill({ ...nativeTools }, kin.workspacePath)
     const hasTools = Object.keys(tools).length > 0
 
     // Stream LLM response
@@ -1637,9 +1661,23 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   recentMessages.reverse()
 
   // If we have a compacted snapshot, only include messages after it
-  const postSnapshotMessages = activeSnapshot
+  // Filter messages after the snapshot's cutoff point.
+  // IMPORTANT: use the createdAt of the message referenced by messagesUpToId,
+  // NOT the snapshot's own createdAt (which is when the snapshot was created,
+  // and would exclude all historical messages during catch-up compaction).
+  let cutoffTimestamp: number | null = null
+  if (activeSnapshot?.messagesUpToId) {
+    const cutoffMsg = await db
+      .select({ createdAt: messages.createdAt })
+      .from(messages)
+      .where(eq(messages.id, activeSnapshot.messagesUpToId))
+      .get()
+    cutoffTimestamp = (cutoffMsg?.createdAt as unknown as number) ?? null
+  }
+
+  const postSnapshotMessages = cutoffTimestamp
     ? recentMessages.filter(
-        (m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt,
+        (m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp,
       )
     : recentMessages
 
@@ -1893,21 +1931,10 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
 
 /**
  * Determine which provider type a model ID belongs to.
+ * @deprecated Use guessProviderType from @/shared/model-ref instead.
  */
 function getProviderTypeForModel(modelId: string): string | null {
-  if (modelId.startsWith('claude-')) return 'anthropic'
-  if (
-    modelId.startsWith('gpt-') ||
-    modelId.startsWith('chatgpt-') ||
-    modelId.startsWith('o1') ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4')
-  ) return 'openai'
-  if (modelId.startsWith('gemini-')) return 'gemini'
-  if (modelId.startsWith('deepseek')) return 'deepseek'
-  // Models with a slash (e.g. "openai/gpt-4o") are typically OpenRouter-style
-  if (modelId.includes('/')) return 'openrouter'
-  return null
+  return guessProviderType(modelId)
 }
 
 /**
@@ -2026,6 +2053,9 @@ async function tryCreateModel(
  * If preferredProviderId is set, that provider is tried first before falling back to first-match.
  */
 export async function resolveLLMModel(modelId: string, preferredProviderId?: string | null) {
+  if (!preferredProviderId) {
+    log.warn({ modelId }, 'resolveLLMModel called without providerId — using auto-detect (deprecated)')
+  }
   const allProviders = await db.select().from(providers).all()
   const expectedType = getProviderTypeForModel(modelId)
 

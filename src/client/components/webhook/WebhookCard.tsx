@@ -5,7 +5,7 @@ import { Switch } from '@/client/components/ui/switch'
 import { KinBadge } from '@/client/components/common/KinBadge'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
 import { Badge } from '@/client/components/ui/badge'
-import { Pencil, Trash2, Webhook, Copy, RefreshCw, History, Filter } from 'lucide-react'
+import { Pencil, Trash2, Webhook, Copy, RefreshCw, History, Filter, ListTodo } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import type { WebhookSummary } from '@/shared/types'
@@ -39,6 +39,12 @@ export function WebhookCard({ webhook, onEdit, onDelete, onToggle, onRegenerateT
               <p className="text-sm font-medium truncate">{webhook.name}</p>
               <KinBadge name={webhook.kinName} avatarUrl={webhook.kinAvatarUrl} />
               {!webhook.isActive && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t('settings.webhooks.inactive')}</Badge>}
+              {webhook.dispatchMode === 'task' && (
+                <Badge variant="outline" size="xs" className="gap-0.5">
+                  <ListTodo className="size-2.5" />
+                  {t('settings.webhooks.dispatchModeTask')}
+                </Badge>
+              )}
               {webhook.filterMode && (
                 <Badge variant="outline" size="xs" className="gap-0.5">
                   <Filter className="size-2.5" />

@@ -12,8 +12,13 @@ const mockCrons: Record<string, any> = {
   })),
   updateCron: mock(() => Promise.resolve({ id: 'cron-abc', isActive: true })),
   deleteCron: mock(() => Promise.resolve()),
+  getCron: mock(() => Promise.resolve(null)),
   listCrons: mock(() => Promise.resolve([] as any[])),
+  approveCron: mock(() => Promise.resolve()),
+  stopJob: mock(() => {}),
   triggerCronManually: mock(() => Promise.resolve({ taskId: 'task-xyz' })),
+  initCronScheduler: mock(() => Promise.resolve()),
+  stopAllCrons: mock(() => {}),
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

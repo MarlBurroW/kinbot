@@ -13,7 +13,7 @@ import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteBut
 import { Label } from '@/client/components/ui/label'
 import { FormErrorAlert } from '@/client/components/common/FormErrorAlert'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
-import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
 import { KinSelector } from '@/client/components/common/KinSelector'
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
 import { Loader2, Trash2 } from 'lucide-react'
@@ -49,6 +49,7 @@ interface CronFormModalProps {
     taskDescription: string
     targetKinId?: string
     model?: string
+    providerId?: string
     runOnce?: boolean
   }) => Promise<CronSummary>
   onUpdate?: (id: string, updates: Record<string, unknown>) => Promise<CronSummary>
@@ -94,6 +95,7 @@ export function CronFormModal({
   const [taskDescription, setTaskDescription] = useState('')
   const [targetKinId, setTargetKinId] = useState<string>('')
   const [model, setModel] = useState('')
+  const [modelProviderId, setModelProviderId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -115,6 +117,7 @@ export function CronFormModal({
         setTaskDescription(cron.taskDescription)
         setTargetKinId(cron.targetKinId ?? '')
         setModel(cron.model ?? '')
+        setModelProviderId(cron.providerId ?? '')
       } else if (defaults) {
         setName(defaults.name ?? '')
         setKinId(defaults.kinId ?? (kins.length === 1 ? kins[0]!.id : ''))
@@ -124,6 +127,7 @@ export function CronFormModal({
         setTaskDescription(defaults.taskDescription ?? '')
         setTargetKinId(defaults.targetKinId ?? '')
         setModel(defaults.model ?? '')
+        setModelProviderId(defaults.providerId ?? '')
       } else {
         setName('')
         setKinId(kins.length === 1 ? kins[0]!.id : '')
@@ -133,6 +137,7 @@ export function CronFormModal({
         setTaskDescription('')
         setTargetKinId('')
         setModel('')
+        setModelProviderId('')
       }
       setError(null)
       resetDirty()
@@ -154,6 +159,7 @@ export function CronFormModal({
           taskDescription,
           targetKinId: targetKinId || null,
           model: model || null,
+          providerId: modelProviderId || null,
           runOnce,
         })
       } else if (onCreate) {
@@ -164,6 +170,7 @@ export function CronFormModal({
           taskDescription,
           targetKinId: targetKinId || undefined,
           model: model || undefined,
+          providerId: modelProviderId || undefined,
           runOnce: runOnce || undefined,
         })
       }
@@ -393,8 +400,8 @@ export function CronFormModal({
               <Label className="inline-flex items-center gap-1.5">{t('cron.create.model')} <InfoTip content={t('cron.create.modelTip')} /></Label>
               <ModelPicker
                 models={llmModels}
-                value={model}
-                onValueChange={setModel}
+                value={modelPickerValue(model, modelProviderId)}
+                onValueChange={(modelId, pid) => { setModel(modelId); setModelProviderId(pid) }}
                 placeholder={t('cron.create.modelPlaceholder')}
                 allowClear
               />

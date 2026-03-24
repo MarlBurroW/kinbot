@@ -12,9 +12,8 @@ import { Textarea } from '@/client/components/ui/textarea'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
-import { ModelPicker } from '@/client/components/common/ModelPicker'
+import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
-import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { FormErrorAlert } from '@/client/components/common/FormErrorAlert'
@@ -22,12 +21,19 @@ import { AvatarPickerModal, type AvatarPickerResult } from '@/client/components/
 import { KinToolsTab } from '@/client/components/kin/KinToolsTab'
 import { MemoryList } from '@/client/components/memory/MemoryList'
 import { Switch } from '@/client/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/client/components/ui/select'
 import { Archive, ArrowLeft, Bot, Brain, Camera, Loader2, Network, Settings, ShieldCheck, Sparkles, Trash2, Upload, User, Wrench } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
 import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
 import { cn } from '@/client/lib/utils'
-import { getErrorMessage } from '@/client/lib/api'
+import { api, getErrorMessage } from '@/client/lib/api'
 import { TOOL_DOMAIN_MAP } from '@/shared/constants'
 import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
 import type { GeneratedKinConfig } from '@/client/hooks/useKins'
@@ -100,13 +106,14 @@ interface KinFormModalProps {
   hubMode?: boolean
 }
 
-type TabId = 'general' | 'tools' | 'memory'
+type TabId = 'general' | 'tools' | 'memory' | 'compaction'
 type WizardStep = 'describe' | 'form'
 
 const TABS: Array<{ id: TabId; icon: typeof Settings; labelKey: string }> = [
   { id: 'general', icon: Settings, labelKey: 'kin.tabs.general' },
   { id: 'tools', icon: Wrench, labelKey: 'kin.tabs.tools' },
   { id: 'memory', icon: Brain, labelKey: 'kin.tabs.memory' },
+  { id: 'compaction', icon: Archive, labelKey: 'kin.tabs.compaction' },
 ]
 
 /** Convert AI domain-level suggestions into KinToolConfig */
@@ -259,6 +266,16 @@ export function KinFormModal({
       setWasAiGenerated(false)
       setWizardDescription(hubMode ? t('hub.defaultDescription') : '')
       setHubGrantAllTools(true)
+
+      // Pre-populate with default LLM model
+      api.get<{ defaultLlmModel: string | null; defaultLlmProviderId: string | null }>('/settings/default-models')
+        .then((data) => {
+          if (data.defaultLlmModel) {
+            setModel(data.defaultLlmModel)
+            setProviderId(data.defaultLlmProviderId ?? null)
+          }
+        })
+        .catch(() => {})
     }
     setAvatarFile(null)
     setError('')
@@ -269,29 +286,6 @@ export function KinFormModal({
     setIsAvatarGenerating(false)
     resetDirty()
   }, [kin, defaultCharacter, defaultExpertise, resetDirty])
-
-  // Derive providers that can serve the selected model
-  const providersForModel = useMemo(() => {
-    if (!model) return []
-    const seen = new Set<string>()
-    return llmModels
-      .filter((m) => m.id === model)
-      .filter((m) => {
-        if (seen.has(m.providerId)) return false
-        seen.add(m.providerId)
-        return true
-      })
-  }, [model, llmModels])
-
-  const showProviderSelector = providersForModel.length > 1
-
-  // Reset providerId when model changes and current provider is no longer valid
-  useEffect(() => {
-    if (providerId && providersForModel.length > 0) {
-      const stillValid = providersForModel.some((p) => p.providerId === providerId)
-      if (!stillValid) setProviderId(null)
-    }
-  }, [model, providersForModel, providerId])
 
   /** Apply a generated config to the form fields */
   const applyGeneratedConfig = (config: GeneratedKinConfig) => {
@@ -420,10 +414,12 @@ export function KinFormModal({
 
     try {
       if (isEdit && onUpdateKin) {
-        // Normalize compactingConfig: if both fields are empty, send null to clear the override
-        const effectiveCompactingConfig = (compactingConfig?.thresholdPercent != null)
-          ? compactingConfig
-          : null
+        // Normalize compactingConfig: if all fields are empty, send null to clear the override
+        const effectiveCompactingConfig = (
+          compactingConfig?.compactingModel != null ||
+          compactingConfig?.compactingProviderId != null ||
+          compactingConfig?.turnThreshold != null
+        ) ? compactingConfig : null
         await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig, compactingConfig: effectiveCompactingConfig })
         if (avatarFile) await onUploadAvatar(kin.id, avatarFile)
       } else if (onCreateKin) {
@@ -781,25 +777,12 @@ export function KinFormModal({
                                   <Label className="inline-flex items-center gap-1.5">{t('kin.create.model')} {!isEdit && <span className="text-destructive">*</span>} <InfoTip content={t('kin.create.modelTip')} /></Label>
                                   <ModelPicker
                                     models={llmModels}
-                                    value={model}
-                                    onValueChange={(v) => { setModel(v); markDirty() }}
+                                    value={modelPickerValue(model, providerId ?? '')}
+                                    onValueChange={(modelId, pid) => { setModel(modelId); setProviderId(pid || null); markDirty() }}
                                     placeholder={t('kin.create.modelPlaceholder')}
                                   />
                                 </div>
                               </div>
-                              {showProviderSelector && (
-                                <div className="space-y-2">
-                                  <Label>{t('kin.create.provider')}</Label>
-                                  <ProviderSelector
-                                    value={providerId ?? '__auto__'}
-                                    onValueChange={(v) => setProviderId(v === '__auto__' ? null : v)}
-                                    providers={providersForModel.map((p) => ({ id: p.providerId, type: p.providerType, name: p.providerName }))}
-                                    noneLabel={t('kin.create.providerAuto')}
-                                    noneValue="__auto__"
-                                  />
-                                  <p className="text-xs text-muted-foreground">{t('kin.create.providerHint')}</p>
-                                </div>
-                              )}
                               <div className="space-y-2">
                                 <Label htmlFor="kinFormSlug">{t('kin.edit.slug')}</Label>
                                 <Input
@@ -865,33 +848,88 @@ export function KinFormModal({
                       {activeTab === 'memory' && isEdit && (
                         <div className="space-y-6">
                           <MemoryList kinId={kin.id} compact />
+                        </div>
+                      )}
 
-                          {/* Compacting thresholds */}
-                          <div className="space-y-3 border-t border-border/40 pt-4">
-                            <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
-                              <Archive className="size-4" />
-                              {t('kin.compacting.title')}
-                            </Label>
-                            <p className="text-xs text-muted-foreground">{t('kin.compacting.overrideHint')}</p>
-                            <div className="space-y-1.5">
-                              <Label className="text-xs">{t('kin.compacting.thresholdPercent')}</Label>
-                              <Input
-                                type="number"
-                                min={50}
-                                max={95}
-                                step={5}
-                                placeholder={t('kin.compacting.thresholdPercentPlaceholder', { default: '75%' })}
-                                value={compactingConfig?.thresholdPercent ?? ''}
-                                onChange={(e) => {
-                                  const val = e.target.value ? Number(e.target.value) : null
-                                  setCompactingConfig({ ...compactingConfig, thresholdPercent: val })
+                      {activeTab === 'compaction' && isEdit && (
+                        <div className="space-y-3">
+                          <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
+                            <Archive className="size-4" />
+                            {t('kin.compacting.title')}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">{t('kin.compacting.overrideHint')}</p>
+
+                          {/* Compacting model — 3-way selector */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{t('kin.compacting.modelLabel')}</Label>
+                            <Select
+                              value={
+                                !compactingConfig?.compactingModel ? 'default'
+                                : compactingConfig.compactingModel === '__kin_own__' ? 'kin_own'
+                                : 'custom'
+                              }
+                              onValueChange={(mode) => {
+                                if (mode === 'default') {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: null, compactingProviderId: null })
+                                } else if (mode === 'kin_own') {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: '__kin_own__', compactingProviderId: null })
+                                } else {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: '', compactingProviderId: null })
+                                }
+                                markDirty()
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="default">{t('kin.compacting.modeDefault')}</SelectItem>
+                                <SelectItem value="kin_own">{t('kin.compacting.modeKinOwn')}</SelectItem>
+                                <SelectItem value="custom">{t('kin.compacting.modeCustom')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {compactingConfig?.compactingModel && compactingConfig.compactingModel !== '__kin_own__' && (
+                              <ModelPicker
+                                models={llmModels}
+                                value={modelPickerValue(compactingConfig.compactingModel, compactingConfig.compactingProviderId ?? '')}
+                                onValueChange={(modelId, pid) => {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: modelId || null, compactingProviderId: pid || null })
                                   markDirty()
                                 }}
+                                placeholder={t('kin.compacting.selectCustomModel')}
                               />
-                              <p className="text-[10px] text-muted-foreground">{t('kin.compacting.thresholdPercentHint', { default: 75 })}</p>
-                            </div>
+                            )}
+                            <p className="text-[10px] text-muted-foreground">{t('kin.compacting.modelHint')}</p>
+                          </div>
+
+                          {/* Turn threshold */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{t('kin.compacting.turnThresholdLabel')}</Label>
+                            <Input
+                              type="number"
+                              min={10}
+                              max={100}
+                              step={1}
+                              placeholder={t('kin.compacting.turnThresholdPlaceholder', { default: 25 })}
+                              value={compactingConfig?.turnThreshold ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null
+                                setCompactingConfig({ ...compactingConfig, turnThreshold: val })
+                                markDirty()
+                              }}
+                            />
+                            <p className="text-[10px] text-muted-foreground">{t('kin.compacting.turnThresholdHint')}</p>
                           </div>
                         </div>
+                      )}
+
+                      {activeTab === 'compaction' && !isEdit && (
+                        <EmptyState
+                          minimal
+                          icon={Archive}
+                          title={t('kin.create.compactionEmptyTitle')}
+                          description={t('kin.create.compactionEmptyDescription')}
+                        />
                       )}
 
                       {activeTab === 'memory' && !isEdit && (

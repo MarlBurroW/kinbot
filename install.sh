@@ -1135,7 +1135,7 @@ Group=$KINBOT_USER
 WorkingDirectory=$KINBOT_DIR
 EnvironmentFile=-${env_file}
 ExecStart=$BUN_BIN src/server/index.ts
-Restart=on-failure
+Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
@@ -1174,7 +1174,7 @@ Type=simple
 WorkingDirectory=$KINBOT_DIR
 EnvironmentFile=-${env_file}
 ExecStart=$BUN_BIN src/server/index.ts
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]

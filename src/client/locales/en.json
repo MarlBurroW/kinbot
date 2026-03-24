@@ -127,7 +127,38 @@
       "guidanceFooter": "You can add more providers later in Settings. Pick one to get started!",
       "advancedSetup": "Customize memory & search",
       "quickFinish": "Quick finish with defaults",
-      "quickFinishHint": "Memory and search can be configured later in Settings"
+      "quickFinishHint": "Default models and search can be configured later in Settings",
+      "aiTab": "AI Providers",
+      "searchTab": "Search"
+    },
+    "models": {
+      "title": "Default Models",
+      "subtitle": "Choose the default models for your Kins",
+      "defaultLlm": "Default LLM",
+      "defaultLlmTip": "The default language model for new Kins. Each Kin can override this later.",
+      "defaultLlmHint": "New Kins will use this model by default.",
+      "defaultLlmPlaceholder": "Select default LLM",
+      "embeddingModel": "Embedding Model",
+      "embeddingModelTip": "Converts memories into searchable data. A small model works fine.",
+      "embeddingModelHint": "Enables semantic search across Kin memories.",
+      "embeddingModelPlaceholder": "Select an embedding model",
+      "extractionModel": "Extraction Model",
+      "extractionModelTip": "Scans conversations to extract memories. A fast model works great here.",
+      "extractionModelHint": "Leave empty to use each Kin's own model.",
+      "extractionModelPlaceholder": "Optional — uses Kin model if empty",
+      "imageModel": "Image Model",
+      "imageModelTip": "Default model for image generation when no specific model is requested.",
+      "imageModelHint": "Optional — auto-selects if empty.",
+      "imageModelPlaceholder": "Optional — auto-detect",
+      "compactingModel": "Compacting Model",
+      "compactingModelTip": "Summarizes old conversations to save context space. A fast model works well.",
+      "compactingModelHint": "Optional — uses each Kin's own model if empty.",
+      "compactingModelPlaceholder": "Optional — uses Kin model if empty",
+      "searchProvider": "Search Provider",
+      "searchProviderTip": "Default web search provider for your Kins.",
+      "searchProviderHint": "Optional — auto-selects the first valid provider.",
+      "searchProviderAutomatic": "Automatic (first valid)",
+      "finish": "Finish setup"
     },
     "memory": {
       "title": "Memory",
@@ -303,6 +334,8 @@
       "totalPromptTokens": "Total system prompt: ~{{tokens}} tokens",
       "memoryEmptyTitle": "Memory is configured after creation",
       "memoryEmptyDescription": "Once your Kin is created, it will automatically build memories from conversations. You can also add memories manually from the edit dialog.",
+      "compactionEmptyTitle": "Compaction is configured after creation",
+      "compactionEmptyDescription": "Once your Kin is created, you can override global compaction settings here.",
       "nameHint": "A short, memorable name for this Kin.",
       "roleHint": "A brief description of what this Kin does (shown in the sidebar).",
       "nameTip": "A short, recognizable name. This is how the Kin appears in the sidebar and in conversations.",
@@ -322,7 +355,8 @@
     "tabs": {
       "general": "General",
       "tools": "Tools",
-      "memory": "Memory"
+      "memory": "Memory",
+      "compaction": "Compaction"
     },
     "tools": {
       "native": "Native Tools",
@@ -347,17 +381,18 @@
       "expertise": "You have broad general knowledge and can help with a wide range of topics:\n- Writing, editing, and summarizing text\n- Research, analysis, and problem-solving\n- Brainstorming and creative tasks\n- Explaining complex concepts simply\n- Planning and organizing\n\nYou adapt your level of detail and technicality based on what the user needs."
     },
     "compacting": {
-      "title": "Compacting thresholds",
-      "overrideHint": "Leave empty to use the global defaults. Only fill in to override for this Kin.",
-      "messageThreshold": "Message threshold",
-      "tokenThreshold": "Token threshold",
-      "messageThresholdPlaceholder": "Default: {{default}}",
-      "tokenThresholdPlaceholder": "Default: {{default}}",
-      "messageThresholdHint": "Global default: {{default}}",
-      "tokenThresholdHint": "Global default: {{default}}",
-      "thresholdPercent": "Threshold (%)",
-      "thresholdPercentPlaceholder": "Global default ({{default}})",
-      "thresholdPercentHint": "Compact when context reaches this % of model window. Leave empty for global default ({{default}}%)."
+      "title": "Compaction",
+      "overrideHint": "Leave empty to use global defaults.",
+      "modelLabel": "Compacting model",
+      "modelHint": "Model used for summarization.",
+      "sameAsKinModel": "Same as Kin model",
+      "modeDefault": "Use global default",
+      "modeKinOwn": "Use this Kin's model",
+      "modeCustom": "Custom model",
+      "selectCustomModel": "Select a model",
+      "turnThresholdLabel": "Turns before compaction",
+      "turnThresholdPlaceholder": "Global default ({{default}})",
+      "turnThresholdHint": "Number of conversation turns before compaction triggers."
     },
     "avatar": {
       "title": "Choose avatar",
@@ -485,7 +520,7 @@
     "forceCompact": "Force compaction",
     "tooltipContext": "Context window",
     "tooltipCompacting": "Compaction",
-    "compactingProximity": "{{current}} / {{threshold}} messages",
+    "compactingProximity": "{{current}} / {{threshold}} turns",
     "compactingMarker": "Compaction threshold",
     "breakdown": {
       "tools": "Tools",
@@ -499,6 +534,36 @@
       "observationCompacted": "{{count}} messages compacted",
       "emergencyTrim": "{{count}} messages trimmed"
     },
+    "contextViewer": {
+      "title": "Context Viewer",
+      "structured": "Structured",
+      "raw": "Raw",
+      "tools": "Available tools",
+      "loading": "Building context preview...",
+      "error": "Failed to load context preview",
+      "retry": "Retry",
+      "copy": "Copy",
+      "copied": "Copied",
+      "generatedAt": "Generated at {{time}}",
+      "structuredHint": "Rendered view of the context sent to the LLM. Each section is color-coded to match the context bar. This is a reconstruction for inspection — the actual payload may differ slightly.",
+      "rawHint": "JSON approximation of the full payload sent to the LLM provider: system prompt, conversation history, and tool schemas. This is a reconstruction for inspection — the actual API call may differ slightly (token masking, message formatting, provider-specific adaptations).",
+      "legend": {
+        "systemPrompt": "System prompt",
+        "summary": "Summary",
+        "messages": "Messages",
+        "tools": "Tools"
+      },
+      "messagesCount": "{{count}} messages",
+      "toolsCount": "{{count}} tools",
+      "noMessages": "No messages in history",
+      "noTools": "No tools configured",
+      "messageRole": {
+        "user": "User",
+        "assistant": "Assistant",
+        "system": "System"
+      },
+      "withToolCalls": "(+ tool calls)"
+    },
     "moreActions": "More actions",
     "compacting": {
       "title": "Compacting conversation",
@@ -507,8 +572,9 @@
       "memories": "{{count}} memories extracted",
       "showSummary": "Show summary",
       "inputDisabled": "Please wait - compacting conversation history...",
-      "nothingToCompact": "Nothing to compact - not enough messages yet",
-      "error": "Compaction failed"
+      "nothingToCompact": "Nothing to compact - not enough turns yet",
+      "error": "Compaction failed",
+      "runningCycle": "Compacting... (cycle {{cycle}}/{{total}})"
     },
     "taskResult": {
       "showResult": "Show result",
@@ -794,6 +860,42 @@
         "bullet2": "Set a default provider or let KinBot automatically pick the first valid one",
         "bullet3": "Individual Kins can override the default search provider in their settings",
         "bullet4": "Most search providers require an API key from the provider's website"
+      },
+      "defaultProviderRedirect": "The default search provider can be configured in Models & Services settings."
+    },
+    "models": {
+      "title": "Models & Services",
+      "description": "Configure default models and services used across the platform.",
+      "saved": "Setting saved",
+      "defaultLlm": "Default LLM",
+      "defaultLlmTip": "The default language model used when creating new Kins. Each Kin can override this with its own model.",
+      "defaultLlmHint": "New Kins will use this model by default unless a different one is specified.",
+      "defaultLlmPlaceholder": "Select default LLM",
+      "defaultCompacting": "Default Compacting Model",
+      "defaultCompactingTip": "Model used to summarize old conversations. A fast, affordable model works well here. If unset, each Kin uses its own model.",
+      "defaultCompactingHint": "Used for compaction unless a Kin has its own override. Leave empty to use each Kin's own model.",
+      "defaultCompactingPlaceholder": "Use each Kin's own model (default)",
+      "defaultImage": "Default Image Model",
+      "defaultImageTip": "Model used for image generation when no specific model is requested.",
+      "defaultImageHint": "Used by the generate_image tool when no model is specified.",
+      "defaultImagePlaceholder": "Auto-detect (default)",
+      "extractionModel": "Extraction Model",
+      "extractionModelTip": "This model scans conversations and decides which facts, preferences, and decisions should be saved as long-term memories. A small, fast model does the job well. If unset, each Kin uses its own chat model.",
+      "extractionModelHint": "Reads your conversations and picks out what's worth remembering. A fast, affordable model works great here.",
+      "extractionModelPlaceholder": "Use each Kin's own model (default)",
+      "embeddingModel": "Embedding Model",
+      "embeddingModelTip": "Converts text into numbers (vectors) so your Kins can search memories by meaning. Changing this model requires re-processing all existing memories.",
+      "embeddingModelHint": "Turns memories into searchable data so your Kins can find relevant info by meaning.",
+      "embeddingModelPlaceholder": "Select an embedding model",
+      "defaultSearchProvider": "Default Search Provider",
+      "defaultSearchProviderTip": "The search provider used by Kins for web searches. Individual Kins can override this in their settings.",
+      "defaultSearchProviderHint": "Used by all Kins unless they override it individually.",
+      "searchProviderAutomatic": "Automatic (first valid)",
+      "help": {
+        "content": "Default models are used as fallbacks when creating new Kins or when no specific model is configured at the Kin level.",
+        "bullet1": "The default LLM is pre-selected when creating new Kins, saving time during setup",
+        "bullet2": "Compacting and extraction models can be lightweight — they don't need to be the same as your chat model",
+        "bullet3": "Changing the embedding model requires re-embedding all existing memories"
       }
     },
     "mcp": {
@@ -963,6 +1065,7 @@
     "memories": {
       "title": "Memories",
       "description": "View and manage all Kin memories.",
+      "modelConfigRedirect": "Memory extraction and embedding models are now configured in Models & Services settings.",
       "modelConfig": "Model Configuration",
       "modelConfigDescription": "Models used for memory extraction and semantic search.",
       "extractionModel": "Extraction Model",
@@ -1171,6 +1274,19 @@
       "statsReceived": "{{count}} received",
       "statsTransmitted": "{{count}} transmitted",
       "statsFiltered": "{{count}} filtered",
+      "dispatchMode": "Dispatch mode",
+      "dispatchModeConversation": "Conversation",
+      "dispatchModeTask": "Task",
+      "dispatchModeTip": "Conversation mode injects the payload as a message in the Kin's session. Task mode spawns an autonomous sub-task with a configurable prompt template.",
+      "taskTitleTemplate": "Task title template",
+      "taskTitleTemplatePlaceholder": "e.g. GitHub: {{action}} on #{{issue.number}}",
+      "taskTitleTemplateTip": "Template for the spawned task's title. Use {{field.path}} to insert values from the JSON payload. Leave empty for a default title.",
+      "taskPromptTemplate": "Task prompt template",
+      "taskPromptTemplatePlaceholder": "e.g. Analyze this event and take action.\n\n```json\n{{__payload__}}\n```",
+      "taskPromptTemplateTip": "Template for the task description sent to the Kin. Use {{field.path}} for specific fields or {{__payload__}} for the full raw payload. Leave empty to use the raw payload.",
+      "maxConcurrentTasks": "Max concurrent tasks",
+      "maxConcurrentTasksTip": "Maximum number of webhook-spawned tasks that can run simultaneously. Additional webhooks are queued and processed when a slot opens. Set to 0 for unlimited.",
+      "templatePreview": "Preview (based on last received payload)",
       "help": {
         "content": "Webhooks let external services send events directly to your Kins via HTTP POST requests. Each webhook gets a unique URL and token that you configure in the external service.",
         "bullet1": "Use webhooks to connect CI/CD pipelines, monitoring alerts, form submissions, or any HTTP-capable service",

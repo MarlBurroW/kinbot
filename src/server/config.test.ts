@@ -85,7 +85,8 @@ describe('config', () => {
 
   describe('default values', () => {
     it('compacting defaults are sensible', () => {
-      expect(config.compacting.thresholdPercent).toBe(75)
+      expect(config.compacting.batchTurns).toBe(10)
+      expect(config.compacting.minKeepTurns).toBe(15)
       expect(config.compacting.maxSnapshotsPerKin).toBe(10)
     })
 
@@ -221,11 +222,13 @@ describe('config', () => {
 
     it('numeric env vars are parsed as numbers', async () => {
       const c = await loadConfigWithEnv({
-        COMPACTING_THRESHOLD_PERCENT: '80',
+        COMPACTING_BATCH_TURNS: '5',
+        COMPACTING_MIN_KEEP_TURNS: '20',
         MEMORY_MAX_RELEVANT: '20',
         TOOLS_MAX_STEPS: '25',
       })
-      expect(c.compacting.thresholdPercent).toBe(80)
+      expect(c.compacting.batchTurns).toBe(5)
+      expect(c.compacting.minKeepTurns).toBe(20)
       expect(c.memory.maxRelevantMemories).toBe(20)
       expect(c.tools.maxSteps).toBe(25)
     })
@@ -265,6 +268,169 @@ describe('config', () => {
     it('publicUrl defaults to localhost with custom PORT', async () => {
       const c = await loadConfigWithEnv({ PORT: '4444', PUBLIC_URL: undefined })
       expect(c.publicUrl).toBe('http://localhost:4444')
+    })
+  })
+
+  describe('missing default coverage', () => {
+    it('version is a string', () => {
+      expect(typeof config.version).toBe('string')
+      expect(config.version.length).toBeGreaterThan(0)
+    })
+
+    it('isDocker is a boolean', () => {
+      expect(typeof config.isDocker).toBe('boolean')
+    })
+
+    it('historyTokenBudget defaults to 0', () => {
+      expect(config.historyTokenBudget).toBe(0)
+    })
+
+    it('toolResultMaskKeepLast defaults to 2', () => {
+      expect(config.toolResultMaskKeepLast).toBe(2)
+    })
+
+    it('observationCompactionWindow defaults to 10', () => {
+      expect(config.observationCompactionWindow).toBe(10)
+    })
+
+    it('observationMaxChars defaults to 200', () => {
+      expect(config.observationMaxChars).toBe(200)
+    })
+
+    it('toolOutputs defaults', () => {
+      expect(config.toolOutputs.spillThreshold).toBe(10000)
+      expect(config.toolOutputs.previewLines).toBe(200)
+      expect(config.toolOutputs.ttlHours).toBe(24)
+    })
+
+    it('miniApps defaults', () => {
+      expect(config.miniApps.maxAppsPerKin).toBe(20)
+      expect(config.miniApps.maxFileSizeMb).toBe(5)
+      expect(config.miniApps.maxTotalSizeMbPerApp).toBe(50)
+      expect(config.miniApps.backendEnabled).toBe(true)
+    })
+
+    it('versionCheck defaults', () => {
+      expect(config.versionCheck.repo).toBe('MarlBurroW/kinbot')
+      expect(config.versionCheck.intervalHours).toBe(1)
+    })
+
+    it('environment has expected shape', () => {
+      expect(['docker', 'systemd-user', 'systemd-system', 'manual']).toContain(config.environment.installationType)
+      expect(typeof config.environment.workingDir).toBe('string')
+      expect(typeof config.environment.user).toBe('string')
+    })
+  })
+
+  describe('env var overrides for new fields (subprocess)', () => {
+    it('HISTORY_TOKEN_BUDGET override', async () => {
+      const c = await loadConfigWithEnv({ HISTORY_TOKEN_BUDGET: '50000' })
+      expect(c.historyTokenBudget).toBe(50000)
+    })
+
+    it('TOOL_RESULT_MASK_KEEP_LAST override', async () => {
+      const c = await loadConfigWithEnv({ TOOL_RESULT_MASK_KEEP_LAST: '5' })
+      expect(c.toolResultMaskKeepLast).toBe(5)
+    })
+
+    it('OBSERVATION_COMPACTION_WINDOW override', async () => {
+      const c = await loadConfigWithEnv({ OBSERVATION_COMPACTION_WINDOW: '20' })
+      expect(c.observationCompactionWindow).toBe(20)
+    })
+
+    it('OBSERVATION_MAX_CHARS override', async () => {
+      const c = await loadConfigWithEnv({ OBSERVATION_MAX_CHARS: '500' })
+      expect(c.observationMaxChars).toBe(500)
+    })
+
+    it('TOOL_OUTPUT_SPILL_THRESHOLD override', async () => {
+      const c = await loadConfigWithEnv({ TOOL_OUTPUT_SPILL_THRESHOLD: '5000' })
+      expect(c.toolOutputs.spillThreshold).toBe(5000)
+    })
+
+    it('TOOL_OUTPUT_PREVIEW_LINES override', async () => {
+      const c = await loadConfigWithEnv({ TOOL_OUTPUT_PREVIEW_LINES: '100' })
+      expect(c.toolOutputs.previewLines).toBe(100)
+    })
+
+    it('TOOL_OUTPUT_TTL_HOURS override', async () => {
+      const c = await loadConfigWithEnv({ TOOL_OUTPUT_TTL_HOURS: '48' })
+      expect(c.toolOutputs.ttlHours).toBe(48)
+    })
+
+    it('MINI_APPS_MAX_PER_KIN override', async () => {
+      const c = await loadConfigWithEnv({ MINI_APPS_MAX_PER_KIN: '50' })
+      expect(c.miniApps.maxAppsPerKin).toBe(50)
+    })
+
+    it('MINI_APPS_BACKEND_ENABLED=false disables backend', async () => {
+      const c = await loadConfigWithEnv({ MINI_APPS_BACKEND_ENABLED: 'false' })
+      expect(c.miniApps.backendEnabled).toBe(false)
+    })
+
+    it('VERSION_CHECK_ENABLED=false disables version check', async () => {
+      const c = await loadConfigWithEnv({ VERSION_CHECK_ENABLED: 'false' })
+      expect(c.versionCheck.enabled).toBe(false)
+    })
+
+    it('VERSION_CHECK_INTERVAL_HOURS override', async () => {
+      const c = await loadConfigWithEnv({ VERSION_CHECK_INTERVAL_HOURS: '24' })
+      expect(c.versionCheck.intervalHours).toBe(24)
+    })
+
+    it('COMPACTING_MAX_SNAPSHOTS override', async () => {
+      const c = await loadConfigWithEnv({ COMPACTING_MAX_SNAPSHOTS: '25' })
+      expect(c.compacting.maxSnapshotsPerKin).toBe(25)
+    })
+
+    it('TASKS_MAX_INTER_KIN_REQUESTS override', async () => {
+      const c = await loadConfigWithEnv({ TASKS_MAX_INTER_KIN_REQUESTS: '10' })
+      expect(c.tasks.maxInterKinRequests).toBe(10)
+    })
+
+    it('TASKS_MAX_CONCURRENT override', async () => {
+      const c = await loadConfigWithEnv({ TASKS_MAX_CONCURRENT: '20' })
+      expect(c.tasks.maxConcurrent).toBe(20)
+    })
+
+    it('CRONS_MAX_ACTIVE override', async () => {
+      const c = await loadConfigWithEnv({ CRONS_MAX_ACTIVE: '100' })
+      expect(c.crons.maxActive).toBe(100)
+    })
+
+    it('NOTIFICATIONS_RETENTION_DAYS override', async () => {
+      const c = await loadConfigWithEnv({ NOTIFICATIONS_RETENTION_DAYS: '60' })
+      expect(c.notifications.retentionDays).toBe(60)
+    })
+
+    it('WEBHOOKS_MAX_PAYLOAD_BYTES override', async () => {
+      const c = await loadConfigWithEnv({ WEBHOOKS_MAX_PAYLOAD_BYTES: '2097152' })
+      expect(c.webhooks.maxPayloadBytes).toBe(2097152)
+    })
+
+    it('FILE_STORAGE_MAX_SIZE override', async () => {
+      const c = await loadConfigWithEnv({ FILE_STORAGE_MAX_SIZE: '200' })
+      expect(c.fileStorage.maxFileSizeMb).toBe(200)
+    })
+
+    it('UPLOAD_CHANNEL_RETENTION_DAYS override', async () => {
+      const c = await loadConfigWithEnv({ UPLOAD_CHANNEL_RETENTION_DAYS: '0' })
+      expect(c.upload.channelFileRetentionDays).toBe(0)
+    })
+
+    it('WAKEUPS_MAX_PENDING_PER_KIN override', async () => {
+      const c = await loadConfigWithEnv({ WAKEUPS_MAX_PENDING_PER_KIN: '50' })
+      expect(c.wakeups.maxPendingPerKin).toBe(50)
+    })
+
+    it('INTER_KIN_MAX_CHAIN_DEPTH override', async () => {
+      const c = await loadConfigWithEnv({ INTER_KIN_MAX_CHAIN_DEPTH: '10' })
+      expect(c.interKin.maxChainDepth).toBe(10)
+    })
+
+    it('CHANNEL_PENDING_ORIGIN_TTL override', async () => {
+      const c = await loadConfigWithEnv({ CHANNEL_PENDING_ORIGIN_TTL: '600000' })
+      expect(c.channels.pendingOriginTtlMs).toBe(600000)
     })
   })
 })

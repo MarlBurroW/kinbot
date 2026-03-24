@@ -1,4 +1,4 @@
-import { generateText } from 'ai'
+import { safeGenerateText } from '@/server/services/llm-helpers'
 import { eq, and, desc, asc, isNull, inArray, ne } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db } from '@/server/db/index'
@@ -11,10 +11,10 @@ import {
   userProfiles,
 } from '@/server/db/schema'
 import { config } from '@/server/config'
-import { getExtractionModel } from '@/server/services/app-settings'
+import { getExtractionModel, getExtractionProviderId, getDefaultCompactingModel, getDefaultCompactingProviderId } from '@/server/services/app-settings'
 import { createMemory, updateMemory, isDuplicateMemory, pruneStaleMemories } from '@/server/services/memory'
 import { sseManager } from '@/server/sse/index'
-import type { MemoryCategory } from '@/shared/types'
+import type { KinCompactingConfig, MemoryCategory } from '@/shared/types'
 
 const log = createLogger('compacting')
 
@@ -23,16 +23,94 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4)
 }
 
+// ─── Per-Kin Effective Config ─────────────────────────────────────────────────
+
+interface EffectiveCompactingConfig {
+  turnThreshold: number
+  batchTurns: number
+  minKeepTurns: number
+  model: string
+  providerId: string | null
+}
+
+/**
+ * Resolve effective compacting config for a Kin.
+ * Per-Kin overrides > global env vars > defaults.
+ */
+async function getEffectiveCompactingConfig(kinId: string): Promise<EffectiveCompactingConfig> {
+  const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
+  if (!kin) throw new Error(`Kin ${kinId} not found`)
+
+  let perKin: KinCompactingConfig | null = null
+  if (kin.compactingConfig) {
+    try { perKin = JSON.parse(kin.compactingConfig) as KinCompactingConfig } catch { /* ignore */ }
+  }
+
+  // Turn threshold: per-Kin > global (batchTurns + minKeepTurns)
+  const globalThreshold = config.compacting.batchTurns + config.compacting.minKeepTurns
+  const turnThreshold = perKin?.turnThreshold ?? globalThreshold
+
+  // Derive batch sizes from threshold (40/60 split)
+  const batchTurns = Math.max(1, Math.floor(turnThreshold * 0.4))
+  const minKeepTurns = turnThreshold - batchTurns
+
+  // Model: per-Kin override > app_setting default > env COMPACTING_MODEL > Kin's own model
+  // Sentinel '__kin_own__' means "use this kin's own model" (skips defaults)
+  let model: string
+  let providerId: string | null
+
+  const defaultCompactingModel = await getDefaultCompactingModel()
+  const defaultCompactingProviderId = await getDefaultCompactingProviderId()
+
+  if (perKin?.compactingModel === '__kin_own__') {
+    model = kin.model
+    providerId = kin.providerId
+  } else if (perKin?.compactingModel) {
+    model = perKin.compactingModel
+    providerId = perKin.compactingProviderId ?? null
+  } else if (defaultCompactingModel) {
+    model = defaultCompactingModel
+    providerId = defaultCompactingProviderId
+  } else if (config.compacting.model) {
+    model = config.compacting.model
+    providerId = null
+  } else {
+    model = kin.model
+    providerId = kin.providerId
+  }
+
+  return { turnThreshold, batchTurns, minKeepTurns, model, providerId }
+}
+
+/**
+ * Resolve the cutoff timestamp from a snapshot's messagesUpToId.
+ * This returns the createdAt of the actual message referenced by the snapshot,
+ * NOT the snapshot's own createdAt (which is when the snapshot was created).
+ */
+async function getSnapshotCutoffTimestamp(
+  snapshot: { messagesUpToId: string | null } | null | undefined,
+): Promise<number | null> {
+  if (!snapshot?.messagesUpToId) return null
+  const cutoffMessage = await db
+    .select({ createdAt: messages.createdAt })
+    .from(messages)
+    .where(eq(messages.id, snapshot.messagesUpToId))
+    .get()
+  return (cutoffMessage?.createdAt as unknown as number) ?? null
+}
+
 /** Get non-compacted stats for a Kin (shared by shouldCompact + getCompactingProximity) */
-async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; messageCount: number }> {
+async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; messageCount: number; turnCount: number }> {
   const activeSnapshot = await db
     .select()
     .from(compactingSnapshots)
     .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
     .get()
 
+  const cutoffTimestamp = await getSnapshotCutoffTimestamp(activeSnapshot)
+
   const allMessages = await db
-    .select({ content: messages.content, createdAt: messages.createdAt })
+    .select({ content: messages.content, createdAt: messages.createdAt, role: messages.role })
     .from(messages)
     .where(
       and(
@@ -46,8 +124,8 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
     .orderBy(asc(messages.createdAt))
     .all()
 
-  const nonCompacted = activeSnapshot
-    ? allMessages.filter((m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt)
+  const nonCompacted = cutoffTimestamp
+    ? allMessages.filter((m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp)
     : allMessages
 
   const currentTokens = nonCompacted.reduce(
@@ -55,7 +133,9 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
     0,
   )
 
-  return { currentTokens, messageCount: nonCompacted.length }
+  const turnCount = nonCompacted.filter((m) => m.role === 'user').length
+
+  return { currentTokens, messageCount: nonCompacted.length, turnCount }
 }
 
 // ─── Threshold Evaluation ────────────────────────────────────────────────────
@@ -63,34 +143,33 @@ async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: num
 /**
  * Evaluate whether compacting should trigger for a Kin.
  *
- * Uses message count only: trigger when non-compacted messages exceed
- * batchSize + minKeepMessages. Token-based threshold was removed because
- * the pipeline (tool masking + observation compaction) already handles
- * context size — raw DB tokens are not representative of actual LLM context.
+ * Uses turn count: a "turn" = one user message + all following messages
+ * until the next user message. This avoids false triggers in tool-heavy
+ * conversations where a single turn can produce 10-30 messages.
  */
-async function shouldCompact(kinId: string): Promise<boolean> {
+export async function shouldCompact(kinId: string): Promise<boolean> {
   const stats = await getNonCompactedStats(kinId)
-  if (stats.messageCount === 0) return false
+  if (stats.turnCount === 0) return false
 
-  const { batchSize, minKeepMessages } = config.compacting
-  return stats.messageCount > batchSize + minKeepMessages
+  const effectiveConfig = await getEffectiveCompactingConfig(kinId)
+  return stats.turnCount > effectiveConfig.turnThreshold
 }
 
 // ─── Public: compacting proximity for UI ─────────────────────────────────────
 
 export interface CompactingProximity {
-  currentMessages: number
-  messageThreshold: number
+  currentTurns: number
+  turnThreshold: number
 }
 
-/** Get compacting proximity data for display in the chat UI (message-count based) */
+/** Get compacting proximity data for display in the chat UI (turn-based) */
 export async function getCompactingProximity(kinId: string): Promise<CompactingProximity> {
   const stats = await getNonCompactedStats(kinId)
-  const { batchSize, minKeepMessages } = config.compacting
+  const effectiveConfig = await getEffectiveCompactingConfig(kinId)
 
   return {
-    currentMessages: stats.messageCount,
-    messageThreshold: batchSize + minKeepMessages,
+    currentTurns: stats.turnCount,
+    turnThreshold: effectiveConfig.turnThreshold,
   }
 }
 
@@ -135,22 +214,42 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     .orderBy(asc(messages.createdAt))
     .all()
 
-  const nonCompacted = activeSnapshot
+  const cutoffTimestamp = await getSnapshotCutoffTimestamp(activeSnapshot)
+
+  const nonCompacted = cutoffTimestamp
     ? allMainMessages.filter(
-        (m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt,
+        (m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp,
       )
     : allMainMessages
 
   if (nonCompacted.length === 0) return null
 
-  // Incremental batching: take a fixed batch from the oldest end,
-  // keeping at least minKeepMessages as raw context.
-  const { batchSize, minKeepMessages } = config.compacting
-  const maxSummarizable = nonCompacted.length - minKeepMessages
-  if (maxSummarizable <= 0) return null
+  // Turn-based batching: a "turn" = one user message + all following messages
+  // until the next user message. Select the oldest batchTurns turns, keeping
+  // at least minKeepTurns recent turns as raw context.
+  const effectiveConfig = await getEffectiveCompactingConfig(kinId)
+  const { batchTurns, minKeepTurns } = effectiveConfig
 
-  // Take at most batchSize messages, or everything available if fewer
-  const messagesToSummarize = nonCompacted.slice(0, Math.min(batchSize, maxSummarizable))
+  // Find the cut point: after batchTurns user messages
+  let turnsSeen = 0
+  let cutIndex = 0
+  for (let i = 0; i < nonCompacted.length; i++) {
+    if (nonCompacted[i]!.role === 'user') {
+      turnsSeen++
+      if (turnsSeen > batchTurns) {
+        cutIndex = i // everything before this index is the batch
+        break
+      }
+    }
+  }
+  // If we counted exactly batchTurns (or fewer) without finding the next, take all
+  if (cutIndex === 0 && turnsSeen > 0) cutIndex = nonCompacted.length
+
+  // Verify we're keeping at least minKeepTurns
+  const remainingTurns = nonCompacted.slice(cutIndex).filter((m) => m.role === 'user').length
+  if (remainingTurns < minKeepTurns) return null
+
+  const messagesToSummarize = nonCompacted.slice(0, cutIndex)
 
   if (messagesToSummarize.length === 0) return null
 
@@ -170,7 +269,7 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     if (profile?.pseudonym) pseudonymMap.set(uid, profile.pseudonym)
   }
 
-  // Format messages for the prompt
+  // Format messages for the prompt, masking verbose tool results
   const formattedMessages = messagesToSummarize
     .map((m) => {
       const sender =
@@ -180,7 +279,29 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
             ? kin.name
             : m.role
       const ts = m.createdAt ? new Date(m.createdAt as unknown as number).toISOString() : ''
-      return `[${ts}] ${sender}: ${m.content ?? ''}`
+
+      let content = m.content ?? ''
+
+      // Mask tool results — the summarization LLM doesn't need raw JSON
+      if (m.role === 'tool' && content.length > 500) {
+        content = `[Tool result — ${content.length} chars, collapsed for summarization]`
+      }
+
+      // For assistant messages with toolCalls JSON, keep only the text content
+      if (m.role === 'assistant' && m.toolCalls) {
+        try {
+          const calls = JSON.parse(m.toolCalls as string) as Array<{ toolName?: string }>
+          const toolNames = calls.map((c) => c.toolName ?? 'unknown').join(', ')
+          const textContent = content || ''
+          content = textContent
+            ? `${textContent}\n[Called tools: ${toolNames}]`
+            : `[Called tools: ${toolNames}]`
+        } catch {
+          // keep original content if toolCalls isn't valid JSON
+        }
+      }
+
+      return `[${ts}] ${sender}: ${content}`
     })
     .join('\n\n')
 
@@ -222,28 +343,21 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
 
   systemPrompt += `\n## Exchanges to summarize\n\n${formattedMessages}`
 
-  // Resolve model for compacting — only use Kin's provider preference when using the Kin's model
+  // Resolve model for compacting — per-Kin override > global config > Kin's own model
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
-  const compactingProviderId = config.compacting.model ? null : kin.providerId
-  const model = await resolveLLMModel(config.compacting.model ?? kin.model, compactingProviderId)
+  const model = await resolveLLMModel(effectiveConfig.model, effectiveConfig.providerId)
   if (!model) {
     log.warn({ kinId }, 'No LLM model available for compacting')
     return null
   }
 
-  // Emit SSE: compaction started
-  sseManager.sendToKin(kinId, {
-    type: 'compacting:start',
-    kinId,
-    data: { kinId },
-  })
-
   let result
   try {
   // Generate summary
-  result = await generateText({
+  result = await safeGenerateText({
     model,
-    messages: [{ role: 'user', content: systemPrompt }],
+    providerId: effectiveConfig.providerId,
+    prompt: systemPrompt,
   })
 
   const summary = result.text
@@ -330,7 +444,7 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     createdAt: new Date(),
   })
 
-  log.info({ kinId, snapshotId: newSnapshotId, summarizedCount: messagesToSummarize.length, remainingMessages: nonCompacted.length - messagesToSummarize.length, memoriesExtracted }, 'Incremental compacting batch completed')
+  log.info({ kinId, snapshotId: newSnapshotId, summarizedMessages: messagesToSummarize.length, summarizedTurns: turnsSeen > batchTurns ? batchTurns : turnsSeen, memoriesExtracted }, 'Incremental compacting batch completed')
 
   // Emit SSE: compaction done
   sseManager.sendToKin(kinId, {
@@ -341,11 +455,23 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
 
   return { summary, memoriesExtracted }
   } catch (err) {
+    // Extract detailed error info (API errors often have status/statusCode)
+    let errorMessage = 'Unknown compacting error'
+    if (err instanceof Error) {
+      const apiErr = err as Error & { status?: number; statusCode?: number; responseBody?: string }
+      const status = apiErr.status ?? apiErr.statusCode
+      errorMessage = status
+        ? `${err.message} (HTTP ${status})`
+        : err.message
+    }
+
+    log.error({ kinId, err, model: effectiveConfig.model, providerId: effectiveConfig.providerId }, 'Compacting LLM call failed')
+
     // Emit SSE: compaction failed (so UI can clear the spinner)
     sseManager.sendToKin(kinId, {
       type: 'compacting:error',
       kinId,
-      data: { kinId, error: err instanceof Error ? err.message : 'Unknown compacting error' },
+      data: { kinId, error: errorMessage },
     })
     throw err // re-throw for maybeCompact to log
   }
@@ -404,8 +530,11 @@ async function extractMemories(
 ): Promise<number> {
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
   const settingsExtractionModel = await getExtractionModel()
+  const settingsExtractionProviderId = await getExtractionProviderId()
   const effectiveExtractionModel = settingsExtractionModel ?? config.memory.extractionModel
-  const extractionProviderId = effectiveExtractionModel ? null : kinProviderId
+  const extractionProviderId = settingsExtractionProviderId
+    ?? config.memory.extractionProviderId
+    ?? (effectiveExtractionModel ? null : kinProviderId)
   const model = await resolveLLMModel(effectiveExtractionModel ?? kinModel, extractionProviderId)
   if (!model) return 0
 
@@ -472,9 +601,10 @@ async function extractMemories(
     `Return a JSON array. If nothing new to remember or update, return [].`
 
   try {
-    const result = await generateText({
+    const result = await safeGenerateText({
       model,
-      messages: [{ role: 'user', content: extractionPrompt }],
+      providerId: extractionProviderId,
+      prompt: extractionPrompt,
     })
 
     // Parse JSON array from response
@@ -538,16 +668,37 @@ async function extractMemories(
 /**
  * Check thresholds and run compacting if needed.
  * Called after each LLM turn in kin-engine.ts.
+ * Loops to catch up large backlogs (e.g. 187/25 turns).
  */
 export async function maybeCompact(kinId: string): Promise<void> {
   try {
-    if (await shouldCompact(kinId)) {
+    let cycles = 0
+    const maxCycles = 20
+
+    // Estimate total cycles for SSE progress
+    const stats = await getNonCompactedStats(kinId)
+    const effectiveConfig = await getEffectiveCompactingConfig(kinId)
+    const estimatedTotal = stats.turnCount > effectiveConfig.turnThreshold
+      ? Math.ceil((stats.turnCount - effectiveConfig.minKeepTurns) / effectiveConfig.batchTurns)
+      : 0
+
+    while (await shouldCompact(kinId) && cycles < maxCycles) {
+      cycles++
+      sseManager.sendToKin(kinId, {
+        type: 'compacting:start',
+        kinId,
+        data: { kinId, cycle: cycles, estimatedTotal },
+      })
       await runCompacting(kinId)
+    }
+
+    if (cycles > 1) {
+      log.info({ kinId, cycles }, 'Compacting catch-up completed')
     }
   } catch (err) {
     log.error({ kinId, err }, 'Compacting error')
-    // runCompacting already emits compacting:error after compacting:start,
-    // but if shouldCompact itself fails, emit here as a safety net
+    // runCompacting already emits compacting:error, but if shouldCompact
+    // itself fails, emit here as a safety net
     sseManager.sendToKin(kinId, {
       type: 'compacting:error',
       kinId,

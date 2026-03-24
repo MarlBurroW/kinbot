@@ -27,11 +27,12 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 
 | Clé | Env var | Default | Description |
 |---|---|---|---|
-| `compacting.thresholdPercent` | `COMPACTING_THRESHOLD_PERCENT` | `75` | Seuil de fallback : déclenche le compacting quand l'usage du contexte atteint ce % de la fenêtre du modèle. Le déclencheur principal est basé sur le nombre de messages |
-| `compacting.model` | `COMPACTING_MODEL` | — | Modèle utilisé pour le compacting. Si non défini, utilise le modèle du Kin |
+| `compacting.model` | `COMPACTING_MODEL` | — | Modèle utilisé pour le compacting (format `providerId:modelId` supporté). Si non défini, utilise le modèle du Kin |
 | `compacting.maxSnapshotsPerKin` | `COMPACTING_MAX_SNAPSHOTS` | `10` | Nombre max de snapshots conservés par Kin (les plus anciens sont supprimés) |
-| `compacting.batchSize` | `COMPACTING_BATCH_SIZE` | `20` | Nombre de messages par micro-batch de compacting incrémental |
-| `compacting.minKeepMessages` | `COMPACTING_MIN_KEEP_MESSAGES` | `15` | Nombre minimum de messages non compactés à garder comme contexte brut |
+| `compacting.batchTurns` | `COMPACTING_BATCH_TURNS` | `10` | Nombre de tours (user message + réponses suivantes) par micro-batch de compacting incrémental |
+| `compacting.minKeepTurns` | `COMPACTING_MIN_KEEP_TURNS` | `15` | Nombre minimum de tours non compactés à garder comme contexte brut. Le compacting se déclenche quand les tours non compactés > `batchTurns` + `minKeepTurns` |
+
+> **Per-Kin override** : chaque Kin peut surcharger le seuil de compacting via son `compactingConfig` (stocké en JSON dans `kins.compacting_config`). L'interface de configuration se trouve dans l'onglet Compaction des paramètres du Kin. Les champs disponibles sont : `turnThreshold` (seuil total de tours), `compactingModel`, et `compactingProviderId`.
 
 ---
 
@@ -43,6 +44,16 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 | `toolResultMaskKeepLast` | `TOOL_RESULT_MASK_KEEP_LAST` | `2` | Nombre de groupes d'appels d'outils récents à garder intacts. Les plus anciens sont compactés en résumés d'une ligne |
 | `observationCompactionWindow` | `OBSERVATION_COMPACTION_WINDOW` | `10` | Nombre de tours récents à garder en résolution complète. Les tours plus anciens voient leurs résultats d'outils tronqués. 0 = désactivé |
 | `observationMaxChars` | `OBSERVATION_MAX_CHARS` | `200` | Nombre max de caractères pour les résultats d'outils tronqués dans la zone d'observation |
+
+---
+
+## Tool output spill (résultats d'outils volumineux)
+
+| Clé | Env var | Default | Description |
+|---|---|---|---|
+| `toolOutputs.spillThreshold` | `TOOL_OUTPUT_SPILL_THRESHOLD` | `10000` | Seuil en octets au-delà duquel le résultat d'un outil est sauvegardé dans un fichier temporaire au lieu d'être inclus en intégralité dans le contexte |
+| `toolOutputs.previewLines` | `TOOL_OUTPUT_PREVIEW_LINES` | `200` | Nombre de lignes d'aperçu incluses dans la référence compacte quand un résultat est "spillé" |
+| `toolOutputs.ttlHours` | `TOOL_OUTPUT_TTL_HOURS` | `24` | Durée de rétention des fichiers temporaires (heures). Les fichiers plus anciens sont supprimés automatiquement |
 
 ---
 

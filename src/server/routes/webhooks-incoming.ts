@@ -128,6 +128,10 @@ webhookIncomingRoutes.post('/:webhookId', async (c) => {
     return c.json({ success: true, filtered: true })
   }
 
+  if ('taskId' in result) {
+    return c.json({ success: true, taskId: result.taskId, queued: result.queued ?? false })
+  }
+
   return c.json({ success: true })
 })
 

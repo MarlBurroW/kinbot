@@ -66,7 +66,9 @@ Extension du `user` Better Auth avec les champs spécifiques KinBot.
 | `last_name` | text | NOT NULL | Nom |
 | `pseudonym` | text | NOT NULL | Pseudonyme affiché dans le chat |
 | `language` | text | NOT NULL, DEFAULT 'fr' | 'fr' ou 'en' |
-| `role` | text | NOT NULL, DEFAULT 'user' | 'admin' ou 'user' |
+| `role` | text | NOT NULL, DEFAULT 'member' | 'admin' ou 'member' |
+| `kin_order` | text | | JSON array des IDs de Kins (ordre d'affichage) |
+| `cron_order` | text | | JSON array des IDs de crons (ordre d'affichage) |
 
 ---
 
@@ -82,6 +84,7 @@ Configuration des providers IA (LLM, embeddings, images).
 | `config_encrypted` | text | NOT NULL | Configuration chiffrée (API key, base URL, etc.) |
 | `capabilities` | text | NOT NULL | JSON array : `["llm", "embedding", "image"]` |
 | `is_valid` | integer | NOT NULL, DEFAULT 1 | Dernier résultat du test de connexion |
+| `last_error` | text | | Message d'erreur du dernier test échoué |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
 
@@ -94,13 +97,17 @@ Agents IA de la plateforme.
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
 | `id` | text PK | UUID | |
+| `slug` | text | UNIQUE | Identifiant URL-friendly (ex: 'my-assistant') |
 | `name` | text | NOT NULL | Nom du Kin |
 | `role` | text | NOT NULL | Description courte de sa fonction |
 | `avatar_path` | text | | Chemin vers l'image avatar |
 | `character` | text | NOT NULL | Personnalité / SOUL |
 | `expertise` | text | NOT NULL | Connaissances et objectif |
 | `model` | text | NOT NULL | Identifiant du modèle LLM (ex: 'claude-sonnet-4-20250514') |
+| `provider_id` | text | FK → providers.id, ON DELETE SET NULL | Provider explicite pour le modèle du Kin |
 | `workspace_path` | text | NOT NULL | Chemin du dossier de travail |
+| `tool_config` | text | | JSON : KinToolConfig (outils désactivés, accès MCP, opt-in, search provider) |
+| `compacting_config` | text | | JSON : KinCompactingConfig (seuil de tours, modèle de compacting, provider) |
 | `created_by` | text | FK → user.id | Utilisateur qui a créé le Kin |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
@@ -118,6 +125,8 @@ Serveurs MCP configurés au niveau de la plateforme.
 | `command` | text | NOT NULL | Commande de lancement |
 | `args` | text | | JSON array des arguments |
 | `env` | text | | JSON object des variables d'environnement |
+| `status` | text | NOT NULL, DEFAULT 'active' | 'active' ou 'pending_approval' |
+| `created_by_kin_id` | text | FK → kins.id, ON DELETE SET NULL | Kin qui a créé le serveur (si auto-géré) |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
 
@@ -222,22 +231,77 @@ Mémoire long terme des Kins (faits, préférences, décisions, connaissances).
 
 ### `contacts`
 
-Registre de contacts par Kin.
+Registre de contacts partagé entre tous les Kins.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
 | `id` | text PK | UUID | |
-| `kin_id` | text | FK → kins.id, NOT NULL | Kin propriétaire |
 | `name` | text | NOT NULL | Nom/pseudonyme du contact |
 | `type` | text | NOT NULL | 'human' ou 'kin' |
 | `linked_user_id` | text | FK → user.id | Si c'est un utilisateur de la plateforme |
 | `linked_kin_id` | text | FK → kins.id | Si c'est un autre Kin |
-| `notes` | text | | Faits marquants, préférences, contexte |
+| `created_at` | integer | NOT NULL | |
+| `updated_at` | integer | NOT NULL | |
+
+---
+
+### `contact_identifiers`
+
+Identifiants d'un contact (email, téléphone, Discord, etc.).
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `contact_id` | text | FK → contacts.id, ON DELETE CASCADE, NOT NULL | |
+| `label` | text | NOT NULL | Type d'identifiant (ex: "email", "phone pro", "WhatsApp") |
+| `value` | text | NOT NULL | Valeur de l'identifiant |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
 
 **Index** :
-- `idx_contacts_kin_id` sur `kin_id`
+- `idx_contact_identifiers_contact_id` sur `contact_id`
+
+---
+
+### `contact_platform_ids`
+
+IDs de plateforme de messagerie pour auto-identification des contacts.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `contact_id` | text | FK → contacts.id, ON DELETE CASCADE, NOT NULL | |
+| `platform` | text | NOT NULL | 'telegram', 'discord', etc. |
+| `platform_id` | text | NOT NULL | ID sur la plateforme |
+| `created_at` | integer | NOT NULL | |
+| `updated_at` | integer | NOT NULL | |
+
+**Contrainte UNIQUE** : (`platform`, `platform_id`)
+
+**Index** :
+- `idx_contact_platform_ids_contact` sur `contact_id`
+
+---
+
+### `contact_notes`
+
+Notes des Kins sur les contacts (privées ou globales).
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `contact_id` | text | FK → contacts.id, ON DELETE CASCADE, NOT NULL | |
+| `kin_id` | text | FK → kins.id, NOT NULL | Kin auteur de la note |
+| `scope` | text | NOT NULL | 'private' (ce Kin seul) ou 'global' (tous les Kins) |
+| `content` | text | NOT NULL | Contenu de la note |
+| `created_at` | integer | NOT NULL | |
+| `updated_at` | integer | NOT NULL | |
+
+**Contrainte UNIQUE** : (`contact_id`, `kin_id`, `scope`)
+
+**Index** :
+- `idx_contact_notes_contact_id` sur `contact_id`
+- `idx_contact_notes_kin_id` sur `kin_id`
 
 ---
 
@@ -260,6 +324,27 @@ Outils auto-générés par les Kins.
 
 ---
 
+### `quick_sessions`
+
+Sessions éphémères pour interactions rapides.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `kin_id` | text | FK → kins.id, ON DELETE CASCADE, NOT NULL | |
+| `created_by` | text | FK → user.id, ON DELETE CASCADE, NOT NULL | |
+| `title` | text | | Titre de la session |
+| `status` | text | NOT NULL, DEFAULT 'active' | 'active' ou 'closed' |
+| `created_at` | integer | NOT NULL | |
+| `closed_at` | integer | | |
+| `expires_at` | integer | | |
+
+**Index** :
+- `idx_quick_sessions_kin_status` sur (`kin_id`, `status`)
+- `idx_quick_sessions_user` sur `created_by`
+
+---
+
 ### `tasks`
 
 Sous-Kins éphémères (tâches déléguées).
@@ -272,6 +357,7 @@ Sous-Kins éphémères (tâches déléguées).
 | `spawn_type` | text | NOT NULL | 'self' ou 'other' |
 | `mode` | text | NOT NULL, DEFAULT 'await' | 'await' ou 'async' |
 | `model` | text | | Override du modèle LLM (NULL = héritage) |
+| `provider_id` | text | | Override du provider pour le modèle |
 | `title` | text | | Titre optionnel de la tâche |
 | `description` | text | NOT NULL | Instructions de la tâche |
 | `status` | text | NOT NULL, DEFAULT 'pending' | 'queued', 'pending', 'in_progress', 'awaiting_human_input', 'awaiting_kin_response', 'completed', 'failed', 'cancelled' |
@@ -284,6 +370,7 @@ Sous-Kins éphémères (tâches déléguées).
 | `inter_kin_request_count` | integer | NOT NULL, DEFAULT 0 | Nombre d'appels send_message(request) depuis cette tâche |
 | `pending_request_id` | text | | request_id en attente de réponse inter-Kin |
 | `channel_origin_id` | text | | ID de la chaîne causale canal pour auto-delivery |
+| `webhook_id` | text | FK → webhooks.id, ON DELETE SET NULL | Webhook qui a spawné cette tâche (mode dispatch "task") |
 | `allow_human_prompt` | integer | NOT NULL, DEFAULT 1 | Si la tâche peut utiliser prompt_human |
 | `concurrency_group` | text | | Nom du groupe de concurrence (ex: "batch-issues") |
 | `concurrency_max` | integer | | Nombre max de tâches concurrentes dans ce groupe |
@@ -296,6 +383,7 @@ Sous-Kins éphémères (tâches déléguées).
 - `idx_tasks_status` sur `status`
 - `idx_tasks_cron` sur `cron_id`
 - `idx_tasks_concurrency` sur (`concurrency_group`, `status`, `queued_at`)
+- `idx_tasks_webhook` sur `webhook_id`
 
 ---
 
@@ -312,8 +400,10 @@ Tâches planifiées récurrentes.
 | `task_description` | text | NOT NULL | Instructions données au sous-Kin |
 | `target_kin_id` | text | FK → kins.id | Kin cible (NULL = soi-même) |
 | `model` | text | | Override du modèle LLM |
+| `provider_id` | text | | Override du provider pour le modèle |
 | `is_active` | integer | NOT NULL, DEFAULT 1 | Actif / Inactif |
 | `requires_approval` | integer | NOT NULL, DEFAULT 0 | Si créé par le Kin, nécessite validation utilisateur |
+| `run_once` | integer | NOT NULL, DEFAULT 0 | Si activé, le cron se désactive automatiquement après la première exécution |
 | `last_triggered_at` | integer | | Dernier déclenchement |
 | `created_by` | text | | 'user' ou 'kin' — qui a créé le cron |
 | `created_at` | integer | NOT NULL | |
@@ -339,6 +429,10 @@ Webhooks entrants pour recevoir des événements externes.
 | `filter_field` | text | | Chemin dot-notation dans le payload JSON (mode simple) |
 | `filter_allowed_values` | text | | JSON array de valeurs autorisées (mode simple, case-insensitive) |
 | `filter_expression` | text | | Expression régulière appliquée au body brut (mode advanced) |
+| `dispatch_mode` | text | NOT NULL, DEFAULT 'conversation' | 'conversation' (message injecté dans la session) ou 'task' (spawn une sous-tâche) |
+| `task_title_template` | text | | Template pour le titre de tâche (mode task). Supporte `{{field.path}}` comme placeholders |
+| `task_prompt_template` | text | | Template pour la description/prompt de tâche (mode task). Supporte `{{field.path}}` et `{{__payload__}}` |
+| `max_concurrent_tasks` | integer | NOT NULL, DEFAULT 1 | Nombre max de tâches concurrentes (mode task). 0 = illimité |
 | `created_by` | text | | 'user' ou 'kin' |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
@@ -375,8 +469,53 @@ Coffre-fort de secrets chiffrés.
 | `id` | text PK | UUID | |
 | `key` | text | UNIQUE, NOT NULL | Nom du secret (ex: 'GITHUB_TOKEN') |
 | `encrypted_value` | text | NOT NULL | Valeur chiffrée (encryption at rest) |
+| `description` | text | | Description du secret |
+| `entry_type` | text | NOT NULL, DEFAULT 'text' | Type de l'entrée : 'text', 'credential', 'card', 'note', 'identity', ou slug custom |
+| `vault_type_id` | text | FK → vault_types.id, ON DELETE SET NULL | Type custom associé |
+| `is_favorite` | integer | NOT NULL, DEFAULT 0 | Marqué comme favori |
+| `created_by_kin_id` | text | FK → kins.id | Kin qui a créé le secret |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
+
+**Index** :
+- `idx_vault_secrets_entry_type` sur `entry_type`
+
+---
+
+### `vault_types`
+
+Types personnalisés pour les entrées du coffre-fort.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `slug` | text | UNIQUE, NOT NULL | Identifiant machine |
+| `name` | text | NOT NULL | Nom d'affichage |
+| `icon` | text | | Nom d'icône Lucide |
+| `fields` | text | NOT NULL | JSON : VaultTypeField[] |
+| `is_built_in` | integer | NOT NULL, DEFAULT 0 | Type intégré (non supprimable) |
+| `created_by_kin_id` | text | FK → kins.id, ON DELETE SET NULL | |
+| `created_at` | integer | NOT NULL | |
+| `updated_at` | integer | NOT NULL | |
+
+---
+
+### `vault_attachments`
+
+Pièces jointes aux entrées du coffre-fort.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `entry_id` | text | FK → vault_secrets.id, ON DELETE CASCADE, NOT NULL | |
+| `original_name` | text | NOT NULL | Nom d'origine du fichier |
+| `stored_path` | text | NOT NULL | Chemin de stockage |
+| `mime_type` | text | NOT NULL | Type MIME |
+| `size` | integer | NOT NULL | Taille en octets |
+| `created_at` | integer | NOT NULL | |
+
+**Index** :
+- `idx_vault_attachments_entry` sur `entry_id`
 
 ---
 
@@ -486,7 +625,6 @@ kins
  ├── 1:N  messages            (session principale: task_id = NULL)
  ├── 1:N  compacting_snapshots
  ├── 1:N  memories
- ├── 1:N  contacts
  ├── 1:N  custom_tools
  ├── 1:N  tasks               (en tant que parent_kin_id)
  ├── 1:N  crons
@@ -494,13 +632,22 @@ kins
  ├── 1:N  queue_items
  └── 1:N  files
 
+contacts (registre partagé)
+ ├── 1:N  contact_identifiers
+ ├── 1:N  contact_platform_ids
+ └── 1:N  contact_notes        (par Kin, privées ou globales)
+
 tasks
  ├── 1:N  messages            (session de tâche: task_id = tasks.id)
  ├── 1:N  tasks               (sous-tâches: parent_task_id)
- └── N:1  crons               (si spawné par un cron)
+ ├── N:1  crons               (si spawné par un cron)
+ └── N:1  webhooks            (si spawné par un webhook en mode task)
 
 webhooks
- └── 1:N  webhook_logs
+ ├── 1:N  webhook_logs
+ └── 1:N  tasks               (via tasks.webhook_id, mode dispatch "task")
 
-vault_secrets (standalone)
+vault_secrets
+ ├── N:1  vault_types
+ └── 1:N  vault_attachments
 ```

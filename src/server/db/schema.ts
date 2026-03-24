@@ -250,6 +250,7 @@ export const tasks = sqliteTable('tasks', {
   spawnType: text('spawn_type').notNull(), // 'self' | 'other'
   mode: text('mode').notNull().default('await'), // 'await' | 'async'
   model: text('model'),
+  providerId: text('provider_id'),
   title: text('title'),
   description: text('description').notNull(),
   status: text('status').notNull().default('pending'), // 'queued' | 'pending' | 'in_progress' | 'awaiting_human_input' | 'awaiting_kin_response' | 'completed' | 'failed' | 'cancelled'
@@ -262,6 +263,7 @@ export const tasks = sqliteTable('tasks', {
   interKinRequestCount: integer('inter_kin_request_count').notNull().default(0),
   pendingRequestId: text('pending_request_id'),
   channelOriginId: text('channel_origin_id'),
+  webhookId: text('webhook_id').references(() => webhooks.id, { onDelete: 'set null' }),
   allowHumanPrompt: integer('allow_human_prompt', { mode: 'boolean' }).notNull().default(true),
   concurrencyGroup: text('concurrency_group'),
   concurrencyMax: integer('concurrency_max'),
@@ -273,6 +275,7 @@ export const tasks = sqliteTable('tasks', {
   index('idx_tasks_status').on(table.status),
   index('idx_tasks_cron').on(table.cronId),
   index('idx_tasks_concurrency').on(table.concurrencyGroup, table.status, table.queuedAt),
+  index('idx_tasks_webhook').on(table.webhookId),
 ])
 
 export const crons = sqliteTable('crons', {
@@ -283,6 +286,7 @@ export const crons = sqliteTable('crons', {
   taskDescription: text('task_description').notNull(),
   targetKinId: text('target_kin_id').references(() => kins.id),
   model: text('model'),
+  providerId: text('provider_id'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   requiresApproval: integer('requires_approval', { mode: 'boolean' }).notNull().default(false),
   runOnce: integer('run_once', { mode: 'boolean' }).notNull().default(false),
@@ -305,6 +309,10 @@ export const webhooks = sqliteTable('webhooks', {
   filterField: text('filter_field'), // dot-notation path (simple mode)
   filterAllowedValues: text('filter_allowed_values'), // JSON array of strings (simple mode)
   filterExpression: text('filter_expression'), // regex pattern (advanced mode)
+  dispatchMode: text('dispatch_mode').notNull().default('conversation'), // 'conversation' | 'task'
+  taskTitleTemplate: text('task_title_template'), // Template for task title (task mode)
+  taskPromptTemplate: text('task_prompt_template'), // Template for task description (task mode)
+  maxConcurrentTasks: integer('max_concurrent_tasks').notNull().default(1), // 0 = unlimited
   createdBy: text('created_by'), // 'user' | 'kin'
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),

@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
-import { Brain, Image, Plus, Search, ExternalLink, Sparkles, Zap, Server } from 'lucide-react'
+import { Brain, Globe, Image, Plus, Search, ExternalLink, Sparkles, Zap, Server } from 'lucide-react'
 import { api } from '@/client/lib/api'
 import { ProviderCard } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
-import { AI_PROVIDER_TYPES } from '@/shared/constants'
+import { AI_PROVIDER_TYPES, SEARCH_PROVIDER_TYPES } from '@/shared/constants'
 import { PROVIDER_META } from '@/shared/provider-metadata'
 import { useProviders } from '@/client/hooks/useProviders'
 
@@ -20,16 +20,21 @@ const CAPABILITY_META = {
   llm: { icon: Brain, required: true },
   embedding: { icon: Search, required: true },
   image: { icon: Image, required: false },
+  search: { icon: Globe, required: false },
 } as const
+
+type CapabilityKey = keyof typeof CAPABILITY_META
 
 export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvidersProps) {
   const { t } = useTranslation()
   const { providers, refetch: fetchProviders } = useProviders()
   const [modalOpen, setModalOpen] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
+  const [providerFilter, setProviderFilter] = useState<'ai' | 'search'>('ai')
 
   const aiProviders = providers.filter((p) => (AI_PROVIDER_TYPES as readonly string[]).includes(p.type))
-  const allCapabilities = aiProviders.flatMap((p) => p.capabilities)
+  const searchProviders = providers.filter((p) => (SEARCH_PROVIDER_TYPES as readonly string[]).includes(p.type))
+  const allCapabilities = [...aiProviders, ...searchProviders].flatMap((p) => p.capabilities)
   const coveredCapabilities = new Set(allCapabilities)
   const canFinish = coveredCapabilities.has('llm') && coveredCapabilities.has('embedding')
 
@@ -58,6 +63,9 @@ export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvide
     onComplete()
   }
 
+  const displayProviders = providerFilter === 'ai' ? aiProviders : searchProviders
+  const dialogProviderTypes = providerFilter === 'ai' ? AI_PROVIDER_TYPES : SEARCH_PROVIDER_TYPES
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -70,8 +78,8 @@ export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvide
       </div>
 
       {/* Capability cards */}
-      <div className="grid grid-cols-3 gap-3">
-        {(['llm', 'embedding', 'image'] as const).map((cap) => {
+      <div className="grid grid-cols-4 gap-2">
+        {(['llm', 'embedding', 'image', 'search'] as const).map((cap: CapabilityKey) => {
           const meta = CAPABILITY_META[cap]
           const Icon = meta.icon
           const covered = coveredCapabilities.has(cap)
@@ -109,8 +117,34 @@ export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvide
         })}
       </div>
 
-      {/* Provider guidance — shown when no providers configured */}
-      {aiProviders.length === 0 && (
+      {/* AI / Search toggle */}
+      <div className="flex rounded-lg border p-1 gap-1">
+        <button
+          type="button"
+          onClick={() => setProviderFilter('ai')}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            providerFilter === 'ai'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {t('onboarding.providers.aiTab')} ({aiProviders.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setProviderFilter('search')}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            providerFilter === 'search'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {t('onboarding.providers.searchTab')} ({searchProviders.length})
+        </button>
+      </div>
+
+      {/* Provider guidance — shown when no AI providers configured */}
+      {providerFilter === 'ai' && aiProviders.length === 0 && (
         <div className="space-y-3">
           <p className="text-center text-xs text-muted-foreground">
             {t('onboarding.providers.guidanceIntro')}
@@ -163,9 +197,9 @@ export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvide
       )}
 
       {/* Configured providers */}
-      {aiProviders.length > 0 && (
+      {displayProviders.length > 0 && (
         <div className="space-y-2">
-          {aiProviders.map((provider) => (
+          {displayProviders.map((provider) => (
             <ProviderCard
               key={provider.id}
               provider={provider}
@@ -191,7 +225,7 @@ export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvide
         open={modalOpen}
         onOpenChange={setModalOpen}
         onSaved={fetchProviders}
-        providerTypes={AI_PROVIDER_TYPES}
+        providerTypes={dialogProviderTypes}
       />
 
       {/* Navigation buttons */}
@@ -218,7 +252,7 @@ export function StepProviders({ onComplete, onBack, onQuickFinish }: StepProvide
               className="btn-shine flex-1"
               size="lg"
             >
-              {t('onboarding.providers.advancedSetup')}
+              {t('common.next')}
             </Button>
           </div>
           {canFinish && onQuickFinish && (

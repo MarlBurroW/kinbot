@@ -50,14 +50,16 @@ function stripHtml(html: string): string {
     result = result.replace(/<[^>]+>/g, '')
   }
 
-  // Decode entities once only (no loop to avoid double-unescaping attacks)
-  result = result
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
+  // Decode entities in a single pass to prevent double-unescaping
+  // (e.g. &amp;lt; should become &lt;, not <)
+  const entityMap: Record<string, string> = {
+    '&amp;': '&', '&lt;': '<', '&gt;': '>',
+    '&quot;': '"', '&#39;': "'", '&nbsp;': ' ',
+  }
+  result = result.replace(
+    /&(?:amp|lt|gt|quot|nbsp|#39);/g,
+    (match) => entityMap[match] ?? match,
+  )
 
   return result.replace(/\s+/g, ' ').trim()
 }

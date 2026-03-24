@@ -25,6 +25,7 @@ The context sent to the LLM is composed of **two parts**:
 │  ├── [6] Hidden system instructions     │
 │  ├── [6.75] Current speaker profile     │
 │  ├── [7] Language                       │
+│  ├── [7.7] Workspace                   │
 │  └── [8] Date and current context       │
 ├─────────────────────────────────────────┤
 │  MESSAGES                               │
@@ -231,6 +232,39 @@ Always respond in this language unless the user explicitly asks you to switch.
 
 > **Inter-Kin messages**: when the incoming message is from another Kin (not a user), the language block defaults to the platform's default language or the last human user's language.
 
+### [7.7] Workspace
+
+Gives the Kin spatial awareness of its dedicated workspace directory. Includes the absolute path and a depth-limited file tree so the Kin knows what files already exist and where to create new ones.
+
+```
+## Workspace
+
+Your workspace directory is your dedicated storage area. Use it to organize files, clone repos, create scripts, and store any persistent data.
+
+Path: /home/user/.local/share/kinbot/workspaces/6b2aec62-.../
+Contents:
+├── tools/
+│   └── my_script.sh
+├── kinbot-dev/
+│   ├── src/
+│   ├── package.json
+│   └── ...
+└── temp/
+    └── analysis.md
+
+> Always create files, clone repos, and store data inside your workspace. Never write to the home folder or other system paths.
+```
+
+**Tree generation rules:**
+- Max depth: 3 levels (configurable)
+- Directories with >10 items show first 10 + `... (N more)`
+- Skipped: `node_modules/`, `.git/`, `dist/`, `__pycache__/`, `.next/`, `.cache/`, `.venv/`, `venv/`, `.tox/`, `build/`
+- Empty workspace: shows `(empty — use this to organize your files)`
+- At max depth, collapsed directories show total file count: `src/ (42 files)`
+- Target: ~200-500 tokens
+
+> This block is included for main Kins, sub-Kins (tasks), and quick sessions.
+
 ### [8] Date and current context
 
 ```
@@ -363,6 +397,7 @@ The system prompt is constrained by a **token budget** to leave room for message
 | [5] Memories | ~50 tokens/memory × max 10 = ~500 tokens |
 | [6] Hidden instructions | ~300 tokens |
 | [7] Language | ~30 tokens |
+| [7.7] Workspace | ~200-500 tokens |
 | [8] Context | ~30 tokens |
 | **Total system prompt** | **~1500-2000 tokens** |
 

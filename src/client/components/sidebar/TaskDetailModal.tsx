@@ -18,6 +18,7 @@ import { ToolCallsViewer } from '@/client/components/chat/ToolCallsViewer'
 import { TypingIndicator } from '@/client/components/chat/TypingIndicator'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { HumanPromptCard } from '@/client/components/chat/HumanPromptCard'
+import { ContextBar } from '@/client/components/chat/ContextBar'
 import { useTaskDetail } from '@/client/hooks/useTaskDetail'
 import { useHumanPrompts } from '@/client/hooks/useHumanPrompts'
 import { cn } from '@/client/lib/utils'
@@ -39,7 +40,7 @@ import {
   Play,
 } from 'lucide-react'
 import { api } from '@/client/lib/api'
-import type { TaskStatus } from '@/shared/types'
+import type { TaskStatus, ContextTokenBreakdown } from '@/shared/types'
 
 interface LLMModel {
   id: string
@@ -102,6 +103,19 @@ export function TaskDetailModal({
   )
   const bottomRef = useRef<HTMLDivElement>(null)
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
+
+  // Fetch context-preview for the task (shows the task's actual context, not the parent's)
+  const [contextData, setContextData] = useState<{
+    tokenEstimate: ContextTokenBreakdown
+    contextWindow: number
+  } | null>(null)
+  useEffect(() => {
+    if (!open || !task?.parentKinId || !task?.id) { setContextData(null); return }
+    fetch(`/api/kins/${task.parentKinId}/context-preview?taskId=${task.id}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.tokenEstimate) setContextData({ tokenEstimate: data.tokenEstimate, contextWindow: data.contextWindow ?? 0 }) })
+      .catch(() => {})
+  }, [open, task?.parentKinId, task?.id])
   const [isPromptOpen, setIsPromptOpen] = useState(false)
   const toggleToolCalls = useCallback(() => setIsToolCallsOpen((prev) => !prev), [])
 
@@ -159,8 +173,8 @@ export function TaskDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          'max-h-[80vh] flex flex-col gap-0 transition-[max-width] duration-300',
-          isToolCallsOpen ? 'sm:max-w-5xl' : 'sm:max-w-2xl',
+          'max-h-[85vh] flex flex-col gap-0 transition-[max-width] duration-300',
+          isToolCallsOpen ? 'sm:max-w-6xl' : 'sm:max-w-4xl',
         )}
       >
         {/* Header */}
@@ -249,6 +263,16 @@ export function TaskDetailModal({
                       </TooltipTrigger>
                       <TooltipContent>{t('taskDetail.viewPromptTooltip')}</TooltipContent>
                     </Tooltip>
+                  )}
+                  {contextData && (
+                    <ContextBar
+                      kinId={task.parentKinId}
+                      taskId={task.id}
+                      estimatedTokens={contextData.tokenEstimate.total}
+                      maxTokens={contextData.contextWindow}
+                      contextBreakdown={contextData.tokenEstimate}
+                      compact
+                    />
                   )}
                 </div>
               )}

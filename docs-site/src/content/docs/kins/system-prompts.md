@@ -20,10 +20,11 @@ KinBot builds the system prompt from these blocks (in order):
 9. **Relevant memories** — automatically retrieved via semantic search based on the current message
 10. **Relevant knowledge** — excerpts from uploaded knowledge base documents, when applicable
 11. **Internal instructions** — tool usage guidelines, memory management, contact resolution, secrets handling, response calibration, mini-app creation. Includes a **file & code tool selection table** that steers Kins toward structured tools (`grep`, `multi_edit`, `edit_file`) over `run_shell` for file operations. Mini-app instructions direct Kins to call `get_mini_app_docs` for the full SDK reference rather than embedding it inline. MCP tool sections show server-level summaries only (individual tool descriptions are provided via the AI SDK tools parameter). Channel instructions include guidance on using `attach_file()` to send files back to external platforms
-12. **Current speaker profile** — name, role, and contact notes (both global/shared and per-Kin private notes) for the user who sent the current message. If the user has a linked contact but no notes yet, includes a gentle nudge to discover them naturally. Also resolves channel senders (Telegram, Discord, WhatsApp) to their contact records via platform ID
-13. **Channel origin context** — when the current turn is part of a causal chain originating from an external channel (e.g. inter-Kin reply or task result), informs the Kin that delivery is automatic and advises adapting formatting for the target platform
-14. **Language** — response language based on user settings
-15. **Date and context** — current timestamp
+12. **Workspace** — when a Kin has a workspace directory configured, shows the absolute path and a file tree of its contents. Instructs the Kin to use the workspace for all file operations (repos, scripts, data) and avoid writing to the home folder or other system paths. Empty workspaces get a hint to start organizing
+13. **Current speaker profile** — name, role, and contact notes (both global/shared and per-Kin private notes) for the user who sent the current message. If the user has a linked contact but no notes yet, includes a gentle nudge to discover them naturally. Also resolves channel senders (Telegram, Discord, WhatsApp) to their contact records via platform ID
+14. **Channel origin context** — when the current turn is part of a causal chain originating from an external channel (e.g. inter-Kin reply or task result), informs the Kin that delivery is automatic and advises adapting formatting for the target platform
+15. **Language** — response language based on user settings
+16. **Date and context** — current timestamp
 
 ## Writing effective characters
 

@@ -330,6 +330,20 @@
       "when": 1773952275843,
       "tag": "0046_chubby_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1774015572827,
+      "tag": "0047_zippy_pet_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1774034186813,
+      "tag": "0048_fresh_molecule_man",
+      "breakpoints": true
     }
   ]
 }

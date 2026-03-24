@@ -60,24 +60,25 @@ Consolidation clusters are capped at 3 memories to preserve detail. Larger group
 
 ## Compacting Settings
 
-Session compacting uses **incremental micro-batch summarization**: instead of compacting all messages at once, old messages are summarized in fixed-size batches from the oldest end after each LLM turn, spreading LLM cost over time.
+Session compacting uses **incremental micro-batch summarization**: instead of compacting all messages at once, old messages are summarized in fixed-size batches (by turn count) from the oldest end after each LLM turn, spreading LLM cost over time.
 
-### Primary trigger (message-count based)
+A **turn** is defined as one user message plus all following messages (assistant responses, tool calls, tool results) until the next user message. This avoids false triggers in tool-heavy conversations where a single turn can produce 10-30 messages.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `COMPACTING_BATCH_SIZE` | `20` | Number of messages per micro-compaction batch |
-| `COMPACTING_MIN_KEEP_MESSAGES` | `15` | Minimum non-compacted messages to keep as raw context. A batch is only taken when non-compacted count exceeds `COMPACTING_BATCH_SIZE` + `COMPACTING_MIN_KEEP_MESSAGES` |
-
-### Fallback trigger and general settings
+### Primary trigger (turn-count based)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COMPACTING_THRESHOLD_PERCENT` | `75` | Fallback trigger: compact when context usage reaches this % of the model's context window (50-95). The primary trigger is message-count-based |
-| `COMPACTING_MODEL` | Provider default | Model used for session compacting/summarization |
+| `COMPACTING_BATCH_TURNS` | `10` | Number of oldest turns to summarize per micro-compaction batch |
+| `COMPACTING_MIN_KEEP_TURNS` | `15` | Minimum non-compacted turns to keep as raw context. A batch is only taken when non-compacted turns exceed `COMPACTING_BATCH_TURNS` + `COMPACTING_MIN_KEEP_TURNS` |
+
+### General settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COMPACTING_MODEL` | Provider default | Model used for session compacting/summarization. Supports `providerId:modelId` format |
 | `COMPACTING_MAX_SNAPSHOTS` | `10` | Maximum compacting snapshots kept per Kin |
 
-The threshold can also be configured per-Kin (overrides the global setting) or via **Settings > Memory** in the UI.
+The threshold can also be configured **per-Kin** (overrides the global setting) via the **Compaction** tab in the Kin's settings. Available per-Kin fields: `turnThreshold` (total turn threshold), `compactingModel`, and `compactingProviderId`.
 
 ### Progressive context pipeline
 
@@ -89,6 +90,16 @@ Before compacting runs, KinBot applies a progressive pipeline to reduce context 
 | `OBSERVATION_COMPACTION_WINDOW` | `10` | Number of recent turns kept at full resolution. Older turns have tool results truncated. `0` = disabled |
 | `OBSERVATION_MAX_CHARS` | `200` | Max characters for truncated tool results in the observation zone |
 | `HISTORY_TOKEN_BUDGET` | `0` (disabled) | Emergency safety net: max tokens for conversation history. Messages trimmed from oldest end if exceeded. `0` = no limit |
+
+### Tool output spill
+
+Large tool results are automatically spilled to temporary files instead of being included inline in the LLM context:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TOOL_OUTPUT_SPILL_THRESHOLD` | `10000` | Byte threshold before spilling to file. `0` = disabled |
+| `TOOL_OUTPUT_PREVIEW_LINES` | `200` | Lines included in the compact preview reference |
+| `TOOL_OUTPUT_TTL_HOURS` | `24` | Hours before spilled files are cleaned up |
 
 ## Embedding Provider
 
@@ -116,8 +127,8 @@ Without an embedding provider, memory storage and retrieval will not work. The K
 ### Basic Tuning
 - **Lower `MEMORY_SIMILARITY_THRESHOLD`** (e.g., 0.5) to retrieve more memories at the cost of relevance
 - **Raise `MEMORY_MAX_RELEVANT`** if your Kin needs broader context awareness
-- **Lower `COMPACTING_BATCH_SIZE`** for more frequent, smaller compaction cycles
-- **Raise `COMPACTING_MIN_KEEP_MESSAGES`** to keep more raw context visible to the LLM
+- **Lower `COMPACTING_BATCH_TURNS`** for more frequent, smaller compaction cycles
+- **Raise `COMPACTING_MIN_KEEP_TURNS`** to keep more raw context visible to the LLM
 
 ### Search Quality
 - **Enable multi-query** (`MEMORY_MULTI_QUERY_MODEL=gpt-4.1-mini`) for better recall on complex queries

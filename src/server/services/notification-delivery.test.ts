@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach } from 'bun:test'
 // Re-implemented from module internals to test the contract
 
 function escapeTelegramMarkdown(text: string): string {
-  return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
+  return text.replace(/\\/g, '\\\\').replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
 }
 
 describe('escapeTelegramMarkdown', () => {

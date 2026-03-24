@@ -1,5 +1,11 @@
 // Shared types used by both client and server
 
+/** A fully-qualified model reference (model + provider pair) */
+export interface ModelRef {
+  modelId: string
+  providerId: string
+}
+
 export type UserRole = 'admin' | 'member'
 
 export type Language = 'en' | 'fr'
@@ -136,10 +142,12 @@ export interface KinToolConfig {
 
 /** Per-Kin compacting configuration (stored as JSON in kins.compacting_config) */
 export interface KinCompactingConfig {
-  /** @deprecated Use thresholdPercent instead */
-  tokenThreshold?: number | null
-  /** Trigger compaction at this % of model's context window (null = use global default) */
-  thresholdPercent?: number | null
+  /** Model used for compaction (null = same as Kin's model) */
+  compactingModel?: string | null
+  /** Provider ID for compacting model (null = auto-resolve) */
+  compactingProviderId?: string | null
+  /** Total turn threshold before compaction triggers (null = use global default) */
+  turnThreshold?: number | null
 }
 
 /** Task summary as returned by GET /api/tasks */
@@ -156,6 +164,7 @@ export interface TaskSummary {
   status: TaskStatus
   mode: string
   model: string | null
+  providerId: string | null
   cronId: string | null
   depth: number
   concurrencyGroup: string | null
@@ -178,6 +187,7 @@ export interface CronSummary {
   targetKinName: string | null
   targetKinAvatarUrl: string | null
   model: string | null
+  providerId: string | null
   runOnce: boolean
   isActive: boolean
   requiresApproval: boolean
@@ -187,6 +197,7 @@ export interface CronSummary {
 }
 
 export type WebhookFilterMode = 'simple' | 'advanced'
+export type WebhookDispatchMode = 'conversation' | 'task'
 
 /** Webhook summary as returned by GET /api/webhooks */
 export interface WebhookSummary {
@@ -204,6 +215,10 @@ export interface WebhookSummary {
   filterAllowedValues: string[] | null
   filterExpression: string | null
   filteredCount: number
+  dispatchMode: WebhookDispatchMode
+  taskTitleTemplate: string | null
+  taskPromptTemplate: string | null
+  maxConcurrentTasks: number
   createdBy: 'user' | 'kin'
   createdAt: number
   /** Full incoming URL (scheme + host + path) */

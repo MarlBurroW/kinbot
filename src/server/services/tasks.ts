@@ -13,6 +13,7 @@ import { resolveCustomTools } from '@/server/services/custom-tools'
 import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
 import { getGlobalPrompt } from '@/server/services/app-settings'
+import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import type { TaskStatus, TaskMode, KinToolConfig } from '@/shared/types'
 
 const log = createLogger('tasks')
@@ -220,11 +221,13 @@ interface SpawnParams {
   spawnType: 'self' | 'other'
   sourceKinId?: string
   model?: string
+  providerId?: string
   parentTaskId?: string
   cronId?: string
   depth?: number
   allowHumanPrompt?: boolean
   channelOriginId?: string
+  webhookId?: string
   concurrencyGroup?: string
   concurrencyMax?: number
 }
@@ -270,6 +273,7 @@ export async function spawnTask(params: SpawnParams) {
     spawnType: params.spawnType,
     mode: params.mode,
     model: params.model ?? null,
+    providerId: params.providerId ?? null,
     title: params.title ?? null,
     description: params.description,
     status: initialStatus,
@@ -277,6 +281,7 @@ export async function spawnTask(params: SpawnParams) {
     parentTaskId: params.parentTaskId ?? null,
     cronId: params.cronId ?? null,
     channelOriginId: params.channelOriginId ?? null,
+    webhookId: params.webhookId ?? null,
     allowHumanPrompt: params.allowHumanPrompt ?? true,
     concurrencyGroup,
     concurrencyMax,
@@ -402,11 +407,12 @@ async function executeSubKin(taskId: string, isNudge = false) {
       previousCronRuns,
       globalPrompt,
       userLanguage: 'en',
+      workspacePath: kinIdentity.workspacePath,
     })
 
-    // Resolve model — only use Kin's provider preference when using the Kin's own model
+    // Resolve model — use task's provider if stored, else Kin's provider when using Kin's own model
     const modelId = task.model ?? kinIdentity.model
-    const preferredProvider = task.model ? null : kinIdentity.providerId
+    const preferredProvider = task.providerId ?? (task.model ? null : kinIdentity.providerId)
     const model = await resolveLLMModel(modelId, preferredProvider)
     if (!model) {
       throw new Error('No LLM provider available')
@@ -421,6 +427,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const nativeTools = toolRegistry.resolve({
       kinId: kinIdentity.id,
       taskId,
+      taskDepth: task.depth,
       isSubKin: false,
       channelOriginId: task.channelOriginId ?? undefined,
     })
@@ -459,6 +466,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const subKinTools = toolRegistry.resolve({
       kinId: task.parentKinId,
       taskId,
+      taskDepth: task.depth,
       isSubKin: true,
       channelOriginId: task.channelOriginId ?? undefined,
     })
@@ -467,7 +475,10 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const mcpTools = await resolveMCPTools(kinIdentity.id, kinToolConfig)
     const customToolDefs = await resolveCustomTools(kinIdentity.id)
 
-    const tools = { ...nativeTools, ...subKinTools, ...mcpTools, ...customToolDefs }
+    const tools = wrapToolsWithSpill(
+      { ...nativeTools, ...subKinTools, ...mcpTools, ...customToolDefs },
+      kinIdentity.workspacePath,
+    )
 
     // Build task message history (only messages for this task)
     const taskMessages = await db

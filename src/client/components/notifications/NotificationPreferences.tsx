@@ -132,7 +132,7 @@ export function NotificationPreferences() {
       <div className="space-y-4">
         {NOTIFICATION_TYPES.map((type) => {
           const enabled = preferences[type] !== false
-          const TypeIcon = NOTIFICATION_TYPE_ICONS[type.replace(/:/g, ':')] ?? Bell
+          const TypeIcon = NOTIFICATION_TYPE_ICONS[type] ?? Bell
           return (
             <div key={type} className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
               <Label htmlFor={`notif-${type}`} className="flex-1 cursor-pointer">
