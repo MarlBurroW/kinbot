@@ -40,7 +40,6 @@ import { popStagedAttachments, clearStagedAttachments } from '@/server/tools/att
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import { getGlobalPrompt, getHubKinId, getSetting, setSetting } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
-import { wrapToolsSequential } from '@/server/services/sequential-tools'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -878,7 +877,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
 
     // Wrap tools to spill large results to temp files, then enforce sequential execution
-    const tools = wrapToolsSequential(wrapToolsWithSpill(mergedTools, kin.workspacePath))
+    const tools = wrapToolsWithSpill(mergedTools, kin.workspacePath)
 
     const hasTools = Object.keys(tools).length > 0
 
@@ -1456,7 +1455,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     // Apply quick session exclusion list
     for (const name of QUICK_SESSION_EXCLUDED_TOOLS) delete nativeTools[name]
 
-    const tools = wrapToolsSequential(wrapToolsWithSpill({ ...nativeTools }, kin.workspacePath))
+    const tools = wrapToolsWithSpill({ ...nativeTools }, kin.workspacePath)
     const hasTools = Object.keys(tools).length > 0
 
     // Stream LLM response
