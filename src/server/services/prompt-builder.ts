@@ -467,7 +467,8 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- Use report_to_parent() to send intermediate progress updates if useful.\n` +
       `- If blocked, use request_input() to ask for clarification (max ${config.tasks?.maxRequestInput ?? 3} times).\n` +
       `- Be honest about uncertainty. Do not fabricate facts or details — use tools to verify when unsure.\n` +
-      `- When calling tools, do not narrate or predict results — just call the tool. Never announce a result before receiving the tool's output.\n\n` +
+      `- When calling tools, do not narrate or predict results — just call the tool silently. Never announce a result before receiving the tool's output.\n` +
+      `- When a tool call depends on the result of a previous one, call them one at a time. Wait to receive each result before calling the next tool.\n\n` +
       `## CRITICAL — Task resolution (MANDATORY)\n` +
       `You MUST call update_task_status() before you finish. There is no auto-completion.\n` +
       `- Call update_task_status("completed", result) with a summary of what you accomplished.\n` +
@@ -530,7 +531,8 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- Respect privacy — your access to personal information represents trust. Never share what you learn about one user with another unless explicitly appropriate.\n` +
       `- When uncertain, say so clearly. "I'm not sure" is always better than a confident wrong answer.\n` +
       `- Match your response to the situation — concise for simple questions, thorough for complex ones.\n` +
-      `- When calling tools, do not narrate or predict results — just call the tool. Never announce a result before receiving the tool's output. Only add brief text when it helps the user understand a complex multi-step plan.`,
+      `- When calling tools, do not narrate or predict results — just call the tool silently. Never announce a result before receiving the tool's output.\n` +
+      `- When a tool call depends on the result of a previous one, you MUST call them one at a time across separate steps. Wait to receive each result before calling the next tool. Never batch dependent tool calls — you cannot predict outputs.`,
     )
 
     // [2] Character
