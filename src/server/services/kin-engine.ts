@@ -489,10 +489,11 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     // Notify clients that this Kin started processing
     const pendingCount = await getQueueSize(kinId)
+    const processingStartedAt = Date.now()
     sseManager.sendToKin(kinId, {
       type: 'queue:update',
       kinId,
-      data: { kinId, queueSize: pendingCount, isProcessing: true },
+      data: { kinId, queueSize: pendingCount, isProcessing: true, processingStartedAt },
     })
 
     const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
@@ -911,7 +912,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       type: 'queue:update',
       kinId,
       data: {
-        kinId, queueSize: 0, isProcessing: true, contextTokens, contextWindow,
+        kinId, queueSize: 0, isProcessing: true, processingStartedAt, contextTokens, contextWindow,
         contextBreakdown,
         pipelineStatus,
         ...lastCompactingProximity.get(kinId),

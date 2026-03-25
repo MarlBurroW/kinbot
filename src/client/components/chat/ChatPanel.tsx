@@ -61,7 +61,7 @@ interface ChatPanelProps {
   kin: KinInfo
   llmModels: LLMModel[]
   modelUnavailable?: boolean
-  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }
+  queueState?: { isProcessing: boolean; queueSize: number; processingStartedAt?: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }
   onModelChange: (modelId: string, providerId: string) => void
   onEditKin: () => void
 }
@@ -830,7 +830,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   />
                 ))}
                 {queueState?.isProcessing && !(streamingMessage && streamingMessage.content.length > 0 && !tokenStalled) && (
-                  <TypingIndicator kinName={kin.name} kinAvatarUrl={kin.avatarUrl} />
+                  <TypingIndicator kinName={kin.name} kinAvatarUrl={kin.avatarUrl} startedAt={queueState?.processingStartedAt} />
                 )}
               </div>
             )}

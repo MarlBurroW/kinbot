@@ -50,14 +50,18 @@ kinRoutes.get('/', async (c) => {
   const [allKins, hubKinId, allQueueItems] = await Promise.all([
     db.select().from(kins).all(),
     getHubKinId(),
-    db.select({ kinId: queueItems.kinId, status: queueItems.status }).from(queueItems).all(),
+    db.select({ kinId: queueItems.kinId, status: queueItems.status, createdAt: queueItems.createdAt }).from(queueItems).all(),
   ])
 
   // Build per-kin queue state from all queue items
-  const queueStateMap = new Map<string, { isProcessing: boolean; queueSize: number }>()
+  const queueStateMap = new Map<string, { isProcessing: boolean; queueSize: number; processingStartedAt?: number }>()
   for (const item of allQueueItems) {
     const state = queueStateMap.get(item.kinId) ?? { isProcessing: false, queueSize: 0 }
-    if (item.status === 'processing') state.isProcessing = true
+    if (item.status === 'processing') {
+      state.isProcessing = true
+      // Use the queue item's createdAt as a proxy for when processing started
+      state.processingStartedAt = item.createdAt instanceof Date ? item.createdAt.getTime() : Number(item.createdAt)
+    }
     if (item.status === 'pending') state.queueSize++
     queueStateMap.set(item.kinId, state)
   }
@@ -77,6 +81,7 @@ kinRoutes.get('/', async (c) => {
         isHub: k.id === hubKinId,
         isProcessing: qs?.isProcessing ?? false,
         queueSize: qs?.queueSize ?? 0,
+        processingStartedAt: qs?.processingStartedAt ?? undefined,
       }
     }),
   })
@@ -479,7 +484,8 @@ kinRoutes.get('/:id', async (c) => {
     .all()
 
   const queueSize = pendingItems.filter((q) => q.status === 'pending').length
-  const isProcessing = pendingItems.some((q) => q.status === 'processing')
+  const processingItem = pendingItems.find((q) => q.status === 'processing')
+  const isProcessing = !!processingItem
 
   return c.json({
     id: details.id,
@@ -497,6 +503,9 @@ kinRoutes.get('/:id', async (c) => {
     mcpServers: details.mcpServers,
     queueSize,
     isProcessing,
+    processingStartedAt: processingItem
+      ? (processingItem.createdAt instanceof Date ? processingItem.createdAt.getTime() : Number(processingItem.createdAt))
+      : undefined,
     isCompacting: compactingKins.has(kin.id),
     createdAt: details.createdAt,
   })

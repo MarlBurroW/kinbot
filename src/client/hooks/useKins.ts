@@ -75,7 +75,7 @@ export function useKins() {
 
   const fetchKins = useCallback(async () => {
     try {
-      const data = await api.get<{ kins: (KinSummary & { isProcessing?: boolean; queueSize?: number })[] }>('/kins')
+      const data = await api.get<{ kins: (KinSummary & { isProcessing?: boolean; queueSize?: number; processingStartedAt?: number })[] }>('/kins')
       setKins(data.kins)
       // Hydrate queue state from initial fetch so we don't miss processing state
       setKinQueueState((prev) => {
@@ -87,6 +87,7 @@ export function useKins() {
               ...existing,
               isProcessing: kin.isProcessing ?? false,
               queueSize: kin.queueSize ?? 0,
+              processingStartedAt: kin.processingStartedAt ?? existing?.processingStartedAt,
             })
           }
         }
@@ -129,7 +130,7 @@ export function useKins() {
   }, [sseStatus, fetchKins])
 
   // Track which kins are currently processing (queue state from SSE)
-  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }>>(new Map())
+  const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; processingStartedAt?: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }>>(new Map())
 
   // Listen for kin lifecycle and queue updates via SSE to keep the list in sync
   useSSE({
@@ -188,6 +189,9 @@ export function useKins() {
         next.set(kinId, {
           isProcessing,
           queueSize,
+          processingStartedAt: isProcessing
+            ? (data.processingStartedAt as number | undefined) ?? existing?.processingStartedAt
+            : undefined,
           // Keep previous context info when not provided (end-of-processing events omit it)
           contextTokens: (data.contextTokens as number | undefined) ?? existing?.contextTokens,
           contextWindow: (data.contextWindow as number | undefined) ?? existing?.contextWindow,
@@ -245,6 +249,7 @@ export function useKins() {
         next.set(kinId, {
           isProcessing: existing?.isProcessing ?? false,
           queueSize: existing?.queueSize ?? 0,
+          processingStartedAt: existing?.processingStartedAt,
           contextTokens: data.contextTokens,
           contextWindow: data.contextWindow,
           contextBreakdown: data.contextBreakdown,
