@@ -747,9 +747,13 @@
       "legend": {
         "messages": "Nachrichten",
         "summary": "Zusammenfassung",
+        "summaries": "Zusammenfassungen ({{count}})",
         "systemPrompt": "System-Prompt",
         "tools": "Werkzeuge"
       },
+      "summariesTitle": "Gesprächszusammenfassungen ({{count}})",
+      "summaryLabel": "Zusammenfassung #{{n}}",
+      "compressed": "komprimiert",
       "loading": "Kontextvorschau wird erstellt...",
       "messageRole": {
         "assistant": "Assistent",
@@ -767,7 +771,9 @@
       "title": "Kontextansicht",
       "tools": "Verfügbare Werkzeuge",
       "toolsCount": "{{count}} Werkzeuge",
-      "withToolCalls": "(+ Tool-Aufrufe)"
+      "withToolCalls": "(+ Tool-Aufrufe)",
+      "threshold": "Schwelle {{percent}}%",
+      "showMore": "Mehr anzeigen"
     }
   },
   "quickChat": {

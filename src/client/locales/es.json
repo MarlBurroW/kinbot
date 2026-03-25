@@ -747,9 +747,13 @@
       "legend": {
         "messages": "Mensajes",
         "summary": "Resumen",
+        "summaries": "Resúmenes ({{count}})",
         "systemPrompt": "Prompt del sistema",
         "tools": "Herramientas"
       },
+      "summariesTitle": "Resúmenes de conversación ({{count}})",
+      "summaryLabel": "Resumen #{{n}}",
+      "compressed": "comprimido",
       "loading": "Construyendo vista previa del contexto...",
       "messageRole": {
         "assistant": "Asistente",
@@ -767,7 +771,9 @@
       "title": "Visor de contexto",
       "tools": "Herramientas disponibles",
       "toolsCount": "{{count}} herramientas",
-      "withToolCalls": "(+ llamadas a herramientas)"
+      "withToolCalls": "(+ llamadas a herramientas)",
+      "threshold": "Umbral {{percent}}%",
+      "showMore": "Ver más"
     }
   },
   "quickChat": {

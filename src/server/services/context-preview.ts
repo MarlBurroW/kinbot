@@ -10,8 +10,9 @@ import { resolveCustomTools } from '@/server/services/custom-tools'
 import { toolRegistry } from '@/server/tools/index'
 import { getGlobalPrompt, getHubKinId } from '@/server/services/app-settings'
 import { getActiveChannelsForKin } from '@/server/services/channels'
-import type { KinToolConfig } from '@/shared/types'
+import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
 import { getModelContextWindow } from '@/shared/model-context-windows'
+import { config } from '@/server/config'
 
 interface ToolDefinition {
   name: string
@@ -26,11 +27,22 @@ interface MessagePreview {
   createdAt: number | null
 }
 
+interface SummaryPreview {
+  summary: string
+  firstMessageAt: string
+  lastMessageAt: string
+  depth: number
+  tokenEstimate: number
+  messageCount: number
+}
+
 interface ContextPreviewResult {
   /** System prompt with tools block appended (for structured/markdown view) */
   systemPrompt: string
-  /** Raw compacting summary (null if no compacting has occurred) */
+  /** Raw compacting summary — combined text (null if no compacting has occurred) */
   compactingSummary: string | null
+  /** Individual summaries with metadata for detailed display */
+  summaries: SummaryPreview[]
   /** Full raw payload as JSON (system + messages + tools) */
   rawPayload: {
     system: string
@@ -47,6 +59,8 @@ interface ContextPreviewResult {
   }
   /** Model's max context window in tokens */
   contextWindow: number
+  /** Compacting threshold as % of context window (null for tasks / quick sessions) */
+  compactingThresholdPercent: number | null
   messageCount: number
   generatedAt: number
 }
@@ -289,7 +303,24 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
   const combinedSummary = compactingSummariesData
     ? compactingSummariesData.map((s) => s.summary).join('\n\n---\n\n')
     : null
-  return formatResult(systemPrompt, toolDefinitions, messagesPreviews, totalMessageCount, getModelContextWindow(kin.model), combinedSummary)
+
+  const summaryPreviews: SummaryPreview[] = activeSummaries.map((s) => ({
+    summary: s.summary,
+    firstMessageAt: new Date(s.firstMessageAt as unknown as number).toISOString(),
+    lastMessageAt: new Date(s.lastMessageAt as unknown as number).toISOString(),
+    depth: s.depth ?? 0,
+    tokenEstimate: s.tokenEstimate ?? estimateTokens(s.summary),
+    messageCount: s.messageCount ?? 0,
+  }))
+
+  // Resolve compacting threshold for this Kin
+  let perKinCompacting: KinCompactingConfig | null = null
+  if (kin.compactingConfig) {
+    try { perKinCompacting = JSON.parse(kin.compactingConfig) as KinCompactingConfig } catch { /* ignore */ }
+  }
+  const compactingThresholdPercent = perKinCompacting?.thresholdPercent ?? config.compacting.thresholdPercent
+
+  return formatResult(systemPrompt, toolDefinitions, messagesPreviews, totalMessageCount, getModelContextWindow(kin.model), combinedSummary, summaryPreviews, compactingThresholdPercent)
 }
 
 /** Extract JSON Schema tool definitions from a tools map */
@@ -312,6 +343,8 @@ function formatResult(
   messageCount: number,
   contextWindow: number,
   compactingSummary: string | null = null,
+  summaries: SummaryPreview[] = [],
+  compactingThresholdPercent: number | null = null,
 ): ContextPreviewResult {
   let fullPrompt = systemPrompt
   if (toolDefinitions.length > 0) {
@@ -335,6 +368,7 @@ function formatResult(
   return {
     systemPrompt: fullPrompt,
     compactingSummary,
+    summaries,
     rawPayload: {
       system: systemPrompt,
       messages: messagesPreviews,
@@ -348,6 +382,7 @@ function formatResult(
       total,
     },
     contextWindow,
+    compactingThresholdPercent,
     messageCount,
     generatedAt: Date.now(),
   }

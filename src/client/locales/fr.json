@@ -575,9 +575,13 @@
       "legend": {
         "systemPrompt": "Prompt système",
         "summary": "Résumé",
+        "summaries": "Résumés ({{count}})",
         "messages": "Messages",
         "tools": "Outils"
       },
+      "summariesTitle": "Résumés de conversation ({{count}})",
+      "summaryLabel": "Résumé #{{n}}",
+      "compressed": "compressé",
       "messagesCount": "{{count}} messages",
       "toolsCount": "{{count}} outils",
       "noMessages": "Aucun message dans l'historique",
@@ -587,7 +591,9 @@
         "assistant": "Assistant",
         "system": "Système"
       },
-      "withToolCalls": "(+ appels d'outils)"
+      "withToolCalls": "(+ appels d'outils)",
+      "threshold": "Seuil {{percent}}%",
+      "showMore": "Voir plus"
     },
     "moreActions": "Plus d'actions",
     "compacting": {
