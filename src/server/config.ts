@@ -7,13 +7,20 @@ const dataDir = process.env.KINBOT_DATA_DIR ?? './data'
 
 /** Read version from package.json (works whether started via `bun run start` or `bun src/server/index.ts`). */
 const appVersion: string = (() => {
+  // Highest priority: explicit env var (set by Dockerfile or user)
+  if (process.env.KINBOT_VERSION && process.env.KINBOT_VERSION !== '0.0.0') {
+    return process.env.KINBOT_VERSION.replace(/^v/, '')
+  }
+
   // Try multiple resolution strategies for Docker + dev compatibility
   const candidates = [
-    // Relative to this file's directory (src/server/) -> ../../package.json
+    // Bun-specific: import.meta.dir (always available in Bun)
+    typeof import.meta.dir === 'string' ? resolve(import.meta.dir, '..', '..', 'package.json') : null,
+    // Node.js standard: import.meta.dirname
     import.meta.dirname ? resolve(import.meta.dirname, '..', '..', 'package.json') : null,
     // Relative to CWD (Docker: /app/package.json)
     resolve(process.cwd(), 'package.json'),
-    // Absolute fallback
+    // Absolute fallback for Docker
     '/app/package.json',
   ].filter(Boolean) as string[]
 

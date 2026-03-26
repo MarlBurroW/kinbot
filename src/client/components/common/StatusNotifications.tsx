@@ -51,6 +51,8 @@ export function StatusNotifications() {
     'version:update-available': (data) => {
       const latestVersion = data.latestVersion as string
       const releaseUrl = data.releaseUrl as string
+      // Don't show update toast if the current version couldn't be determined
+      if (!latestVersion || latestVersion === '0.0.0') return
       toast.info(
         t('statusNotifications.updateAvailable', { version: latestVersion }),
         {

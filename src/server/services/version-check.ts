@@ -60,6 +60,11 @@ async function fetchLatestRelease(repo: string): Promise<GitHubRelease | null> {
 
 // ─── Core logic ──────────────────────────────────────────────────────────────
 
+/** Returns true if the version string is unknown/fallback and should not be compared. */
+function isUnknownVersion(version: string): boolean {
+  return !version || version === '0.0.0'
+}
+
 export async function getCachedVersionInfo(currentVersion: string): Promise<VersionInfo> {
   const [latest, releaseUrl, releaseNotes, publishedAt, lastCheckedAt] = await Promise.all([
     getSetting('version_check_latest'),
@@ -76,7 +81,10 @@ export async function getCachedVersionInfo(currentVersion: string): Promise<Vers
     checkForUpdates().catch((err) => log.warn({ err }, 'Background version check failed'))
   }
 
-  const isUpdateAvailable = latest ? compareSemver(currentVersion, latest) < 0 : false
+  // Never report updates when current version is unknown (prevents false positives)
+  const isUpdateAvailable = isUnknownVersion(currentVersion)
+    ? false
+    : latest ? compareSemver(currentVersion, latest) < 0 : false
 
   return {
     currentVersion,
@@ -119,7 +127,10 @@ export async function checkForUpdates(): Promise<VersionInfo> {
   await setSetting('version_check_last_time', String(now))
 
   const latestVersion = release.tag_name.replace(/^v/, '')
-  const isUpdateAvailable = compareSemver(currentVersion, latestVersion) < 0
+  // Never report updates when current version is unknown (prevents false positives)
+  const isUpdateAvailable = isUnknownVersion(currentVersion)
+    ? false
+    : compareSemver(currentVersion, latestVersion) < 0
   const publishedAt = new Date(release.published_at).getTime()
 
   await Promise.all([
@@ -130,15 +141,20 @@ export async function checkForUpdates(): Promise<VersionInfo> {
   ])
 
   if (isUpdateAvailable) {
-    sseManager.broadcast({
-      type: 'version:update-available',
-      data: {
-        latestVersion,
-        releaseUrl: release.html_url,
-        publishedAt,
-      },
-    })
-    log.info({ currentVersion, latestVersion }, 'Update available')
+    // Only broadcast SSE if current version is known (not fallback 0.0.0)
+    if (!isUnknownVersion(currentVersion)) {
+      sseManager.broadcast({
+        type: 'version:update-available',
+        data: {
+          latestVersion,
+          releaseUrl: release.html_url,
+          publishedAt,
+        },
+      })
+      log.info({ currentVersion, latestVersion }, 'Update available')
+    } else {
+      log.warn({ currentVersion, latestVersion }, 'Version unknown (0.0.0) — skipping update notification')
+    }
   }
 
   return {
