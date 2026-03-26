@@ -18,6 +18,18 @@ import {
   setExtractionProviderId,
   getEmbeddingProviderId,
   setEmbeddingProviderId,
+  getDefaultLlmModel,
+  setDefaultLlmModel,
+  getDefaultLlmProviderId,
+  setDefaultLlmProviderId,
+  getDefaultImageModel,
+  setDefaultImageModel,
+  getDefaultImageProviderId,
+  setDefaultImageProviderId,
+  getDefaultCompactingModel,
+  setDefaultCompactingModel,
+  getDefaultCompactingProviderId,
+  setDefaultCompactingProviderId,
 } from '@/server/services/app-settings'
 import { sseManager } from '@/server/sse/index'
 import type { AppVariables } from '@/server/app'
@@ -81,7 +93,7 @@ settingsRoutes.put('/global-prompt', async (c) => {
   return c.json({ globalPrompt: trimmed })
 })
 
-// GET /api/settings/models
+// GET /api/settings/models — legacy endpoint (extraction + embedding only)
 settingsRoutes.get('/models', async (c) => {
   const [extractionModel, embeddingModel, extractionProviderId, embeddingProviderId] = await Promise.all([
     getExtractionModel(),
@@ -90,6 +102,108 @@ settingsRoutes.get('/models', async (c) => {
     getEmbeddingProviderId(),
   ])
   return c.json({ extractionModel, embeddingModel, extractionProviderId, embeddingProviderId })
+})
+
+// GET /api/settings/default-models — all model/service defaults in one payload
+settingsRoutes.get('/default-models', async (c) => {
+  const [
+    defaultLlmModel, defaultLlmProviderId,
+    defaultImageModel, defaultImageProviderId,
+    defaultCompactingModel, defaultCompactingProviderId,
+    extractionModel, extractionProviderId,
+    embeddingModel, embeddingProviderId,
+    searchProviderId,
+  ] = await Promise.all([
+    getDefaultLlmModel(), getDefaultLlmProviderId(),
+    getDefaultImageModel(), getDefaultImageProviderId(),
+    getDefaultCompactingModel(), getDefaultCompactingProviderId(),
+    getExtractionModel(), getExtractionProviderId(),
+    getEmbeddingModel(), getEmbeddingProviderId(),
+    getDefaultSearchProvider(),
+  ])
+  return c.json({
+    defaultLlmModel, defaultLlmProviderId,
+    defaultImageModel, defaultImageProviderId,
+    defaultCompactingModel, defaultCompactingProviderId,
+    extractionModel, extractionProviderId,
+    embeddingModel, embeddingProviderId,
+    searchProviderId,
+  })
+})
+
+// PUT /api/settings/default-llm
+settingsRoutes.put('/default-llm', async (c) => {
+  const body = await c.req.json()
+  const { model, providerId } = body as { model: string | null; providerId?: string | null }
+
+  if (model !== null && typeof model !== 'string') {
+    return c.json(
+      { error: { code: 'INVALID_BODY', message: 'model must be a string or null' } },
+      400,
+    )
+  }
+
+  if (!model || model.trim() === '') {
+    await setDefaultLlmModel(null)
+    await setDefaultLlmProviderId(null)
+    log.info('Default LLM model cleared')
+    return c.json({ defaultLlmModel: null, defaultLlmProviderId: null })
+  }
+
+  await setDefaultLlmModel(model.trim())
+  await setDefaultLlmProviderId(providerId ?? null)
+  log.info({ model: model.trim(), providerId }, 'Default LLM model updated')
+  return c.json({ defaultLlmModel: model.trim(), defaultLlmProviderId: providerId ?? null })
+})
+
+// PUT /api/settings/default-image
+settingsRoutes.put('/default-image', async (c) => {
+  const body = await c.req.json()
+  const { model, providerId } = body as { model: string | null; providerId?: string | null }
+
+  if (model !== null && typeof model !== 'string') {
+    return c.json(
+      { error: { code: 'INVALID_BODY', message: 'model must be a string or null' } },
+      400,
+    )
+  }
+
+  if (!model || model.trim() === '') {
+    await setDefaultImageModel(null)
+    await setDefaultImageProviderId(null)
+    log.info('Default image model cleared')
+    return c.json({ defaultImageModel: null, defaultImageProviderId: null })
+  }
+
+  await setDefaultImageModel(model.trim())
+  await setDefaultImageProviderId(providerId ?? null)
+  log.info({ model: model.trim(), providerId }, 'Default image model updated')
+  return c.json({ defaultImageModel: model.trim(), defaultImageProviderId: providerId ?? null })
+})
+
+// PUT /api/settings/default-compacting
+settingsRoutes.put('/default-compacting', async (c) => {
+  const body = await c.req.json()
+  const { model, providerId } = body as { model: string | null; providerId?: string | null }
+
+  if (model !== null && typeof model !== 'string') {
+    return c.json(
+      { error: { code: 'INVALID_BODY', message: 'model must be a string or null' } },
+      400,
+    )
+  }
+
+  if (!model || model.trim() === '') {
+    await setDefaultCompactingModel(null)
+    await setDefaultCompactingProviderId(null)
+    log.info('Default compacting model cleared')
+    return c.json({ defaultCompactingModel: null, defaultCompactingProviderId: null })
+  }
+
+  await setDefaultCompactingModel(model.trim())
+  await setDefaultCompactingProviderId(providerId ?? null)
+  log.info({ model: model.trim(), providerId }, 'Default compacting model updated')
+  return c.json({ defaultCompactingModel: model.trim(), defaultCompactingProviderId: providerId ?? null })
 })
 
 // PUT /api/settings/extraction-model

@@ -8,6 +8,7 @@ import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import { providers } from '@/server/db/schema'
 import { decrypt } from '@/server/services/encryption'
+import { getDefaultImageModel, getDefaultImageProviderId } from '@/server/services/app-settings'
 
 /** Provider types that use the OpenAI-compatible SDK (createOpenAI) */
 const OPENAI_COMPATIBLE_PROVIDERS = new Set([
@@ -38,7 +39,9 @@ export async function generateImage(
   prompt: string,
   options?: GenerateImageOptions,
 ): Promise<GenerateImageResult> {
+  // Resolve provider: explicit option > app_setting default > first available
   let provider
+  let effectiveModelId = options?.modelId
   if (options?.providerId) {
     const p = await db.select().from(providers).where(eq(providers.id, options.providerId)).get()
     if (!p || !p.isValid) {
@@ -46,7 +49,19 @@ export async function generateImage(
     }
     provider = p
   } else {
-    provider = await findImageProvider()
+    const defaultProviderId = await getDefaultImageProviderId()
+    const defaultModelId = await getDefaultImageModel()
+    if (defaultProviderId) {
+      const p = await db.select().from(providers).where(eq(providers.id, defaultProviderId)).get()
+      if (p && p.isValid) {
+        provider = p
+        if (!effectiveModelId && defaultModelId) effectiveModelId = defaultModelId
+      } else {
+        provider = await findImageProvider()
+      }
+    } else {
+      provider = await findImageProvider()
+    }
   }
 
   if (!provider) {
@@ -66,9 +81,9 @@ export async function generateImage(
   }
 
   if (provider.type === 'openai') {
-    return generateWithOpenAI(providerConfig, prompt, options?.modelId, imageData)
+    return generateWithOpenAI(providerConfig, prompt, effectiveModelId, imageData)
   } else if (provider.type === 'gemini') {
-    return generateWithGoogle(providerConfig, prompt, options?.modelId, imageData)
+    return generateWithGoogle(providerConfig, prompt, effectiveModelId, imageData)
   }
 
   throw new ImageGenerationError(

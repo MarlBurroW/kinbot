@@ -62,7 +62,7 @@ Real-time message streaming and conversation events.
 | `task:status` | Task status changed (pending, in_progress, queued, etc.) | Broadcast |
 | `task:done` | Task completed or failed | Broadcast |
 | `task:deleted` | Task deleted | Broadcast |
-| `queue:update` | Concurrency queue state changed (task promoted, new task queued) | Broadcast |
+| `queue:update` | Queue/processing state changed (includes `processingStartedAt` timestamp when processing) | Broadcast |
 
 ### Mini-Apps
 

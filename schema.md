@@ -180,7 +180,7 @@ Tous les messages de toutes les sessions (principales et tâches).
 
 ### `compacting_snapshots`
 
-Snapshots du compacting pour la mémoire de travail et le rollback.
+> **Legacy** : table de l'ancien système de compacting (snapshot unique). Conservée pour rétro-compatibilité. Le nouveau système utilise `compacting_summaries`.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
@@ -193,6 +193,31 @@ Snapshots du compacting pour la mémoire de travail et le rollback.
 
 **Index** :
 - `idx_compacting_kin_active` sur (`kin_id`, `is_active`)
+
+---
+
+### `compacting_summaries`
+
+Résumés de compacting avec accumulation multi-summary et merge télescopique.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `kin_id` | text | FK → kins.id, NOT NULL | |
+| `summary` | text | NOT NULL | Résumé structuré des échanges |
+| `first_message_at` | integer | NOT NULL | Timestamp du premier message couvert |
+| `last_message_at` | integer | NOT NULL | Timestamp du dernier message couvert |
+| `first_message_id` | text | FK → messages.id | Premier message couvert |
+| `last_message_id` | text | FK → messages.id, NOT NULL | Dernier message couvert |
+| `message_count` | integer | NOT NULL, DEFAULT 0 | Nombre de messages résumés |
+| `token_estimate` | integer | NOT NULL, DEFAULT 0 | Estimation en tokens du résumé |
+| `is_in_context` | integer | NOT NULL, DEFAULT 1 | true = injecté dans le prompt système, false = archivé |
+| `depth` | integer | NOT NULL, DEFAULT 0 | 0 = résumé direct, 1+ = merge télescopique |
+| `source_summary_ids` | text | | JSON array des IDs de résumés fusionnés (null pour depth 0) |
+| `created_at` | integer | NOT NULL | |
+
+**Index** :
+- `idx_compacting_summaries_kin` sur (`kin_id`, `is_in_context`)
 
 ---
 
@@ -623,7 +648,8 @@ providers (standalone)
 kins
  ├── N:M  mcp_servers        (via kin_mcp_servers)
  ├── 1:N  messages            (session principale: task_id = NULL)
- ├── 1:N  compacting_snapshots
+ ├── 1:N  compacting_snapshots  (legacy)
+ ├── 1:N  compacting_summaries  (multi-summary accumulation)
  ├── 1:N  memories
  ├── 1:N  custom_tools
  ├── 1:N  tasks               (en tant que parent_kin_id)

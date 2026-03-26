@@ -159,19 +159,19 @@ Pruned memories are permanently deleted. The number of pruned memories is record
 
 ## Session Compacting
 
-When conversations grow long, KinBot automatically **compacts** them using **incremental micro-batch summarization**:
+When conversations grow long, KinBot automatically **compacts** them using **token-aware multi-summary accumulation**:
 
-1. After each LLM turn, the system checks if the number of non-compacted messages exceeds a threshold (`COMPACTING_BATCH_SIZE` + `COMPACTING_MIN_KEEP_MESSAGES`, default: 35)
-2. A fixed-size batch of the oldest messages is summarized by a dedicated model, keeping at least `COMPACTING_MIN_KEEP_MESSAGES` (default: 15) as raw context
-3. The snapshot replaces the full history, preserving context while reducing token usage
-4. Multiple snapshots are kept (up to `COMPACTING_MAX_SNAPSHOTS`) for layered context
+1. After each LLM turn, the system checks if context usage exceeds a configurable threshold (`COMPACTING_THRESHOLD_PERCENT`, default: **75%** of the model's context window)
+2. A **keep-window** preserves recent messages that fit within `COMPACTING_KEEP_PERCENT` (default: 40%) of the context window as raw context
+3. Everything before the keep-window is summarized into a **new dated summary** — summaries accumulate chronologically, never overwrite
+4. When summaries exceed the budget (`COMPACTING_MAX_SUMMARIES` or `COMPACTING_SUMMARY_BUDGET_PERCENT`), the oldest merge **telescopically** into higher-level summaries marked `[compressed]`
 
 Before compacting runs, a **progressive context pipeline** reduces in-memory context size without any LLM calls:
 - **Intact zone** — Recent tool results kept in full
 - **Observation zone** — Middle-aged tool results truncated
 - **Collapsed zone** — Oldest tool results collapsed to one-line summaries
 
-The token-based threshold (`COMPACTING_THRESHOLD_PERCENT`, default: 75%) acts as a fallback safety net.
+Users can **force compact** from the UI at any time. All compaction results and errors are persisted in the conversation history, with real-time progress via SSE events. Compacting is fully configurable **per-Kin** (threshold, keep window, summary budget, max summaries, model).
 
 ## Data Flow
 
@@ -189,9 +189,11 @@ User message
 
 Compacting cycle (after each LLM turn):
   → Progressive context pipeline (tool masking + observation compaction)
-  → Message-count check → micro-batch summarization if needed
+  → Token-percentage check → keep-window summarization if threshold exceeded
+  → New summary added (accumulates chronologically)
   → Extract new memories from compacted batch
   → Consolidate similar memories
   → Recalibrate importance scores
   → Prune stale memories (low importance, never retrieved, old)
+  → Telescopic merge if summaries exceed budget or count
 ```

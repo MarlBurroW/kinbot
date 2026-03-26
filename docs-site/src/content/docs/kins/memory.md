@@ -77,11 +77,13 @@ Memories default to **private** (only the owning Kin can see them), but Kins can
 
 ## Session compacting
 
-When a conversation grows beyond the model's context window, KinBot **compacts** older messages into a summary. Key points:
+When context usage exceeds the threshold (default: 75% of the model's context window), KinBot **compacts** older messages into dated summaries. Key points:
 
 - Original messages are **never deleted** — they're preserved in the database
-- The compacting summary is injected at the start of the context window
-- The Kin is informed about compacting: it knows how many messages are visible vs. total, and whether older history was compacted
+- Summaries **accumulate chronologically** — each compaction creates a new summary, not a single overwritten snapshot
+- When summaries exceed the budget, the oldest merge **telescopically** into higher-level summaries
+- Compacting is configurable **per-Kin** (threshold, keep window, summary budget, max summaries, model)
+- Users can **force compact** from the Kin's settings at any time
 
 ## Memory and privacy
 

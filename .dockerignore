@@ -1,7 +1,40 @@
+# Dependencies & build output
 node_modules
 dist
 data
+
+# Version control
 .git
+.gitignore
+
+# Environment & secrets
 .env
+.env.*
+!.env.example
+
+# Documentation & sites (not needed for build)
+docs/
+docs-site/
+site/
+
+# Testing
+e2e/
+test-results/
+playwright-report/
+playwright.config.*
+playwright.showcase.config.*
+
+# CI/CD & editor config
+.github/
+.husky/
+.editorconfig
+
+# Markdown files (except package.json which isn't .md)
 *.md
 !package.json
+
+# Docker files (avoid recursive context)
+docker/docker-compose.yml
+
+# Misc
+scripts/

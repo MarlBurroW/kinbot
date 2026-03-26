@@ -1,4 +1,4 @@
-import { streamText, stepCountIs, type ModelMessage, type UserContent } from 'ai'
+import { streamText, type ModelMessage, type UserContent, type Tool } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
@@ -11,7 +11,7 @@ import {
   messages,
   providers,
   memories,
-  compactingSnapshots,
+  compactingSummaries,
   userProfiles,
   queueItems,
 } from '@/server/db/schema'
@@ -39,12 +39,27 @@ import { linkFilesToMessage, getFilesForMessage } from '@/server/services/files'
 import { popChannelQueueMeta, getChannelQueueMeta, deliverChannelResponse, getActiveChannelsForKin, getChannel, findContactByPlatformId, getChannelOriginMeta } from '@/server/services/channels'
 import { popStagedAttachments, clearStagedAttachments } from '@/server/tools/attach-file-tool'
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
-import { getGlobalPrompt, getHubKinId } from '@/server/services/app-settings'
+import { getGlobalPrompt, getHubKinId, getSetting, setSetting } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
 const log = createLogger('kin-engine')
+
+/**
+ * Strip execute functions from tools so the SDK only collects tool call intents
+ * without executing them. This allows our custom loop to execute tools
+ * sequentially between LLM steps, preventing hallucinated tool results.
+ */
+function stripToolExecute(tools: Record<string, Tool>): Record<string, Tool> {
+  const schemas: Record<string, Tool> = {}
+  for (const [name, t] of Object.entries(tools)) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { execute, ...rest } = t as Record<string, unknown>
+    schemas[name] = rest as Tool
+  }
+  return schemas
+}
 
 // In-memory lock to prevent overlapping setInterval ticks from double-processing
 const kinLocks = new Set<string>()
@@ -67,16 +82,33 @@ const lastContextUsage = new Map<string, { contextTokens: number; contextWindow:
 
 /** Store the latest context usage for a Kin (called after LLM estimation). */
 export function setLastContextUsage(kinId: string, contextTokens: number, contextWindow: number, breakdown?: ContextTokenBreakdown, pipelineStatus?: ContextPipelineStatus) {
-  lastContextUsage.set(kinId, { contextTokens, contextWindow, updatedAt: Date.now(), breakdown, pipelineStatus })
+  const data = { contextTokens, contextWindow, updatedAt: Date.now(), breakdown, pipelineStatus }
+  lastContextUsage.set(kinId, data)
+  // Persist to DB so the value survives server restarts
+  setSetting(`context_usage:${kinId}`, JSON.stringify(data)).catch(() => {})
 }
 
 /** Get the cached context usage for a Kin, if available. */
-export function getLastContextUsage(kinId: string) {
-  return lastContextUsage.get(kinId) ?? null
+export async function getLastContextUsage(kinId: string) {
+  // Check in-memory cache first
+  const mem = lastContextUsage.get(kinId)
+  if (mem) return mem
+
+  // Fall back to DB (survives restarts)
+  const persisted = await getSetting(`context_usage:${kinId}`)
+  if (persisted) {
+    try {
+      const data = JSON.parse(persisted)
+      lastContextUsage.set(kinId, data)
+      return data as { contextTokens: number; contextWindow: number; updatedAt: number; breakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus }
+    } catch { /* ignore corrupt data */ }
+  }
+
+  return null
 }
 
 // Cache of last computed compacting proximity per Kin
-const lastCompactingProximity = new Map<string, { compactingTurns: number; compactingTurnThreshold: number }>()
+const lastCompactingProximity = new Map<string, { compactingPercent: number; compactingThresholdPercent: number; summaryCount: number }>()
 
 /**
  * Extract a human-readable message from a raw API error object.
@@ -473,10 +505,11 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     // Notify clients that this Kin started processing
     const pendingCount = await getQueueSize(kinId)
+    const processingStartedAt = Date.now()
     sseManager.sendToKin(kinId, {
       type: 'queue:update',
       kinId,
-      data: { kinId, queueSize: pendingCount, isProcessing: true },
+      data: { kinId, queueSize: pendingCount, isProcessing: true, processingStartedAt },
     })
 
     const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
@@ -688,8 +721,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       )
     }
 
-    // Build message history (also returns compacting summary for system prompt injection)
-    const { messages: messageHistory, compactingSummary, compactedUpTo, participants, visibleMessageCount, totalMessageCount, hasCompactedHistory, oldestVisibleMessageAt, maskedToolGroups, observationCompactedCount, estimatedTokensSavedByMasking, emergencyTrimmedCount } = await buildMessageHistory(kinId)
+    // Build message history (also returns compacting summaries for system prompt injection)
+    const { messages: messageHistory, compactingSummaries: compactingSummariesData, participants, visibleMessageCount, totalMessageCount, hasCompactedHistory, oldestVisibleMessageAt, maskedToolGroups, observationCompactedCount, estimatedTokensSavedByMasking, emergencyTrimmedCount } = await buildMessageHistory(kinId)
 
     // Resolve the current message's originating platform for formatting hints
     let currentMessageSource: { platform: string; senderName?: string } | undefined
@@ -754,8 +787,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       userLanguage,
       isHub,
       hubKinDirectory,
-      compactingSummary,
-      compactedUpTo,
+      compactingSummaries: compactingSummariesData,
       participants: participants.length > 0 ? participants : undefined,
       currentMessageSource,
       pendingChannelContext,
@@ -860,13 +892,15 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       delete mergedTools['list_kins']
     }
 
-    // Wrap tools to spill large results to temp files
+    // Wrap tools to spill large results to temp files, then enforce sequential execution
     const tools = wrapToolsWithSpill(mergedTools, kin.workspacePath)
 
     const hasTools = Object.keys(tools).length > 0
 
     // Estimate total context tokens and resolve model context window
-    const summaryTokens = compactingSummary ? estimateTokens(compactingSummary) : 0
+    const summaryTokens = compactingSummariesData
+      ? compactingSummariesData.reduce((sum, s) => sum + estimateTokens(s.summary), 0)
+      : 0
     const contextBreakdown = estimateContextTokens(systemPrompt, messageHistory, hasTools ? tools : undefined, summaryTokens)
     const contextTokens = contextBreakdown.total
     const contextWindow = getModelContextWindow(kin.model)
@@ -883,8 +917,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const { getCompactingProximity } = await import('@/server/services/compacting')
     const compactingData = await getCompactingProximity(kinId)
     lastCompactingProximity.set(kinId, {
-      compactingTurns: compactingData.currentTurns,
-      compactingTurnThreshold: compactingData.turnThreshold,
+      compactingPercent: compactingData.currentPercent,
+      compactingThresholdPercent: compactingData.thresholdPercent,
+      summaryCount: compactingData.summaryCount,
     })
 
     // Update the queue event with real context usage (the initial queue:update
@@ -893,7 +928,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       type: 'queue:update',
       kinId,
       data: {
-        kinId, queueSize: 0, isProcessing: true, contextTokens, contextWindow,
+        kinId, queueSize: 0, isProcessing: true, processingStartedAt, contextTokens, contextWindow,
         contextBreakdown,
         pipelineStatus,
         ...lastCompactingProximity.get(kinId),
@@ -915,7 +950,11 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       }
     }
 
-    // Call LLM with streaming (+ tool calling loop if tools are available)
+    // Call LLM with streaming — custom single-step loop to prevent hallucinated
+    // tool results. The SDK's multi-step loop generates text referencing tool
+    // results before tools actually execute. Our loop calls streamText() one step
+    // at a time, executes tools sequentially between steps, then feeds real
+    // results back to the LLM.
     const assistantMessageId = uuid()
     let fullContent = ''
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
@@ -924,128 +963,174 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const abortController = new AbortController()
     activeAbortControllers.set(kinId, abortController)
 
-    const result = streamText({
-      model,
-      system: systemPrompt,
-      messages: messageHistory,
-      tools: hasTools ? tools : undefined,
-      stopWhen: hasTools ? stepCountIs(config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : undefined,
-      abortSignal: abortController.signal,
-    })
+    // Strip execute functions from tools so the SDK only collects intents
+    // (we execute tools ourselves between steps)
+    const toolSchemas = hasTools ? stripToolExecute(tools) : undefined
 
-    // Iterate fullStream to capture text + tool events
+    const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
     let wasAborted = false
-    try {
-      for await (const part of result.fullStream) {
-        // Handle tool-call-streaming-start (not yet in AI SDK type union)
-        if ((part.type as string) === 'tool-call-streaming-start') {
-          const p = part as unknown as { toolCallId: string; toolName: string }
-          sseManager.sendToKin(kinId, {
-            type: 'chat:tool-call-start',
-            kinId,
-            data: {
-              messageId: assistantMessageId,
-              toolCallId: p.toolCallId,
-              toolName: p.toolName,
-              contentOffset: fullContent.length,
-            },
-          })
-          continue
-        }
 
-        switch (part.type) {
-          case 'text-delta': {
-            const isFirstToken = fullContent.length === 0
-            fullContent += part.text
+    let step = 0
+    for (; step < maxSteps; step++) {
+      if (abortController.signal.aborted) { wasAborted = true; break }
+
+      const result = streamText({
+        model,
+        system: systemPrompt,
+        messages: messageHistory,
+        tools: toolSchemas,
+        abortSignal: abortController.signal,
+      })
+
+      // Collect tool call intents from this step
+      const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
+
+      try {
+        for await (const part of result.fullStream) {
+          // Handle tool-call-streaming-start (not yet in AI SDK type union)
+          if ((part.type as string) === 'tool-call-streaming-start') {
+            const p = part as unknown as { toolCallId: string; toolName: string }
             sseManager.sendToKin(kinId, {
-              type: 'chat:token',
+              type: 'chat:tool-call-start',
               kinId,
               data: {
                 messageId: assistantMessageId,
-                token: part.text,
-                // Include source metadata on first token so the client can
-                // render correct attribution from the start
-                ...(isFirstToken && {
-                  sourceType: 'kin',
-                  sourceId: kinId,
-                  sourceName: kin.name,
-                  sourceAvatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${kin.avatarPath.split('.').pop()}` : null,
-                }),
+                toolCallId: p.toolCallId,
+                toolName: p.toolName,
+                contentOffset: fullContent.length,
               },
             })
-            break
+            continue
           }
 
-          case 'tool-call': {
-            const contentOffset = fullContent.length
-            toolCallsLog.push({
-              id: part.toolCallId,
-              name: part.toolName,
-              args: part.input,
-              offset: contentOffset,
-            })
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-call',
-              kinId,
-              data: {
-                messageId: assistantMessageId,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
+          switch (part.type) {
+            case 'text-delta': {
+              const isFirstToken = fullContent.length === 0
+              fullContent += part.text
+              sseManager.sendToKin(kinId, {
+                type: 'chat:token',
+                kinId,
+                data: {
+                  messageId: assistantMessageId,
+                  token: part.text,
+                  // Include source metadata on first token so the client can
+                  // render correct attribution from the start
+                  ...(isFirstToken && {
+                    sourceType: 'kin',
+                    sourceId: kinId,
+                    sourceName: kin.name,
+                    sourceAvatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${kin.avatarPath.split('.').pop()}` : null,
+                  }),
+                },
+              })
+              break
+            }
+
+            case 'tool-call': {
+              const contentOffset = fullContent.length
+              stepToolCalls.push({
+                id: part.toolCallId,
+                name: part.toolName,
                 args: part.input,
-                contentOffset,
-              },
-            })
-            break
-          }
+                offset: contentOffset,
+              })
+              sseManager.sendToKin(kinId, {
+                type: 'chat:tool-call',
+                kinId,
+                data: {
+                  messageId: assistantMessageId,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  args: part.input,
+                  contentOffset,
+                },
+              })
+              break
+            }
 
-          case 'tool-result': {
-            // Attach result to the matching tool call log
-            const logged = toolCallsLog.find((tc) => tc.id === part.toolCallId)
-            if (logged) logged.result = part.output
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-result',
-              kinId,
-              data: {
-                messageId: assistantMessageId,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                result: part.output,
-              },
-            })
-            break
-          }
+            case 'error': {
+              // API-level errors (e.g. context_length_exceeded) arrive as stream parts,
+              // not as thrown exceptions. Re-throw so the outer catch handles them
+              // with proper user-visible feedback.
+              const err = part.error
+              if (err instanceof Error) throw err
+              throw new Error(extractApiErrorMessage(err))
+            }
 
-          case 'error': {
-            // API-level errors (e.g. context_length_exceeded) arrive as stream parts,
-            // not as thrown exceptions. Re-throw so the outer catch handles them
-            // with proper user-visible feedback.
-            const err = part.error
-            if (err instanceof Error) throw err
-            throw new Error(extractApiErrorMessage(err))
+            default:
+              log.debug({ kinId, partType: part.type }, 'Unhandled stream part type')
           }
-
-          default:
-            log.debug({ kinId, partType: part.type }, 'Unhandled stream part type')
+        }
+      } catch (streamError) {
+        // If the stream was aborted (user pressed Stop), handle gracefully
+        if (abortController.signal.aborted) {
+          wasAborted = true
+        } else {
+          throw streamError
         }
       }
-    } catch (streamError) {
-      // If the stream was aborted (user pressed Stop), handle gracefully
-      if (abortController.signal.aborted) {
-        wasAborted = true
-      } else {
-        throw streamError
+
+      // No tool calls this step → LLM is done, exit loop
+      if (stepToolCalls.length === 0 || wasAborted) break
+
+      // Execute tool calls sequentially (we own this, not the SDK)
+      const assistantContent: Array<
+        | { type: 'text'; text: string }
+        | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+      > = []
+      if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
+      for (const tc of stepToolCalls) {
+        assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
       }
-    } finally {
-      activeAbortControllers.delete(kinId)
+
+      const toolResults: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
+
+      for (const tc of stepToolCalls) {
+        if (abortController.signal.aborted) { wasAborted = true; break }
+
+        const toolDef = tools[tc.name]
+        let result: unknown = null
+        if (toolDef && 'execute' in toolDef && typeof toolDef.execute === 'function') {
+          try {
+            result = await (toolDef.execute as Function)(tc.args, { abortSignal: abortController.signal })
+          } catch (err) {
+            result = { error: err instanceof Error ? err.message : String(err) }
+          }
+        } else {
+          result = { error: `Tool ${tc.name} has no execute function` }
+        }
+
+        toolCallsLog.push({ id: tc.id, name: tc.name, args: tc.args, result, offset: tc.offset })
+        toolResults.push({ type: 'tool-result', toolCallId: tc.id, toolName: tc.name, output: { type: 'json', value: result as import('ai').JSONValue } })
+
+        sseManager.sendToKin(kinId, {
+          type: 'chat:tool-result',
+          kinId,
+          data: {
+            messageId: assistantMessageId,
+            toolCallId: tc.id,
+            toolName: tc.name,
+            result,
+          },
+        })
+      }
+
+      if (wasAborted) break
+
+      // Append assistant message (with tool calls) + tool results to history for next step
+      messageHistory.push({ role: 'assistant', content: assistantContent })
+      messageHistory.push({ role: 'tool' as const, content: toolResults })
+
+      // Text accumulates across steps so tool call offsets remain valid
     }
+
+    activeAbortControllers.delete(kinId)
 
     log.info({ kinId, messageId: assistantMessageId, contentLength: fullContent.length, toolCalls: toolCallsLog.length, wasAborted }, 'LLM turn completed')
 
-    // Detect truncated turns: tool calls executed but no text response generated.
-    // This typically happens when the step limit (maxSteps) is reached before the
-    // LLM can produce a final text response. Add a fallback message so the user
-    // knows work was done even though no text was returned.
-    const stepLimitReached = !fullContent && toolCallsLog.length > 0 && !wasAborted && config.tools.maxSteps > 0
+    // Detect truncated turns: tool calls executed but the step limit was hit before
+    // the LLM could produce a final text-only response.
+    const stepLimitReached = step >= maxSteps && toolCallsLog.length > 0 && !wasAborted && config.tools.maxSteps > 0
     if (stepLimitReached) {
       log.warn(
         { kinId, messageId: assistantMessageId, toolCalls: toolCallsLog.length, maxSteps: config.tools.maxSteps },
@@ -1172,7 +1257,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       ;(async () => {
         compactingKins.add(kinId)
         try {
-          await maybeCompact(kinId)
+          await maybeCompact(kinId, contextTokens, contextWindow)
         } catch (err) {
           log.error({ kinId, err }, 'Post-turn compacting error')
         } finally {
@@ -1439,7 +1524,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     const tools = wrapToolsWithSpill({ ...nativeTools }, kin.workspacePath)
     const hasTools = Object.keys(tools).length > 0
 
-    // Stream LLM response
+    // Stream LLM response — custom single-step loop (same pattern as processKinQueue)
     const assistantMessageId = uuid()
     let fullContent = ''
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
@@ -1447,80 +1532,130 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     const abortController = new AbortController()
     quickAbortControllers.set(sessionId, abortController)
 
-    const result = streamText({
-      model,
-      system: systemPrompt,
-      messages: messageHistory,
-      tools: hasTools ? tools : undefined,
-      stopWhen: hasTools ? stepCountIs(config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : undefined,
-      abortSignal: abortController.signal,
-    })
+    // Strip execute functions from tools so the SDK only collects intents
+    const toolSchemas = hasTools ? stripToolExecute(tools) : undefined
 
+    const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
     let wasAborted = false
-    try {
-      for await (const part of result.fullStream) {
-        // Handle tool-call-streaming-start (not yet in AI SDK type union)
-        if ((part.type as string) === 'tool-call-streaming-start') {
-          const p = part as unknown as { toolCallId: string; toolName: string }
-          sseManager.sendToKin(kinId, {
-            type: 'chat:tool-call-start',
-            kinId,
-            data: { messageId: assistantMessageId, toolCallId: p.toolCallId, toolName: p.toolName, contentOffset: fullContent.length, sessionId },
-          })
-          continue
+
+    let step = 0
+    for (; step < maxSteps; step++) {
+      if (abortController.signal.aborted) { wasAborted = true; break }
+
+      const result = streamText({
+        model,
+        system: systemPrompt,
+        messages: messageHistory,
+        tools: toolSchemas,
+        abortSignal: abortController.signal,
+      })
+
+      // Collect tool call intents from this step
+      const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
+
+      try {
+        for await (const part of result.fullStream) {
+          // Handle tool-call-streaming-start (not yet in AI SDK type union)
+          if ((part.type as string) === 'tool-call-streaming-start') {
+            const p = part as unknown as { toolCallId: string; toolName: string }
+            sseManager.sendToKin(kinId, {
+              type: 'chat:tool-call-start',
+              kinId,
+              data: { messageId: assistantMessageId, toolCallId: p.toolCallId, toolName: p.toolName, contentOffset: fullContent.length, sessionId },
+            })
+            continue
+          }
+
+          switch (part.type) {
+            case 'text-delta': {
+              fullContent += part.text
+              sseManager.sendToKin(kinId, {
+                type: 'chat:token',
+                kinId,
+                data: { messageId: assistantMessageId, token: part.text, sessionId },
+              })
+              break
+            }
+            case 'tool-call': {
+              const contentOffset = fullContent.length
+              stepToolCalls.push({ id: part.toolCallId, name: part.toolName, args: part.input, offset: contentOffset })
+              sseManager.sendToKin(kinId, {
+                type: 'chat:tool-call',
+                kinId,
+                data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, args: part.input, contentOffset, sessionId },
+              })
+              break
+            }
+            case 'error': {
+              const err = part.error
+              if (err instanceof Error) throw err
+              throw new Error(extractApiErrorMessage(err))
+            }
+            default:
+              break
+          }
+        }
+      } catch (streamError) {
+        if (abortController.signal.aborted) {
+          wasAborted = true
+        } else {
+          throw streamError
+        }
+      }
+
+      // No tool calls this step → LLM is done, exit loop
+      if (stepToolCalls.length === 0 || wasAborted) break
+
+      // Execute tool calls sequentially (we own this, not the SDK)
+      const assistantContent: Array<
+        | { type: 'text'; text: string }
+        | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+      > = []
+      if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
+      for (const tc of stepToolCalls) {
+        assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
+      }
+
+      const toolResults: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
+
+      for (const tc of stepToolCalls) {
+        if (abortController.signal.aborted) { wasAborted = true; break }
+
+        const toolDef = tools[tc.name]
+        let result: unknown = null
+        if (toolDef && 'execute' in toolDef && typeof toolDef.execute === 'function') {
+          try {
+            result = await (toolDef.execute as Function)(tc.args, { abortSignal: abortController.signal })
+          } catch (err) {
+            result = { error: err instanceof Error ? err.message : String(err) }
+          }
+        } else {
+          result = { error: `Tool ${tc.name} has no execute function` }
         }
 
-        switch (part.type) {
-          case 'text-delta': {
-            fullContent += part.text
-            sseManager.sendToKin(kinId, {
-              type: 'chat:token',
-              kinId,
-              data: { messageId: assistantMessageId, token: part.text, sessionId },
-            })
-            break
-          }
-          case 'tool-call': {
-            const contentOffset = fullContent.length
-            toolCallsLog.push({ id: part.toolCallId, name: part.toolName, args: part.input, offset: contentOffset })
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-call',
-              kinId,
-              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, args: part.input, contentOffset, sessionId },
-            })
-            break
-          }
-          case 'tool-result': {
-            const logged = toolCallsLog.find((tc) => tc.id === part.toolCallId)
-            if (logged) logged.result = part.output
-            sseManager.sendToKin(kinId, {
-              type: 'chat:tool-result',
-              kinId,
-              data: { messageId: assistantMessageId, toolCallId: part.toolCallId, toolName: part.toolName, result: part.output, sessionId },
-            })
-            break
-          }
-          case 'error': {
-            const err = part.error
-            if (err instanceof Error) throw err
-            throw new Error(extractApiErrorMessage(err))
-          }
-          default:
-            break
-        }
+        toolCallsLog.push({ id: tc.id, name: tc.name, args: tc.args, result, offset: tc.offset })
+        toolResults.push({ type: 'tool-result', toolCallId: tc.id, toolName: tc.name, output: { type: 'json', value: result as import('ai').JSONValue } })
+
+        sseManager.sendToKin(kinId, {
+          type: 'chat:tool-result',
+          kinId,
+          data: { messageId: assistantMessageId, toolCallId: tc.id, toolName: tc.name, result, sessionId },
+        })
       }
-    } catch (streamError) {
-      if (abortController.signal.aborted) {
-        wasAborted = true
-      } else {
-        throw streamError
-      }
-    } finally {
-      quickAbortControllers.delete(sessionId)
+
+      if (wasAborted) break
+
+      // Append assistant message (with tool calls) + tool results to history for next step
+      messageHistory.push({ role: 'assistant', content: assistantContent })
+      messageHistory.push({ role: 'tool' as const, content: toolResults })
+
+      // Text accumulates across steps so tool call offsets remain valid
     }
 
+    quickAbortControllers.delete(sessionId)
+
     // Detect truncated turns (same as main path)
-    const stepLimitReached = !fullContent && toolCallsLog.length > 0 && !wasAborted && config.tools.maxSteps > 0
+    const stepLimitReached = step >= maxSteps && toolCallsLog.length > 0 && !wasAborted && config.tools.maxSteps > 0
     if (stepLimitReached) {
       log.warn(
         { kinId, sessionId, toolCalls: toolCallsLog.length, maxSteps: config.tools.maxSteps },
@@ -1622,15 +1757,20 @@ export interface ConversationParticipant {
   lastSeenAt: Date
 }
 
-async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummary: string | null; compactedUpTo: Date | null; participants: ConversationParticipant[]; visibleMessageCount: number; totalMessageCount: number; hasCompactedHistory: boolean; oldestVisibleMessageAt?: Date; maskedToolGroups: number; observationCompactedCount: number; estimatedTokensSavedByMasking: number; emergencyTrimmedCount: number }> {
+async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMessage[]; compactingSummaries: Array<{ summary: string; firstMessageAt: Date; lastMessageAt: Date; depth: number }> | null; participants: ConversationParticipant[]; visibleMessageCount: number; totalMessageCount: number; hasCompactedHistory: boolean; oldestVisibleMessageAt?: Date; maskedToolGroups: number; observationCompactedCount: number; estimatedTokensSavedByMasking: number; emergencyTrimmedCount: number }> {
   const history: ModelMessage[] = []
 
-  // Fetch active compacting snapshot (used to filter messages, summary is injected via system prompt)
-  const activeSnapshot = await db
+  // Fetch all active (in-context) summaries, ordered oldest to newest
+  const activeSummaries = await db
     .select()
-    .from(compactingSnapshots)
-    .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
-    .get()
+    .from(compactingSummaries)
+    .where(and(eq(compactingSummaries.kinId, kinId), eq(compactingSummaries.isInContext, true)))
+    .orderBy(asc(compactingSummaries.lastMessageAt))
+    .all()
+
+  // Use the latest summary's lastMessageAt as the cutoff for message filtering
+  const latestSummary = activeSummaries.length > 0 ? activeSummaries[activeSummaries.length - 1]! : null
+  const cutoffTimestamp = latestSummary ? (latestSummary.lastMessageAt as unknown as number) : null
 
   // [10] Recent messages (main session only, not task or quick session messages)
   const recentMessages = await db
@@ -1644,10 +1784,10 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   // Reverse to get chronological order
   recentMessages.reverse()
 
-  // If we have a compacted snapshot, only include messages after it
-  const postSnapshotMessages = activeSnapshot
+  // Only include messages after the latest summary's cutoff
+  const postSnapshotMessages = cutoffTimestamp
     ? recentMessages.filter(
-        (m) => m.createdAt && activeSnapshot.createdAt && m.createdAt > activeSnapshot.createdAt,
+        (m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp,
       )
     : recentMessages
 
@@ -1878,15 +2018,24 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   const participants: ConversationParticipant[] = [...participantMap.values()]
     .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
 
-  const hasCompactedHistory = !!activeSnapshot?.summary
+  const hasCompactedHistory = activeSummaries.length > 0
   const visibleMessageCount = filteredMessages.length
   const totalMessageCount = recentMessages.length + (hasCompactedHistory ? (recentMessages.length - postSnapshotMessages.length) : 0)
   const oldestVisibleMessageAt = filteredMessages.length > 0 ? (filteredMessages[0]!.createdAt ?? undefined) : undefined
 
+  // Map summaries to the format expected by prompt builder
+  const summariesForPrompt = activeSummaries.length > 0
+    ? activeSummaries.map((s) => ({
+        summary: s.summary,
+        firstMessageAt: new Date(s.firstMessageAt as unknown as number),
+        lastMessageAt: new Date(s.lastMessageAt as unknown as number),
+        depth: s.depth ?? 0,
+      }))
+    : null
+
   return {
     messages: maskedHistory,
-    compactingSummary: activeSnapshot?.summary ?? null,
-    compactedUpTo: activeSnapshot?.createdAt ?? null,
+    compactingSummaries: summariesForPrompt,
     participants,
     visibleMessageCount,
     totalMessageCount: Math.max(totalMessageCount, visibleMessageCount),

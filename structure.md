@@ -33,12 +33,14 @@ kinbot/
 │   │   │   ├── webhooks.ts         # CRUD /api/webhooks + filter testing
 │   │   │   ├── webhooks-incoming.ts # POST /api/webhooks/incoming/:id
 │   │   │   ├── channel-telegram.ts # Telegram webhook endpoint
+│   │   │   ├── settings.ts         # GET/PUT /api/settings/* (global prompt, default models, hub, search)
 │   │   │   ├── files.ts            # POST /api/files/upload
 │   │   │   └── sse.ts              # GET /api/sse (connexion SSE globale)
 │   │   │
 │   │   ├── services/               # Logique métier
 │   │   │   ├── kin-engine.ts       # Orchestration LLM : construction du contexte, appels, streaming
 │   │   │   ├── prompt-builder.ts   # Construction du prompt système d'un Kin
+│   │   │   ├── context-preview.ts  # Reconstruction du contexte LLM complet pour inspection (debug/transparence)
 │   │   │   ├── queue.ts            # Queue FIFO par Kin (enqueue, dequeue, priorité)
 │   │   │   ├── compacting.ts       # Compacting des sessions (résumé, snapshots, rollback)
 │   │   │   ├── memory.ts           # Mémoire long terme (extraction, recall, memorize, search hybride)
@@ -55,6 +57,7 @@ kinbot/
 │   │   │   ├── tool-output-spill.ts # Spill des résultats d'outils volumineux vers fichiers temporaires
 │   │   │   ├── workspace-tree.ts   # Génération de l'arbre de fichiers du workspace (pour le prompt système)
 │   │   │   ├── migrate-model-providers.ts # Migration one-shot : backfill des providerId manquants sur kins/crons/tasks
+│   │   │   ├── app-settings.ts     # Paramètres globaux persistants (default LLM/image/compacting models, extraction, embedding, hub)
 │   │   │   ├── llm-helpers.ts      # Helpers LLM (safeGenerateText avec injection OAuth)
 │   │   │   └── events.ts           # Event bus (emit, on, listeners)
 │   │   │
@@ -94,7 +97,8 @@ kinbot/
 │   │   │   ├── multi-edit-tools.ts # multi_edit — atomic multi-replacement in a single file
 │   │   │   ├── shell-tools.ts      # run_shell
 │   │   │   ├── custom-tool-tools.ts # register_tool, run_custom_tool, list_custom_tools
-│   │   │   └── image-tools.ts      # generate_image
+│   │   │   ├── image-tools.ts      # generate_image
+│   │   │   └── provider-tools.ts   # list_providers, list_models
 │   │   │
 │   │   ├── db/                     # Base de données
 │   │   │   ├── index.ts            # Connexion SQLite (bun:sqlite) + extensions (sqlite-vec, FTS5)

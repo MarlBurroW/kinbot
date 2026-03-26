@@ -1,23 +1,22 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
+import { useChatStreaming } from '@/client/hooks/useChatStreaming'
 import type { ChatMessage } from '@/client/hooks/useChat'
 import type { MessageFile } from '@/shared/types'
-
-const STREAMING_BATCH_MS = 50
 
 export function useQuickChat(sessionId: string | null, kinId: string | null) {
   const { t } = useTranslation()
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isStreaming, setIsStreaming] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const streamingContentRef = useRef('')
-  const streamingMessageIdRef = useRef<string | null>(null)
-  const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const {
+    streamingMessage, isStreaming,
+    handleToken, handleDone, resetStreaming, cleanup,
+  } = useChatStreaming()
 
   // Fetch messages for this session
   const fetchMessages = useCallback(async () => {
@@ -40,14 +39,7 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
 
   useEffect(() => {
     fetchMessages()
-    setIsStreaming(false)
-    setStreamingMessage(null)
-    streamingContentRef.current = ''
-    streamingMessageIdRef.current = null
-    if (batchTimerRef.current) {
-      clearTimeout(batchTimerRef.current)
-      batchTimerRef.current = null
-    }
+    resetStreaming()
   }, [fetchMessages])
 
   // SSE handlers — filtered by sessionId
@@ -56,85 +48,24 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
       if (data.kinId !== kinId) return
       if (data.sessionId !== sessionId) return
 
-      const token = data.token as string
-      const messageId = data.messageId as string
-
-      if (!streamingMessageIdRef.current) {
-        streamingMessageIdRef.current = messageId
-        streamingContentRef.current = token
-        setIsProcessing(false)
-        setIsStreaming(true)
-
-        setStreamingMessage({
-          id: messageId,
-          role: 'assistant',
-          content: token,
-          sourceType: 'kin',
-          sourceId: null,
-          sourceName: null,
-          sourceAvatarUrl: null,
-          isRedacted: false,
-          toolCalls: null,
-          resolvedTaskId: null,
-          injectedMemories: null,
-          memoriesExtracted: null,
-          files: [],
-          reactions: [],
-          stepLimitReached: false,
-          createdAt: new Date().toISOString(),
-        })
-      } else {
-        streamingContentRef.current += token
-
-        if (!batchTimerRef.current) {
-          batchTimerRef.current = setTimeout(() => {
-            batchTimerRef.current = null
-            setStreamingMessage((prev) =>
-              prev ? { ...prev, content: streamingContentRef.current } : prev,
-            )
-          }, STREAMING_BATCH_MS)
-        }
-      }
+      setIsProcessing(false)
+      handleToken({
+        messageId: data.messageId as string,
+        token: data.token as string,
+      })
     },
 
     'chat:done': (data) => {
       if (data.kinId !== kinId) return
       if (data.sessionId !== sessionId) return
 
-      if (batchTimerRef.current) {
-        clearTimeout(batchTimerRef.current)
-        batchTimerRef.current = null
-      }
+      const promoted = handleDone()
 
-      if (streamingMessageIdRef.current) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: streamingMessageIdRef.current!,
-            role: 'assistant' as const,
-            content: streamingContentRef.current,
-            sourceType: 'kin',
-            sourceId: null,
-            sourceName: null,
-            sourceAvatarUrl: null,
-            isRedacted: false,
-            toolCalls: null,
-            resolvedTaskId: null,
-            injectedMemories: null,
-            memoriesExtracted: null,
-            files: [],
-          reactions: [],
-          stepLimitReached: false,
-            createdAt: new Date().toISOString(),
-          },
-        ])
+      if (promoted) {
+        setMessages((prev) => [...prev, promoted])
       }
 
       setIsProcessing(false)
-      setIsStreaming(false)
-      setStreamingMessage(null)
-      streamingContentRef.current = ''
-      streamingMessageIdRef.current = null
 
       // Refresh to get tool calls, metadata, etc.
       fetchMessages()
@@ -157,6 +88,7 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
         resolvedTaskId: null,
         injectedMemories: null,
         memoriesExtracted: null,
+        compactingError: null,
         files: [],
           reactions: [],
           stepLimitReached: false,
@@ -187,6 +119,7 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
         resolvedTaskId: null,
         injectedMemories: null,
         memoriesExtracted: null,
+        compactingError: null,
         files: optimisticFiles ?? [],
         reactions: [],
           stepLimitReached: false,
@@ -225,14 +158,8 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
     }
   }, [sessionId])
 
-  // Cleanup batch timer on unmount
-  useEffect(() => {
-    return () => {
-      if (batchTimerRef.current) {
-        clearTimeout(batchTimerRef.current)
-      }
-    }
-  }, [])
+  // Cleanup timers on unmount
+  useEffect(() => cleanup, [])
 
   return {
     messages,

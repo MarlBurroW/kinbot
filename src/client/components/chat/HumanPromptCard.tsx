@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { HelpCircle, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
+import { RelativeTimestamp } from '@/client/components/chat/RelativeTimestamp'
 import type { HumanPromptSummary, HumanPromptOptionVariant } from '@/shared/types'
 
 interface HumanPromptCardProps {
@@ -86,9 +87,12 @@ export const HumanPromptCard = memo(function HumanPromptCard({
           <HelpCircle className="size-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground leading-snug">
-            {prompt.question}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground leading-snug">
+              {prompt.question}
+            </p>
+            <RelativeTimestamp timestamp={new Date(prompt.createdAt).toISOString()} className="shrink-0 text-[10px] text-muted-foreground/70" />
+          </div>
           {prompt.description && (
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {prompt.description}

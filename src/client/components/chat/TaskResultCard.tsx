@@ -9,6 +9,7 @@ import {
 import { CheckCircle2, AlertCircle, ChevronRight, Loader2, Clock, XCircle, ExternalLink, UserCheck, MessageSquare, ArrowDownToLine } from 'lucide-react'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { cn } from '@/client/lib/utils'
+import { RelativeTimestamp } from '@/client/components/chat/RelativeTimestamp'
 import type { TaskStatus } from '@/shared/types'
 
 // ─── Message-based props (persisted task results) ────────────────────────────
@@ -235,16 +236,22 @@ export const TaskResultCard = memo(function TaskResultCard(props: TaskResultCard
                 )}
               </div>
             </div>
-            {props.onOpenDetail && (
-              <button
-                type="button"
-                onClick={props.onOpenDetail}
-                className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-                title={t('chat.taskResult.openDetail')}
-              >
-                <ExternalLink className="size-3.5" />
-              </button>
-            )}
+            <div className="flex items-center gap-1 shrink-0">
+              {(() => {
+                const ts = props.mode === 'message' ? props.timestamp : props.createdAt
+                return ts ? <RelativeTimestamp timestamp={ts} className="text-[10px] text-muted-foreground/70" /> : null
+              })()}
+              {props.onOpenDetail && (
+                <button
+                  type="button"
+                  onClick={props.onOpenDetail}
+                  className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                  title={t('chat.taskResult.openDetail')}
+                >
+                  <ExternalLink className="size-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Progress bar for active tasks */}

@@ -30,6 +30,7 @@ interface LLMModel {
   id: string
   name: string
   providerId: string
+  providerName: string
   providerType: string
   capability: string
 }

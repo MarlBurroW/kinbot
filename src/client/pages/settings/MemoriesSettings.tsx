@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { MemoryModelConfig } from '@/client/components/common/MemoryModelConfig'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { MemoryList } from '@/client/components/memory/MemoryList'
 
@@ -14,7 +13,9 @@ export function MemoriesSettings() {
         </p>
       </div>
 
-      <MemoryModelConfig variant="settings" />
+      <div className="surface-card rounded-lg p-4 text-sm text-muted-foreground">
+        {t('settings.memories.modelConfigRedirect')}
+      </div>
 
       <HelpPanel
         contentKey="settings.memories.help.content"

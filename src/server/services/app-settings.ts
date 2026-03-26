@@ -107,3 +107,63 @@ export async function setHubKinId(kinId: string | null): Promise<void> {
   return setSetting('hub_kin_id', kinId)
 }
 
+// ─── Default LLM (for new kins) ──────────────────────────────────────────────
+
+export async function getDefaultLlmModel(): Promise<string | null> {
+  return getSetting('default_llm_model')
+}
+
+export async function setDefaultLlmModel(model: string | null): Promise<void> {
+  if (model === null) return deleteSetting('default_llm_model')
+  return setSetting('default_llm_model', model)
+}
+
+export async function getDefaultLlmProviderId(): Promise<string | null> {
+  return getSetting('default_llm_provider_id')
+}
+
+export async function setDefaultLlmProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('default_llm_provider_id')
+  return setSetting('default_llm_provider_id', providerId)
+}
+
+// ─── Default Image Model ─────────────────────────────────────────────────────
+
+export async function getDefaultImageModel(): Promise<string | null> {
+  return getSetting('default_image_model')
+}
+
+export async function setDefaultImageModel(model: string | null): Promise<void> {
+  if (model === null) return deleteSetting('default_image_model')
+  return setSetting('default_image_model', model)
+}
+
+export async function getDefaultImageProviderId(): Promise<string | null> {
+  return getSetting('default_image_provider_id')
+}
+
+export async function setDefaultImageProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('default_image_provider_id')
+  return setSetting('default_image_provider_id', providerId)
+}
+
+// ─── Default Compacting Model ────────────────────────────────────────────────
+
+export async function getDefaultCompactingModel(): Promise<string | null> {
+  return getSetting('default_compacting_model')
+}
+
+export async function setDefaultCompactingModel(model: string | null): Promise<void> {
+  if (model === null) return deleteSetting('default_compacting_model')
+  return setSetting('default_compacting_model', model)
+}
+
+export async function getDefaultCompactingProviderId(): Promise<string | null> {
+  return getSetting('default_compacting_provider_id')
+}
+
+export async function setDefaultCompactingProviderId(providerId: string | null): Promise<void> {
+  if (providerId === null) return deleteSetting('default_compacting_provider_id')
+  return setSetting('default_compacting_provider_id', providerId)
+}
+

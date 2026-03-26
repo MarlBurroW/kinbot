@@ -53,6 +53,7 @@ interface LLMModel {
   id: string
   name: string
   providerId: string
+  providerName: string
   providerType: string
   capability: string
 }
@@ -61,7 +62,7 @@ interface ChatPanelProps {
   kin: KinInfo
   llmModels: LLMModel[]
   modelUnavailable?: boolean
-  queueState?: { isProcessing: boolean; queueSize: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingTurns?: number; compactingTurnThreshold?: number }
+  queueState?: { isProcessing: boolean; queueSize: number; processingStartedAt?: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }
   onModelChange: (modelId: string, providerId: string) => void
   onEditKin: () => void
 }
@@ -153,6 +154,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       const code = (err as { error?: { code?: string } })?.error?.code
       if (code === 'NOTHING_TO_COMPACT') {
         toast.info(t('chat.compacting.nothingToCompact'))
+      } else {
+        toast.error(t('chat.compacting.error'))
       }
     }
   }, [kin.id, t])
@@ -280,7 +283,14 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     return () => observer.disconnect()
   }, [checkNearBottom])
 
-  // IntersectionObserver — trigger loading older messages when top sentinel is visible
+  // Stable ref for fetchOlderMessages so the IntersectionObserver doesn't
+  // need to reconnect whenever the callback identity changes.
+  const fetchOlderMessagesRef = useRef(fetchOlderMessages)
+  fetchOlderMessagesRef.current = fetchOlderMessages
+
+  // IntersectionObserver — trigger loading older messages when top sentinel is visible.
+  // Uses a ref for the callback + hasMore to keep the observer stable and avoid
+  // reconnection loops that would cause infinite fetch cascades.
   useEffect(() => {
     const sentinel = topSentinelRef.current
     const scrollArea = scrollAreaRef.current
@@ -294,21 +304,25 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
           // Save scroll height before fetch so we can restore position after prepend
           prevScrollHeightRef.current = viewport.scrollHeight
           isLoadingMoreRef.current = true
-          fetchOlderMessages()
+          fetchOlderMessagesRef.current()
         }
       },
       { root: viewport, threshold: 0 },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchOlderMessages])
+  // Only reconnect observer when hasMore or kin changes — NOT on every message/callback change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, kin.id])
 
   // Keep isLoadingMoreRef in sync for the observer guard
   useEffect(() => {
     isLoadingMoreRef.current = isLoadingMore
   }, [isLoadingMore])
 
-  // Restore scroll position after older messages are prepended
+  // Restore scroll position after older messages are prepended.
+  // Only runs when messages.length changes to avoid consuming prevScrollHeightRef
+  // on unrelated re-renders (e.g. isLoadingMore toggling before messages arrive).
   useLayoutEffect(() => {
     if (prevScrollHeightRef.current === null) return
     const scrollArea = scrollAreaRef.current
@@ -321,7 +335,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       viewport.scrollTop += delta
     }
     prevScrollHeightRef.current = null
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length])
 
   // Track new messages arriving while scrolled up
   useEffect(() => {
@@ -614,6 +629,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
 
       {/* Conversation header */}
       <ConversationHeader
+        kinId={kin.id}
         name={kin.name}
         role={kin.role}
         model={kin.model}
@@ -626,8 +642,12 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         maxTokens={queueState?.contextWindow ?? 0}
         contextBreakdown={queueState?.contextBreakdown}
         pipelineStatus={queueState?.pipelineStatus}
-        compactingTurns={queueState?.compactingTurns}
-        compactingTurnThreshold={queueState?.compactingTurnThreshold}
+        compactingPercent={queueState?.compactingPercent}
+        compactingThresholdPercent={queueState?.compactingThresholdPercent}
+        summaryCount={queueState?.summaryCount}
+        maxSummaries={queueState?.maxSummaries}
+        summaryTokens={queueState?.summaryTokens}
+        summaryBudgetTokens={queueState?.summaryBudgetTokens}
         toolCallCount={toolCallCount}
         isToolCallsOpen={isToolCallsOpen}
         queueState={queueState}
@@ -704,14 +724,17 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     : null
 
                   if (msg.sourceType === 'compacting') {
+                    const isCompactingError = !!msg.compactingError
                     return (
                       <React.Fragment key={msg.id}>
                         {dateSeparator}
                         {timeGap}
                         <CompactingCard
-                          status="done"
-                          summary={msg.content}
+                          status={isCompactingError ? 'error' : 'done'}
+                          summary={msg.content || null}
                           memoriesExtracted={msg.memoriesExtracted}
+                          error={msg.compactingError ?? undefined}
+                          timestamp={msg.createdAt}
                         />
                       </React.Fragment>
                     )
@@ -796,6 +819,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     cycle={liveCompacting.cycle}
                     estimatedTotal={liveCompacting.estimatedTotal}
                     error={liveCompacting.error}
+                    timestamp={liveCompacting.startedAt}
                   />
                 )}
                 {pendingPrompts.map((prompt) => (
@@ -807,7 +831,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   />
                 ))}
                 {queueState?.isProcessing && !(streamingMessage && streamingMessage.content.length > 0 && !tokenStalled) && (
-                  <TypingIndicator kinName={kin.name} kinAvatarUrl={kin.avatarUrl} />
+                  <TypingIndicator kinName={kin.name} kinAvatarUrl={kin.avatarUrl} startedAt={queueState?.processingStartedAt} />
                 )}
               </div>
             )}
@@ -914,7 +938,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
 
       {/* Quick session side panel */}
       <Sheet open={isQuickOpen} onOpenChange={(open) => { setQuickOpen(open); if (!open) setShowQuickHistory(false) }}>
-        <SheetContent side="right" className="w-full sm:w-[400px] md:w-[500px] p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:w-[520px] md:w-[680px] lg:w-[780px] p-0" showCloseButton={false}>
           <SheetTitle className="sr-only">{t('chat.quickChat')}</SheetTitle>
           {showQuickHistory ? (
             <Suspense fallback={null}>

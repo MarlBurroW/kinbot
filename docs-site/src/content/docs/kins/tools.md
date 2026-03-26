@@ -18,6 +18,9 @@ Kins interact with the world through **tools** — functions they can call durin
 | `list_memories` | Browse all memories with filters |
 | `review_memories` | Review and curate memories |
 | `search_history` | Full-text search through past conversation messages |
+| `browse_history` | Browse messages by date range with pagination |
+| `list_summaries` | List all compacting summaries (active and archived) with metadata |
+| `read_summary` | Read the full text of a specific compacting summary by ID |
 | `search_knowledge` | Search the knowledge base (uploaded documents) |
 | `list_knowledge_sources` | List available knowledge sources |
 
@@ -267,6 +270,8 @@ The system prompt includes a tool selection table that steers Kins toward struct
 | `update_platform_config` | Modify a config value in the .env file (opt-in) |
 | `restart_platform` | Trigger a graceful restart of KinBot (opt-in) |
 | `get_system_info` | Get system/platform information |
+| `list_providers` | List all configured AI providers with their capabilities |
+| `list_models` | List available models across providers, optionally filtered by capability (llm, image, embedding, search, rerank) |
 | `execute_sql` | Run raw SQL on the database (opt-in, dangerous) |
 
 ### MCP Server Management
@@ -283,8 +288,15 @@ The system prompt includes a tool selection table that steers Kins toward struct
 | Tool | Description |
 |---|---|
 | `register_tool` | Create a custom tool with a script |
-| `run_custom_tool` | Execute a custom tool |
+| `run_custom_tool` | Execute a custom tool. Accepts an optional `timeout` parameter (ms), capped at the server max |
 | `list_custom_tools` | List registered custom tools |
+
+Custom tool execution timeout is configurable via environment variables:
+
+- `KINBOT_CUSTOM_TOOL_TIMEOUT` — default timeout (default: 30s)
+- `KINBOT_CUSTOM_TOOL_MAX_TIMEOUT` — maximum allowed timeout (default: 300s / 5min)
+
+Per-invocation timeout values passed by the Kin are clamped between 1 second and the server maximum.
 
 ## Tool configuration
 

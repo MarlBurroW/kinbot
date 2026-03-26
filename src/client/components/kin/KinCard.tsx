@@ -76,12 +76,12 @@ export const KinCard = forwardRef<HTMLDivElement, KinCardProps>(function KinCard
       style={style}
       onClick={onClick}
       className={cn(
-        'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 w-full text-left cursor-pointer transition-all duration-150',
+        'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 w-full text-left cursor-pointer',
+        isDragging ? 'z-50 shadow-lg opacity-90 scale-[1.02]' : 'transition-all duration-150',
         isSelected
           ? 'bg-primary/10 shadow-sm'
           : 'hover:bg-accent/50',
         modelUnavailable && !isSelected && 'opacity-60',
-        isDragging && 'z-50 shadow-lg opacity-90 scale-[1.02]',
         extraClassName,
       )}
       {...rest}

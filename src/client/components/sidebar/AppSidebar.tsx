@@ -36,7 +36,7 @@ interface KinSummary {
 
 interface AppSidebarProps {
   kins: KinSummary[]
-  llmModels: { id: string; name: string; providerId: string; providerType: string; capability: string }[]
+  llmModels: { id: string; name: string; providerId: string; providerName: string; providerType: string; capability: string }[]
   selectedKinSlug: string | null
   selectedKinId: string | null
   unavailableKinIds: Set<string>

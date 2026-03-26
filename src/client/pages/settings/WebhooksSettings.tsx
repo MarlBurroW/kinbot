@@ -23,6 +23,13 @@ import {
 } from '@/client/components/ui/dialog'
 import { Input } from '@/client/components/ui/input'
 import { Label } from '@/client/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/client/components/ui/select'
 import { Plus, Copy, Eye, EyeOff, Webhook, Search } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
@@ -215,16 +222,17 @@ export function WebhooksSettings() {
             />
           </div>
           {kins.length > 1 && (
-            <select
-              value={filterKinId}
-              onChange={(e) => setFilterKinId(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{t('settings.webhooks.allKins', 'All Kins')}</option>
-              {kins.map((kin) => (
-                <option key={kin.id} value={kin.id}>{kin.name}</option>
-              ))}
-            </select>
+            <Select value={filterKinId || '__all__'} onValueChange={(v) => setFilterKinId(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-auto min-w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t('settings.webhooks.allKins', 'All Kins')}</SelectItem>
+                {kins.map((kin) => (
+                  <SelectItem key={kin.id} value={kin.id}>{kin.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
       )}

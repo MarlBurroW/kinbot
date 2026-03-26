@@ -19,14 +19,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avat
 import { FormErrorAlert } from '@/client/components/common/FormErrorAlert'
 import { AvatarPickerModal, type AvatarPickerResult } from '@/client/components/kin/AvatarPickerModal'
 import { KinToolsTab } from '@/client/components/kin/KinToolsTab'
+import { CompactingAnimation } from '@/client/components/kin/CompactingAnimation'
 import { MemoryList } from '@/client/components/memory/MemoryList'
 import { Switch } from '@/client/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/client/components/ui/select'
 import { Archive, ArrowLeft, Bot, Brain, Camera, Loader2, Network, Settings, ShieldCheck, Sparkles, Trash2, Upload, User, Wrench } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
 import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
 import { cn } from '@/client/lib/utils'
-import { getErrorMessage } from '@/client/lib/api'
+import { api, getErrorMessage } from '@/client/lib/api'
 import { TOOL_DOMAIN_MAP } from '@/shared/constants'
 import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
 import type { GeneratedKinConfig } from '@/client/hooks/useKins'
@@ -259,6 +267,16 @@ export function KinFormModal({
       setWasAiGenerated(false)
       setWizardDescription(hubMode ? t('hub.defaultDescription') : '')
       setHubGrantAllTools(true)
+
+      // Pre-populate with default LLM model
+      api.get<{ defaultLlmModel: string | null; defaultLlmProviderId: string | null }>('/settings/default-models')
+        .then((data) => {
+          if (data.defaultLlmModel) {
+            setModel(data.defaultLlmModel)
+            setProviderId(data.defaultLlmProviderId ?? null)
+          }
+        })
+        .catch(() => {})
     }
     setAvatarFile(null)
     setError('')
@@ -401,7 +419,10 @@ export function KinFormModal({
         const effectiveCompactingConfig = (
           compactingConfig?.compactingModel != null ||
           compactingConfig?.compactingProviderId != null ||
-          compactingConfig?.turnThreshold != null
+          compactingConfig?.thresholdPercent != null ||
+          compactingConfig?.keepPercent != null ||
+          compactingConfig?.summaryBudgetPercent != null ||
+          compactingConfig?.maxSummaries != null
         ) ? compactingConfig : null
         await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig, compactingConfig: effectiveCompactingConfig })
         if (avatarFile) await onUploadAvatar(kin.id, avatarFile)
@@ -840,41 +861,129 @@ export function KinFormModal({
                             <Archive className="size-4" />
                             {t('kin.compacting.title')}
                           </Label>
+
+                          {/* Animated visualization */}
+                          <CompactingAnimation />
+
                           <p className="text-xs text-muted-foreground">{t('kin.compacting.overrideHint')}</p>
 
-                          {/* Compacting model */}
+                          {/* Compacting model — 3-way selector */}
                           <div className="space-y-1.5">
                             <Label className="text-xs">{t('kin.compacting.modelLabel')}</Label>
-                            <ModelPicker
-                              models={llmModels}
-                              value={modelPickerValue(compactingConfig?.compactingModel ?? '', compactingConfig?.compactingProviderId ?? '')}
-                              onValueChange={(modelId, pid) => {
-                                setCompactingConfig({ ...compactingConfig, compactingModel: modelId || null, compactingProviderId: pid || null })
+                            <Select
+                              value={
+                                compactingConfig?.compactingModel == null ? 'default'
+                                : compactingConfig.compactingModel === '__kin_own__' ? 'kin_own'
+                                : 'custom'
+                              }
+                              onValueChange={(mode) => {
+                                if (mode === 'default') {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: null, compactingProviderId: null })
+                                } else if (mode === 'kin_own') {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: '__kin_own__', compactingProviderId: null })
+                                } else {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: '', compactingProviderId: null })
+                                }
                                 markDirty()
                               }}
-                              placeholder={t('kin.compacting.sameAsKinModel')}
-                              allowClear
-                            />
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="default">{t('kin.compacting.modeDefault')}</SelectItem>
+                                <SelectItem value="kin_own">{t('kin.compacting.modeKinOwn')}</SelectItem>
+                                <SelectItem value="custom">{t('kin.compacting.modeCustom')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {compactingConfig?.compactingModel != null && compactingConfig.compactingModel !== '__kin_own__' && (
+                              <ModelPicker
+                                models={llmModels}
+                                value={modelPickerValue(compactingConfig.compactingModel, compactingConfig.compactingProviderId ?? '')}
+                                onValueChange={(modelId, pid) => {
+                                  setCompactingConfig({ ...compactingConfig, compactingModel: modelId || null, compactingProviderId: pid || null })
+                                  markDirty()
+                                }}
+                                placeholder={t('kin.compacting.selectCustomModel')}
+                              />
+                            )}
                             <p className="text-[10px] text-muted-foreground">{t('kin.compacting.modelHint')}</p>
                           </div>
 
-                          {/* Turn threshold */}
+                          {/* Threshold percent */}
                           <div className="space-y-1.5">
-                            <Label className="text-xs">{t('kin.compacting.turnThresholdLabel')}</Label>
+                            <Label className="text-xs">{t('kin.compacting.thresholdPercentLabel')}</Label>
                             <Input
                               type="number"
-                              min={10}
-                              max={100}
-                              step={1}
-                              placeholder={t('kin.compacting.turnThresholdPlaceholder', { default: 25 })}
-                              value={compactingConfig?.turnThreshold ?? ''}
+                              min={50}
+                              max={95}
+                              step={5}
+                              placeholder={t('kin.compacting.thresholdPercentPlaceholder', { default: 75 })}
+                              value={compactingConfig?.thresholdPercent ?? ''}
                               onChange={(e) => {
                                 const val = e.target.value ? Number(e.target.value) : null
-                                setCompactingConfig({ ...compactingConfig, turnThreshold: val })
+                                setCompactingConfig({ ...compactingConfig, thresholdPercent: val })
                                 markDirty()
                               }}
                             />
-                            <p className="text-[10px] text-muted-foreground">{t('kin.compacting.turnThresholdHint')}</p>
+                            <p className="text-[10px] text-muted-foreground">{t('kin.compacting.thresholdPercentHint')}</p>
+                          </div>
+
+                          {/* Keep percent */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{t('kin.compacting.keepPercentLabel')}</Label>
+                            <Input
+                              type="number"
+                              min={20}
+                              max={80}
+                              step={5}
+                              placeholder={t('kin.compacting.keepPercentPlaceholder', { default: 40 })}
+                              value={compactingConfig?.keepPercent ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null
+                                setCompactingConfig({ ...compactingConfig, keepPercent: val })
+                                markDirty()
+                              }}
+                            />
+                            <p className="text-[10px] text-muted-foreground">{t('kin.compacting.keepPercentHint')}</p>
+                          </div>
+
+                          {/* Summary budget percent */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{t('kin.compacting.summaryBudgetLabel')}</Label>
+                            <Input
+                              type="number"
+                              min={5}
+                              max={50}
+                              step={5}
+                              placeholder={t('kin.compacting.summaryBudgetPlaceholder', { default: 20 })}
+                              value={compactingConfig?.summaryBudgetPercent ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null
+                                setCompactingConfig({ ...compactingConfig, summaryBudgetPercent: val })
+                                markDirty()
+                              }}
+                            />
+                            <p className="text-[10px] text-muted-foreground">{t('kin.compacting.summaryBudgetHint')}</p>
+                          </div>
+
+                          {/* Max summaries */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{t('kin.compacting.maxSummariesLabel')}</Label>
+                            <Input
+                              type="number"
+                              min={3}
+                              max={50}
+                              step={1}
+                              placeholder={t('kin.compacting.maxSummariesPlaceholder', { default: 10 })}
+                              value={compactingConfig?.maxSummaries ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null
+                                setCompactingConfig({ ...compactingConfig, maxSummaries: val })
+                                markDirty()
+                              }}
+                            />
+                            <p className="text-[10px] text-muted-foreground">{t('kin.compacting.maxSummariesHint')}</p>
                           </div>
                         </div>
                       )}

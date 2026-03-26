@@ -24,9 +24,11 @@ export const fullMockConfig = {
 
   compacting: {
     model: undefined,
-    maxSnapshotsPerKin: 10,
-    batchTurns: 10,
-    minKeepTurns: 15,
+    thresholdPercent: 75,
+    keepPercent: 40,
+    summaryBudgetPercent: 20,
+    maxSummaries: 10,
+    maxSummariesPerKin: 50,
   },
 
   historyTokenBudget: 0,
@@ -208,6 +210,7 @@ export const fullMockSchema = {
   kinMcpServers: {},
   messages: {},
   compactingSnapshots: {},
+  compactingSummaries: {},
   memories: {},
   contacts: {},
   contactIdentifiers: {},

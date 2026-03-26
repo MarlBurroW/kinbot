@@ -8,6 +8,7 @@ import {
   mcpServers,
   queueItems,
   compactingSnapshots,
+  compactingSummaries,
   memories,
   messages,
   contacts,
@@ -268,6 +269,7 @@ export async function deleteKin(kinId: string): Promise<boolean> {
   await db.delete(humanPrompts).where(eq(humanPrompts.kinId, kinId))
   await db.delete(files).where(eq(files.kinId, kinId))
   await db.delete(compactingSnapshots).where(eq(compactingSnapshots.kinId, kinId))
+  await db.delete(compactingSummaries).where(eq(compactingSummaries.kinId, kinId))
   await db.delete(memories).where(eq(memories.kinId, kinId))
 
   // Null out cross-kin references before deleting tasks and crons

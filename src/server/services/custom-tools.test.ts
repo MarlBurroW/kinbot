@@ -1,6 +1,55 @@
 import { describe, it, expect } from 'bun:test'
 import { z } from 'zod'
 
+// ─── Test resolveTimeout logic (mirrored from custom-tools.ts) ───────────────
+// We mirror the pure function to test without requiring DB/config dependencies.
+
+function resolveTimeout(
+  timeoutMs?: number,
+  defaultTimeout = 30_000,
+  maxTimeout = 300_000,
+): number {
+  const value = timeoutMs ?? defaultTimeout
+  return Math.max(1_000, Math.min(value, maxTimeout))
+}
+
+describe('resolveTimeout', () => {
+  it('returns default (30s) when no override provided', () => {
+    expect(resolveTimeout()).toBe(30_000)
+  })
+
+  it('uses the provided timeout when within bounds', () => {
+    expect(resolveTimeout(60_000)).toBe(60_000)
+    expect(resolveTimeout(120_000)).toBe(120_000)
+  })
+
+  it('clamps to MAX_TIMEOUT when override exceeds it', () => {
+    expect(resolveTimeout(999_999_999)).toBe(300_000)
+  })
+
+  it('clamps to minimum of 1000ms', () => {
+    expect(resolveTimeout(100)).toBe(1_000)
+    expect(resolveTimeout(0)).toBe(1_000)
+    expect(resolveTimeout(-5000)).toBe(1_000)
+  })
+
+  it('handles undefined gracefully (uses default)', () => {
+    expect(resolveTimeout(undefined)).toBe(30_000)
+  })
+
+  it('respects custom default timeout', () => {
+    expect(resolveTimeout(undefined, 60_000)).toBe(60_000)
+  })
+
+  it('respects custom max timeout', () => {
+    expect(resolveTimeout(500_000, 30_000, 120_000)).toBe(120_000)
+  })
+
+  it('custom default is also clamped to max', () => {
+    expect(resolveTimeout(undefined, 500_000, 120_000)).toBe(120_000)
+  })
+})
+
 // ─── Extract and test the pure utility functions ─────────────────────────────
 // We re-implement the pure functions from custom-tools.ts to test their logic
 // without needing DB/config dependencies. The source functions are private,

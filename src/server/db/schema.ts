@@ -143,6 +143,24 @@ export const compactingSnapshots = sqliteTable('compacting_snapshots', {
   index('idx_compacting_kin_active').on(table.kinId, table.isActive),
 ])
 
+export const compactingSummaries = sqliteTable('compacting_summaries', {
+  id: text('id').primaryKey(),
+  kinId: text('kin_id').notNull().references(() => kins.id),
+  summary: text('summary').notNull(),
+  firstMessageAt: integer('first_message_at', { mode: 'timestamp_ms' }).notNull(),
+  lastMessageAt: integer('last_message_at', { mode: 'timestamp_ms' }).notNull(),
+  firstMessageId: text('first_message_id').references(() => messages.id),
+  lastMessageId: text('last_message_id').notNull().references(() => messages.id),
+  messageCount: integer('message_count').notNull().default(0),
+  tokenEstimate: integer('token_estimate').notNull().default(0),
+  isInContext: integer('is_in_context', { mode: 'boolean' }).notNull().default(true),
+  depth: integer('depth').notNull().default(0),
+  sourceSummaryIds: text('source_summary_ids'), // JSON array of merged summary IDs (null for depth 0)
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, (table) => [
+  index('idx_compacting_summaries_kin').on(table.kinId, table.isInContext),
+])
+
 export const memories = sqliteTable('memories', {
   id: text('id').primaryKey(),
   kinId: text('kin_id').notNull().references(() => kins.id),

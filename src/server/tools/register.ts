@@ -23,7 +23,7 @@ import {
   listMemoriesTool,
   reviewMemoriesTool,
 } from '@/server/tools/memory-tools'
-import { searchHistoryTool } from '@/server/tools/history-tools'
+import { searchHistoryTool, browseHistoryTool, listSummariesTool, readSummaryTool } from '@/server/tools/history-tools'
 import {
   getSecretTool,
   redactMessageTool,
@@ -71,6 +71,7 @@ import {
   listCustomToolsTool,
 } from '@/server/tools/custom-tool-tools'
 import { generateImageTool, listImageModelsTool } from '@/server/tools/image-tools'
+import { listProvidersTool, listModelsTool } from '@/server/tools/provider-tools'
 import { runShellTool } from '@/server/tools/shell-tools'
 import {
   addMcpServerTool,
@@ -209,6 +210,9 @@ export function registerAllTools(): void {
 
   // Phase 12: History tools
   toolRegistry.register('search_history', searchHistoryTool)
+  toolRegistry.register('browse_history', browseHistoryTool)
+  toolRegistry.register('list_summaries', listSummariesTool)
+  toolRegistry.register('read_summary', readSummaryTool)
 
   // Phase 14: Vault tools
   toolRegistry.register('get_secret', getSecretTool)
@@ -260,6 +264,10 @@ export function registerAllTools(): void {
   // Phase 21: Image tools
   toolRegistry.register('generate_image', generateImageTool)
   toolRegistry.register('list_image_models', listImageModelsTool)
+
+  // Provider & model discovery tools (main + sub-kin)
+  toolRegistry.register('list_providers', listProvidersTool)
+  toolRegistry.register('list_models', listModelsTool)
 
   // Phase 18: MCP management tools (main only)
   toolRegistry.register('add_mcp_server', addMcpServerTool)

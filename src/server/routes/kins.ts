@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
-import { eq, and, desc, isNull, ne } from 'drizzle-orm'
+import { eq, and, desc, isNull, ne, inArray } from 'drizzle-orm'
 import { mkdirSync, existsSync } from 'fs'
 import { generateText } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { db } from '@/server/db/index'
-import { kins, kinMcpServers, mcpServers, queueItems, compactingSnapshots, memories, messages, providers } from '@/server/db/schema'
+import { kins, kinMcpServers, mcpServers, queueItems, compactingSummaries, memories, messages, providers } from '@/server/db/schema'
 import { config } from '@/server/config'
 import {
   generateAvatarImage,
@@ -29,7 +29,7 @@ import {
   getKinDetails,
 } from '@/server/services/kins'
 import { kinAvatarUrl, validateKinFields } from '@/server/services/field-validator'
-import { getHubKinId } from '@/server/services/app-settings'
+import { getHubKinId, getDefaultLlmModel, getDefaultLlmProviderId } from '@/server/services/app-settings'
 import { listModelsForProvider } from '@/server/providers/index'
 import type { AppVariables } from '@/server/app'
 
@@ -50,14 +50,18 @@ kinRoutes.get('/', async (c) => {
   const [allKins, hubKinId, allQueueItems] = await Promise.all([
     db.select().from(kins).all(),
     getHubKinId(),
-    db.select({ kinId: queueItems.kinId, status: queueItems.status }).from(queueItems).all(),
+    db.select({ kinId: queueItems.kinId, status: queueItems.status, createdAt: queueItems.createdAt }).from(queueItems).all(),
   ])
 
   // Build per-kin queue state from all queue items
-  const queueStateMap = new Map<string, { isProcessing: boolean; queueSize: number }>()
+  const queueStateMap = new Map<string, { isProcessing: boolean; queueSize: number; processingStartedAt?: number }>()
   for (const item of allQueueItems) {
     const state = queueStateMap.get(item.kinId) ?? { isProcessing: false, queueSize: 0 }
-    if (item.status === 'processing') state.isProcessing = true
+    if (item.status === 'processing') {
+      state.isProcessing = true
+      // Use the queue item's createdAt as a proxy for when processing started
+      state.processingStartedAt = item.createdAt instanceof Date ? item.createdAt.getTime() : Number(item.createdAt)
+    }
     if (item.status === 'pending') state.queueSize++
     queueStateMap.set(item.kinId, state)
   }
@@ -77,6 +81,7 @@ kinRoutes.get('/', async (c) => {
         isHub: k.id === hubKinId,
         isProcessing: qs?.isProcessing ?? false,
         queueSize: qs?.queueSize ?? 0,
+        processingStartedAt: qs?.processingStartedAt ?? undefined,
       }
     }),
   })
@@ -348,15 +353,20 @@ kinRoutes.get('/:id/context-usage', async (c) => {
   const compacting = await getCompactingProximity(kin.id)
 
   // Use cached context usage from the last LLM call if available
-  const cached = getLastContextUsage(kin.id)
+  const cached = await getLastContextUsage(kin.id)
   if (cached) {
     return c.json({
       contextTokens: cached.contextTokens,
       contextWindow: cached.contextWindow,
       contextBreakdown: cached.breakdown ?? null,
       pipelineStatus: cached.pipelineStatus ?? null,
-      compactingTurns: compacting.currentTurns,
-      compactingTurnThreshold: compacting.turnThreshold,
+      compactingPercent: compacting.currentPercent,
+      compactingThresholdPercent: compacting.thresholdPercent,
+      summaryCount: compacting.summaryCount,
+      maxSummaries: compacting.maxSummaries,
+      summaryTokens: compacting.summaryTokens,
+      summaryBudgetTokens: compacting.summaryBudgetTokens,
+      keepPercent: compacting.keepPercent,
     })
   }
 
@@ -368,15 +378,19 @@ kinRoutes.get('/:id/context-usage', async (c) => {
   systemPromptTokens += estimateTokens([kin.name, kin.role, kin.character, kin.expertise].join(' '))
   systemPromptTokens += 1500
 
-  const snapshot = await db
-    .select({ summary: compactingSnapshots.summary, createdAt: compactingSnapshots.createdAt })
-    .from(compactingSnapshots)
-    .where(and(eq(compactingSnapshots.kinId, kin.id), eq(compactingSnapshots.isActive, true)))
-    .get()
+  // Sum active summaries tokens
+  const activeSummaries = await db
+    .select({ summary: compactingSummaries.summary, lastMessageAt: compactingSummaries.lastMessageAt })
+    .from(compactingSummaries)
+    .where(and(eq(compactingSummaries.kinId, kin.id), eq(compactingSummaries.isInContext, true)))
+    .orderBy(desc(compactingSummaries.lastMessageAt))
+    .all()
 
-  if (snapshot) {
-    systemPromptTokens += estimateTokens(snapshot.summary)
+  for (const s of activeSummaries) {
+    systemPromptTokens += estimateTokens(s.summary)
   }
+
+  const latestSummary = activeSummaries.length > 0 ? activeSummaries[0]! : null
 
   const recentMsgs = await db
     .select({ content: messages.content, createdAt: messages.createdAt })
@@ -393,8 +407,9 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     .limit(50)
     .all()
 
-  const filtered = snapshot
-    ? recentMsgs.filter((m) => m.createdAt && snapshot.createdAt && m.createdAt > snapshot.createdAt)
+  const cutoffTs = latestSummary ? (latestSummary.lastMessageAt as unknown as number) : null
+  const filtered = cutoffTs
+    ? recentMsgs.filter((m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTs)
     : recentMsgs
 
   let messagesTokens = 0
@@ -409,9 +424,42 @@ kinRoutes.get('/:id/context-usage', async (c) => {
     contextWindow,
     contextBreakdown: { systemPrompt: systemPromptTokens, messages: messagesTokens, tools: 0, summary: 0, total: contextTokens },
     pipelineStatus: null,
-    compactingTurns: compacting.currentTurns,
-    compactingTurnThreshold: compacting.turnThreshold,
+    compactingPercent: compacting.currentPercent,
+    compactingThresholdPercent: compacting.thresholdPercent,
+    summaryCount: compacting.summaryCount,
+    maxSummaries: compacting.maxSummaries,
+    summaryTokens: compacting.summaryTokens,
+    summaryBudgetTokens: compacting.summaryBudgetTokens,
+    keepPercent: compacting.keepPercent,
   })
+})
+
+// GET /api/kins/:id/context-preview — build and return the full system prompt
+// Useful for debugging / transparency: shows the actual prompt the LLM would receive.
+kinRoutes.get('/:id/context-preview', async (c) => {
+  const kin = resolveKinByIdOrSlug(c.req.param('id'))
+  if (!kin) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  const taskId = c.req.query('taskId')
+  const sessionId = c.req.query('sessionId')
+
+  if (taskId) {
+    const { buildTaskContextPreview } = await import('@/server/services/context-preview')
+    const preview = await buildTaskContextPreview(taskId)
+    return c.json(preview)
+  }
+
+  if (sessionId) {
+    const { buildQuickSessionContextPreview } = await import('@/server/services/context-preview')
+    const preview = await buildQuickSessionContextPreview(kin.id, sessionId)
+    return c.json(preview)
+  }
+
+  const { buildContextPreview } = await import('@/server/services/context-preview')
+  const preview = await buildContextPreview(kin.id)
+  return c.json(preview)
 })
 
 // ─── Kin CRUD (parameterized routes) ───────────────────────────────────────
@@ -436,7 +484,8 @@ kinRoutes.get('/:id', async (c) => {
     .all()
 
   const queueSize = pendingItems.filter((q) => q.status === 'pending').length
-  const isProcessing = pendingItems.some((q) => q.status === 'processing')
+  const processingItem = pendingItems.find((q) => q.status === 'processing')
+  const isProcessing = !!processingItem
 
   return c.json({
     id: details.id,
@@ -454,6 +503,9 @@ kinRoutes.get('/:id', async (c) => {
     mcpServers: details.mcpServers,
     queueSize,
     isProcessing,
+    processingStartedAt: processingItem
+      ? (processingItem.createdAt instanceof Date ? processingItem.createdAt.getTime() : Number(processingItem.createdAt))
+      : undefined,
     isCompacting: compactingKins.has(kin.id),
     createdAt: details.createdAt,
   })
@@ -463,7 +515,7 @@ kinRoutes.get('/:id', async (c) => {
 kinRoutes.post('/', async (c) => {
   const user = c.get('user') as { id: string }
   const body = await c.req.json()
-  const { name, slug, role, character, expertise, model, providerId, mcpServerIds } = body as {
+  let { name, slug, role, character, expertise, model, providerId, mcpServerIds } = body as {
     name: string
     slug?: string
     role: string
@@ -472,6 +524,16 @@ kinRoutes.post('/', async (c) => {
     model: string
     providerId?: string | null
     mcpServerIds?: string[]
+  }
+
+  // Fall back to default LLM if no model specified
+  if (!model || !model.trim()) {
+    const defaultModel = await getDefaultLlmModel()
+    const defaultProviderId = await getDefaultLlmProviderId()
+    if (defaultModel) {
+      model = defaultModel
+      providerId = providerId ?? defaultProviderId
+    }
   }
 
   const validationError = validateKinFields({ name, role, character, expertise, model, providerId }, 'create')
@@ -753,15 +815,46 @@ kinRoutes.post('/:id/compacting/run', async (c) => {
   }
 
   const { runCompacting } = await import('@/server/services/compacting')
-  const result = await runCompacting(existing.id)
+
+  sseManager.sendToKin(existing.id, {
+    type: 'compacting:start',
+    kinId: existing.id,
+    data: { kinId: existing.id, cycle: 1, estimatedTotal: 1 },
+  })
+
+  let result: Awaited<ReturnType<typeof runCompacting>>
+  try {
+    result = await runCompacting(existing.id)
+  } catch (err) {
+    // runCompacting already emits compacting:error via SSE and persists the error message
+    return c.json({ error: { code: 'COMPACTING_FAILED', message: err instanceof Error ? err.message : 'Compacting failed' } }, 500)
+  }
+
   if (!result) {
-    return c.json({ error: { code: 'NOTHING_TO_COMPACT', message: 'Not enough turns to compact' } }, 422)
+    // Persist error in conversation history
+    await db.insert(messages).values({
+      id: crypto.randomUUID(),
+      kinId: existing.id,
+      role: 'system',
+      content: '',
+      sourceType: 'compacting',
+      isRedacted: false,
+      redactPending: false,
+      metadata: JSON.stringify({ error: 'NOTHING_TO_COMPACT' }),
+      createdAt: new Date(),
+    })
+    sseManager.sendToKin(existing.id, {
+      type: 'compacting:error',
+      kinId: existing.id,
+      data: { kinId: existing.id, error: 'NOTHING_TO_COMPACT' },
+    })
+    return c.json({ error: { code: 'NOTHING_TO_COMPACT', message: 'Not enough messages to compact' } }, 422)
   }
 
   return c.json({ success: true, summary: result.summary, memoriesExtracted: result.memoriesExtracted })
 })
 
-// POST /api/kins/:id/compacting/purge — deactivate active snapshot
+// POST /api/kins/:id/compacting/purge — deactivate all active summaries
 kinRoutes.post('/:id/compacting/purge', async (c) => {
   const existing = resolveKinByIdOrSlug(c.req.param('id'))
   if (!existing) {
@@ -770,71 +863,120 @@ kinRoutes.post('/:id/compacting/purge', async (c) => {
   const kinId = existing.id
 
   await db
-    .update(compactingSnapshots)
-    .set({ isActive: false })
-    .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
+    .update(compactingSummaries)
+    .set({ isInContext: false })
+    .where(and(eq(compactingSummaries.kinId, kinId), eq(compactingSummaries.isInContext, true)))
 
   return c.json({ success: true })
 })
 
-// GET /api/kins/:id/compacting/snapshots — list snapshots
-kinRoutes.get('/:id/compacting/snapshots', async (c) => {
+// GET /api/kins/:id/compacting/summaries — list summaries
+kinRoutes.get('/:id/compacting/summaries', async (c) => {
   const existing = resolveKinByIdOrSlug(c.req.param('id'))
   if (!existing) {
     return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
   }
   const kinId = existing.id
 
-  const snapshots = await db
+  const summaries = await db
     .select({
-      id: compactingSnapshots.id,
-      messagesUpToId: compactingSnapshots.messagesUpToId,
-      isActive: compactingSnapshots.isActive,
-      createdAt: compactingSnapshots.createdAt,
+      id: compactingSummaries.id,
+      firstMessageAt: compactingSummaries.firstMessageAt,
+      lastMessageAt: compactingSummaries.lastMessageAt,
+      lastMessageId: compactingSummaries.lastMessageId,
+      messageCount: compactingSummaries.messageCount,
+      tokenEstimate: compactingSummaries.tokenEstimate,
+      isInContext: compactingSummaries.isInContext,
+      depth: compactingSummaries.depth,
+      createdAt: compactingSummaries.createdAt,
     })
-    .from(compactingSnapshots)
-    .where(eq(compactingSnapshots.kinId, kinId))
-    .orderBy(desc(compactingSnapshots.createdAt))
+    .from(compactingSummaries)
+    .where(eq(compactingSummaries.kinId, kinId))
+    .orderBy(desc(compactingSummaries.createdAt))
     .all()
 
-  return c.json({ snapshots })
+  return c.json({ summaries })
 })
 
-// POST /api/kins/:id/compacting/rollback — reactivate a previous snapshot
+// Keep the old route as an alias for backwards compatibility
+kinRoutes.get('/:id/compacting/snapshots', async (c) => {
+  // Redirect internally to the new summaries route
+  const existing = resolveKinByIdOrSlug(c.req.param('id'))
+  if (!existing) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+  const kinId = existing.id
+
+  const summaries = await db
+    .select({
+      id: compactingSummaries.id,
+      firstMessageAt: compactingSummaries.firstMessageAt,
+      lastMessageAt: compactingSummaries.lastMessageAt,
+      lastMessageId: compactingSummaries.lastMessageId,
+      isInContext: compactingSummaries.isInContext,
+      createdAt: compactingSummaries.createdAt,
+    })
+    .from(compactingSummaries)
+    .where(eq(compactingSummaries.kinId, kinId))
+    .orderBy(desc(compactingSummaries.createdAt))
+    .all()
+
+  // Map to old format for backwards compat
+  return c.json({ snapshots: summaries.map((s) => ({ id: s.id, messagesUpToId: s.lastMessageId, isActive: s.isInContext, createdAt: s.createdAt })) })
+})
+
+// POST /api/kins/:id/compacting/rollback — archive summaries after a chosen one
 kinRoutes.post('/:id/compacting/rollback', async (c) => {
   const resolvedKin = resolveKinByIdOrSlug(c.req.param('id'))
   if (!resolvedKin) {
     return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
   }
   const kinId = resolvedKin.id
-  const { snapshotId } = (await c.req.json()) as { snapshotId: string }
+  const body = (await c.req.json()) as { summaryId?: string; snapshotId?: string }
+  const summaryId = body.summaryId ?? body.snapshotId // support both old and new param name
 
-  const snapshot = await db
+  if (!summaryId) {
+    return c.json({ error: { code: 'MISSING_PARAM', message: 'summaryId is required' } }, 400)
+  }
+
+  const summary = await db
     .select()
-    .from(compactingSnapshots)
-    .where(and(eq(compactingSnapshots.id, snapshotId), eq(compactingSnapshots.kinId, kinId)))
+    .from(compactingSummaries)
+    .where(and(eq(compactingSummaries.id, summaryId), eq(compactingSummaries.kinId, kinId)))
     .get()
 
-  if (!snapshot) {
-    return c.json({ error: { code: 'SNAPSHOT_NOT_FOUND', message: 'Snapshot not found' } }, 404)
-  }
-  if (snapshot.isActive) {
-    return c.json({ error: { code: 'ALREADY_ACTIVE', message: 'Snapshot is already active' } }, 400)
+  if (!summary) {
+    return c.json({ error: { code: 'SUMMARY_NOT_FOUND', message: 'Summary not found' } }, 404)
   }
 
-  // Deactivate current active snapshot
-  await db
-    .update(compactingSnapshots)
-    .set({ isActive: false })
-    .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
+  // Archive all summaries created after the chosen one
+  const allSummaries = await db
+    .select({ id: compactingSummaries.id, createdAt: compactingSummaries.createdAt })
+    .from(compactingSummaries)
+    .where(and(eq(compactingSummaries.kinId, kinId), eq(compactingSummaries.isInContext, true)))
+    .all()
 
-  // Reactivate target snapshot
-  await db
-    .update(compactingSnapshots)
-    .set({ isActive: true })
-    .where(eq(compactingSnapshots.id, snapshotId))
+  const summaryCreatedAt = summary.createdAt as unknown as number
+  const toArchive = allSummaries
+    .filter((s) => (s.createdAt as unknown as number) > summaryCreatedAt)
+    .map((s) => s.id)
 
-  return c.json({ success: true })
+  if (toArchive.length > 0) {
+    await db
+      .update(compactingSummaries)
+      .set({ isInContext: false })
+      .where(inArray(compactingSummaries.id, toArchive))
+  }
+
+  // Ensure the target summary is in context
+  if (!summary.isInContext) {
+    await db
+      .update(compactingSummaries)
+      .set({ isInContext: true })
+      .where(eq(compactingSummaries.id, summaryId))
+  }
+
+  return c.json({ success: true, archivedCount: toArchive.length })
 })
 
 // ─── Memory routes ───────────────────────────────────────────────────────────

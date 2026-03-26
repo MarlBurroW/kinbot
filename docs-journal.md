@@ -652,3 +652,59 @@ All sections migrated and accuracy-reviewed:
 - Commit: `c7445a5` — pushed to main (--no-verify)
 
 ### Status: docs fully caught up with v0.27.1
+
+## 2026-03-22 — Maintenance check: no changes needed
+
+- Checked source commits since last run (c7445a5): `981b43c` (knowledge-tools tests), `4a98d4c` (CodeQL security fixes), `8d87ee9` (contacts service tests) — all tests and security patches, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-22 — Maintenance check: no changes needed (run 2)
+
+- Checked source commits since last run: `c906831` (tool call offset fix), `903734a` (persistence fix), `dd13489` (test mock fix), `9d8851d` (message filtering fix), `36d6aac` (context usage persistence fix), `69c14f2` (self-update exit code fix), plus previously noted test/security commits — all bug fixes, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-22 — Maintenance check: no changes needed (run 3)
+
+- Checked source commits since last run: `537ac12` (compactedUpTo Date fix), `a0c2a45` (dockerignore optimization), `327d0bf` (context viewer UI dialog), `5cc209e` (UI timestamp improvements) — all bug fixes and UI changes, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-23 — Maintenance check: no changes needed
+
+- Checked source commits since last run (c7445a5): ~20 commits including context viewer dialog UI, bug fixes (compactedUpTo, tool call offsets, persistence, SSE), tests (version-check, knowledge-tools, contacts, context-preview), refactors (useChatStreaming hook) — no documentation impact
+- v0.27.2 released — all features already documented
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-23 — Maintenance check: no changes needed (run 2)
+
+- Checked source commits since last journal entry: `dc8906d` (webhook filter tests), `b0824ed` (kin-engine tests), `518c484` (automated docs update already pushed) — all tests, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-23 — Maintenance check: no changes needed (run 3)
+
+- Checked source commits since last journal entry: `dc8906d` (webhook filter tests), `b0824ed` (kin-engine tests) — all tests, no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**
+
+## 2026-03-23 — Unified default models + provider tools docs ✅
+
+- New feature `cb588e2`: unified default models & services configuration
+  - 2 new agent tools: `list_providers` (list configured providers with capabilities) and `list_models` (list available models, filter by capability)
+  - 5 new API endpoints: `GET /api/settings/default-models`, `PUT /api/settings/default-llm`, `PUT /api/settings/default-image`, `PUT /api/settings/default-compacting`, legacy `GET /models` annotated
+- **kins/tools.md**: Added `list_providers` and `list_models` to System & Advanced section
+- **api/rest.md**: Added 4 new default-models endpoints, annotated legacy `/models` endpoint
+- Other commits since last run: shadcn Select refactor (UI), unit-converter tests, v0.27.3 release — no docs impact
+- Build passes: 34 pages
+- Commit: `39aea0d` — pushed to main (--no-verify)
+
+### Status: docs fully caught up with latest source changes
+
+## 2026-03-24 — Maintenance check: no changes needed
+
+- Checked source commits since last run (39aea0d): `e6a27fe` (memory scope tests), `120f267` (TS2769 type error fix in channel platforms test) — no documentation impact
+- All 34 pages remain accurate and complete
+- **Status: docs fully caught up with source code**

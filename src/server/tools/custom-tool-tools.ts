@@ -66,10 +66,16 @@ export const runCustomToolTool: ToolRegistration = {
         args: z
           .record(z.string(), z.unknown())
           .optional(),
+        timeout: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe('Execution timeout in ms, capped at server max'),
       }),
-      execute: async ({ tool_name, args }) => {
+      execute: async ({ tool_name, args, timeout }) => {
         log.debug({ kinId: ctx.kinId, toolName: tool_name }, 'Custom tool execution requested')
-        return executeCustomTool(ctx.kinId, tool_name, args ?? {})
+        return executeCustomTool(ctx.kinId, tool_name, args ?? {}, timeout)
       },
     }),
 }

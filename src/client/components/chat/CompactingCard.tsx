@@ -8,6 +8,7 @@ import {
 import { Loader2, Archive, CheckCircle2, ChevronRight, Brain, AlertTriangle } from 'lucide-react'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { cn } from '@/client/lib/utils'
+import { RelativeTimestamp } from '@/client/components/chat/RelativeTimestamp'
 
 interface CompactingCardProps {
   status: 'running' | 'done' | 'error'
@@ -16,6 +17,7 @@ interface CompactingCardProps {
   cycle?: number
   estimatedTotal?: number
   error?: string
+  timestamp?: string
 }
 
 export const CompactingCard = memo(function CompactingCard({
@@ -25,6 +27,7 @@ export const CompactingCard = memo(function CompactingCard({
   cycle,
   estimatedTotal,
   error,
+  timestamp,
 }: CompactingCardProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -58,6 +61,9 @@ export const CompactingCard = memo(function CompactingCard({
             </div>
 
             <div className="min-w-0 flex-1">
+            {timestamp && (
+              <RelativeTimestamp timestamp={timestamp} className="float-right text-[10px] text-muted-foreground/70 mt-0.5" />
+            )}
               <p className="text-sm font-medium text-foreground">
                 {t('chat.compacting.title')}
               </p>
@@ -92,7 +98,7 @@ export const CompactingCard = memo(function CompactingCard({
               </div>
               {isError && error && (
                 <p className="mt-1 text-[10px] text-muted-foreground truncate">
-                  {error}
+                  {error === 'NOTHING_TO_COMPACT' ? t('chat.compacting.nothingToCompact') : error}
                 </p>
               )}
             </div>

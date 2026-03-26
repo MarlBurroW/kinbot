@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { eq, and, isNull, lt, desc, inArray } from 'drizzle-orm'
 import { db } from '@/server/db/index'
-import { messages, kins, compactingSnapshots, memories as kinMemories, files, humanPrompts, messageReactions } from '@/server/db/schema'
+import { messages, kins, compactingSnapshots, compactingSummaries, memories as kinMemories, files, humanPrompts, messageReactions } from '@/server/db/schema'
 import { enqueueMessage, getPendingQueueItems, removeQueueItem } from '@/server/services/queue'
 import { abortKinStream } from '@/server/services/kin-engine'
 import { sseManager } from '@/server/sse/index'
@@ -156,6 +156,7 @@ messageRoutes.get('/', async (c) => {
         resolvedTaskId: meta?.resolvedTaskId ?? meta?.relatedTaskId ?? null,
         injectedMemories: meta?.injectedMemories ?? null,
         memoriesExtracted: meta?.memoriesExtracted ?? null,
+        compactingError: meta?.error ?? null,
         stepLimitReached: meta?.stepLimitReached ?? false,
         files: (fileMap.get(m.id) ?? []).map(serializeFile),
         reactions: reactionMap.get(m.id) ?? [],
@@ -191,8 +192,9 @@ messageRoutes.delete('/', async (c) => {
   }
 
   try {
-    // Delete compacting snapshots first (references messages.id without cascade)
+    // Delete compacting data first (references messages.id without cascade)
     await db.delete(compactingSnapshots).where(eq(compactingSnapshots.kinId, kinId))
+    await db.delete(compactingSummaries).where(eq(compactingSummaries.kinId, kinId))
 
     // Nullify sourceMessageId in memories (no cascade)
     await db

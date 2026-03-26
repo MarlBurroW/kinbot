@@ -1,15 +1,10 @@
-import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
-import { Label } from '@/client/components/ui/label'
 import { Plus, Search } from 'lucide-react'
-import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { SettingsListSkeleton } from '@/client/components/common/SettingsListSkeleton'
 import { TestAllProviders } from '@/client/components/common/TestAllProviders'
-import { api } from '@/client/lib/api'
 import { ProviderCard } from '@/client/components/kin/ProviderCard'
 import { ProviderFormDialog } from '@/client/components/kin/AddProviderDialog'
 import { SEARCH_PROVIDER_TYPES } from '@/shared/constants'
@@ -19,7 +14,6 @@ import { useProviderActions } from '@/client/hooks/useProviderActions'
 export function SearchProvidersSettings() {
   const { t } = useTranslation()
   const { providers, isLoading, refetch: fetchProviders } = useProviders({ filterTypes: SEARCH_PROVIDER_TYPES })
-  const [defaultProviderId, setDefaultProviderId] = useState<string | null>(null)
 
   const {
     testingId,
@@ -36,29 +30,7 @@ export function SearchProvidersSettings() {
   } = useProviderActions({
     providers,
     refetch: fetchProviders,
-    onDeleted: (id) => {
-      if (defaultProviderId === id) setDefaultProviderId(null)
-    },
   })
-
-  useEffect(() => {
-    api.get<{ searchProviderId: string | null }>('/settings/search-provider')
-      .then((data) => setDefaultProviderId(data.searchProviderId))
-      .catch(() => {})
-  }, [])
-
-  const handleDefaultProviderChange = async (value: string) => {
-    const newId = value === '__automatic__' ? null : value
-    try {
-      await api.put('/settings/search-provider', { searchProviderId: newId })
-      setDefaultProviderId(newId)
-      toast.success(t('settings.searchProviders.defaultProviderSaved'))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }
-
-  const validProviders = providers.filter((p) => p.isValid)
 
   if (isLoading) {
     return <SettingsListSkeleton count={2} />
@@ -83,20 +55,9 @@ export function SearchProvidersSettings() {
         storageKey="help.searchProviders.open"
       />
 
-      {providers.length > 0 && (
-        <div className="surface-card rounded-lg p-4 space-y-2">
-          <Label className="text-sm font-medium">{t('settings.searchProviders.defaultProvider')}</Label>
-          <p className="text-xs text-muted-foreground">{t('settings.searchProviders.defaultProviderDescription')}</p>
-          <ProviderSelector
-            value={defaultProviderId ?? '__automatic__'}
-            onValueChange={handleDefaultProviderChange}
-            providers={validProviders}
-            noneLabel={t('settings.searchProviders.defaultProviderAutomatic')}
-            noneValue="__automatic__"
-            triggerClassName="w-full"
-          />
-        </div>
-      )}
+      <div className="surface-card rounded-lg p-4 text-sm text-muted-foreground">
+        {t('settings.searchProviders.defaultProviderRedirect')}
+      </div>
 
       {providers.length > 1 && (
         <TestAllProviders testAllState={testAllState} onTestAll={handleTestAll} />

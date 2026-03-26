@@ -20,7 +20,7 @@ import {
 } from '@/client/components/ui/context-menu'
 import { FileIcon, Download, Brain, ChevronDown, Copy, Check, RefreshCw, Quote, Pencil, Volume2, VolumeX, BookOpen, SmilePlus, EyeOff } from 'lucide-react'
 import type { ToolCallViewItem } from '@/client/hooks/useToolCalls'
-import { useRelativeTime } from '@/client/hooks/useRelativeTime'
+import { RelativeTimestamp } from '@/client/components/chat/RelativeTimestamp'
 import type { MessageFile } from '@/shared/types'
 import type { MessageReaction } from '@/client/hooks/useChat'
 import { PRESET_EMOJIS } from '@/client/hooks/useReactions'
@@ -395,22 +395,6 @@ function RegenerateButton({ onRegenerate }: { onRegenerate: () => void }) {
     >
       <RefreshCw className="size-3.5" />
     </button>
-  )
-}
-
-// ─── Relative timestamp ───────────────────────────────────────────────────────
-
-function RelativeTimestamp({ timestamp, className }: { timestamp: string; className?: string }) {
-  const relative = useRelativeTime(timestamp)
-  const absolute = new Date(timestamp).toLocaleString([], {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-
-  return (
-    <p className={className} title={absolute}>
-      {relative}
-    </p>
   )
 }
 

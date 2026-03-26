@@ -16,7 +16,7 @@ export function SortableKinCard(props: SortableKinCardProps) {
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? undefined : transition,
   }
 
   return (

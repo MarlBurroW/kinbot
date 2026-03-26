@@ -127,7 +127,9 @@
       "guidanceFooter": "Du kannst später in den Einstellungen weitere Provider hinzufügen. Wähle einfach einen aus, um loszulegen.",
       "advancedSetup": "Erinnerungen und Suche anpassen",
       "quickFinish": "Schneller Abschluss mit den Standardeinstellungen",
-      "quickFinishHint": "Erinnerungen und Suche können später in den Einstellungen konfiguriert werden"
+      "quickFinishHint": "Erinnerungen und Suche können später in den Einstellungen konfiguriert werden",
+      "aiTab": "KI-Anbieter",
+      "searchTab": "Suche"
     },
     "memory": {
       "title": "Erinnerung",
@@ -146,6 +148,35 @@
       "addProvider": "Suche hinzufügen",
       "skip": "Vorerst überspringen",
       "finish": "Abschließen"
+    },
+    "models": {
+      "compactingModel": "Kompaktierungsmodell",
+      "compactingModelHint": "Optional — verwendet das Modell jedes Kins, wenn leer.",
+      "compactingModelPlaceholder": "Optional — verwendet Kin-Modell wenn leer",
+      "compactingModelTip": "Fasst alte Konversationen zusammen, um Kontextplatz zu sparen. Ein schnelles Modell funktioniert gut.",
+      "defaultLlm": "Standard-LLM",
+      "defaultLlmHint": "Neue Kins verwenden dieses Modell standardmäßig.",
+      "defaultLlmPlaceholder": "Standard-LLM auswählen",
+      "defaultLlmTip": "Das Standard-Sprachmodell für neue Kins. Jeder Kin kann dies später überschreiben.",
+      "embeddingModel": "Embedding-Modell",
+      "embeddingModelHint": "Ermöglicht semantische Suche in den Erinnerungen der Kins.",
+      "embeddingModelPlaceholder": "Embedding-Modell auswählen",
+      "embeddingModelTip": "Wandelt Erinnerungen in durchsuchbare Daten um. Ein kleines Modell reicht aus.",
+      "extractionModel": "Extraktionsmodell",
+      "extractionModelHint": "Leer lassen, um das Modell jedes Kins zu verwenden.",
+      "extractionModelPlaceholder": "Optional — verwendet Kin-Modell wenn leer",
+      "extractionModelTip": "Durchsucht Konversationen nach Erinnerungen. Ein schnelles Modell eignet sich hier hervorragend.",
+      "finish": "Einrichtung abschließen",
+      "imageModel": "Bildmodell",
+      "imageModelHint": "Optional — automatische Erkennung wenn leer.",
+      "imageModelPlaceholder": "Optional — automatische Erkennung",
+      "imageModelTip": "Standardmodell für Bilderzeugung, wenn kein bestimmtes Modell angefordert wird.",
+      "searchProvider": "Suchanbieter",
+      "searchProviderAutomatic": "Automatisch (erster gültiger)",
+      "searchProviderHint": "Optional — wählt automatisch den ersten gültigen Anbieter.",
+      "searchProviderTip": "Standard-Suchanbieter für Ihre Kins.",
+      "subtitle": "Wählen Sie die Standardmodelle für Ihre Kins",
+      "title": "Standardmodelle"
     }
   },
   "hub": {
@@ -355,9 +386,35 @@
       "modelLabel": "Kompaktierungsmodell",
       "modelHint": "Modell für die Zusammenfassung. Leer lassen, um das Modell des Kin zu verwenden.",
       "sameAsKinModel": "Gleiches Modell wie der Kin",
-      "turnThresholdLabel": "Runden vor Kompaktierung",
-      "turnThresholdPlaceholder": "Globaler Standard ({{default}})",
-      "turnThresholdHint": "Anzahl der Gesprächsrunden vor Auslösung der Kompaktierung."
+      "thresholdPercentLabel": "Kontextschwelle (%)",
+      "thresholdPercentPlaceholder": "Globaler Standard ({{default}} %)",
+      "thresholdPercentHint": "Die Kompaktierung wird ausgelöst, wenn die Kontextnutzung diesen Prozentsatz des Modellfensters überschreitet.",
+      "keepPercentLabel": "Beizubehaltender Kontext (%)",
+      "keepPercentPlaceholder": "Globaler Standard ({{default}} %)",
+      "keepPercentHint": "Prozentsatz des Kontextfensters, der nach der Kompaktierung als Rohnachrichten beibehalten wird.",
+      "summaryBudgetLabel": "Zusammenfassungs-Budget (%)",
+      "summaryBudgetPlaceholder": "Globaler Standard ({{default}} %)",
+      "summaryBudgetHint": "Wenn Zusammenfassungen diesen % des Kontextfensters überschreiten, werden die ältesten zusammengeführt.",
+      "maxSummariesLabel": "Max. Zusammenfassungen",
+      "maxSummariesPlaceholder": "Globaler Standard ({{default}})",
+      "maxSummariesHint": "Maximale Anzahl aktiver Zusammenfassungen bevor eine Zusammenführung ausgelöst wird.",
+      "modeCustom": "Benutzerdefiniertes Modell",
+      "modeDefault": "Globalen Standard verwenden",
+      "modeKinOwn": "Modell dieses Kins verwenden",
+      "selectCustomModel": "Modell auswählen",
+      "animTools": "Werkzeuge",
+      "animPrompt": "System-Prompt",
+      "animMessages": "Nachrichten",
+      "animSummary": "Zusammenfassung",
+      "animMerged": "Zusammengeführt",
+      "animThreshold": "Schwelle",
+      "animFilling": "Nachrichten füllen das Kontextfenster im Laufe des Gesprächs.",
+      "animApproaching": "Der Kontext füllt sich. Die Kompaktierung wird beim Schwellenwert ausgelöst.",
+      "animCompacting": "Schwellenwert erreicht! Die ältesten Nachrichten werden zu einer Zusammenfassung komprimiert.",
+      "animMerging": "Zu viele Zusammenfassungen — die ältesten werden zusammengeführt.",
+      "animDone": "Zyklus abgeschlossen. Der Prozess wiederholt sich unbegrenzt.",
+      "animContinuing": "Das Gespräch geht weiter. {{summaries}} Zusammenfassung(en) erhalten, neue Nachrichten fließen weiter.",
+      "animExplanation": "Wenn das Kontextfenster voll wird, werden die ältesten Nachrichten in datierte Zusammenfassungen komprimiert. Diese sammeln sich chronologisch an. Wenn zu viele entstehen, werden die ältesten zusammengeführt — neuere Zusammenfassungen bleiben detailliert, ältere werden komprimiert."
     },
     "avatar": {
       "title": "Wähle einen Avatar",
@@ -484,7 +541,10 @@
     "forceCompact": "Komprimierung erzwingen",
     "tooltipContext": "Kontextfenster",
     "tooltipCompacting": "Komprimierung",
-    "compactingProximity": "{{current}} / {{threshold}} Runden",
+    "tooltipSummaryMerge": "Zusammenfassung-Zusammenführung",
+    "summaryMergeCount": "{{count}} / {{max}} Zusammenfassungen",
+    "summaryMergeBudget": "{{tokens}} / {{budget}} Tokens",
+    "compactingProximity": "{{percent}} % / {{threshold}} % · {{summaryCount}} Zusammenfassungen",
     "compactingMarker": "Komprimierungsschwelle",
     "moreActions": "Weitere Aktionen",
     "compacting": {
@@ -494,7 +554,7 @@
       "memories": "{{count}} Speicher extrahiert",
       "showSummary": "Zusammenfassung anzeigen",
       "inputDisabled": "Bitte warten – Konversationsverlauf wird komprimiert...",
-      "nothingToCompact": "Nichts zum Komprimieren – noch nicht genügend Runden",
+      "nothingToCompact": "Nicht genügend Nachrichten zum Komprimieren",
       "error": "Komprimierung fehlgeschlagen",
       "runningCycle": "Kompaktierung... (Zyklus {{cycle}}/{{total}})"
     },
@@ -678,6 +738,42 @@
     "webhook": {
       "received": "Webhook empfangen",
       "showPayload": "Payload anzeigen"
+    },
+    "contextViewer": {
+      "copied": "Kopiert",
+      "copy": "Kopieren",
+      "error": "Kontextvorschau konnte nicht geladen werden",
+      "generatedAt": "Erstellt um {{time}}",
+      "legend": {
+        "messages": "Nachrichten",
+        "summary": "Zusammenfassung",
+        "summaries": "Zusammenfassungen ({{count}})",
+        "systemPrompt": "System-Prompt",
+        "tools": "Werkzeuge"
+      },
+      "summariesTitle": "Gesprächszusammenfassungen ({{count}})",
+      "summaryLabel": "Zusammenfassung #{{n}}",
+      "compressed": "komprimiert",
+      "loading": "Kontextvorschau wird erstellt...",
+      "messageRole": {
+        "assistant": "Assistent",
+        "system": "System",
+        "user": "Benutzer"
+      },
+      "messagesCount": "{{count}} Nachrichten",
+      "noMessages": "Keine Nachrichten im Verlauf",
+      "noTools": "Keine Werkzeuge konfiguriert",
+      "raw": "Roh",
+      "rawHint": "JSON-Annäherung der vollständigen Payload, die an den LLM-Anbieter gesendet wird: System-Prompt, Konversationsverlauf und Tool-Schemata. Dies ist eine Rekonstruktion zur Überprüfung — der tatsächliche API-Aufruf kann geringfügig abweichen (Token-Maskierung, Nachrichtenformatierung, anbieterspezifische Anpassungen).",
+      "retry": "Erneut versuchen",
+      "structured": "Strukturiert",
+      "structuredHint": "Gerenderte Ansicht des an das LLM gesendeten Kontexts. Jeder Abschnitt ist farbcodiert passend zur Kontextleiste. Dies ist eine Rekonstruktion zur Überprüfung — die tatsächliche Payload kann geringfügig abweichen.",
+      "title": "Kontextansicht",
+      "tools": "Verfügbare Werkzeuge",
+      "toolsCount": "{{count}} Werkzeuge",
+      "withToolCalls": "(+ Tool-Aufrufe)",
+      "threshold": "Schwelle {{percent}}%",
+      "showMore": "Mehr anzeigen"
     }
   },
   "quickChat": {
@@ -795,7 +891,8 @@
         "bullet2": "Lege einen Standard-Provider fest oder lasse KinBot automatisch den ersten gültigen auswählen",
         "bullet3": "Einzelne Kins können den Standard-Such-Provider in ihren Einstellungen überschreiben",
         "bullet4": "Für die meisten Suchanfragen nach Provider ist ein API-Key von der Website des Providers erforderlich"
-      }
+      },
+      "defaultProviderRedirect": "Der Standard-Suchanbieter kann unter Modelle & Dienste konfiguriert werden."
     },
     "mcp": {
       "title": "MCP-Server",
@@ -1035,7 +1132,8 @@
       "compactingThresholdDescription": "Konversation kompaktieren, wenn die Kontextnutzung diesen Prozentsatz des Kontextfensters des Modells erreicht. Niedrigere Werte kompaktieren häufiger, höhere Werte nutzen mehr Kontext vor dem Kompaktieren.",
       "compactingThresholdError": "Kompaktierungsschwellenwert konnte nicht gespeichert werden",
       "compactingThresholdLabel": "Kompaktierungsschwellenwert",
-      "compactingThresholdSaved": "Kompaktierungsschwellenwert gespeichert"
+      "compactingThresholdSaved": "Kompaktierungsschwellenwert gespeichert",
+      "modelConfigRedirect": "Extraktions- und Embedding-Modelle werden jetzt unter Modelle & Dienste konfiguriert."
     },
     "contacts": {
       "title": "Kontakte",
@@ -1470,6 +1568,41 @@
       "clear": "Leeren",
       "noLogs": "Keine Protokolleinträge",
       "entries": "{{count}}-Einträge"
+    },
+    "models": {
+      "defaultCompacting": "Standard-Kompaktierungsmodell",
+      "defaultCompactingHint": "Wird für Kompaktierung verwendet, es sei denn, ein Kin hat eine eigene Überschreibung. Leer lassen, um das Modell jedes Kins zu verwenden.",
+      "defaultCompactingPlaceholder": "Modell jedes Kins verwenden (Standard)",
+      "defaultCompactingTip": "Modell zum Zusammenfassen alter Konversationen. Ein schnelles, günstiges Modell eignet sich gut. Wenn nicht gesetzt, verwendet jeder Kin sein eigenes Modell.",
+      "defaultImage": "Standard-Bildmodell",
+      "defaultImageHint": "Wird vom generate_image-Tool verwendet, wenn kein Modell angegeben ist.",
+      "defaultImagePlaceholder": "Automatische Erkennung (Standard)",
+      "defaultImageTip": "Modell für Bilderzeugung, wenn kein bestimmtes Modell angefordert wird.",
+      "defaultLlm": "Standard-LLM",
+      "defaultLlmHint": "Neue Kins verwenden dieses Modell standardmäßig, sofern nicht anders angegeben.",
+      "defaultLlmPlaceholder": "Standard-LLM auswählen",
+      "defaultLlmTip": "Das Standard-Sprachmodell für neue Kins. Jeder Kin kann dies mit einem eigenen Modell überschreiben.",
+      "defaultSearchProvider": "Standard-Suchanbieter",
+      "defaultSearchProviderHint": "Wird von allen Kins verwendet, sofern sie ihn nicht individuell überschreiben.",
+      "defaultSearchProviderTip": "Der Suchanbieter für Websuchen der Kins. Einzelne Kins können dies in ihren Einstellungen überschreiben.",
+      "description": "Konfigurieren Sie die Standardmodelle und -dienste für die gesamte Plattform.",
+      "embeddingModel": "Embedding-Modell",
+      "embeddingModelHint": "Wandelt Erinnerungen in durchsuchbare Daten um, sodass Ihre Kins relevante Informationen nach Bedeutung finden können.",
+      "embeddingModelPlaceholder": "Embedding-Modell auswählen",
+      "embeddingModelTip": "Wandelt Text in Zahlen (Vektoren) um, damit Ihre Kins Erinnerungen nach Bedeutung durchsuchen können. Ein Wechsel dieses Modells erfordert die Neuverarbeitung aller bestehenden Erinnerungen.",
+      "extractionModel": "Extraktionsmodell",
+      "extractionModelHint": "Liest Ihre Konversationen und identifiziert, was sich zu merken lohnt. Ein schnelles, günstiges Modell eignet sich hier hervorragend.",
+      "extractionModelPlaceholder": "Modell jedes Kins verwenden (Standard)",
+      "extractionModelTip": "Dieses Modell durchsucht Konversationen und entscheidet, welche Fakten, Vorlieben und Entscheidungen als Langzeiterinnerungen gespeichert werden sollen. Ein kleines, schnelles Modell reicht dafür aus. Wenn nicht gesetzt, verwendet jeder Kin sein eigenes Chat-Modell.",
+      "help": {
+        "bullet1": "Das Standard-LLM wird bei der Erstellung neuer Kins vorausgewählt und spart Zeit bei der Einrichtung",
+        "bullet2": "Kompaktierungs- und Extraktionsmodelle können leichtgewichtig sein — sie müssen nicht dasselbe Modell wie der Chat sein",
+        "bullet3": "Ein Wechsel des Embedding-Modells erfordert die Neuindizierung aller bestehenden Erinnerungen",
+        "content": "Standardmodelle werden als Fallback verwendet, wenn neue Kins erstellt werden oder kein spezifisches Modell auf Kin-Ebene konfiguriert ist."
+      },
+      "saved": "Einstellung gespeichert",
+      "searchProviderAutomatic": "Automatisch (erster gültiger)",
+      "title": "Modelle & Dienste"
     }
   },
   "notifications": {

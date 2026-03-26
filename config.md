@@ -28,11 +28,13 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 | Clé | Env var | Default | Description |
 |---|---|---|---|
 | `compacting.model` | `COMPACTING_MODEL` | — | Modèle utilisé pour le compacting (format `providerId:modelId` supporté). Si non défini, utilise le modèle du Kin |
-| `compacting.maxSnapshotsPerKin` | `COMPACTING_MAX_SNAPSHOTS` | `10` | Nombre max de snapshots conservés par Kin (les plus anciens sont supprimés) |
-| `compacting.batchTurns` | `COMPACTING_BATCH_TURNS` | `10` | Nombre de tours (user message + réponses suivantes) par micro-batch de compacting incrémental |
-| `compacting.minKeepTurns` | `COMPACTING_MIN_KEEP_TURNS` | `15` | Nombre minimum de tours non compactés à garder comme contexte brut. Le compacting se déclenche quand les tours non compactés > `batchTurns` + `minKeepTurns` |
+| `compacting.thresholdPercent` | `COMPACTING_THRESHOLD_PERCENT` | `75` | % d'utilisation du contexte avant déclenchement de la compaction |
+| `compacting.keepPercent` | `COMPACTING_KEEP_PERCENT` | `40` | % de la fenêtre de contexte préservé en messages bruts (keep-window) |
+| `compacting.summaryBudgetPercent` | `COMPACTING_SUMMARY_BUDGET_PERCENT` | `20` | % max de la fenêtre de contexte pour les résumés avant fusion télescopique |
+| `compacting.maxSummaries` | `COMPACTING_MAX_SUMMARIES` | `10` | Nombre max de résumés actifs avant fusion télescopique |
+| `compacting.maxSummariesPerKin` | `COMPACTING_MAX_SUMMARIES_PER_KIN` | `50` | Rétention totale de résumés par Kin (actifs + archivés) |
 
-> **Per-Kin override** : chaque Kin peut surcharger le seuil de compacting via son `compactingConfig` (stocké en JSON dans `kins.compacting_config`). L'interface de configuration se trouve dans l'onglet Compaction des paramètres du Kin. Les champs disponibles sont : `turnThreshold` (seuil total de tours), `compactingModel`, et `compactingProviderId`.
+> **Per-Kin override** : chaque Kin peut surcharger les paramètres de compacting via son `compactingConfig` (stocké en JSON dans `kins.compacting_config`). L'interface de configuration se trouve dans l'onglet Compaction des paramètres du Kin. Les champs disponibles sont : `thresholdPercent`, `keepPercent`, `summaryBudgetPercent`, `maxSummaries`, `compactingModel`, et `compactingProviderId`.
 
 ---
 
@@ -54,6 +56,15 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 | `toolOutputs.spillThreshold` | `TOOL_OUTPUT_SPILL_THRESHOLD` | `10000` | Seuil en octets au-delà duquel le résultat d'un outil est sauvegardé dans un fichier temporaire au lieu d'être inclus en intégralité dans le contexte |
 | `toolOutputs.previewLines` | `TOOL_OUTPUT_PREVIEW_LINES` | `200` | Nombre de lignes d'aperçu incluses dans la référence compacte quand un résultat est "spillé" |
 | `toolOutputs.ttlHours` | `TOOL_OUTPUT_TTL_HOURS` | `24` | Durée de rétention des fichiers temporaires (heures). Les fichiers plus anciens sont supprimés automatiquement |
+
+---
+
+## Custom tools
+
+| Clé | Env var | Default | Description |
+|---|---|---|---|
+| — | `KINBOT_CUSTOM_TOOL_TIMEOUT` | `30000` | Timeout par défaut pour l'exécution d'un custom tool (ms) |
+| — | `KINBOT_CUSTOM_TOOL_MAX_TIMEOUT` | `300000` | Timeout maximum autorisé pour un custom tool (ms). Les valeurs passées par le Kin sont plafonnées à cette limite |
 
 ---
 

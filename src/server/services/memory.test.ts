@@ -882,4 +882,89 @@ describe('memory service', () => {
       expect(needsContextualRewrite('me too, I noticed the same issue')).toBe(true)
     })
   })
+
+  // ─── Memory scope defaults (replicated logic) ──────────────────────────────
+
+  describe('memory scope default behavior', () => {
+    // The module defaults scope to 'private' when not specified:
+    //   scope: input.scope ?? 'private'
+    // This tests the contract.
+
+    function resolveScope(inputScope?: string): string {
+      return inputScope ?? 'private'
+    }
+
+    it('defaults to private when scope is undefined', () => {
+      expect(resolveScope(undefined)).toBe('private')
+    })
+
+    it('defaults to private when scope is not provided', () => {
+      expect(resolveScope()).toBe('private')
+    })
+
+    it('respects explicit private scope', () => {
+      expect(resolveScope('private')).toBe('private')
+    })
+
+    it('respects explicit shared scope', () => {
+      expect(resolveScope('shared')).toBe('shared')
+    })
+  })
+
+  // ─── Shared memory filtering logic ──────────────────────────────────────────
+
+  describe('shared memory filtering logic', () => {
+    // The search results filter shared memories from other Kins:
+    //   const sharedFromOthers = sorted.filter(m => m.scope === 'shared' && m.authorKinId !== kinId)
+    // This tests the contract.
+
+    interface MemoryResult {
+      id: string
+      scope: string
+      authorKinId: string
+    }
+
+    function filterSharedFromOthers(results: MemoryResult[], currentKinId: string): MemoryResult[] {
+      return results.filter(m => m.scope === 'shared' && m.authorKinId !== currentKinId)
+    }
+
+    it('returns shared memories from other Kins', () => {
+      const results: MemoryResult[] = [
+        { id: '1', scope: 'shared', authorKinId: 'kin-b' },
+        { id: '2', scope: 'private', authorKinId: 'kin-a' },
+        { id: '3', scope: 'shared', authorKinId: 'kin-a' },
+      ]
+      const shared = filterSharedFromOthers(results, 'kin-a')
+      expect(shared).toHaveLength(1)
+      expect(shared[0]!.id).toBe('1')
+    })
+
+    it('excludes own shared memories', () => {
+      const results: MemoryResult[] = [
+        { id: '1', scope: 'shared', authorKinId: 'kin-a' },
+      ]
+      expect(filterSharedFromOthers(results, 'kin-a')).toHaveLength(0)
+    })
+
+    it('excludes private memories from others', () => {
+      const results: MemoryResult[] = [
+        { id: '1', scope: 'private', authorKinId: 'kin-b' },
+      ]
+      expect(filterSharedFromOthers(results, 'kin-a')).toHaveLength(0)
+    })
+
+    it('handles empty results', () => {
+      expect(filterSharedFromOthers([], 'kin-a')).toHaveLength(0)
+    })
+
+    it('handles multiple shared memories from different Kins', () => {
+      const results: MemoryResult[] = [
+        { id: '1', scope: 'shared', authorKinId: 'kin-b' },
+        { id: '2', scope: 'shared', authorKinId: 'kin-c' },
+        { id: '3', scope: 'shared', authorKinId: 'kin-d' },
+      ]
+      const shared = filterSharedFromOthers(results, 'kin-a')
+      expect(shared).toHaveLength(3)
+    })
+  })
 })
