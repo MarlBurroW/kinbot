@@ -221,11 +221,31 @@ export async function resolveCustomTools(
       continue // Skip malformed schema
     }
 
+    // Build input schema from the tool's JSON Schema, then extend with a timeout field
+    const baseSchema = jsonSchemaToZod(schema)
+    const inputSchema =
+      baseSchema instanceof z.ZodObject
+        ? baseSchema.extend({
+            timeout: z
+              .number()
+              .int()
+              .positive()
+              .optional()
+              .describe('Execution timeout in ms, capped at server max'),
+          })
+        : baseSchema
+
     resolved[toolKey] = aiTool({
       description: `[Custom] ${ct.description}`,
-      inputSchema: jsonSchemaToZod(schema),
-      execute: async (args) => {
-        return executeCustomTool(kinId, ct.name, args as Record<string, unknown>)
+      inputSchema,
+      execute: async (allArgs) => {
+        const { timeout, ...toolArgs } = allArgs as Record<string, unknown>
+        return executeCustomTool(
+          kinId,
+          ct.name,
+          toolArgs,
+          timeout as number | undefined,
+        )
       },
     })
   }
