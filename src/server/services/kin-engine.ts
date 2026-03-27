@@ -1074,6 +1074,17 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       // No tool calls this step → LLM is done, exit loop
       if (stepToolCalls.length === 0 || wasAborted) break
 
+      // Get response messages from the SDK — these include providerMetadata
+      // (e.g. Google's thought_signature) needed for the next turn.
+      // Falling back to manual construction only if response is unavailable.
+      let sdkResponseMessages: import('ai').ModelMessage[] | null = null
+      try {
+        const resp = await result.response
+        if (resp?.messages && resp.messages.length > 0) {
+          sdkResponseMessages = resp.messages as import('ai').ModelMessage[]
+        }
+      } catch { /* ignore — fall back to manual construction */ }
+
       // Execute tool calls sequentially (we own this, not the SDK)
       const assistantContent: Array<
         | { type: 'text'; text: string }
@@ -1082,7 +1093,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
       for (const tc of stepToolCalls) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id, name, args, offset, result, ...rest } = tc
+        const { id, name, args, offset, result: _r, ...rest } = tc
         assistantContent.push({ type: 'tool-call', toolCallId: id, toolName: name, input: args, ...rest })
       }
 
@@ -1120,9 +1131,18 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
       if (wasAborted) break
 
-      // Append assistant message (with tool calls) + tool results to history for next step
-      messageHistory.push({ role: 'assistant', content: assistantContent })
-      messageHistory.push({ role: 'tool' as const, content: toolResults })
+      // Append to history — prefer SDK response messages (preserves thought_signature)
+      // over manually-constructed assistantContent.
+      if (sdkResponseMessages) {
+        for (const m of sdkResponseMessages) {
+          messageHistory.push(m)
+        }
+        // Append our tool results so the next step sees them
+        messageHistory.push({ role: 'tool' as const, content: toolResults })
+      } else {
+        messageHistory.push({ role: 'assistant', content: assistantContent })
+        messageHistory.push({ role: 'tool' as const, content: toolResults })
+      }
 
       // Text accumulates across steps so tool call offsets remain valid
     }
@@ -1609,6 +1629,16 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       // No tool calls this step → LLM is done, exit loop
       if (stepToolCalls.length === 0 || wasAborted) break
 
+      // Get response messages from the SDK — these include providerMetadata
+      // (e.g. Google's thought_signature) needed for the next turn.
+      let sdkResponseMessages: import('ai').ModelMessage[] | null = null
+      try {
+        const resp = await result.response
+        if (resp?.messages && resp.messages.length > 0) {
+          sdkResponseMessages = resp.messages as import('ai').ModelMessage[]
+        }
+      } catch { /* ignore — fall back to manual construction */ }
+
       // Execute tool calls sequentially (we own this, not the SDK)
       const assistantContent: Array<
         | { type: 'text'; text: string }
@@ -1617,7 +1647,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
       for (const tc of stepToolCalls) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id, name, args, offset, result, ...rest } = tc
+        const { id, name, args, offset, result: _r, ...rest } = tc
         assistantContent.push({ type: 'tool-call', toolCallId: id, toolName: name, input: args, ...rest })
       }
 
@@ -1650,9 +1680,16 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
 
       if (wasAborted) break
 
-      // Append assistant message (with tool calls) + tool results to history for next step
-      messageHistory.push({ role: 'assistant', content: assistantContent })
-      messageHistory.push({ role: 'tool' as const, content: toolResults })
+      // Append to history — prefer SDK response messages (preserves thought_signature)
+      if (sdkResponseMessages) {
+        for (const m of sdkResponseMessages) {
+          messageHistory.push(m)
+        }
+        messageHistory.push({ role: 'tool' as const, content: toolResults })
+      } else {
+        messageHistory.push({ role: 'assistant', content: assistantContent })
+        messageHistory.push({ role: 'tool' as const, content: toolResults })
+      }
 
       // Text accumulates across steps so tool call offsets remain valid
     }
