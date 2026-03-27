@@ -957,7 +957,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     // results back to the LLM.
     const assistantMessageId = uuid()
     let fullContent = ''
-    const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
+    const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number; [key: string]: unknown }> = []
 
     // Create an AbortController so the stream can be cancelled from outside
     const abortController = new AbortController()
@@ -983,7 +983,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       })
 
       // Collect tool call intents from this step
-      const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
+      const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number; [key: string]: unknown }> = []
 
       try {
         for await (const part of result.fullStream) {
@@ -1029,9 +1029,10 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
             case 'tool-call': {
               const contentOffset = fullContent.length
               stepToolCalls.push({
+                ...part,
                 id: part.toolCallId,
                 name: part.toolName,
-                args: part.input,
+                args: part.args ?? part.input,
                 offset: contentOffset,
               })
               sseManager.sendToKin(kinId, {
@@ -1076,11 +1077,13 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       // Execute tool calls sequentially (we own this, not the SDK)
       const assistantContent: Array<
         | { type: 'text'; text: string }
-        | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+        | ({ type: 'tool-call'; toolCallId: string; toolName: string; input: unknown } & Record<string, unknown>)
       > = []
       if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
       for (const tc of stepToolCalls) {
-        assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, name, args, offset, result, ...rest } = tc
+        assistantContent.push({ type: 'tool-call', toolCallId: id, toolName: name, input: args, ...rest })
       }
 
       const toolResults: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
@@ -1100,7 +1103,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           result = { error: `Tool ${tc.name} has no execute function` }
         }
 
-        toolCallsLog.push({ id: tc.id, name: tc.name, args: tc.args, result, offset: tc.offset })
+        toolCallsLog.push({ ...tc, id: tc.id, name: tc.name, args: tc.args, result, offset: tc.offset })
         toolResults.push({ type: 'tool-result', toolCallId: tc.id, toolName: tc.name, output: { type: 'json', value: result as import('ai').JSONValue } })
 
         sseManager.sendToKin(kinId, {
@@ -1551,7 +1554,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       })
 
       // Collect tool call intents from this step
-      const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
+      const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number; [key: string]: unknown }> = []
 
       try {
         for await (const part of result.fullStream) {
@@ -1578,7 +1581,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
             }
             case 'tool-call': {
               const contentOffset = fullContent.length
-              stepToolCalls.push({ id: part.toolCallId, name: part.toolName, args: part.input, offset: contentOffset })
+              stepToolCalls.push({ ...part, id: part.toolCallId, name: part.toolName, args: part.args ?? part.input, offset: contentOffset })
               sseManager.sendToKin(kinId, {
                 type: 'chat:tool-call',
                 kinId,
@@ -1609,11 +1612,13 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       // Execute tool calls sequentially (we own this, not the SDK)
       const assistantContent: Array<
         | { type: 'text'; text: string }
-        | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+        | ({ type: 'tool-call'; toolCallId: string; toolName: string; input: unknown } & Record<string, unknown>)
       > = []
       if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
       for (const tc of stepToolCalls) {
-        assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, name, args, offset, result, ...rest } = tc
+        assistantContent.push({ type: 'tool-call', toolCallId: id, toolName: name, input: args, ...rest })
       }
 
       const toolResults: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
@@ -1942,7 +1947,7 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
         // Build structured content: text part (if any) + tool call parts
         const assistantContent: Array<
           | { type: 'text'; text: string }
-          | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+          | ({ type: 'tool-call'; toolCallId: string; toolName: string; input: unknown } & Record<string, unknown>)
         > = []
 
         const textContent = msg.content ?? ''
@@ -1950,12 +1955,15 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
           assistantContent.push({ type: 'text', text: textContent })
         }
 
-        for (const tc of toolCalls) {
+        for (const tc of toolCalls as any[]) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, name, args, result, offset, ...rest } = tc
           assistantContent.push({
             type: 'tool-call',
-            toolCallId: tc.id,
-            toolName: tc.name,
-            input: tc.args,
+            toolCallId: id,
+            toolName: name,
+            input: args,
+            ...rest
           })
         }
 
