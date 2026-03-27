@@ -16,7 +16,7 @@ const TaskDetailModal = lazy(() => import('@/client/components/sidebar/TaskDetai
 import { Sheet, SheetContent, SheetTitle } from '@/client/components/ui/sheet'
 const QuickChatPanel = lazy(() => import('@/client/components/chat/QuickChatPanel').then(m => ({ default: m.QuickChatPanel })))
 const QuickSessionHistory = lazy(() => import('@/client/components/chat/QuickSessionHistory').then(m => ({ default: m.QuickSessionHistory })))
-import { useChat } from '@/client/hooks/useChat'
+import { useChat, type LiveTask } from '@/client/hooks/useChat'
 import { useToolCalls } from '@/client/hooks/useToolCalls'
 import { useHumanPrompts } from '@/client/hooks/useHumanPrompts'
 import { useQuickSession } from '@/client/hooks/useQuickSession'
@@ -600,6 +600,30 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     })
   }, [displayMessages, searchQuery, searchHighlightId])
 
+  // Build a unified chronological timeline merging messages and live tasks
+  type TimelineItem =
+    | { kind: 'message'; entry: (typeof processedMessages)[number] }
+    | { kind: 'liveTask'; task: LiveTask }
+
+  const timeline = useMemo<TimelineItem[]>(() => {
+    const items: TimelineItem[] = processedMessages.map((entry) => ({ kind: 'message' as const, entry }))
+    for (const task of liveTasks) {
+      items.push({ kind: 'liveTask' as const, task })
+    }
+    // Stable sort by createdAt (string ISO dates compare lexicographically)
+    items.sort((a, b) => {
+      const tsA = a.kind === 'message' ? a.entry.msg.createdAt : a.task.createdAt
+      const tsB = b.kind === 'message' ? b.entry.msg.createdAt : b.task.createdAt
+      if (tsA < tsB) return -1
+      if (tsA > tsB) return 1
+      // Keep messages before live tasks at the same timestamp
+      if (a.kind === 'message' && b.kind === 'liveTask') return -1
+      if (a.kind === 'liveTask' && b.kind === 'message') return 1
+      return 0
+    })
+    return items
+  }, [processedMessages, liveTasks])
+
   // Mark initial load as done after the first batch of messages is processed
   useEffect(() => {
     if (!initialLoadDoneRef.current && displayMessages.length > 0 && !isLoading) {
@@ -714,7 +738,27 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
               />
             ) : (
               <div className="space-y-1">
-                {processedMessages.map(({ msg, showDateSeparator, isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch, isNew }) => {
+                {timeline.map((item) => {
+                  if (item.kind === 'liveTask') {
+                    const task = item.task
+                    return (
+                      <TaskResultCard
+                        key={`live-${task.taskId}`}
+                        mode="live"
+                        taskId={task.taskId}
+                        status={task.status}
+                        title={task.title}
+                        senderName={task.senderName}
+                        senderAvatarUrl={task.senderAvatarUrl}
+                        result={task.result}
+                        error={task.error}
+                        createdAt={task.createdAt}
+                        onOpenDetail={() => setDetailTaskId(task.taskId)}
+                      />
+                    )
+                  }
+
+                  const { msg, showDateSeparator, isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch, isNew } = item.entry
                   const dateSeparator = showDateSeparator
                     ? <DateSeparator key={`date-${msg.id}`} date={msg.createdAt} />
                     : null
@@ -796,21 +840,6 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     </React.Fragment>
                   )
                 })}
-                {liveTasks.map((task) => (
-                  <TaskResultCard
-                    key={`live-${task.taskId}`}
-                    mode="live"
-                    taskId={task.taskId}
-                    status={task.status}
-                    title={task.title}
-                    senderName={task.senderName}
-                    senderAvatarUrl={task.senderAvatarUrl}
-                    result={task.result}
-                    error={task.error}
-                    createdAt={task.createdAt}
-                    onOpenDetail={() => setDetailTaskId(task.taskId)}
-                  />
-                ))}
                 {liveCompacting && (
                   <CompactingCard
                     status={liveCompacting.status}
