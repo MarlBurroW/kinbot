@@ -827,7 +827,7 @@ Connexion SSE **globale** (une seule par client). Le serveur multiplex les évé
 { event: 'cron:triggered', data: { cronId: string, kinId: string, taskId: string } }
 
 // Queue mise a jour
-{ event: 'queue:update', data: { kinId: string, queueSize: number, isProcessing: boolean } }
+{ event: 'queue:update', data: { kinId: string, queueSize: number, isProcessing: boolean, processingStartedAt?: number } }
 
 // Erreur sur un Kin
 { event: 'kin:error', data: { kinId: string, error: string } }

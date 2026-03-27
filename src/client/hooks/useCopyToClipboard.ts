@@ -12,6 +12,29 @@ interface CopyOptions {
 }
 
 /**
+ * Legacy clipboard fallback using a temporary textarea and execCommand.
+ * Used when the Clipboard API is unavailable (non-secure contexts like HTTP).
+ */
+function fallbackCopyToClipboard(text: string): void {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  // Prevent scrolling to bottom on iOS
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  textarea.style.top = '-9999px'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  try {
+    const ok = document.execCommand('copy')
+    if (!ok) throw new Error('execCommand copy returned false')
+  } finally {
+    document.body.removeChild(textarea)
+  }
+}
+
+/**
  * Hook that provides a clipboard copy function with toast feedback and a `copied` state.
  *
  * Usage:
@@ -30,12 +53,26 @@ export function useCopyToClipboard() {
     } = options ?? {}
 
     try {
-      await navigator.clipboard.writeText(text)
+      // Try the modern Clipboard API first (requires secure context: HTTPS or localhost)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Fallback for non-secure contexts (e.g. HTTP access on Synology DSM)
+        fallbackCopyToClipboard(text)
+      }
       setCopied(true)
       if (successKey) toast.success(t(successKey))
       setTimeout(() => setCopied(false), resetMs)
     } catch {
-      if (errorKey) toast.error(t(errorKey))
+      // If the modern API throws (e.g. permission denied), try the fallback
+      try {
+        fallbackCopyToClipboard(text)
+        setCopied(true)
+        if (successKey) toast.success(t(successKey))
+        setTimeout(() => setCopied(false), resetMs)
+      } catch {
+        if (errorKey) toast.error(t(errorKey))
+      }
     }
   }, [t])
 

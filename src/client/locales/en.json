@@ -390,9 +390,31 @@
       "modeKinOwn": "Use this Kin's model",
       "modeCustom": "Custom model",
       "selectCustomModel": "Select a model",
-      "turnThresholdLabel": "Turns before compaction",
-      "turnThresholdPlaceholder": "Global default ({{default}})",
-      "turnThresholdHint": "Number of conversation turns before compaction triggers."
+      "thresholdPercentLabel": "Context threshold (%)",
+      "thresholdPercentPlaceholder": "Global default ({{default}}%)",
+      "thresholdPercentHint": "Compaction triggers when context usage exceeds this percentage of the model's context window.",
+      "keepPercentLabel": "Context to keep (%)",
+      "keepPercentPlaceholder": "Global default ({{default}}%)",
+      "keepPercentHint": "Percentage of context window kept as raw messages after compaction.",
+      "summaryBudgetLabel": "Summary budget (%)",
+      "summaryBudgetPlaceholder": "Global default ({{default}}%)",
+      "summaryBudgetHint": "When summaries exceed this % of the context window, oldest ones are merged together.",
+      "maxSummariesLabel": "Max summaries",
+      "maxSummariesPlaceholder": "Global default ({{default}})",
+      "maxSummariesHint": "Maximum number of active summaries before triggering a merge.",
+      "animTools": "Tools",
+      "animPrompt": "System prompt",
+      "animMessages": "Messages",
+      "animSummary": "Summary",
+      "animMerged": "Merged summary",
+      "animThreshold": "Threshold",
+      "animFilling": "Messages fill the context window as the conversation progresses.",
+      "animApproaching": "Context is filling up. Compaction will trigger when the threshold is reached.",
+      "animCompacting": "Threshold reached! Oldest messages are being compressed into a summary.",
+      "animMerging": "Too many summaries — oldest ones are being merged together.",
+      "animDone": "Cycle complete. The process repeats indefinitely as the conversation grows.",
+      "animContinuing": "Conversation continues. {{summaries}} summary(ies) preserved, new messages keep flowing.",
+      "animExplanation": "When the context window fills up, the oldest messages are compressed into dated summaries. These summaries accumulate chronologically. When too many summaries pile up, the oldest ones are merged together — keeping recent summaries detailed and older ones compressed."
     },
     "avatar": {
       "title": "Choose avatar",
@@ -520,8 +542,11 @@
     "forceCompact": "Force compaction",
     "tooltipContext": "Context window",
     "tooltipCompacting": "Compaction",
-    "compactingProximity": "{{current}} / {{threshold}} turns",
+    "compactingProximity": "{{percent}}% / {{threshold}}% · {{summaryCount}} summaries",
     "compactingMarker": "Compaction threshold",
+    "tooltipSummaryMerge": "Summary merge",
+    "summaryMergeCount": "{{count}} / {{max}} summaries",
+    "summaryMergeBudget": "{{tokens}} / {{budget}} tokens",
     "breakdown": {
       "tools": "Tools",
       "systemPrompt": "System prompt",
@@ -550,9 +575,13 @@
       "legend": {
         "systemPrompt": "System prompt",
         "summary": "Summary",
+        "summaries": "Summaries ({{count}})",
         "messages": "Messages",
         "tools": "Tools"
       },
+      "summariesTitle": "Conversation summaries ({{count}})",
+      "summaryLabel": "Summary #{{n}}",
+      "compressed": "compressed",
       "messagesCount": "{{count}} messages",
       "toolsCount": "{{count}} tools",
       "noMessages": "No messages in history",
@@ -562,7 +591,9 @@
         "assistant": "Assistant",
         "system": "System"
       },
-      "withToolCalls": "(+ tool calls)"
+      "withToolCalls": "(+ tool calls)",
+      "threshold": "Threshold {{percent}}%",
+      "showMore": "Show more"
     },
     "moreActions": "More actions",
     "compacting": {
@@ -572,7 +603,7 @@
       "memories": "{{count}} memories extracted",
       "showSummary": "Show summary",
       "inputDisabled": "Please wait - compacting conversation history...",
-      "nothingToCompact": "Nothing to compact - not enough turns yet",
+      "nothingToCompact": "Not enough messages to compact",
       "error": "Compaction failed",
       "runningCycle": "Compacting... (cycle {{cycle}}/{{total}})"
     },

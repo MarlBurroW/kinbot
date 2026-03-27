@@ -5,7 +5,7 @@ import { db } from '@/server/db/index'
 import { createLogger } from '@/server/logger'
 import {
   messages,
-  compactingSnapshots,
+  compactingSummaries,
   memories,
   kins,
   userProfiles,
@@ -14,6 +14,7 @@ import { config } from '@/server/config'
 import { getExtractionModel, getExtractionProviderId, getDefaultCompactingModel, getDefaultCompactingProviderId } from '@/server/services/app-settings'
 import { createMemory, updateMemory, isDuplicateMemory, pruneStaleMemories } from '@/server/services/memory'
 import { sseManager } from '@/server/sse/index'
+import { getModelContextWindow } from '@/shared/model-context-windows'
 import type { KinCompactingConfig, MemoryCategory } from '@/shared/types'
 
 const log = createLogger('compacting')
@@ -26,9 +27,10 @@ function estimateTokens(text: string): number {
 // ─── Per-Kin Effective Config ─────────────────────────────────────────────────
 
 interface EffectiveCompactingConfig {
-  turnThreshold: number
-  batchTurns: number
-  minKeepTurns: number
+  thresholdPercent: number
+  keepPercent: number
+  summaryBudgetPercent: number
+  maxSummaries: number
   model: string
   providerId: string | null
 }
@@ -46,13 +48,10 @@ async function getEffectiveCompactingConfig(kinId: string): Promise<EffectiveCom
     try { perKin = JSON.parse(kin.compactingConfig) as KinCompactingConfig } catch { /* ignore */ }
   }
 
-  // Turn threshold: per-Kin > global (batchTurns + minKeepTurns)
-  const globalThreshold = config.compacting.batchTurns + config.compacting.minKeepTurns
-  const turnThreshold = perKin?.turnThreshold ?? globalThreshold
-
-  // Derive batch sizes from threshold (40/60 split)
-  const batchTurns = Math.max(1, Math.floor(turnThreshold * 0.4))
-  const minKeepTurns = turnThreshold - batchTurns
+  const thresholdPercent = perKin?.thresholdPercent ?? config.compacting.thresholdPercent
+  const keepPercent = perKin?.keepPercent ?? config.compacting.keepPercent
+  const summaryBudgetPercent = perKin?.summaryBudgetPercent ?? config.compacting.summaryBudgetPercent
+  const maxSummaries = perKin?.maxSummaries ?? config.compacting.maxSummaries
 
   // Model: per-Kin override > app_setting default > env COMPACTING_MODEL > Kin's own model
   // Sentinel '__kin_own__' means "use this kin's own model" (skips defaults)
@@ -79,127 +78,106 @@ async function getEffectiveCompactingConfig(kinId: string): Promise<EffectiveCom
     providerId = kin.providerId
   }
 
-  return { turnThreshold, batchTurns, minKeepTurns, model, providerId }
-}
-
-/**
- * Resolve the cutoff timestamp from a snapshot's messagesUpToId.
- * This returns the createdAt of the actual message referenced by the snapshot,
- * NOT the snapshot's own createdAt (which is when the snapshot was created).
- */
-async function getSnapshotCutoffTimestamp(
-  snapshot: { messagesUpToId: string | null } | null | undefined,
-): Promise<number | null> {
-  if (!snapshot?.messagesUpToId) return null
-  const cutoffMessage = await db
-    .select({ createdAt: messages.createdAt })
-    .from(messages)
-    .where(eq(messages.id, snapshot.messagesUpToId))
-    .get()
-  return (cutoffMessage?.createdAt as unknown as number) ?? null
-}
-
-/** Get non-compacted stats for a Kin (shared by shouldCompact + getCompactingProximity) */
-async function getNonCompactedStats(kinId: string): Promise<{ currentTokens: number; messageCount: number; turnCount: number }> {
-  const activeSnapshot = await db
-    .select()
-    .from(compactingSnapshots)
-    .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
-    .get()
-
-  const cutoffTimestamp = await getSnapshotCutoffTimestamp(activeSnapshot)
-
-  const allMessages = await db
-    .select({ content: messages.content, createdAt: messages.createdAt, role: messages.role })
-    .from(messages)
-    .where(
-      and(
-        eq(messages.kinId, kinId),
-        isNull(messages.taskId),
-        isNull(messages.sessionId),
-        eq(messages.redactPending, false),
-        ne(messages.sourceType, 'compacting'),
-      ),
-    )
-    .orderBy(asc(messages.createdAt))
-    .all()
-
-  const nonCompacted = cutoffTimestamp
-    ? allMessages.filter((m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp)
-    : allMessages
-
-  const currentTokens = nonCompacted.reduce(
-    (sum, m) => sum + estimateTokens(m.content ?? ''),
-    0,
-  )
-
-  const turnCount = nonCompacted.filter((m) => m.role === 'user').length
-
-  return { currentTokens, messageCount: nonCompacted.length, turnCount }
+  return { thresholdPercent, keepPercent, summaryBudgetPercent, maxSummaries, model, providerId }
 }
 
 // ─── Threshold Evaluation ────────────────────────────────────────────────────
 
 /**
  * Evaluate whether compacting should trigger for a Kin.
+ * Uses token-based threshold: triggers when context tokens exceed thresholdPercent of context window.
  *
- * Uses turn count: a "turn" = one user message + all following messages
- * until the next user message. This avoids false triggers in tool-heavy
- * conversations where a single turn can produce 10-30 messages.
+ * When contextTokens/contextWindow are provided (from kin-engine post-turn), uses them directly.
+ * Otherwise falls back to estimating from DB.
  */
-export async function shouldCompact(kinId: string): Promise<boolean> {
-  const stats = await getNonCompactedStats(kinId)
-  if (stats.turnCount === 0) return false
-
+export async function shouldCompact(kinId: string, contextTokens?: number, contextWindow?: number): Promise<boolean> {
   const effectiveConfig = await getEffectiveCompactingConfig(kinId)
-  return stats.turnCount > effectiveConfig.turnThreshold
+
+  if (contextTokens != null && contextWindow != null && contextWindow > 0) {
+    const usagePercent = (contextTokens / contextWindow) * 100
+    return usagePercent > effectiveConfig.thresholdPercent
+  }
+
+  // Fallback: estimate from DB
+  const kin = await db.select({ model: kins.model }).from(kins).where(eq(kins.id, kinId)).get()
+  if (!kin) return false
+
+  const ctxWindow = getModelContextWindow(kin.model)
+  if (ctxWindow <= 0) return false
+
+  // Estimate non-compacted message tokens
+  const activeSummaries = await getActiveSummaries(kinId)
+  const latestSummary = activeSummaries.length > 0 ? activeSummaries[activeSummaries.length - 1]! : null
+  const cutoffTimestamp = latestSummary ? (latestSummary.lastMessageAt as unknown as number) : null
+
+  const nonCompactedMessages = await getNonCompactedMessages(kinId, cutoffTimestamp)
+  const messageTokens = nonCompactedMessages.reduce((sum, m) => sum + estimateTokens(m.content ?? ''), 0)
+  const summaryTokens = activeSummaries.reduce((sum, s) => sum + estimateTokens(s.summary), 0)
+
+  // Rough estimate: messages + summaries + ~2000 for system prompt + ~1000 for tools
+  const estimatedTotal = messageTokens + summaryTokens + 3000
+  const usagePercent = (estimatedTotal / ctxWindow) * 100
+  return usagePercent > effectiveConfig.thresholdPercent
 }
 
 // ─── Public: compacting proximity for UI ─────────────────────────────────────
 
 export interface CompactingProximity {
-  currentTurns: number
-  turnThreshold: number
+  currentPercent: number
+  thresholdPercent: number
+  summaryCount: number
+  maxSummaries: number
+  summaryTokens: number
+  summaryBudgetTokens: number
+  keepPercent: number
 }
 
-/** Get compacting proximity data for display in the chat UI (turn-based) */
+/** Get compacting proximity data for display in the chat UI (percentage-based) */
 export async function getCompactingProximity(kinId: string): Promise<CompactingProximity> {
-  const stats = await getNonCompactedStats(kinId)
   const effectiveConfig = await getEffectiveCompactingConfig(kinId)
 
+  // Try to get cached context usage from kin-engine
+  const { getLastContextUsage } = await import('@/server/services/kin-engine')
+  const cached = await getLastContextUsage(kinId)
+
+  let currentPercent = 0
+  const contextWindow = cached?.contextWindow ?? 0
+  if (cached && contextWindow > 0) {
+    currentPercent = Math.round((cached.contextTokens / contextWindow) * 100)
+  }
+
+  const activeSummaries = await getActiveSummaries(kinId)
+  const summaryTokens = activeSummaries.reduce((sum, s) => sum + (s.tokenEstimate ?? estimateTokens(s.summary)), 0)
+  const summaryBudgetTokens = contextWindow > 0
+    ? Math.floor((effectiveConfig.summaryBudgetPercent / 100) * contextWindow)
+    : 0
+
   return {
-    currentTurns: stats.turnCount,
-    turnThreshold: effectiveConfig.turnThreshold,
+    currentPercent,
+    thresholdPercent: effectiveConfig.thresholdPercent,
+    summaryCount: activeSummaries.length,
+    maxSummaries: effectiveConfig.maxSummaries,
+    summaryTokens,
+    summaryBudgetTokens,
+    keepPercent: effectiveConfig.keepPercent,
   }
 }
 
-// ─── Core Compacting ─────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Run the compacting process for a Kin.
- * 1. Select messages to summarize (keep 30% as raw context)
- * 2. Generate summary via LLM
- * 3. Save new snapshot, deactivate old
- * 4. Clean up excess snapshots
- * 5. Trigger memory extraction pipeline
- */
-export interface CompactingResult {
-  summary: string
-  memoriesExtracted: number
+/** Get all active (in-context) summaries for a Kin, ordered oldest to newest */
+async function getActiveSummaries(kinId: string) {
+  return db
+    .select()
+    .from(compactingSummaries)
+    .where(and(eq(compactingSummaries.kinId, kinId), eq(compactingSummaries.isInContext, true)))
+    .orderBy(asc(compactingSummaries.lastMessageAt))
+    .all()
 }
 
-export async function runCompacting(kinId: string): Promise<CompactingResult | null> {
-  const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
-  if (!kin) return null
-
-  const activeSnapshot = await db
-    .select()
-    .from(compactingSnapshots)
-    .where(and(eq(compactingSnapshots.kinId, kinId), eq(compactingSnapshots.isActive, true)))
-    .get()
-
-  // Get non-compacted messages (excluding quick sessions and compacting traces)
-  const allMainMessages = await db
+/** Get non-compacted messages after a cutoff timestamp */
+async function getNonCompactedMessages(kinId: string, cutoffTimestamp: number | null) {
+  const allMessages = await db
     .select()
     .from(messages)
     .where(
@@ -214,46 +192,57 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     .orderBy(asc(messages.createdAt))
     .all()
 
-  const cutoffTimestamp = await getSnapshotCutoffTimestamp(activeSnapshot)
+  if (!cutoffTimestamp) return allMessages
+  return allMessages.filter((m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp)
+}
 
-  const nonCompacted = cutoffTimestamp
-    ? allMainMessages.filter(
-        (m) => m.createdAt && (m.createdAt as unknown as number) > cutoffTimestamp,
-      )
-    : allMainMessages
+// ─── Core Compacting ─────────────────────────────────────────────────────────
 
+export interface CompactingResult {
+  summary: string
+  memoriesExtracted: number
+}
+
+/**
+ * Run the compacting process for a Kin.
+ * 1. Find the keep-window boundary (keep recent messages fitting keepPercent of context)
+ * 2. Summarize everything before the boundary into a NEW summary
+ * 3. Run memory extraction on compacted messages
+ * 4. Check if telescopic merge is needed
+ */
+export async function runCompacting(kinId: string, contextWindow?: number): Promise<CompactingResult | null> {
+  const kin = await db.select().from(kins).where(eq(kins.id, kinId)).get()
+  if (!kin) return null
+
+  const effectiveConfig = await getEffectiveCompactingConfig(kinId)
+  const ctxWindow = contextWindow ?? getModelContextWindow(kin.model)
+
+  // Get the latest summary to determine the cutoff point
+  const activeSummaries = await getActiveSummaries(kinId)
+  const latestSummary = activeSummaries.length > 0 ? activeSummaries[activeSummaries.length - 1]! : null
+  const cutoffTimestamp = latestSummary ? (latestSummary.lastMessageAt as unknown as number) : null
+
+  // Get non-compacted messages
+  const nonCompacted = await getNonCompactedMessages(kinId, cutoffTimestamp)
   if (nonCompacted.length === 0) return null
 
-  // Turn-based batching: a "turn" = one user message + all following messages
-  // until the next user message. Select the oldest batchTurns turns, keeping
-  // at least minKeepTurns recent turns as raw context.
-  const effectiveConfig = await getEffectiveCompactingConfig(kinId)
-  const { batchTurns, minKeepTurns } = effectiveConfig
-
-  // Find the cut point: after batchTurns user messages
-  let turnsSeen = 0
-  let cutIndex = 0
-  for (let i = 0; i < nonCompacted.length; i++) {
-    if (nonCompacted[i]!.role === 'user') {
-      turnsSeen++
-      if (turnsSeen > batchTurns) {
-        cutIndex = i // everything before this index is the batch
-        break
-      }
-    }
+  // Compute keep-window: walk backward from newest, accumulating tokens until keepPercent budget
+  const keepBudget = Math.floor((effectiveConfig.keepPercent / 100) * ctxWindow)
+  let keepTokens = 0
+  let keepStartIndex = nonCompacted.length
+  for (let i = nonCompacted.length - 1; i >= 0; i--) {
+    const msgTokens = estimateTokens(nonCompacted[i]!.content ?? '')
+    if (keepTokens + msgTokens > keepBudget) break
+    keepTokens += msgTokens
+    keepStartIndex = i
   }
-  // If we counted exactly batchTurns (or fewer) without finding the next, take all
-  if (cutIndex === 0 && turnsSeen > 0) cutIndex = nonCompacted.length
 
-  // Verify we're keeping at least minKeepTurns
-  const remainingTurns = nonCompacted.slice(cutIndex).filter((m) => m.role === 'user').length
-  if (remainingTurns < minKeepTurns) return null
-
-  const messagesToSummarize = nonCompacted.slice(0, cutIndex)
-
-  if (messagesToSummarize.length === 0) return null
+  // Messages to summarize = everything before the keep window
+  const messagesToSummarize = nonCompacted.slice(0, keepStartIndex)
+  if (messagesToSummarize.length < 2) return null // need at least a couple messages
 
   const lastSummarizedMessage = messagesToSummarize[messagesToSummarize.length - 1]!
+  const firstSummarizedMessage = messagesToSummarize[0]!
 
   // Build pseudonym map for user messages
   const userSourceIds = [
@@ -305,16 +294,12 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     })
     .join('\n\n')
 
-  // Build compacting prompt with structured output guidance
-  const previousSummary = activeSnapshot?.summary
+  // Compute time range
+  const firstTs = firstSummarizedMessage.createdAt ? new Date(firstSummarizedMessage.createdAt as unknown as number).toISOString() : 'unknown'
+  const lastTs = lastSummarizedMessage.createdAt ? new Date(lastSummarizedMessage.createdAt as unknown as number).toISOString() : 'unknown'
 
-  // Compute time range of messages being summarized
-  const firstMsg = messagesToSummarize[0]!
-  const lastMsg = messagesToSummarize[messagesToSummarize.length - 1]!
-  const firstTs = firstMsg.createdAt ? new Date(firstMsg.createdAt as unknown as number).toISOString() : 'unknown'
-  const lastTs = lastMsg.createdAt ? new Date(lastMsg.createdAt as unknown as number).toISOString() : 'unknown'
-
-  let systemPrompt =
+  // Build compacting prompt — no "integrate previous summary" since summaries now stack
+  const systemPrompt =
     `You are an assistant specialized in conversation summarization.\n` +
     `Your role is to produce a faithful, structured summary of the exchanges below.\n\n` +
     `Time range: ${firstTs} to ${lastTs} (${messagesToSummarize.length} messages)\n\n` +
@@ -334,16 +319,10 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     `- Preserve results of research, calculations, or work performed\n` +
     `- Do not invent anything — only summarize what is explicitly present\n` +
     `- Be concise but complete. Prefer bullet points\n` +
-    `- Pay special attention to OPEN THREADS — unfinished business is the most important thing to preserve\n` +
-    `- If a previous summary exists, integrate it: merge completed items, update open threads (close resolved ones, add new ones), and consolidate facts\n`
+    `- Pay special attention to OPEN THREADS — unfinished business is the most important thing to preserve\n\n` +
+    `## Exchanges to summarize\n\n${formattedMessages}`
 
-  if (previousSummary) {
-    systemPrompt += `\n## Previous summary\n\n${previousSummary}\n`
-  }
-
-  systemPrompt += `\n## Exchanges to summarize\n\n${formattedMessages}`
-
-  // Resolve model for compacting — per-Kin override > global config > Kin's own model
+  // Resolve model for compacting
   const { resolveLLMModel } = await import('@/server/services/kin-engine')
   const model = await resolveLLMModel(effectiveConfig.model, effectiveConfig.providerId)
   if (!model) {
@@ -351,109 +330,106 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
     return null
   }
 
-  let result
   try {
-  // Generate summary
-  result = await safeGenerateText({
-    model,
-    providerId: effectiveConfig.providerId,
-    prompt: systemPrompt,
-  })
+    // Generate summary
+    const result = await safeGenerateText({
+      model,
+      providerId: effectiveConfig.providerId,
+      prompt: systemPrompt,
+    })
 
-  const summary = result.text
-  if (!summary) return null
+    const summary = result.text
+    if (!summary) return null
 
-  // Save new snapshot
-  const newSnapshotId = uuid()
-  await db.insert(compactingSnapshots).values({
-    id: newSnapshotId,
-    kinId,
-    summary,
-    messagesUpToId: lastSummarizedMessage.id,
-    isActive: true,
-    createdAt: new Date(),
-  })
+    const firstMsgAt = firstSummarizedMessage.createdAt as unknown as number
+    const lastMsgAt = lastSummarizedMessage.createdAt as unknown as number
 
-  // Deactivate old snapshot(s)
-  if (activeSnapshot) {
-    await db
-      .update(compactingSnapshots)
-      .set({ isActive: false })
-      .where(
-        and(
-          eq(compactingSnapshots.kinId, kinId),
-          eq(compactingSnapshots.isActive, true),
-          ne(compactingSnapshots.id, newSnapshotId),
-        ),
-      )
-  }
+    // Save new summary
+    const newSummaryId = uuid()
+    await db.insert(compactingSummaries).values({
+      id: newSummaryId,
+      kinId,
+      summary,
+      firstMessageAt: new Date(firstMsgAt),
+      lastMessageAt: new Date(lastMsgAt),
+      firstMessageId: firstSummarizedMessage.id,
+      lastMessageId: lastSummarizedMessage.id,
+      messageCount: messagesToSummarize.length,
+      tokenEstimate: estimateTokens(summary),
+      isInContext: true,
+      depth: 0,
+      createdAt: new Date(),
+    })
 
-  // Clean up excess snapshots
-  await cleanupSnapshots(kinId)
+    // Extract memories (awaited so we can report count)
+    const memoriesExtracted = await extractMemories(kinId, kin.model, kin.providerId, messagesToSummarize, lastSummarizedMessage.id)
 
-  // Extract memories (awaited so we can report count)
-  const memoriesExtracted = await extractMemories(kinId, kin.model, kin.providerId, messagesToSummarize, lastSummarizedMessage.id)
-
-  // Run memory consolidation to merge near-duplicate memories
-  let memoriesConsolidated = 0
-  try {
-    const { consolidateMemories } = await import('@/server/services/consolidation')
-    memoriesConsolidated = await consolidateMemories(kinId)
-    if (memoriesConsolidated > 0) {
-      log.info({ kinId, memoriesConsolidated }, 'Memories consolidated after extraction')
+    // Run memory consolidation to merge near-duplicate memories
+    let memoriesConsolidated = 0
+    try {
+      const { consolidateMemories } = await import('@/server/services/consolidation')
+      memoriesConsolidated = await consolidateMemories(kinId)
+      if (memoriesConsolidated > 0) {
+        log.info({ kinId, memoriesConsolidated }, 'Memories consolidated after extraction')
+      }
+    } catch (err) {
+      log.error({ kinId, err }, 'Memory consolidation error')
     }
-  } catch (err) {
-    log.error({ kinId, err }, 'Memory consolidation error')
-  }
 
-  // Recalibrate importance scores based on retrieval patterns
-  let memoriesRecalibrated = 0
-  try {
-    const { recalibrateImportance } = await import('@/server/services/memory')
-    memoriesRecalibrated = await recalibrateImportance(kinId)
-    if (memoriesRecalibrated > 0) {
-      log.info({ kinId, memoriesRecalibrated }, 'Memory importance recalibrated')
+    // Recalibrate importance scores based on retrieval patterns
+    let memoriesRecalibrated = 0
+    try {
+      const { recalibrateImportance } = await import('@/server/services/memory')
+      memoriesRecalibrated = await recalibrateImportance(kinId)
+      if (memoriesRecalibrated > 0) {
+        log.info({ kinId, memoriesRecalibrated }, 'Memory importance recalibrated')
+      }
+    } catch (err) {
+      log.error({ kinId, err }, 'Memory importance recalibration error')
     }
-  } catch (err) {
-    log.error({ kinId, err }, 'Memory importance recalibration error')
-  }
 
-  // Prune stale memories (low importance, never retrieved, old)
-  let memoriesPruned = 0
-  try {
-    memoriesPruned = await pruneStaleMemories(kinId)
-    if (memoriesPruned > 0) {
-      log.info({ kinId, memoriesPruned }, 'Stale memories pruned')
+    // Prune stale memories (low importance, never retrieved, old)
+    let memoriesPruned = 0
+    try {
+      memoriesPruned = await pruneStaleMemories(kinId)
+      if (memoriesPruned > 0) {
+        log.info({ kinId, memoriesPruned }, 'Stale memories pruned')
+      }
+    } catch (err) {
+      log.error({ kinId, err }, 'Stale memory pruning error')
     }
-  } catch (err) {
-    log.error({ kinId, err }, 'Stale memory pruning error')
-  }
 
-  // Persist a system message so the compaction trace survives page refresh
-  // role='system' is skipped by buildMessageHistory → won't pollute LLM context
-  const compactingMessageId = uuid()
-  await db.insert(messages).values({
-    id: compactingMessageId,
-    kinId,
-    role: 'system',
-    content: summary,
-    sourceType: 'compacting',
-    isRedacted: false,
-    redactPending: false,
-    metadata: JSON.stringify({ memoriesExtracted, memoriesConsolidated, memoriesPruned }),
-    createdAt: new Date(),
-  })
+    // Persist a system message so the compaction trace survives page refresh
+    // role='system' is skipped by buildMessageHistory → won't pollute LLM context
+    const compactingMessageId = uuid()
+    await db.insert(messages).values({
+      id: compactingMessageId,
+      kinId,
+      role: 'system',
+      content: summary,
+      sourceType: 'compacting',
+      isRedacted: false,
+      redactPending: false,
+      metadata: JSON.stringify({ memoriesExtracted, memoriesConsolidated, memoriesPruned }),
+      createdAt: new Date(),
+    })
 
-  log.info({ kinId, snapshotId: newSnapshotId, summarizedMessages: messagesToSummarize.length, summarizedTurns: turnsSeen > batchTurns ? batchTurns : turnsSeen, memoriesExtracted }, 'Incremental compacting batch completed')
+    log.info({ kinId, summaryId: newSummaryId, summarizedMessages: messagesToSummarize.length, memoriesExtracted }, 'Compacting batch completed')
 
-  // Emit SSE: compaction done
-  sseManager.sendToKin(kinId, {
-    type: 'compacting:done',
-    kinId,
-    data: { kinId, summary, memoriesExtracted },
-  })
+    // Emit SSE: compaction done
+    sseManager.sendToKin(kinId, {
+      type: 'compacting:done',
+      kinId,
+      data: { kinId, summary, memoriesExtracted },
+    })
 
-  return { summary, memoriesExtracted }
+    // Check if telescopic merge is needed after adding new summary
+    await maybeMergeSummaries(kinId, ctxWindow)
+
+    // Clean up old archived summaries beyond retention limit
+    await cleanupSummaries(kinId)
+
+    return { summary, memoriesExtracted }
   } catch (err) {
     // Extract detailed error info (API errors often have status/statusCode)
     let errorMessage = 'Unknown compacting error'
@@ -467,6 +443,19 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
 
     log.error({ kinId, err, model: effectiveConfig.model, providerId: effectiveConfig.providerId }, 'Compacting LLM call failed')
 
+    // Persist error in conversation history
+    await db.insert(messages).values({
+      id: uuid(),
+      kinId,
+      role: 'system',
+      content: '',
+      sourceType: 'compacting',
+      isRedacted: false,
+      redactPending: false,
+      metadata: JSON.stringify({ error: errorMessage }),
+      createdAt: new Date(),
+    })
+
     // Emit SSE: compaction failed (so UI can clear the spinner)
     sseManager.sendToKin(kinId, {
       type: 'compacting:error',
@@ -477,24 +466,120 @@ export async function runCompacting(kinId: string): Promise<CompactingResult | n
   }
 }
 
-// ─── Snapshot Cleanup ────────────────────────────────────────────────────────
+// ─── Telescopic Summary Merge ────────────────────────────────────────────────
 
-async function cleanupSnapshots(kinId: string) {
-  const snapshots = await db
+/**
+ * Merge the oldest active summaries when they exceed the budget.
+ * This creates a higher-level (depth+1) summary and archives the originals.
+ * NO memory extraction during merge — memories were already extracted at depth 0.
+ */
+async function maybeMergeSummaries(kinId: string, contextWindow: number): Promise<void> {
+  const effectiveConfig = await getEffectiveCompactingConfig(kinId)
+  const activeSummaries = await getActiveSummaries(kinId)
+
+  if (activeSummaries.length <= 2) return // nothing to merge
+
+  const totalSummaryTokens = activeSummaries.reduce((sum, s) => sum + (s.tokenEstimate ?? estimateTokens(s.summary)), 0)
+  const summaryBudget = Math.floor((effectiveConfig.summaryBudgetPercent / 100) * contextWindow)
+
+  const needsMerge = activeSummaries.length > effectiveConfig.maxSummaries || totalSummaryTokens > summaryBudget
+  if (!needsMerge) return
+
+  // Take the oldest half of summaries to merge (min 2)
+  const mergeCount = Math.max(2, Math.floor(activeSummaries.length / 2))
+  const toMerge = activeSummaries.slice(0, mergeCount)
+
+  // Build merge prompt
+  const summaryTexts = toMerge
+    .map((s) => {
+      const from = new Date(s.firstMessageAt as unknown as number).toISOString()
+      const to = new Date(s.lastMessageAt as unknown as number).toISOString()
+      return `### Summary (${from} → ${to})\n\n${s.summary}`
+    })
+    .join('\n\n---\n\n')
+
+  const firstSummary = toMerge[0]!
+  const lastSummary = toMerge[toMerge.length - 1]!
+  const firstTs = new Date(firstSummary.firstMessageAt as unknown as number).toISOString()
+  const lastTs = new Date(lastSummary.lastMessageAt as unknown as number).toISOString()
+
+  const mergePrompt =
+    `You are an assistant specialized in summary consolidation.\n` +
+    `Merge the following ${toMerge.length} conversation summaries into one concise, unified summary.\n\n` +
+    `Combined time range: ${firstTs} to ${lastTs}\n\n` +
+    `## Rules\n\n` +
+    `- Preserve all key facts, decisions, and important outcomes\n` +
+    `- Remove redundancy and consolidate overlapping information\n` +
+    `- Close open threads that were resolved in later summaries\n` +
+    `- Keep unresolved open threads\n` +
+    `- Be more concise than the originals — this is a higher-level summary\n` +
+    `- Preserve attribution (who said/did what)\n\n` +
+    `## Summaries to merge\n\n${summaryTexts}`
+
+  const { resolveLLMModel } = await import('@/server/services/kin-engine')
+  const model = await resolveLLMModel(effectiveConfig.model, effectiveConfig.providerId)
+  if (!model) return
+
+  try {
+    const result = await safeGenerateText({
+      model,
+      providerId: effectiveConfig.providerId,
+      prompt: mergePrompt,
+    })
+
+    const mergedSummary = result.text
+    if (!mergedSummary) return
+
+    const maxDepth = Math.max(...toMerge.map((s) => s.depth ?? 0))
+    const sourceIds = toMerge.map((s) => s.id)
+
+    // Insert merged summary
+    await db.insert(compactingSummaries).values({
+      id: uuid(),
+      kinId,
+      summary: mergedSummary,
+      firstMessageAt: firstSummary.firstMessageAt,
+      lastMessageAt: lastSummary.lastMessageAt,
+      firstMessageId: firstSummary.firstMessageId,
+      lastMessageId: lastSummary.lastMessageId,
+      messageCount: toMerge.reduce((sum, s) => sum + (s.messageCount ?? 0), 0),
+      tokenEstimate: estimateTokens(mergedSummary),
+      isInContext: true,
+      depth: maxDepth + 1,
+      sourceSummaryIds: JSON.stringify(sourceIds),
+      createdAt: new Date(),
+    })
+
+    // Archive merged originals
+    await db
+      .update(compactingSummaries)
+      .set({ isInContext: false })
+      .where(inArray(compactingSummaries.id, sourceIds))
+
+    log.info({ kinId, mergedCount: toMerge.length, newDepth: maxDepth + 1 }, 'Telescopic summary merge completed')
+  } catch (err) {
+    log.error({ kinId, err }, 'Summary merge LLM error')
+  }
+}
+
+// ─── Summary Cleanup ─────────────────────────────────────────────────────────
+
+async function cleanupSummaries(kinId: string) {
+  const allSummaries = await db
     .select()
-    .from(compactingSnapshots)
-    .where(eq(compactingSnapshots.kinId, kinId))
-    .orderBy(desc(compactingSnapshots.createdAt))
+    .from(compactingSummaries)
+    .where(eq(compactingSummaries.kinId, kinId))
+    .orderBy(desc(compactingSummaries.createdAt))
     .all()
 
-  if (snapshots.length > config.compacting.maxSnapshotsPerKin) {
-    const toDelete = snapshots.slice(config.compacting.maxSnapshotsPerKin)
-    const idsToDelete = toDelete.filter((s) => !s.isActive).map((s) => s.id)
+  if (allSummaries.length > config.compacting.maxSummariesPerKin) {
+    const toDelete = allSummaries.slice(config.compacting.maxSummariesPerKin)
+    const idsToDelete = toDelete.filter((s) => !s.isInContext).map((s) => s.id)
 
     if (idsToDelete.length > 0) {
       await db
-        .delete(compactingSnapshots)
-        .where(inArray(compactingSnapshots.id, idsToDelete))
+        .delete(compactingSummaries)
+        .where(inArray(compactingSummaries.id, idsToDelete))
     }
   }
 }
@@ -668,28 +753,26 @@ async function extractMemories(
 /**
  * Check thresholds and run compacting if needed.
  * Called after each LLM turn in kin-engine.ts.
- * Loops to catch up large backlogs (e.g. 187/25 turns).
+ * Accepts contextTokens/contextWindow from the engine to avoid recomputation.
  */
-export async function maybeCompact(kinId: string): Promise<void> {
+export async function maybeCompact(kinId: string, contextTokens?: number, contextWindow?: number): Promise<void> {
   try {
     let cycles = 0
-    const maxCycles = 20
+    const maxCycles = 5
 
-    // Estimate total cycles for SSE progress
-    const stats = await getNonCompactedStats(kinId)
-    const effectiveConfig = await getEffectiveCompactingConfig(kinId)
-    const estimatedTotal = stats.turnCount > effectiveConfig.turnThreshold
-      ? Math.ceil((stats.turnCount - effectiveConfig.minKeepTurns) / effectiveConfig.batchTurns)
-      : 0
-
-    while (await shouldCompact(kinId) && cycles < maxCycles) {
+    while (await shouldCompact(kinId, contextTokens, contextWindow) && cycles < maxCycles) {
       cycles++
       sseManager.sendToKin(kinId, {
         type: 'compacting:start',
         kinId,
-        data: { kinId, cycle: cycles, estimatedTotal },
+        data: { kinId, cycle: cycles, estimatedTotal: maxCycles },
       })
-      await runCompacting(kinId)
+      await runCompacting(kinId, contextWindow)
+
+      // After the first compaction, clear the passed-in values so subsequent
+      // iterations re-estimate from DB (context has changed)
+      contextTokens = undefined
+      contextWindow = undefined
     }
 
     if (cycles > 1) {
@@ -697,8 +780,6 @@ export async function maybeCompact(kinId: string): Promise<void> {
     }
   } catch (err) {
     log.error({ kinId, err }, 'Compacting error')
-    // runCompacting already emits compacting:error, but if shouldCompact
-    // itself fails, emit here as a safety net
     sseManager.sendToKin(kinId, {
       type: 'compacting:error',
       kinId,

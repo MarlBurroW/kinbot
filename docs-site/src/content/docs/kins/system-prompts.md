@@ -11,7 +11,7 @@ KinBot builds the system prompt from these blocks (in order):
 
 1. **Platform context** — explains that the Kin lives on KinBot, has a continuous session, and sees multiple users
 2. **Identity** — name, slug, and role
-3. **Core principles** — universal baseline behaviors (genuine helpfulness, resourcefulness, privacy, calibrated responses). Injected for all main Kins, not sub-Kins or quick sessions
+3. **Core principles** — universal baseline behaviors (genuine helpfulness, resourcefulness, privacy, calibrated responses, tool-call discipline). Includes instructions to never narrate or predict tool results before execution, and to never batch dependent tool calls — each must be called one at a time across separate steps. Injected for all main Kins, not sub-Kins or quick sessions
 4. **Personality** — the `character` field you define
 5. **Expertise** — the `expertise` field you define
 6. **Platform directives** — optional global prompt that applies to all Kins (set in Settings)
@@ -65,6 +65,7 @@ When a Kin spawns a sub-agent (via `spawn_self` or `spawn_kin`), the sub-Kin get
 
 - Mission-focused: the task description is front and center
 - Constrained: must call `update_task_status()` to complete
+- Tool-call discipline: same rules as main Kins — never narrate or predict tool results, and never batch dependent tool calls
 - Can request input from the parent via `request_input()`
 - Can communicate with other Kins via `send_message` and `list_kins` (Kin directory included in prompt)
 - For cron tasks: previous run results are injected for continuity

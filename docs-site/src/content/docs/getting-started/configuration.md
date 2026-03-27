@@ -37,6 +37,13 @@ When using Docker, mount a volume to `/app/data` to persist data across containe
 |---|---|---|
 | `HISTORY_TOKEN_BUDGET` | `40000` | Max tokens for conversation history in context |
 
+## Custom tools
+
+| Variable | Default | Description |
+|---|---|---|
+| `KINBOT_CUSTOM_TOOL_TIMEOUT` | `30000` | Default execution timeout for custom tools (ms) |
+| `KINBOT_CUSTOM_TOOL_MAX_TIMEOUT` | `300000` | Maximum allowed timeout for custom tools (ms). Per-invocation values are capped to this limit |
+
 ## Webhooks
 
 | Variable | Default | Description |
@@ -56,6 +63,7 @@ When using Docker, mount a volume to `/app/data` to persist data across containe
 
 | Variable | Default | Description |
 |---|---|---|
+| `KINBOT_VERSION` | *(auto-detected)* | Explicit version override. Read from `package.json` by default. In Docker, automatically set by the entrypoint. Only needed if version detection fails. |
 | `VERSION_CHECK_ENABLED` | `false` | Enable automatic version checking against GitHub releases |
 | `VERSION_CHECK_REPO` | `MarlBurroW/kinbot` | GitHub repo to check for new releases |
 | `VERSION_CHECK_INTERVAL_HOURS` | `12` | Hours between version checks |

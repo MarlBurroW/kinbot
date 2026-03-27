@@ -23,7 +23,7 @@ import {
   listMemoriesTool,
   reviewMemoriesTool,
 } from '@/server/tools/memory-tools'
-import { searchHistoryTool } from '@/server/tools/history-tools'
+import { searchHistoryTool, browseHistoryTool, listSummariesTool, readSummaryTool } from '@/server/tools/history-tools'
 import {
   getSecretTool,
   redactMessageTool,
@@ -210,6 +210,9 @@ export function registerAllTools(): void {
 
   // Phase 12: History tools
   toolRegistry.register('search_history', searchHistoryTool)
+  toolRegistry.register('browse_history', browseHistoryTool)
+  toolRegistry.register('list_summaries', listSummariesTool)
+  toolRegistry.register('read_summary', readSummaryTool)
 
   // Phase 14: Vault tools
   toolRegistry.register('get_secret', getSecretTool)

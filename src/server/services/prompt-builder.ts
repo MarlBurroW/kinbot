@@ -70,8 +70,12 @@ interface PromptParams {
   userLanguage: 'fr' | 'en'
   isHub?: boolean
   hubKinDirectory?: HubKinDirectoryEntry[]
-  compactingSummary?: string | null
-  compactedUpTo?: Date | null
+  compactingSummaries?: Array<{
+    summary: string
+    firstMessageAt: Date
+    lastMessageAt: Date
+    depth: number
+  }> | null
   participants?: Array<{ name: string; platform: string | null; messageCount: number; lastSeenAt: Date }>
   currentMessageSource?: {
     platform: string  // e.g. "telegram", "discord", "whatsapp", "web"
@@ -462,7 +466,9 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- Focus exclusively on this task.\n` +
       `- Use report_to_parent() to send intermediate progress updates if useful.\n` +
       `- If blocked, use request_input() to ask for clarification (max ${config.tasks?.maxRequestInput ?? 3} times).\n` +
-      `- Be honest about uncertainty. Do not fabricate facts or details — use tools to verify when unsure.\n\n` +
+      `- Be honest about uncertainty. Do not fabricate facts or details — use tools to verify when unsure.\n` +
+      `- When calling tools, do not narrate or predict results — just call the tool silently. Never announce a result before receiving the tool's output.\n` +
+      `- When a tool call depends on the result of a previous one, call them one at a time. Wait to receive each result before calling the next tool.\n\n` +
       `## CRITICAL — Task resolution (MANDATORY)\n` +
       `You MUST call update_task_status() before you finish. There is no auto-completion.\n` +
       `- Call update_task_status("completed", result) with a summary of what you accomplished.\n` +
@@ -524,7 +530,9 @@ export function buildSystemPrompt(params: PromptParams): string {
       `- Have informed opinions within your area of expertise. You are an expert, not a neutral relay.\n` +
       `- Respect privacy — your access to personal information represents trust. Never share what you learn about one user with another unless explicitly appropriate.\n` +
       `- When uncertain, say so clearly. "I'm not sure" is always better than a confident wrong answer.\n` +
-      `- Match your response to the situation — concise for simple questions, thorough for complex ones.`,
+      `- Match your response to the situation — concise for simple questions, thorough for complex ones.\n` +
+      `- When calling tools, do not narrate or predict results — just call the tool silently. Never announce a result before receiving the tool's output.\n` +
+      `- When a tool call depends on the result of a previous one, you MUST call them one at a time across separate steps. Wait to receive each result before calling the next tool. Never batch dependent tool calls — you cannot predict outputs.`,
     )
 
     // [2] Character
@@ -891,16 +899,21 @@ export function buildSystemPrompt(params: PromptParams): string {
     blocks.push(stateBlock)
   }
 
-  // [6.9] Compacting summary (older conversation context)
-  if (params.compactingSummary) {
-    const timeInfo = params.compactedUpTo
-      ? ` This summary covers exchanges up to ${formatRelativeTime(params.compactedUpTo)} (${params.compactedUpTo.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}).`
-      : ''
+  // [6.9] Compacting summaries (older conversation context)
+  if (params.compactingSummaries && params.compactingSummaries.length > 0) {
+    const summaryBlocks = params.compactingSummaries.map((s) => {
+      const fromDate = s.firstMessageAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+      const toDate = s.lastMessageAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+      const compressed = s.depth > 0 ? ' [compressed]' : ''
+      return `### Summary (${fromDate} → ${toDate})${compressed}\n\n${s.summary}`
+    })
     blocks.push(
-      `## Previous conversation summary\n\n` +
-      `The following is a summary of older exchanges that are no longer in the message history. ` +
-      `Use this as background context — it is a faithful summary of what was discussed previously.${timeInfo}\n\n` +
-      params.compactingSummary,
+      `## Conversation history summaries\n\n` +
+      `The following summaries cover older exchanges no longer in the message history. ` +
+      `Use them as background context — they are faithful summaries of what was discussed previously. ` +
+      `You can use the list_summaries and read_summary tools to access archived summaries, ` +
+      `or browse_history / search_history to explore past messages.\n\n` +
+      summaryBlocks.join('\n\n'),
     )
   }
 

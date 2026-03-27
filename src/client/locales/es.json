@@ -386,13 +386,35 @@
       "modelLabel": "Modelo de compactación",
       "modelHint": "Modelo usado para el resumen. Dejar vacío para usar el modelo del Kin.",
       "sameAsKinModel": "Mismo modelo que el Kin",
-      "turnThresholdLabel": "Turnos antes de compactación",
-      "turnThresholdPlaceholder": "Valor global ({{default}})",
-      "turnThresholdHint": "Número de turnos de conversación antes de activar la compactación.",
+      "thresholdPercentLabel": "Umbral de contexto (%)",
+      "thresholdPercentPlaceholder": "Valor global ({{default}} %)",
+      "thresholdPercentHint": "La compactación se activa cuando el uso del contexto supera este porcentaje de la ventana del modelo.",
+      "keepPercentLabel": "Contexto a conservar (%)",
+      "keepPercentPlaceholder": "Valor global ({{default}} %)",
+      "keepPercentHint": "Porcentaje de la ventana de contexto conservado como mensajes sin comprimir tras la compactación.",
+      "summaryBudgetLabel": "Presupuesto de resúmenes (%)",
+      "summaryBudgetPlaceholder": "Valor global ({{default}} %)",
+      "summaryBudgetHint": "Cuando los resúmenes superan este % de la ventana de contexto, los más antiguos se fusionan.",
+      "maxSummariesLabel": "Máx. resúmenes",
+      "maxSummariesPlaceholder": "Valor global ({{default}})",
+      "maxSummariesHint": "Número máximo de resúmenes activos antes de activar una fusión.",
       "modeCustom": "Modelo personalizado",
       "modeDefault": "Usar el predeterminado global",
       "modeKinOwn": "Usar el modelo de este Kin",
-      "selectCustomModel": "Seleccionar un modelo"
+      "selectCustomModel": "Seleccionar un modelo",
+      "animTools": "Herramientas",
+      "animPrompt": "Prompt del sistema",
+      "animMessages": "Mensajes",
+      "animSummary": "Resumen",
+      "animMerged": "Resumen fusionado",
+      "animThreshold": "Umbral",
+      "animFilling": "Los mensajes llenan la ventana de contexto a medida que avanza la conversación.",
+      "animApproaching": "El contexto se está llenando. La compactación se activará al alcanzar el umbral.",
+      "animCompacting": "Umbral alcanzado. Los mensajes más antiguos se comprimen en un resumen.",
+      "animMerging": "Demasiados resúmenes — los más antiguos se fusionan entre sí.",
+      "animDone": "Ciclo completo. El proceso se repite indefinidamente.",
+      "animContinuing": "La conversación continúa. {{summaries}} resumen(es) conservado(s), nuevos mensajes siguen llegando.",
+      "animExplanation": "Cuando la ventana de contexto se llena, los mensajes más antiguos se comprimen en resúmenes con fechas. Estos resúmenes se acumulan cronológicamente. Cuando hay demasiados, los más antiguos se fusionan — los resúmenes recientes permanecen detallados, los antiguos se comprimen."
     },
     "avatar": {
       "title": "Elegir avatar",
@@ -520,7 +542,10 @@
     "forceCompact": "Forzar compactación",
     "tooltipContext": "Ventana de contexto",
     "tooltipCompacting": "Compactación",
-    "compactingProximity": "{{current}} / {{threshold}} turnos",
+    "tooltipSummaryMerge": "Fusión de resúmenes",
+    "summaryMergeCount": "{{count}} / {{max}} resúmenes",
+    "summaryMergeBudget": "{{tokens}} / {{budget}} tokens",
+    "compactingProximity": "{{percent}} % / {{threshold}} % · {{summaryCount}} resúmenes",
     "compactingMarker": "Umbral de compactación",
     "moreActions": "Más acciones",
     "compacting": {
@@ -530,7 +555,7 @@
       "memories": "{{count}} memorias extraídas",
       "showSummary": "Mostrar resumen",
       "inputDisabled": "Por favor espera - compactando historial de conversación...",
-      "nothingToCompact": "Nada que compactar - aún no hay suficientes turnos",
+      "nothingToCompact": "No hay suficientes mensajes para compactar",
       "error": "Error en la compactación",
       "runningCycle": "Compactando... (ciclo {{cycle}}/{{total}})"
     },
@@ -722,9 +747,13 @@
       "legend": {
         "messages": "Mensajes",
         "summary": "Resumen",
+        "summaries": "Resúmenes ({{count}})",
         "systemPrompt": "Prompt del sistema",
         "tools": "Herramientas"
       },
+      "summariesTitle": "Resúmenes de conversación ({{count}})",
+      "summaryLabel": "Resumen #{{n}}",
+      "compressed": "comprimido",
       "loading": "Construyendo vista previa del contexto...",
       "messageRole": {
         "assistant": "Asistente",
@@ -742,7 +771,9 @@
       "title": "Visor de contexto",
       "tools": "Herramientas disponibles",
       "toolsCount": "{{count}} herramientas",
-      "withToolCalls": "(+ llamadas a herramientas)"
+      "withToolCalls": "(+ llamadas a herramientas)",
+      "threshold": "Umbral {{percent}}%",
+      "showMore": "Ver más"
     }
   },
   "quickChat": {

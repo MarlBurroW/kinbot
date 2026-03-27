@@ -16,13 +16,13 @@ import {
   CommandItem,
   CommandList,
 } from '@/client/components/ui/command'
-import { PROVIDER_DISPLAY_NAMES } from '@/shared/constants'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 
 interface ModelPickerModel {
   id: string
   name: string
   providerId: string
+  providerName: string
   providerType: string
   capability: string
 }
@@ -61,27 +61,33 @@ export function ModelPicker({
 
   const selectedModel = models.find((m) => getItemValue(m) === value)
 
-  const providerTypes = useMemo(
-    () => [...new Set(models.map((m) => m.providerType))],
-    [models],
-  )
+  /** Unique providers by providerId, preserving insertion order */
+  const providers = useMemo(() => {
+    const seen = new Map<string, { providerName: string; providerType: string }>()
+    for (const m of models) {
+      if (!seen.has(m.providerId)) {
+        seen.set(m.providerId, { providerName: m.providerName, providerType: m.providerType })
+      }
+    }
+    return seen
+  }, [models])
 
   const filteredModels = useMemo(
-    () => (providerFilter ? models.filter((m) => m.providerType === providerFilter) : models),
+    () => (providerFilter ? models.filter((m) => m.providerId === providerFilter) : models),
     [models, providerFilter],
   )
 
   const modelsByProvider = useMemo(
     () =>
       filteredModels.reduce<Record<string, ModelPickerModel[]>>((acc, m) => {
-        if (!acc[m.providerType]) acc[m.providerType] = []
-        acc[m.providerType]!.push(m)
+        if (!acc[m.providerId]) acc[m.providerId] = []
+        acc[m.providerId]!.push(m)
         return acc
       }, {}),
     [filteredModels],
   )
 
-  const showFilters = providerTypes.length > 1
+  const showFilters = providers.size > 1
 
   return (
     <Popover
@@ -137,20 +143,20 @@ export function ModelPicker({
               >
                 {t('modelPicker.all')}
               </button>
-              {providerTypes.map((pt) => (
+              {[...providers.entries()].map(([pid, { providerName, providerType }]) => (
                 <button
-                  key={pt}
+                  key={pid}
                   type="button"
-                  onClick={() => setProviderFilter(providerFilter === pt ? null : pt)}
+                  onClick={() => setProviderFilter(providerFilter === pid ? null : pid)}
                   className={cn(
                     'flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors',
-                    providerFilter === pt
+                    providerFilter === pid
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                   )}
                 >
-                  <ProviderIcon providerType={pt} className="size-3" />
-                  {PROVIDER_DISPLAY_NAMES[pt] ?? pt}
+                  <ProviderIcon providerType={providerType} className="size-3" />
+                  {providerName}
                 </button>
               ))}
             </div>
@@ -181,39 +187,42 @@ export function ModelPicker({
                 </CommandItem>
               </CommandGroup>
             )}
-            {Object.entries(modelsByProvider).map(([providerType, providerModels]) => (
-              <CommandGroup
-                key={providerType}
-                heading={
-                  <span className="flex items-center gap-1.5">
-                    <ProviderIcon providerType={providerType} className="size-3.5" />
-                    {PROVIDER_DISPLAY_NAMES[providerType] ?? providerType}
-                  </span>
-                }
-              >
-                {providerModels.map((m) => {
-                  const itemValue = getItemValue(m)
-                  return (
-                    <CommandItem
-                      key={itemValue}
-                      value={`${m.name} ${providerType}`}
-                      onSelect={() => {
-                        onValueChange(m.id, m.providerId)
-                        setOpen(false)
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          'size-4 shrink-0',
-                          value === itemValue ? 'opacity-100' : 'opacity-0',
-                        )}
-                      />
-                      {m.name}
-                    </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            ))}
+            {Object.entries(modelsByProvider).map(([providerId, providerModels]) => {
+              const providerInfo = providers.get(providerId)
+              return (
+                <CommandGroup
+                  key={providerId}
+                  heading={
+                    <span className="flex items-center gap-1.5">
+                      <ProviderIcon providerType={providerInfo?.providerType ?? ''} className="size-3.5" />
+                      {providerInfo?.providerName ?? providerId}
+                    </span>
+                  }
+                >
+                  {providerModels.map((m) => {
+                    const itemValue = getItemValue(m)
+                    return (
+                      <CommandItem
+                        key={itemValue}
+                        value={`${m.name} ${m.providerName}`}
+                        onSelect={() => {
+                          onValueChange(m.id, m.providerId)
+                          setOpen(false)
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            'size-4 shrink-0',
+                            value === itemValue ? 'opacity-100' : 'opacity-0',
+                          )}
+                        />
+                        {m.name}
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
+              )
+            })}
           </CommandList>
         </Command>
       </PopoverContent>

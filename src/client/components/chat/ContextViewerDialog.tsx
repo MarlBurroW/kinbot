@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect, useMemo, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -8,7 +8,12 @@ import {
 } from '@/client/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/client/components/ui/tabs'
 import { Button } from '@/client/components/ui/button'
-import { Copy, Check, Loader2, RefreshCw } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/client/components/ui/collapsible'
+import { Copy, Check, Loader2, RefreshCw, ChevronRight, ChevronDown, Layers } from 'lucide-react'
 import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { getErrorMessage } from '@/client/lib/api'
 
@@ -29,9 +34,19 @@ interface MessagePreview {
   createdAt: number | null
 }
 
+interface SummaryPreview {
+  summary: string
+  firstMessageAt: string
+  lastMessageAt: string
+  depth: number
+  tokenEstimate: number
+  messageCount: number
+}
+
 interface ContextPreviewData {
   systemPrompt: string
   compactingSummary: string | null
+  summaries: SummaryPreview[]
   rawPayload: {
     system: string
     messages: MessagePreview[]
@@ -45,15 +60,31 @@ interface ContextPreviewData {
     total: number
   }
   contextWindow?: number
+  compactingThresholdPercent?: number | null
   messageCount: number
   generatedAt: number
 }
 
-const SUMMARY_HEADER = '## Previous conversation summary'
+const SUMMARY_HEADER = '## Conversation history summaries'
 
 function formatTokenCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
   return String(n)
+}
+
+function formatDateShort(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
+}
+
+function formatDateRange(from: string, to: string): string {
+  const f = new Date(from)
+  const t = new Date(to)
+  const sameDay = f.toDateString() === t.toDateString()
+  if (sameDay) {
+    return `${f.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} ${f.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} → ${t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}`
+  }
+  return `${formatDateShort(from)} → ${formatDateShort(to)}`
 }
 
 interface ContextViewerDialogProps {
@@ -126,6 +157,10 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
     copy(activeTab === 'raw' ? rawJson : data?.systemPrompt ?? '')
   }
 
+  const isMainConversation = !taskId && !sessionId
+  const hasSummaries = data?.summaries && data.summaries.length > 0
+  const totalSummaryTokens = data?.summaries?.reduce((sum, s) => sum + s.tokenEstimate, 0) ?? 0
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!flex !max-w-4xl !w-[90vw] max-h-[85vh] flex-col gap-0 !p-0">
@@ -155,12 +190,12 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
             )}
           </div>
           {data?.tokenEstimate && data.contextWindow && data.contextWindow > 0 && (
-            <div className="mt-3 space-y-1">
+            <div className="mt-3 space-y-1.5">
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>{formatTokenCount(data.tokenEstimate.total)} / {formatTokenCount(data.contextWindow)}</span>
                 <span>{Math.round((data.tokenEstimate.total / data.contextWindow) * 100)}%</span>
               </div>
-              <div className="flex h-2 w-full overflow-hidden rounded-full bg-primary/20">
+              <div className="relative flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
                 {data.tokenEstimate.tools > 0 && (
                   <div className="bg-blue-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.tools / data.contextWindow) * 100)}%` }} />
                 )}
@@ -172,6 +207,41 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                 )}
                 {data.tokenEstimate.messages > 0 && (
                   <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.messages / data.contextWindow) * 100)}%` }} />
+                )}
+                {/* Compacting threshold marker — only for main conversations */}
+                {isMainConversation && data.compactingThresholdPercent != null && (
+                  <div
+                    className="absolute top-0 h-full w-0.5 bg-red-500/80"
+                    style={{ left: `${data.compactingThresholdPercent}%` }}
+                    title={t('chat.contextViewer.threshold', { percent: data.compactingThresholdPercent })}
+                  />
+                )}
+              </div>
+              {/* Legend under the bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block size-2 rounded-sm bg-blue-500" />
+                  {t('chat.contextViewer.legend.tools')} {formatTokenCount(data.tokenEstimate.tools)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block size-2 rounded-sm bg-purple-500" />
+                  {t('chat.contextViewer.legend.systemPrompt')} {formatTokenCount(data.tokenEstimate.systemPrompt)}
+                </span>
+                {data.tokenEstimate.summary > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block size-2 rounded-sm bg-amber-500" />
+                    {t('chat.contextViewer.legend.summaries', { count: data.summaries?.length ?? 0 })} {formatTokenCount(data.tokenEstimate.summary)}
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <span className="inline-block size-2 rounded-sm bg-emerald-500" />
+                  {t('chat.contextViewer.legend.messages')} {formatTokenCount(data.tokenEstimate.messages)}
+                </span>
+                {isMainConversation && data.compactingThresholdPercent != null && (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block h-2.5 w-0.5 rounded-sm bg-red-500/80" />
+                    {t('chat.contextViewer.threshold', { percent: data.compactingThresholdPercent })}
+                  </span>
                 )}
               </div>
             </div>
@@ -221,38 +291,17 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
               </Button>
             </div>
 
-            <TabsContent value="structured" className="mt-0 overflow-y-auto px-6 py-4" style={{ maxHeight: 'calc(85vh - 10rem)' }}>
+            <TabsContent value="structured" className="mt-0 overflow-y-auto px-6 py-4" style={{ maxHeight: 'calc(85vh - 12rem)' }}>
               <p className="mb-4 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 {t('chat.contextViewer.structuredHint')}
               </p>
 
-              {/* Legend */}
-              <div className="mb-5 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block size-2.5 rounded-sm bg-purple-500" />
-                  {t('chat.contextViewer.legend.systemPrompt')}
-                </span>
-                {data.compactingSummary && (
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block size-2.5 rounded-sm bg-amber-500" />
-                    {t('chat.contextViewer.legend.summary')}
-                  </span>
-                )}
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block size-2.5 rounded-sm bg-emerald-500" />
-                  {t('chat.contextViewer.legend.messages')}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block size-2.5 rounded-sm bg-blue-500" />
-                  {t('chat.contextViewer.legend.tools')}
-                </span>
-              </div>
-
               {/* System prompt section (purple) */}
-              <div className="mb-6 rounded-lg ring-1 ring-purple-500/50 bg-purple-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(168 85 247)' }}>
-                <p className="mb-2 text-xs font-medium text-purple-500">
-                  {t('chat.contextViewer.legend.systemPrompt')}
-                </p>
+              <FadingSection
+                color="purple"
+                label={t('chat.contextViewer.legend.systemPrompt')}
+                tokens={data.tokenEstimate ? formatTokenCount(data.tokenEstimate.systemPrompt) : undefined}
+              >
                 <Suspense
                   fallback={
                     <div className="flex items-center justify-center py-10">
@@ -262,35 +311,35 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                 >
                   <MarkdownContent content={systemPromptWithoutSummary} />
                 </Suspense>
-              </div>
+              </FadingSection>
 
-              {/* Summary section (amber) — only if compacting has occurred */}
-              {data.compactingSummary && (
-                <div className="mb-6 rounded-lg ring-1 ring-amber-500/50 bg-amber-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(245 158 11)' }}>
-                  <p className="mb-2 text-xs font-medium text-amber-500">
-                    {t('chat.contextViewer.legend.summary')}
-                  </p>
-                  <Suspense
-                    fallback={
-                      <div className="flex items-center justify-center py-10">
-                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                      </div>
-                    }
-                  >
-                    <MarkdownContent content={data.compactingSummary} />
-                  </Suspense>
-                </div>
+              {/* Summaries section (amber) — individual cards per summary */}
+              {hasSummaries && (
+                <FadingSection
+                  color="amber"
+                  label={t('chat.contextViewer.summariesTitle', { count: data.summaries.length })}
+                  tokens={formatTokenCount(totalSummaryTokens)}
+                  icon={<Layers className="size-3.5" />}
+                  defaultOpen
+                >
+                  <div className="space-y-2">
+                    {data.summaries.map((s, i) => (
+                      <SummaryCard key={i} summary={s} index={i} />
+                    ))}
+                  </div>
+                </FadingSection>
               )}
 
               {/* Messages section (green) */}
-              <div className="mb-6 rounded-lg ring-1 ring-emerald-500/50 bg-emerald-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(16 185 129)' }}>
-                <p className="mb-2 text-xs font-medium text-emerald-500">
-                  {t('chat.contextViewer.legend.messages')} — {t('chat.contextViewer.messagesCount', { count: data.rawPayload.messages.length })}
-                </p>
+              <FadingSection
+                color="emerald"
+                label={`${t('chat.contextViewer.legend.messages')} — ${t('chat.contextViewer.messagesCount', { count: data.rawPayload.messages.length })}`}
+                tokens={data.tokenEstimate ? formatTokenCount(data.tokenEstimate.messages) : undefined}
+              >
                 {data.rawPayload.messages.length === 0 ? (
                   <p className="text-xs text-muted-foreground">{t('chat.contextViewer.noMessages')}</p>
                 ) : (
-                  <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                  <div className="space-y-1.5">
                     {data.rawPayload.messages.map((msg, i) => (
                       <div key={i} className="flex items-start gap-2 text-xs">
                         <span className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ${
@@ -320,17 +369,19 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                     ))}
                   </div>
                 )}
-              </div>
+              </FadingSection>
 
               {/* Tools section (blue) */}
-              <div className="mb-2 rounded-lg ring-1 ring-blue-500/50 bg-blue-500/10 pl-4 pr-3 py-3" style={{ borderLeft: '4px solid rgb(59 130 246)' }}>
-                <p className="mb-2 text-xs font-medium text-blue-500">
-                  {t('chat.contextViewer.legend.tools')} — {t('chat.contextViewer.toolsCount', { count: data.rawPayload.tools.length })}
-                </p>
+              <FadingSection
+                color="blue"
+                label={`${t('chat.contextViewer.legend.tools')} — ${t('chat.contextViewer.toolsCount', { count: data.rawPayload.tools.length })}`}
+                tokens={data.tokenEstimate ? formatTokenCount(data.tokenEstimate.tools) : undefined}
+                last
+              >
                 {data.rawPayload.tools.length === 0 ? (
                   <p className="text-xs text-muted-foreground">{t('chat.contextViewer.noTools')}</p>
                 ) : (
-                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                  <div className="space-y-1">
                     {data.rawPayload.tools.map((tool) => (
                       <div key={tool.name} className="text-xs">
                         <span className="font-medium text-foreground">{tool.name}</span>
@@ -343,10 +394,10 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                     ))}
                   </div>
                 )}
-              </div>
+              </FadingSection>
             </TabsContent>
 
-            <TabsContent value="raw" className="mt-0 overflow-y-auto px-6 py-4" style={{ maxHeight: 'calc(85vh - 10rem)' }}>
+            <TabsContent value="raw" className="mt-0 overflow-y-auto px-6 py-4" style={{ maxHeight: 'calc(85vh - 12rem)' }}>
               <p className="mb-4 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 {t('chat.contextViewer.rawHint')}
               </p>
@@ -358,5 +409,137 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+// ─── Fading Section ─────────────────────────────────────────────────────────
+
+const SECTION_COLORS = {
+  purple: { ring: 'ring-purple-500/50', bg: 'bg-purple-500/10', border: 'rgb(168 85 247)', text: 'text-purple-500', muted: 'text-purple-500/70' },
+  amber: { ring: 'ring-amber-500/50', bg: 'bg-amber-500/10', border: 'rgb(245 158 11)', text: 'text-amber-500', muted: 'text-amber-500/70' },
+  emerald: { ring: 'ring-emerald-500/50', bg: 'bg-emerald-500/10', border: 'rgb(16 185 129)', text: 'text-emerald-500', muted: 'text-emerald-500/70' },
+  blue: { ring: 'ring-blue-500/50', bg: 'bg-blue-500/10', border: 'rgb(59 130 246)', text: 'text-blue-500', muted: 'text-blue-500/70' },
+} as const
+
+interface FadingSectionProps {
+  color: keyof typeof SECTION_COLORS
+  label: string
+  tokens?: string
+  icon?: React.ReactNode
+  children: React.ReactNode
+  defaultOpen?: boolean
+  last?: boolean
+}
+
+const COLLAPSED_HEIGHT = 120
+
+function FadingSection({ color, label, tokens, icon, children, defaultOpen = false, last = false }: FadingSectionProps) {
+  const [open, setOpen] = useState(defaultOpen)
+  const [needsCollapse, setNeedsCollapse] = useState(true)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const c = SECTION_COLORS[color]
+
+  // Measure content height to decide if collapsing is needed
+  useLayoutEffect(() => {
+    if (!contentRef.current) return
+    setNeedsCollapse(contentRef.current.scrollHeight > COLLAPSED_HEIGHT + 20)
+  }, [children])
+
+  const isCollapsed = !open && needsCollapse
+  const showChevron = needsCollapse
+
+  return (
+    <div className={`${last ? 'mb-2' : 'mb-4'} rounded-lg ring-1 ${c.ring} ${c.bg} pl-4 pr-3 py-3`} style={{ borderLeft: `4px solid ${c.border}` }}>
+      <button
+        type="button"
+        className={`flex w-full items-center justify-between text-left ${needsCollapse ? 'cursor-pointer' : 'cursor-default'}`}
+        onClick={() => needsCollapse && setOpen((v) => !v)}
+      >
+        <p className={`text-xs font-medium ${c.text} flex items-center gap-1.5`}>
+          {icon}
+          {label}
+        </p>
+        <div className="flex items-center gap-2">
+          {tokens && <span className={`text-[10px] ${c.muted}`}>{tokens} tokens</span>}
+          {showChevron && (
+            <ChevronDown className={`size-3.5 ${c.text} transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
+          )}
+        </div>
+      </button>
+
+      {isCollapsed ? (
+        <button
+          type="button"
+          className="relative mt-2 block w-full overflow-hidden cursor-pointer text-left"
+          onClick={() => setOpen(true)}
+          style={{
+            maxHeight: `${COLLAPSED_HEIGHT}px`,
+            maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+          }}
+        >
+          <div ref={contentRef}>{children}</div>
+        </button>
+      ) : (
+        <div className="mt-2" ref={contentRef}>{children}</div>
+      )}
+    </div>
+  )
+}
+
+// ─── Summary Card ──────────────────────────────────────────────────────────
+
+function SummaryCard({ summary, index }: { summary: SummaryPreview; index: number }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const isCompressed = summary.depth > 0
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div
+        className="rounded-lg ring-1 ring-amber-500/40 bg-amber-500/10 pl-3 pr-3 py-2.5"
+        style={{ borderLeft: '4px solid rgb(245 158 11)' }}
+      >
+        <CollapsibleTrigger className="flex w-full cursor-pointer items-center gap-2 text-left">
+          <ChevronRight
+            className={`size-3 shrink-0 text-amber-500 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                {t('chat.contextViewer.summaryLabel', { n: index + 1 })}
+              </span>
+              {isCompressed && (
+                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400">
+                  {t('chat.contextViewer.compressed')} · depth {summary.depth}
+                </span>
+              )}
+            </div>
+            <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+              <span>{formatDateRange(summary.firstMessageAt, summary.lastMessageAt)}</span>
+              <span>·</span>
+              <span>{summary.messageCount} msgs</span>
+              <span>·</span>
+              <span>{formatTokenCount(summary.tokenEstimate)} tokens</span>
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2 rounded-lg bg-amber-500/5 p-3">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                </div>
+              }
+            >
+              <div className="text-xs leading-relaxed">
+                <MarkdownContent content={summary.summary} isUser={false} />
+              </div>
+            </Suspense>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   )
 }

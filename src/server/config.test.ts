@@ -85,9 +85,10 @@ describe('config', () => {
 
   describe('default values', () => {
     it('compacting defaults are sensible', () => {
-      expect(config.compacting.batchTurns).toBe(10)
-      expect(config.compacting.minKeepTurns).toBe(15)
-      expect(config.compacting.maxSnapshotsPerKin).toBe(10)
+      expect(config.compacting.thresholdPercent).toBe(75)
+      expect(config.compacting.keepPercent).toBe(40)
+      expect(config.compacting.maxSummaries).toBe(10)
+      expect(config.compacting.maxSummariesPerKin).toBe(50)
     })
 
     it('memory defaults', () => {
@@ -222,13 +223,13 @@ describe('config', () => {
 
     it('numeric env vars are parsed as numbers', async () => {
       const c = await loadConfigWithEnv({
-        COMPACTING_BATCH_TURNS: '5',
-        COMPACTING_MIN_KEEP_TURNS: '20',
+        COMPACTING_THRESHOLD_PERCENT: '80',
+        COMPACTING_KEEP_PERCENT: '50',
         MEMORY_MAX_RELEVANT: '20',
         TOOLS_MAX_STEPS: '25',
       })
-      expect(c.compacting.batchTurns).toBe(5)
-      expect(c.compacting.minKeepTurns).toBe(20)
+      expect(c.compacting.thresholdPercent).toBe(80)
+      expect(c.compacting.keepPercent).toBe(50)
       expect(c.memory.maxRelevantMemories).toBe(20)
       expect(c.tools.maxSteps).toBe(25)
     })
@@ -378,9 +379,9 @@ describe('config', () => {
       expect(c.versionCheck.intervalHours).toBe(24)
     })
 
-    it('COMPACTING_MAX_SNAPSHOTS override', async () => {
-      const c = await loadConfigWithEnv({ COMPACTING_MAX_SNAPSHOTS: '25' })
-      expect(c.compacting.maxSnapshotsPerKin).toBe(25)
+    it('COMPACTING_MAX_SUMMARIES_PER_KIN override', async () => {
+      const c = await loadConfigWithEnv({ COMPACTING_MAX_SUMMARIES_PER_KIN: '25' })
+      expect(c.compacting.maxSummariesPerKin).toBe(25)
     })
 
     it('TASKS_MAX_INTER_KIN_REQUESTS override', async () => {

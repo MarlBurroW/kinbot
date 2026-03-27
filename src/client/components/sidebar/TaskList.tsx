@@ -16,6 +16,7 @@ interface LLMModel {
   id: string
   name: string
   providerId: string
+  providerName: string
   providerType: string
   capability: string
 }
@@ -28,9 +29,9 @@ const STATUS_CONFIG: Record<TaskStatus, {
 }> = {
   queued: {
     icon: ListOrdered,
-    iconClass: 'text-muted-foreground',
-    dotClass: 'bg-muted-foreground/30',
-    ringClass: 'ring-muted-foreground/15',
+    iconClass: 'text-orange-500',
+    dotClass: 'bg-orange-500/30',
+    ringClass: 'ring-orange-500/15',
   },
   pending: {
     icon: Clock,
@@ -357,9 +358,9 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
                   {/* Queued header with filter */}
                   <div className="relative flex gap-3 items-center mb-0.5 mt-1">
                     <div className="flex flex-col items-center shrink-0 w-4">
-                      <div className="size-1.5 rounded-full bg-muted-foreground/40" />
+                      <div className="size-1.5 rounded-full bg-orange-500/40" />
                     </div>
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wider">
                       {t('sidebar.tasks.queuedLabel')} ({filteredQueuedTasks.length})
                     </span>
                     {/* Queue filter dropdown */}

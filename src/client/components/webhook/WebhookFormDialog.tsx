@@ -291,7 +291,7 @@ export function WebhookFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? t('settings.webhooks.edit') : t('settings.webhooks.add')}
@@ -301,7 +301,7 @@ export function WebhookFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto overflow-x-hidden min-w-0 pr-1">
           {/* Kin selector (only for create) */}
           {!isEdit && (
             <div className="space-y-2">
@@ -393,7 +393,7 @@ export function WebhookFormDialog({
                     onChange={(e) => setTaskPromptTemplate(e.target.value)}
                     placeholder={t('settings.webhooks.taskPromptTemplatePlaceholder')}
                     rows={5}
-                    className="font-mono text-xs"
+                    className="font-mono text-xs max-h-[300px] overflow-y-auto resize-y [overflow-wrap:break-word] [word-break:break-all]"
                   />
                 </div>
 
@@ -584,8 +584,7 @@ export function WebhookFormDialog({
                       }}
                       placeholder={t('settings.webhooks.filterTestPayloadPlaceholder')}
                       rows={6}
-                      className="font-mono text-xs resize-y [overflow-wrap:break-word] [word-break:break-all]"
-                      style={{ maxWidth: '100%' }}
+                      className="font-mono text-xs max-h-[300px] overflow-y-auto resize-y [overflow-wrap:break-word] [word-break:break-all]"
                     />
                     <div className="flex items-center gap-3">
                       <Button
@@ -640,7 +639,7 @@ export function WebhookFormDialog({
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 pt-4 -mb-2 bg-transparent">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('common.cancel')}
             </Button>

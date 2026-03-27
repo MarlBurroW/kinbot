@@ -36,6 +36,7 @@ interface LLMModel {
   id: string
   name: string
   providerId: string
+  providerName: string
   providerType: string
   capability: string
 }
@@ -67,8 +68,12 @@ interface ConversationHeaderProps {
   onClearConversation?: () => void
   contextBreakdown?: ContextTokenBreakdown
   pipelineStatus?: ContextPipelineStatus
-  compactingTurns?: number
-  compactingTurnThreshold?: number
+  compactingPercent?: number
+  compactingThresholdPercent?: number
+  summaryCount?: number
+  maxSummaries?: number
+  summaryTokens?: number
+  summaryBudgetTokens?: number
   messages?: ChatMessage[]
   scrollViewportRef?: React.RefObject<HTMLElement | null>
 }
@@ -100,8 +105,12 @@ export const ConversationHeader = memo(function ConversationHeader({
   onClearConversation,
   contextBreakdown,
   pipelineStatus,
-  compactingTurns,
-  compactingTurnThreshold,
+  compactingPercent,
+  compactingThresholdPercent,
+  summaryCount,
+  maxSummaries,
+  summaryTokens,
+  summaryBudgetTokens,
   messages,
   scrollViewportRef,
 }: ConversationHeaderProps) {
@@ -198,8 +207,12 @@ export const ConversationHeader = memo(function ConversationHeader({
               maxTokens={maxTokens}
               contextBreakdown={contextBreakdown}
               pipelineStatus={pipelineStatus}
-              compactingTurns={compactingTurns}
-              compactingTurnThreshold={compactingTurnThreshold}
+              compactingPercent={compactingPercent}
+              compactingThresholdPercent={compactingThresholdPercent}
+              summaryCount={summaryCount}
+              maxSummaries={maxSummaries}
+              summaryTokens={summaryTokens}
+              summaryBudgetTokens={summaryBudgetTokens}
               messageCount={messageCount}
               compact
             />
@@ -224,8 +237,12 @@ export const ConversationHeader = memo(function ConversationHeader({
           maxTokens={maxTokens}
           contextBreakdown={contextBreakdown}
           pipelineStatus={pipelineStatus}
-          compactingTurns={compactingTurns}
-          compactingTurnThreshold={compactingTurnThreshold}
+          compactingPercent={compactingPercent}
+          compactingThresholdPercent={compactingThresholdPercent}
+          summaryCount={summaryCount}
+          maxSummaries={maxSummaries}
+          summaryTokens={summaryTokens}
+          summaryBudgetTokens={summaryBudgetTokens}
           messageCount={messageCount}
         />
       </div>

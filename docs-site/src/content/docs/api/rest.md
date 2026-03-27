@@ -51,10 +51,11 @@ Auth routes (`/api/auth/*`) are handled by [Better Auth](https://www.better-auth
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/kins/:id/compacting/snapshots` | List compacting snapshots |
+| `GET` | `/api/kins/:id/compacting/summaries` | List compacting summaries (with date ranges, token estimates, depth) |
+| `GET` | `/api/kins/:id/compacting/snapshots` | List compacting summaries (backwards-compatible alias, returns legacy format) |
 | `POST` | `/api/kins/:id/compacting/run` | Trigger manual compacting |
-| `POST` | `/api/kins/:id/compacting/purge` | Purge compacting data |
-| `POST` | `/api/kins/:id/compacting/rollback` | Rollback to a snapshot |
+| `POST` | `/api/kins/:id/compacting/purge` | Purge compacting data (deactivate all active summaries) |
+| `POST` | `/api/kins/:id/compacting/rollback` | Rollback to a summary (archives newer summaries) |
 
 ## Memories
 

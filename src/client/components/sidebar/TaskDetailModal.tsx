@@ -46,6 +46,7 @@ interface LLMModel {
   id: string
   name: string
   providerId: string
+  providerName: string
   providerType: string
   capability: string
 }
@@ -67,7 +68,7 @@ const STATUS_CONFIG: Record<
     badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline'
   }
 > = {
-  queued: { icon: ListOrdered, iconClass: 'text-muted-foreground', badgeVariant: 'secondary' },
+  queued: { icon: ListOrdered, iconClass: 'text-orange-500', badgeVariant: 'outline' },
   pending: { icon: Clock, iconClass: 'text-muted-foreground', badgeVariant: 'secondary' },
   in_progress: { icon: Loader2, iconClass: 'animate-spin', badgeVariant: 'default' },
   awaiting_human_input: { icon: UserCheck, iconClass: 'text-warning animate-pulse', badgeVariant: 'outline' },

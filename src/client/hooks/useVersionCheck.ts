@@ -37,17 +37,17 @@ export function useVersionCheck() {
 
   useSSE({
     'version:update-available': (data) => {
-      setVersionInfo((prev) =>
-        prev
-          ? {
-              ...prev,
-              latestVersion: data.latestVersion as string,
-              releaseUrl: (data.releaseUrl as string) ?? null,
-              publishedAt: (data.publishedAt as number) ?? null,
-              isUpdateAvailable: true,
-            }
-          : null,
-      )
+      setVersionInfo((prev) => {
+        // Don't mark as update available if current version is unknown (fallback 0.0.0)
+        if (!prev || !prev.currentVersion || prev.currentVersion === '0.0.0') return prev
+        return {
+          ...prev,
+          latestVersion: data.latestVersion as string,
+          releaseUrl: (data.releaseUrl as string) ?? null,
+          publishedAt: (data.publishedAt as number) ?? null,
+          isUpdateAvailable: true,
+        }
+      })
     },
   })
 

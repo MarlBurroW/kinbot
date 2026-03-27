@@ -63,7 +63,7 @@ AES-256-GCM vault · Auth with roles · Invitation system · 100% self-hosted ·
 #### Intelligence
 - **Long-term memory** — dual-channel: automatic extraction pipeline on every LLM turn + explicit `remember()` tool; hybrid search (vector similarity + full-text); query intent detection with category-aware score boosting; token-budgeted memory block in prompt
 - **Knowledge base / RAG** — upload documents and texts as reference material; hybrid search (vector + full-text) retrieves relevant chunks at query time
-- **Session compacting** — automatic summarization to stay within token limits; original messages are always preserved, snapshots are rollback-able
+- **Session compacting** — token-aware compaction with multi-summary accumulation and telescopic merge; original messages are always preserved
 - **Sub-Kins (tasks)** — Kins can delegate work to ephemeral sub-agents; `await` mode re-enters the parent queue with the result, `async` mode deposits it as informational
 - **Inter-Kin communication** — request/reply pattern with correlation IDs; rate-limited; replies are always informational (no ping-pong)
 
@@ -276,7 +276,7 @@ NODE_ENV=production bun run start
 **Key design principles:**
 - **Queue per Kin** — one message processed at a time per Kin; user messages have priority over automated ones
 - **Global SSE** — one SSE connection per browser tab, multiplexed by `kinId`; no per-Kin polling
-- **No message deletion** — compacting summarizes, never deletes; original messages always preserved
+- **No message deletion** — compacting compresses older messages into dated summaries that merge telescopically; original messages always preserved
 - **Secrets stay in the vault** — vault secrets are never exposed in prompts; redaction prevents leaking into summaries
 
 ---
@@ -398,10 +398,12 @@ All settings have sensible defaults. Override only what you need.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COMPACTING_MESSAGE_THRESHOLD` | `50` | Messages before auto-compacting triggers |
-| `COMPACTING_TOKEN_THRESHOLD` | `30000` | Token count before auto-compacting triggers |
+| `COMPACTING_THRESHOLD_PERCENT` | `75` | Context usage % before compaction triggers |
+| `COMPACTING_KEEP_PERCENT` | `40` | % of context window preserved as raw messages |
+| `COMPACTING_SUMMARY_BUDGET_PERCENT` | `20` | Max % of context for summaries before telescopic merge |
+| `COMPACTING_MAX_SUMMARIES` | `10` | Max active summaries before telescopic merge |
+| `COMPACTING_MAX_SUMMARIES_PER_KIN` | `50` | Total summary retention per Kin (active + archived) |
 | `COMPACTING_MODEL` | Provider default | Override the model used for session compacting |
-| `COMPACTING_MAX_SNAPSHOTS` | `10` | Max compacting snapshots per Kin |
 | `MEMORY_EXTRACTION_MODEL` | Provider default | Override the model used for memory extraction |
 | `MEMORY_MAX_RELEVANT` | `10` | Max relevant memories injected into context |
 | `MEMORY_SIMILARITY_THRESHOLD` | `0.7` | Minimum cosine similarity for memory retrieval |

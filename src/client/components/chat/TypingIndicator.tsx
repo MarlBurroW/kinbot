@@ -5,21 +5,23 @@ import { ChatAvatar } from '@/client/components/chat/ChatAvatar'
 interface TypingIndicatorProps {
   kinName?: string
   kinAvatarUrl?: string | null
+  /** Server-side epoch (ms) when processing started — timer resumes correctly after navigation */
+  startedAt?: number
 }
 
-export function TypingIndicator({ kinName, kinAvatarUrl }: TypingIndicatorProps) {
+export function TypingIndicator({ kinName, kinAvatarUrl, startedAt }: TypingIndicatorProps) {
   const { t } = useTranslation()
   const [elapsed, setElapsed] = useState(0)
-  const startRef = useRef(Date.now())
+  const startRef = useRef(startedAt ?? Date.now())
 
   useEffect(() => {
-    startRef.current = Date.now()
-    setElapsed(0)
+    startRef.current = startedAt ?? Date.now()
+    setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
     }, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [startedAt])
 
   const formatElapsed = (s: number) => {
     if (s < 60) return `${s}s`

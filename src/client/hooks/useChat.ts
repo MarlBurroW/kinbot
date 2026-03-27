@@ -26,6 +26,7 @@ export interface ChatMessage {
   resolvedTaskId: string | null
   injectedMemories: Array<{ id: string; category: string; content: string; subject: string | null }> | null
   memoriesExtracted: number | null
+  compactingError: string | null
   stepLimitReached: boolean
   files: MessageFile[]
   reactions: MessageReaction[]
@@ -320,6 +321,7 @@ export function useChat(kinId: string | null) {
         resolvedTaskId,
         injectedMemories: null,
         memoriesExtracted: null,
+        compactingError: null,
         files: [],
         reactions: [],
           stepLimitReached: false,
@@ -419,14 +421,18 @@ export function useChat(kinId: string | null) {
 
     'compacting:error': (data) => {
       if (data.kinId !== kinId) return
+      const rawError = data.error as string
+      const errorMessage = rawError === 'NOTHING_TO_COMPACT'
+        ? t('chat.compacting.nothingToCompact')
+        : rawError
       setLiveCompacting((prev) =>
         prev
-          ? { ...prev, status: 'error', error: data.error as string }
+          ? { ...prev, status: 'error', error: errorMessage }
           : null,
       )
-      toast.error(`${t('chat.compacting.error')}: ${data.error as string}`)
-      // Auto-clear error card after 30 seconds
-      setTimeout(() => setLiveCompacting(null), 30_000)
+      toast.error(errorMessage)
+      // Auto-clear error card after 10 seconds
+      setTimeout(() => setLiveCompacting(null), 10_000)
     },
 
     'chat:cleared': (data) => {
@@ -486,6 +492,7 @@ export function useChat(kinId: string | null) {
         resolvedTaskId: null,
         injectedMemories: null,
         memoriesExtracted: null,
+        compactingError: null,
         files: optimisticFiles ?? [],
         reactions: [],
           stepLimitReached: false,

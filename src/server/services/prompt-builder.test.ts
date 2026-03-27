@@ -534,27 +534,48 @@ describe('buildSystemPrompt', () => {
 
   // --- Compacting summary ---
 
-  it('includes compacting summary when provided', () => {
+  it('includes compacting summaries when provided', () => {
     const result = buildSystemPrompt(makeParams({
-      compactingSummary: 'User discussed project setup and database migration.',
+      compactingSummaries: [{
+        summary: 'User discussed project setup and database migration.',
+        firstMessageAt: new Date('2025-06-10T10:00:00Z'),
+        lastMessageAt: new Date('2025-06-15T14:00:00Z'),
+        depth: 0,
+      }],
     }))
-    expect(result).toContain('## Previous conversation summary')
+    expect(result).toContain('## Conversation history summaries')
     expect(result).toContain('User discussed project setup and database migration.')
-    expect(result).toContain('faithful summary')
+    expect(result).toContain('faithful summaries')
   })
 
-  it('includes compacted timestamp when provided', () => {
+  it('includes date range in compacting summary', () => {
     const result = buildSystemPrompt(makeParams({
-      compactingSummary: 'Earlier discussion.',
-      compactedUpTo: new Date('2025-06-15T10:00:00Z'),
+      compactingSummaries: [{
+        summary: 'Earlier discussion.',
+        firstMessageAt: new Date('2025-06-10T10:00:00Z'),
+        lastMessageAt: new Date('2025-06-15T10:00:00Z'),
+        depth: 0,
+      }],
     }))
-    expect(result).toContain('## Previous conversation summary')
+    expect(result).toContain('## Conversation history summaries')
     expect(result).toContain('Jun 15, 2025')
   })
 
-  it('omits compacting summary when not provided', () => {
+  it('marks compressed summaries with depth > 0', () => {
+    const result = buildSystemPrompt(makeParams({
+      compactingSummaries: [{
+        summary: 'Merged summary.',
+        firstMessageAt: new Date('2025-06-01T10:00:00Z'),
+        lastMessageAt: new Date('2025-06-10T10:00:00Z'),
+        depth: 2,
+      }],
+    }))
+    expect(result).toContain('[compressed]')
+  })
+
+  it('omits compacting summaries when not provided', () => {
     const result = buildSystemPrompt(makeParams())
-    expect(result).not.toContain('## Previous conversation summary')
+    expect(result).not.toContain('## Conversation history summaries')
   })
 
   // --- Cron run result truncation ---

@@ -1,4 +1,4 @@
-import { streamText, stepCountIs } from 'ai'
+import { streamText, type Tool, type ModelMessage } from 'ai'
 import { eq, and, desc, asc, inArray, like, or, sql } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db, sqlite } from '@/server/db/index'
@@ -17,6 +17,21 @@ import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import type { TaskStatus, TaskMode, KinToolConfig } from '@/shared/types'
 
 const log = createLogger('tasks')
+
+/**
+ * Strip execute functions from tools so the SDK only collects tool call intents
+ * without executing them. This allows our custom loop to execute tools
+ * sequentially between LLM steps, preventing hallucinated tool results.
+ */
+function stripToolExecute(tools: Record<string, Tool>): Record<string, Tool> {
+  const schemas: Record<string, Tool> = {}
+  for (const [name, t] of Object.entries(tools)) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { execute, ...rest } = t as Record<string, unknown>
+    schemas[name] = rest as Tool
+  }
+  return schemas
+}
 
 // AbortController registry — one per actively-streaming task
 const activeTaskAbortControllers = new Map<string, AbortController>()
@@ -488,7 +503,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
       .orderBy(asc(messages.createdAt))
       .all()
 
-    const messageHistory = taskMessages.map((m) => ({
+    const messageHistory: ModelMessage[] = taskMessages.map((m) => ({
       role: m.role as 'user' | 'assistant' | 'system',
       content: m.content ?? '',
     }))
@@ -567,117 +582,168 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const abortController = new AbortController()
     activeTaskAbortControllers.set(taskId, abortController)
 
-    const result = streamText({
-      model,
-      system: systemPrompt,
-      messages: messageHistory,
-      tools: hasTools ? tools : undefined,
-      stopWhen: hasTools ? stepCountIs(config.tools.maxSteps) : undefined,
-      abortSignal: abortController.signal,
-    })
+    // Strip execute functions from tools so the SDK only collects intents
+    // (we execute tools ourselves between steps)
+    const toolSchemas = hasTools ? stripToolExecute(tools) : undefined
 
-    try {
-      for await (const part of result.fullStream) {
-        // Handle tool-call-streaming-start (not yet in AI SDK type union)
-        if ((part.type as string) === 'tool-call-streaming-start') {
-          const p = part as unknown as { toolCallId: string; toolName: string }
-          sseManager.sendToKin(task.parentKinId, {
-            type: 'chat:tool-call-start',
-            kinId: task.parentKinId,
-            data: {
-              messageId: assistantMessageId,
-              toolCallId: p.toolCallId,
-              toolName: p.toolName,
-              contentOffset: fullContent.length,
-              taskId,
-            },
-          })
-          continue
-        }
+    const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
 
-        switch (part.type) {
-          case 'text-delta': {
-            fullContent += part.text
+    let step = 0
+    for (; step < maxSteps; step++) {
+      if (abortController.signal.aborted) break
+
+      const result = streamText({
+        model,
+        system: systemPrompt,
+        messages: messageHistory,
+        tools: toolSchemas,
+        abortSignal: abortController.signal,
+      })
+
+      // Collect tool call intents from this step
+      const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
+
+      try {
+        for await (const part of result.fullStream) {
+          // Handle tool-call-streaming-start (not yet in AI SDK type union)
+          if ((part.type as string) === 'tool-call-streaming-start') {
+            const p = part as unknown as { toolCallId: string; toolName: string }
             sseManager.sendToKin(task.parentKinId, {
-              type: 'chat:token',
-              kinId: task.parentKinId,
-              data: { messageId: assistantMessageId, token: part.text, taskId },
-            })
-
-            // Periodic checkpoint: persist partial content every 2s so a page
-            // refresh can show accumulated text instead of an empty message.
-            const now = Date.now()
-            if (now - lastCheckpointAt >= 500) {
-              lastCheckpointAt = now
-              db.update(messages)
-                .set({
-                  content: fullContent,
-                  toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
-                })
-                .where(eq(messages.id, assistantMessageId))
-                .then(() => {}, () => {})
-            }
-            break
-          }
-          case 'tool-call': {
-            const contentOffset = fullContent.length
-            toolCallsLog.push({
-              id: part.toolCallId,
-              name: part.toolName,
-              args: part.input,
-              offset: contentOffset,
-            })
-            sseManager.sendToKin(task.parentKinId, {
-              type: 'chat:tool-call',
+              type: 'chat:tool-call-start',
               kinId: task.parentKinId,
               data: {
                 messageId: assistantMessageId,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                args: part.input,
-                contentOffset,
+                toolCallId: p.toolCallId,
+                toolName: p.toolName,
+                contentOffset: fullContent.length,
                 taskId,
               },
             })
-            break
+            continue
           }
-          case 'tool-result': {
-            const logged = toolCallsLog.find((tc) => tc.id === part.toolCallId)
-            if (logged) logged.result = part.output
-            sseManager.sendToKin(task.parentKinId, {
-              type: 'chat:tool-result',
-              kinId: task.parentKinId,
-              data: {
-                messageId: assistantMessageId,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                result: part.output,
-                taskId,
-              },
-            })
 
-            // Checkpoint: persist partial content + tool calls so a page refresh
-            // can show progress instead of an empty message.
-            await db.update(messages)
-              .set({
-                content: fullContent,
-                toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+          switch (part.type) {
+            case 'text-delta': {
+              fullContent += part.text
+              sseManager.sendToKin(task.parentKinId, {
+                type: 'chat:token',
+                kinId: task.parentKinId,
+                data: { messageId: assistantMessageId, token: part.text, taskId },
               })
-              .where(eq(messages.id, assistantMessageId))
-            break
+
+              // Periodic checkpoint: persist partial content every 500ms so a page
+              // refresh can show accumulated text instead of an empty message.
+              const now = Date.now()
+              if (now - lastCheckpointAt >= 500) {
+                lastCheckpointAt = now
+                db.update(messages)
+                  .set({
+                    content: fullContent,
+                    toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+                  })
+                  .where(eq(messages.id, assistantMessageId))
+                  .then(() => {}, () => {})
+              }
+              break
+            }
+            case 'tool-call': {
+              const contentOffset = fullContent.length
+              stepToolCalls.push({
+                id: part.toolCallId,
+                name: part.toolName,
+                args: part.input,
+                offset: contentOffset,
+              })
+              sseManager.sendToKin(task.parentKinId, {
+                type: 'chat:tool-call',
+                kinId: task.parentKinId,
+                data: {
+                  messageId: assistantMessageId,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  args: part.input,
+                  contentOffset,
+                  taskId,
+                },
+              })
+              break
+            }
           }
         }
+      } catch (err) {
+        // If the stream was aborted (user cancelled), handle gracefully
+        if (abortController.signal.aborted) {
+          log.info({ taskId }, 'Sub-Kin stream aborted by cancellation')
+        } else {
+          streamError = err instanceof Error ? err : new Error(String(err))
+        }
       }
-    } catch (err) {
-      // If the stream was aborted (user cancelled), handle gracefully
-      if (abortController.signal.aborted) {
-        log.info({ taskId }, 'Sub-Kin stream aborted by cancellation')
-      } else {
-        streamError = err instanceof Error ? err : new Error(String(err))
+
+      // No tool calls this step or error/abort → exit loop
+      if (stepToolCalls.length === 0 || streamError || abortController.signal.aborted) break
+
+      // Execute tool calls sequentially (we own this, not the SDK)
+      const assistantContent: Array<
+        | { type: 'text'; text: string }
+        | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+      > = []
+      if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
+      for (const tc of stepToolCalls) {
+        assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
       }
-    } finally {
-      activeTaskAbortControllers.delete(taskId)
+
+      const toolResultMsgs: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
+
+      for (const tc of stepToolCalls) {
+        if (abortController.signal.aborted) break
+
+        const toolDef = tools[tc.name]
+        let toolResult: unknown = null
+        if (toolDef && 'execute' in toolDef && typeof toolDef.execute === 'function') {
+          try {
+            toolResult = await (toolDef.execute as Function)(tc.args, { abortSignal: abortController.signal })
+          } catch (err) {
+            toolResult = { error: err instanceof Error ? err.message : String(err) }
+          }
+        } else {
+          toolResult = { error: `Tool ${tc.name} has no execute function` }
+        }
+
+        toolCallsLog.push({ id: tc.id, name: tc.name, args: tc.args, result: toolResult, offset: tc.offset })
+        toolResultMsgs.push({ type: 'tool-result', toolCallId: tc.id, toolName: tc.name, output: { type: 'json', value: toolResult as import('ai').JSONValue } })
+
+        sseManager.sendToKin(task.parentKinId, {
+          type: 'chat:tool-result',
+          kinId: task.parentKinId,
+          data: {
+            messageId: assistantMessageId,
+            toolCallId: tc.id,
+            toolName: tc.name,
+            result: toolResult,
+            taskId,
+          },
+        })
+
+        // Checkpoint: persist partial content + tool calls so a page refresh
+        // can show progress instead of an empty message.
+        await db.update(messages)
+          .set({
+            content: fullContent,
+            toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+          })
+          .where(eq(messages.id, assistantMessageId))
+      }
+
+      if (abortController.signal.aborted) break
+
+      // Append assistant message (with tool calls) + tool results to history for next step
+      messageHistory.push({ role: 'assistant', content: assistantContent })
+      messageHistory.push({ role: 'tool' as const, content: toolResultMsgs })
+
+      // Text accumulates across steps so tool call offsets remain valid
     }
+
+    activeTaskAbortControllers.delete(taskId)
 
     // If the stream was aborted (cancel), persist partial content and stop
     if (abortController.signal.aborted) {

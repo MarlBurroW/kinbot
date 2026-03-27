@@ -167,6 +167,7 @@ describe('custom-tool-tools', () => {
         'kin-abc',
         'scrape_url',
         { url: 'https://example.com' },
+        undefined,
       )
     })
 
@@ -179,6 +180,7 @@ describe('custom-tool-tools', () => {
         'kin-abc',
         'scrape_url',
         {},
+        undefined,
       )
     })
 
@@ -192,6 +194,22 @@ describe('custom-tool-tools', () => {
         'kin-abc',
         'my_tool',
         {},
+        undefined,
+      )
+    })
+
+    it('passes timeout to executeCustomTool when provided', async () => {
+      const result = await execute(runCustomToolTool, {
+        tool_name: 'slow_tool',
+        args: { query: 'deep reasoning' },
+        timeout: 120000,
+      })
+
+      expect(mockExecuteCustomTool).toHaveBeenCalledWith(
+        'kin-abc',
+        'slow_tool',
+        { query: 'deep reasoning' },
+        120000,
       )
     })
 

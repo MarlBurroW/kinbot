@@ -20,8 +20,12 @@ interface ContextBarProps {
   maxTokens: number
   contextBreakdown?: ContextTokenBreakdown
   pipelineStatus?: ContextPipelineStatus
-  compactingTurns?: number
-  compactingTurnThreshold?: number
+  compactingPercent?: number
+  compactingThresholdPercent?: number
+  summaryCount?: number
+  maxSummaries?: number
+  summaryTokens?: number
+  summaryBudgetTokens?: number
   messageCount?: number
   /** Compact mode: smaller width, no compacting proximity line */
   compact?: boolean
@@ -37,8 +41,12 @@ export function ContextBar({
   maxTokens,
   contextBreakdown,
   pipelineStatus,
-  compactingTurns,
-  compactingTurnThreshold,
+  compactingPercent: compactingPct,
+  compactingThresholdPercent,
+  summaryCount,
+  maxSummaries,
+  summaryTokens,
+  summaryBudgetTokens,
   messageCount,
   compact = false,
   taskId,
@@ -53,8 +61,8 @@ export function ContextBar({
     ? `${formatTokenCount(estimatedTokens)} / ${formatTokenCount(maxTokens)}`
     : '— / —'
 
-  const hasCompactingData = (compactingTurnThreshold ?? 0) > 0
-  const compactingPercent = hasCompactingData ? Math.min(100, Math.round(((compactingTurns ?? 0) / compactingTurnThreshold!) * 100)) : 0
+  const hasCompactingData = (compactingThresholdPercent ?? 0) > 0
+  const compactingPercent = compactingPct ?? 0
 
   return (
     <>
@@ -96,12 +104,19 @@ export function ContextBar({
                   className="h-1.5"
                 />
               )}
+              {hasCompactingData && (
+                <div
+                  className="absolute top-0 h-full w-px bg-warning"
+                  style={{ left: `${compactingThresholdPercent}%` }}
+                />
+              )}
             </div>
             {!compact && hasCompactingData && (
               <p className="truncate text-[9px] text-muted-foreground">
                 {t('chat.compactingProximity', {
-                  current: compactingTurns ?? 0,
-                  threshold: compactingTurnThreshold ?? 0,
+                  percent: compactingPercent,
+                  threshold: compactingThresholdPercent ?? 0,
+                  summaryCount: summaryCount ?? 0,
                 })}
               </p>
             )}
@@ -136,6 +151,19 @@ export function ContextBar({
                   variant={contextPercent > 80 ? 'glow' : 'default'}
                   className="h-2.5"
                 />
+              )}
+              {hasCompactingData && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="absolute top-[-2px] h-[calc(100%+4px)] w-px bg-warning"
+                      style={{ left: `${compactingThresholdPercent}%` }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-[10px]">
+                    {t('chat.compactingMarker')} ({compactingThresholdPercent}%)
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
             {contextBreakdown && hasContextData ? (
@@ -224,9 +252,41 @@ export function ContextBar({
               />
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>{t('chat.compactingProximity', {
-                  current: compactingTurns ?? 0,
-                  threshold: compactingTurnThreshold ?? 0,
+                  percent: compactingPercent,
+                  threshold: compactingThresholdPercent ?? 0,
+                  summaryCount: summaryCount ?? 0,
                 })}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Summary merge proximity */}
+          {(maxSummaries ?? 0) > 0 && (summaryCount ?? 0) > 0 && (
+            <div className="space-y-1.5 border-t border-border/40 pt-2.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-medium">{t('chat.tooltipSummaryMerge')}</span>
+              </div>
+              <div className="space-y-1 text-[10px]">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>{t('chat.summaryMergeCount', { count: summaryCount ?? 0, max: maxSummaries ?? 0 })}</span>
+                </div>
+                <Progress
+                  value={Math.min(100, Math.round(((summaryCount ?? 0) / (maxSummaries ?? 10)) * 100))}
+                  variant={((summaryCount ?? 0) / (maxSummaries ?? 10)) > 0.8 ? 'glow' : 'default'}
+                  className="h-1.5"
+                />
+                {(summaryBudgetTokens ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span>{t('chat.summaryMergeBudget', { tokens: formatTokenCount(summaryTokens ?? 0), budget: formatTokenCount(summaryBudgetTokens ?? 0) })}</span>
+                    </div>
+                    <Progress
+                      value={Math.min(100, Math.round(((summaryTokens ?? 0) / (summaryBudgetTokens ?? 1)) * 100))}
+                      variant={((summaryTokens ?? 0) / (summaryBudgetTokens ?? 1)) > 0.8 ? 'glow' : 'default'}
+                      className="h-1.5"
+                    />
+                  </>
+                )}
               </div>
             </div>
           )}
