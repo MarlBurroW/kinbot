@@ -214,31 +214,10 @@ export function ContactFormDialog({
           linkedKinId: type === 'kin' ? linkedKinId : null,
         })
 
-        // Delete identifiers that were removed from the form
-        const currentExistingIds = new Set(validIdentifiers.filter((i) => i.existingId).map((i) => i.existingId))
-        for (const orig of contact.identifiers) {
-          if (!currentExistingIds.has(orig.id)) {
-            await api.delete(`/contacts/${contact.id}/identifiers/${orig.id}`)
-          }
-        }
-
-        // Update existing identifiers that changed, add new ones
-        for (const ident of validIdentifiers) {
-          if (ident.existingId) {
-            const orig = contact.identifiers.find((i) => i.id === ident.existingId)
-            if (orig && (orig.label !== ident.label || orig.value !== ident.value)) {
-              await api.patch(`/contacts/${contact.id}/identifiers/${ident.existingId}`, {
-                label: ident.label,
-                value: ident.value,
-              })
-            }
-          } else {
-            await api.post(`/contacts/${contact.id}/identifiers`, {
-              label: ident.label,
-              value: ident.value,
-            })
-          }
-        }
+        // Atomically replace all identifiers in a single request
+        await api.put(`/contacts/${contact.id}/identifiers`, {
+          identifiers: validIdentifiers.map((i) => ({ label: i.label, value: i.value })),
+        })
       } else {
         await api.post('/contacts', {
           name,
