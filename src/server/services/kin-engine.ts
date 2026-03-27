@@ -2173,7 +2173,7 @@ async function tryCreateModel(
       return openai(modelId)
     } else if (provider.type === 'gemini') {
       const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-      return google(modelId)
+      return google(modelId, { structuredOutputs: false })
     } else {
       // By checking PROVIDER_META, we ensure that new providers registered are handled cleanly
       // We look up the default base URL for this provider type (if it exists)
