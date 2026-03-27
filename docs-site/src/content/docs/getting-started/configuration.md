@@ -63,6 +63,7 @@ When using Docker, mount a volume to `/app/data` to persist data across containe
 
 | Variable | Default | Description |
 |---|---|---|
+| `KINBOT_VERSION` | *(auto-detected)* | Explicit version override. Read from `package.json` by default. In Docker, automatically set by the entrypoint. Only needed if version detection fails. |
 | `VERSION_CHECK_ENABLED` | `false` | Enable automatic version checking against GitHub releases |
 | `VERSION_CHECK_REPO` | `MarlBurroW/kinbot` | GitHub repo to check for new releases |
 | `VERSION_CHECK_INTERVAL_HOURS` | `12` | Hours between version checks |

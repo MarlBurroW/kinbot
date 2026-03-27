@@ -10,7 +10,7 @@ import { cn } from '@/client/lib/utils'
 import { TOOL_DOMAIN_META } from '@/shared/constants'
 import { ToolDomainIcon } from '@/client/components/common/ToolDomainIcon'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
-import { getRenderer } from '@/client/lib/tool-renderers'
+import { getRenderer, getPreviewRenderer } from '@/client/lib/tool-renderers'
 import type { ToolCallViewItem, ToolCallStatus } from '@/client/hooks/useToolCalls'
 
 const STATUS_ICONS: Record<ToolCallStatus, typeof CheckCircle2> = {
@@ -39,6 +39,8 @@ export const InlineToolCall = memo(function InlineToolCall({ toolCall }: InlineT
   const isError = toolCall.status === 'error'
   const CustomRenderer = getRenderer(toolCall.name)
   const humanName = t(`tools.names.${toolCall.name}`, { defaultValue: toolCall.name })
+  const previewFn = getPreviewRenderer(toolCall.name)
+  const preview = previewFn?.({ toolName: toolCall.name, args: toolCall.args as Record<string, unknown>, status: toolCall.status })
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -55,6 +57,9 @@ export const InlineToolCall = memo(function InlineToolCall({ toolCall }: InlineT
           </div>
           <span className="flex-1 truncate text-xs font-medium text-muted-foreground">
             {humanName}
+            {preview && (
+              <span className="ml-1.5 text-xs text-muted-foreground/60 font-normal">· {preview}</span>
+            )}
           </span>
           <StatusIcon className={cn('size-3 shrink-0', statusClass)} />
         </CollapsibleTrigger>

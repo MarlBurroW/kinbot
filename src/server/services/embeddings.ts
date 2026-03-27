@@ -29,16 +29,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   const embeddingModelId = (await getEmbeddingModel()) ?? config.memory.embeddingModel
 
   let model
-  if (provider.type === 'openai') {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = openai.embedding(embeddingModelId)
-  } else if (provider.type === 'voyage') {
-    const voyage = createOpenAI({
-      apiKey: providerConfig.apiKey,
-      baseURL: providerConfig.baseUrl ?? 'https://api.voyageai.com/v1',
-    })
-    model = voyage.embedding(embeddingModelId)
-  } else if (provider.type === 'gemini') {
+  if (provider.type === 'gemini') {
     const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
     model = google.embedding(embeddingModelId)
   } else {

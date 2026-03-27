@@ -12,6 +12,7 @@ Toutes les valeurs configurables de la plateforme, regroupées par domaine. Ces 
 | `dataDir` | `KINBOT_DATA_DIR` | `./data` | Répertoire des données persistantes (DB, uploads, workspaces) |
 | `encryptionKey` | `ENCRYPTION_KEY` | auto-generated | Clé de chiffrement pour les secrets du Vault et les configs provider. Auto-générée et persistée dans le répertoire data si absente |
 | `logLevel` | `LOG_LEVEL` | `info` | Niveau de log : 'debug', 'info', 'warn', 'error' |
+| `appVersion` | `KINBOT_VERSION` | *(auto-detected)* | Version de l'application. Lue depuis `package.json` par défaut. Peut être explicitement définie pour surcharger la détection. En Docker, automatiquement extraite par l'entrypoint |
 
 ---
 
