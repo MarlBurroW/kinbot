@@ -52,7 +52,12 @@ const log = createLogger('http')
 
 // Global middleware
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    ...(process.env.TRUSTED_ORIGINS ? process.env.TRUSTED_ORIGINS.split(',').map(o => o.trim()) : []),
+    ...(config.publicUrl ? [config.publicUrl] : []),
+  ],
   credentials: true,
 }))
 // HTTP request logging

@@ -3,7 +3,7 @@
  * Each function returns a short string shown inline when a tool call is collapsed,
  * or null to show no preview.
  */
-import { registerPreviewRenderer } from '@/client/lib/tool-renderers'
+import { registerPreviewRenderer } from '@/client/lib/tool-registry'
 
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + '…' : s
