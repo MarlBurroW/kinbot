@@ -180,3 +180,35 @@ registerPreviewRenderer('extract_links', ({ args }) => {
 registerPreviewRenderer('create_webhook', ({ args }) => {
   return (args.name as string) ? truncate(args.name as string, 50) : null
 })
+
+// --- Contacts ---
+
+registerPreviewRenderer('create_contact', ({ args }) => {
+  const name = args.name as string | undefined
+  const type = args.type as string | undefined
+  return name ? `${name}${type ? ` (${type})` : ''}` : null
+})
+
+// --- Crons ---
+
+registerPreviewRenderer('create_cron', ({ args }) => {
+  const name = args.name as string | undefined
+  const schedule = args.schedule as string | undefined
+  return name ? `${truncate(name, 35)}${schedule ? ` — ${schedule}` : ''}` : null
+})
+
+// --- Wakeups ---
+
+registerPreviewRenderer('wake_me_in', ({ args }) => {
+  const seconds = args.seconds as number | undefined
+  if (!seconds) return null
+  if (seconds >= 3600) return `${Math.round(seconds / 3600)}h`
+  if (seconds >= 60) return `${Math.round(seconds / 60)}m`
+  return `${seconds}s`
+})
+
+// --- Mini apps ---
+
+registerPreviewRenderer('write_mini_app_file', ({ args }) => {
+  return (args.path as string) || null
+})

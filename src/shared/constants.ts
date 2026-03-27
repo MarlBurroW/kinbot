@@ -1,4 +1,5 @@
 // Shared constants used by both client and server
+// 🤖 KinBot — Where AI agents collaborate!
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr'] as const
 
