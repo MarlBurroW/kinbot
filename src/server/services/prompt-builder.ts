@@ -479,7 +479,6 @@ export function buildSystemPrompt(params: PromptParams): string {
 
     // Cron journal: inject previous run results so the sub-Kin has continuity
     if (params.previousCronRuns && params.previousCronRuns.length > 0) {
-      const MAX_RESULT_LENGTH = 500
       const runLines = params.previousCronRuns
         .map((r, i) => {
           const date = r.createdAt.toISOString()
@@ -487,10 +486,7 @@ export function buildSystemPrompt(params: PromptParams): string {
           const durationSec = Math.round(durationMs / 1000)
           let detail = ''
           if (r.status === 'completed' && r.result) {
-            const truncated = r.result.length > MAX_RESULT_LENGTH
-              ? r.result.slice(0, MAX_RESULT_LENGTH) + '...'
-              : r.result
-            detail = `\n   Result: ${truncated}`
+            detail = `\n   Result: ${r.result}`
           } else if (r.status === 'failed') {
             detail = `\n   (failed)`
           }

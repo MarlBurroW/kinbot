@@ -93,6 +93,9 @@ export function ContextBar({
                   {(contextBreakdown.summary ?? 0) > 0 && (
                     <div className="bg-amber-500" style={{ width: `${Math.max(0.5, (contextBreakdown.summary! / maxTokens) * 100)}%` }} />
                   )}
+                  {(contextBreakdown.cronRuns ?? 0) > 0 && (
+                    <div className="bg-orange-500" style={{ width: `${Math.max(0.5, (contextBreakdown.cronRuns! / maxTokens) * 100)}%` }} />
+                  )}
                   {contextBreakdown.messages > 0 && (
                     <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (contextBreakdown.messages / maxTokens) * 100)}%` }} />
                   )}
@@ -140,6 +143,9 @@ export function ContextBar({
                   )}
                   {(contextBreakdown.summary ?? 0) > 0 && (
                     <div className="bg-amber-500" style={{ width: `${Math.max(0.5, (contextBreakdown.summary! / maxTokens) * 100)}%` }} />
+                  )}
+                  {(contextBreakdown.cronRuns ?? 0) > 0 && (
+                    <div className="bg-orange-500" style={{ width: `${Math.max(0.5, (contextBreakdown.cronRuns! / maxTokens) * 100)}%` }} />
                   )}
                   {contextBreakdown.messages > 0 && (
                     <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (contextBreakdown.messages / maxTokens) * 100)}%` }} />
@@ -189,6 +195,15 @@ export function ContextBar({
                       {t('chat.breakdown.summary', 'Summary')}
                     </span>
                     <span>{formatTokenCount(contextBreakdown.summary!)} ({Math.round((contextBreakdown.summary! / contextBreakdown.total) * 100)}%)</span>
+                  </div>
+                )}
+                {(contextBreakdown.cronRuns ?? 0) > 0 && (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block size-2 rounded-sm bg-orange-500" />
+                      {t('chat.breakdown.cronRuns', 'Previous runs')}
+                    </span>
+                    <span>{formatTokenCount(contextBreakdown.cronRuns!)} ({Math.round((contextBreakdown.cronRuns! / contextBreakdown.total) * 100)}%)</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between text-muted-foreground">

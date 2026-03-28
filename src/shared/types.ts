@@ -507,6 +507,8 @@ export interface ContextTokenBreakdown {
   tools: number
   /** Tokens from the compacting summary (split from systemPrompt). */
   summary: number
+  /** Tokens from previous cron run results (only for cron-spawned tasks). */
+  cronRuns?: number
   total: number
 }
 

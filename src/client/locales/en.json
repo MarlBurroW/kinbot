@@ -562,6 +562,7 @@
       "tools": "Tools",
       "systemPrompt": "System prompt",
       "summary": "Summary",
+      "cronRuns": "Previous runs",
       "messages": "Messages",
       "total": "Total"
     },
@@ -588,9 +589,12 @@
         "summary": "Summary",
         "summaries": "Summaries ({{count}})",
         "messages": "Messages",
-        "tools": "Tools"
+        "tools": "Tools",
+        "cronRuns": "Previous runs ({{count}})"
       },
       "summariesTitle": "Conversation summaries ({{count}})",
+      "cronRunsTitle": "Previous runs ({{count}})",
+      "cronRunLabel": "Run #{{n}}",
       "summaryLabel": "Summary #{{n}}",
       "compressed": "compressed",
       "messagesCount": "{{count}} messages",

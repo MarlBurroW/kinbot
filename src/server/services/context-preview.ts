@@ -9,6 +9,7 @@ import { getMCPToolsSummary, resolveMCPTools } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
 import { toolRegistry } from '@/server/tools/index'
 import { getGlobalPrompt, getHubKinId } from '@/server/services/app-settings'
+import { fetchPreviousCronRuns } from '@/server/services/tasks'
 import { getActiveChannelsForKin } from '@/server/services/channels'
 import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
 import { getModelContextWindow } from '@/shared/model-context-windows'
@@ -36,6 +37,14 @@ interface SummaryPreview {
   messageCount: number
 }
 
+interface CronRunPreview {
+  status: string
+  result: string | null
+  createdAt: string
+  updatedAt: string
+  durationSec: number
+}
+
 interface ContextPreviewResult {
   /** System prompt with tools block appended (for structured/markdown view) */
   systemPrompt: string
@@ -43,6 +52,8 @@ interface ContextPreviewResult {
   compactingSummary: string | null
   /** Individual summaries with metadata for detailed display */
   summaries: SummaryPreview[]
+  /** Previous cron run results (only for cron-spawned tasks) */
+  cronRuns: CronRunPreview[]
   /** Full raw payload as JSON (system + messages + tools) */
   rawPayload: {
     system: string
@@ -53,6 +64,7 @@ interface ContextPreviewResult {
   tokenEstimate: {
     systemPrompt: number
     summary: number
+    cronRuns: number
     messages: number
     tools: number
     total: number
@@ -335,6 +347,8 @@ function buildToolDefs(tools: Record<string, unknown>): ToolDefinition[] {
   })
 }
 
+const CRON_RUNS_HEADER = '## Previous runs'
+
 /** Format a ContextPreviewResult from the assembled parts */
 function formatResult(
   systemPrompt: string,
@@ -345,6 +359,7 @@ function formatResult(
   compactingSummary: string | null = null,
   summaries: SummaryPreview[] = [],
   compactingThresholdPercent: number | null = null,
+  cronRuns: CronRunPreview[] = [],
 ): ContextPreviewResult {
   let fullPrompt = systemPrompt
   if (toolDefinitions.length > 0) {
@@ -354,21 +369,34 @@ function formatResult(
     fullPrompt += `\n\n## Available tools (${toolDefinitions.length})\n\n${toolLines}`
   }
 
+  // Estimate cron runs tokens from the raw system prompt section
+  let cronRunsTokens = 0
+  const cronIdx = systemPrompt.indexOf(CRON_RUNS_HEADER)
+  if (cronIdx !== -1) {
+    // Find the end of the cron section (next ## heading or end of string)
+    const afterHeader = systemPrompt.indexOf('\n## ', cronIdx + CRON_RUNS_HEADER.length)
+    const cronSection = afterHeader === -1
+      ? systemPrompt.slice(cronIdx)
+      : systemPrompt.slice(cronIdx, afterHeader)
+    cronRunsTokens = estimateTokens(cronSection)
+  }
+
   // Estimate tokens per section
   const summaryTokens = compactingSummary ? estimateTokens(compactingSummary) : 0
   const rawSystemTokens = estimateTokens(systemPrompt)
-  const systemPromptTokens = Math.max(0, rawSystemTokens - summaryTokens)
+  const systemPromptTokens = Math.max(0, rawSystemTokens - summaryTokens - cronRunsTokens)
   let messagesTokens = 0
   for (const m of messagesPreviews) {
     if (m.content) messagesTokens += estimateTokens(m.content)
   }
   const toolsTokens = toolDefinitions.length > 0 ? estimateTokens(JSON.stringify(toolDefinitions)) : 0
-  const total = systemPromptTokens + summaryTokens + messagesTokens + toolsTokens
+  const total = systemPromptTokens + summaryTokens + cronRunsTokens + messagesTokens + toolsTokens
 
   return {
     systemPrompt: fullPrompt,
     compactingSummary,
     summaries,
+    cronRuns,
     rawPayload: {
       system: systemPrompt,
       messages: messagesPreviews,
@@ -377,6 +405,7 @@ function formatResult(
     tokenEstimate: {
       systemPrompt: systemPromptTokens,
       summary: summaryTokens,
+      cronRuns: cronRunsTokens,
       messages: messagesTokens,
       tools: toolsTokens,
       total,
@@ -424,6 +453,10 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
     role: k.role,
   }))
 
+  const previousCronRuns = task.cronId
+    ? await fetchPreviousCronRuns(task.cronId, 5)
+    : undefined
+
   const systemPrompt = buildSystemPrompt({
     kin: { name: kinIdentity.name, slug: kinIdentity.slug, role: kinIdentity.role, character: kinIdentity.character, expertise: kinIdentity.expertise },
     contacts: [],
@@ -431,6 +464,7 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
     kinDirectory,
     isSubKin: true,
     taskDescription: task.description,
+    previousCronRuns,
     globalPrompt,
     userLanguage: 'en',
     workspacePath: kinIdentity.workspacePath,
@@ -476,8 +510,19 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
   const customToolDefs = await resolveCustomTools(kinIdentity.id)
   const allTools = { ...nativeTools, ...subKinTools, ...mcpTools, ...customToolDefs }
 
+  // Build cron run previews
+  const cronRunPreviews: CronRunPreview[] = previousCronRuns
+    ? previousCronRuns.map((r) => ({
+        status: r.status,
+        result: r.result,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+        durationSec: Math.round((r.updatedAt.getTime() - r.createdAt.getTime()) / 1000),
+      }))
+    : []
+
   const modelId = task.model ?? kinIdentity.model
-  return formatResult(systemPrompt, buildToolDefs(allTools), messagesPreviews, taskMessages.length, getModelContextWindow(modelId))
+  return formatResult(systemPrompt, buildToolDefs(allTools), messagesPreviews, taskMessages.length, getModelContextWindow(modelId), null, [], null, cronRunPreviews)
 }
 
 // ---------------------------------------------------------------------------

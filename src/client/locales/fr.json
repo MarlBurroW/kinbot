@@ -562,6 +562,7 @@
       "tools": "Outils",
       "systemPrompt": "Prompt système",
       "summary": "Résumé",
+      "cronRuns": "Exécutions précédentes",
       "messages": "Messages",
       "total": "Total"
     },
@@ -588,9 +589,12 @@
         "summary": "Résumé",
         "summaries": "Résumés ({{count}})",
         "messages": "Messages",
-        "tools": "Outils"
+        "tools": "Outils",
+        "cronRuns": "Exécutions précédentes ({{count}})"
       },
       "summariesTitle": "Résumés de conversation ({{count}})",
+      "cronRunsTitle": "Exécutions précédentes ({{count}})",
+      "cronRunLabel": "Exécution #{{n}}",
       "summaryLabel": "Résumé #{{n}}",
       "compressed": "compressé",
       "messagesCount": "{{count}} messages",
