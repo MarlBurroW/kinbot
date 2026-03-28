@@ -322,3 +322,37 @@ registerPreviewRenderer('update_contact', ({ args }) => {
 registerPreviewRenderer('search_secrets', ({ args }) => {
   return (args.query as string) ? truncate(args.query as string, 50) : null
 })
+
+// --- Recurring wakeups ---
+
+registerPreviewRenderer('wake_me_every', ({ args }) => {
+  const interval = args.interval_seconds as number | undefined
+  if (!interval) return null
+  const label = interval >= 3600 ? `${Math.round(interval / 3600)}h` : interval >= 60 ? `${Math.round(interval / 60)}m` : `${interval}s`
+  const reason = args.reason as string | undefined
+  return reason ? `every ${label} — ${truncate(reason, 35)}` : `every ${label}`
+})
+
+// --- Cron updates ---
+
+registerPreviewRenderer('update_cron', ({ args }) => {
+  const name = args.name as string | undefined
+  const id = args.cron_id as string | undefined
+  return name ? truncate(name, 50) : id ? truncate(id, 50) : null
+})
+
+// --- MCP servers ---
+
+registerPreviewRenderer('add_mcp_server', ({ args }) => {
+  const name = args.name as string | undefined
+  const command = args.command as string | undefined
+  return name ? `${truncate(name, 35)}${command ? ` (${truncate(command, 15)})` : ''}` : null
+})
+
+// --- Contact lookup ---
+
+registerPreviewRenderer('find_contact_by_identifier', ({ args }) => {
+  const label = args.label as string | undefined
+  const value = args.value as string | undefined
+  return label && value ? `${label}: ${truncate(value, 45)}` : null
+})
