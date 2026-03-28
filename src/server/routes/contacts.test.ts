@@ -5,12 +5,14 @@ import { Hono } from 'hono'
 
 let mockListContactsWithDetails: ReturnType<typeof mock>
 let mockGetContactWithDetails: ReturnType<typeof mock>
+let mockGetContact: ReturnType<typeof mock>
 let mockCreateContact: ReturnType<typeof mock>
 let mockUpdateContact: ReturnType<typeof mock>
 let mockDeleteContact: ReturnType<typeof mock>
 let mockAddContactIdentifier: ReturnType<typeof mock>
 let mockUpdateContactIdentifier: ReturnType<typeof mock>
 let mockRemoveContactIdentifier: ReturnType<typeof mock>
+let mockReplaceContactIdentifiers: ReturnType<typeof mock>
 let mockSetContactNote: ReturnType<typeof mock>
 let mockUpdateContactNote: ReturnType<typeof mock>
 let mockDeleteContactNote: ReturnType<typeof mock>
@@ -18,12 +20,14 @@ let mockDeleteContactNote: ReturnType<typeof mock>
 mock.module('@/server/services/contacts', () => ({
   listContactsWithDetails: (...args: unknown[]) => mockListContactsWithDetails(...args),
   getContactWithDetails: (...args: unknown[]) => mockGetContactWithDetails(...args),
+  getContact: (...args: unknown[]) => mockGetContact(...args),
   createContact: (...args: unknown[]) => mockCreateContact(...args),
   updateContact: (...args: unknown[]) => mockUpdateContact(...args),
   deleteContact: (...args: unknown[]) => mockDeleteContact(...args),
   addContactIdentifier: (...args: unknown[]) => mockAddContactIdentifier(...args),
   updateContactIdentifier: (...args: unknown[]) => mockUpdateContactIdentifier(...args),
   removeContactIdentifier: (...args: unknown[]) => mockRemoveContactIdentifier(...args),
+  replaceContactIdentifiers: (...args: unknown[]) => mockReplaceContactIdentifiers(...args),
   setContactNote: (...args: unknown[]) => mockSetContactNote(...args),
   updateContactNote: (...args: unknown[]) => mockUpdateContactNote(...args),
   deleteContactNote: (...args: unknown[]) => mockDeleteContactNote(...args),
@@ -103,12 +107,14 @@ function req(method: string, path: string, body?: unknown) {
 beforeEach(() => {
   mockListContactsWithDetails = mock(() => [])
   mockGetContactWithDetails = mock(() => null)
+  mockGetContact = mock(() => ({ id: 'c1', name: 'Alice', type: 'human' }))
   mockCreateContact = mock(() => ({ id: 'c1', name: 'Alice', type: 'human' }))
   mockUpdateContact = mock(() => ({ id: 'c1', name: 'Alice Updated', type: 'human' }))
   mockDeleteContact = mock(() => true)
   mockAddContactIdentifier = mock(() => ({ id: 'i1', contactId: 'c1', label: 'email', value: 'a@b.com' }))
   mockUpdateContactIdentifier = mock(() => ({ id: 'i1', contactId: 'c1', label: 'phone', value: '123' }))
   mockRemoveContactIdentifier = mock(() => true)
+  mockReplaceContactIdentifiers = mock(() => [])
   mockSetContactNote = mock(() => ({ id: 'n1', contactId: 'c1', kinId: 'k1', scope: 'global', content: 'note' }))
   mockUpdateContactNote = mock(() => ({ id: 'n1', content: 'updated' }))
   mockDeleteContactNote = mock(() => true)
