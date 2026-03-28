@@ -356,3 +356,27 @@ registerPreviewRenderer('find_contact_by_identifier', ({ args }) => {
   const value = args.value as string | undefined
   return label && value ? `${label}: ${truncate(value, 45)}` : null
 })
+
+// --- Vault retrieval ---
+
+registerPreviewRenderer('get_vault_entry', ({ args }) => {
+  return (args.key as string) ? truncate(args.key as string, 50) : null
+})
+
+// --- Cron trigger ---
+
+registerPreviewRenderer('trigger_cron', ({ args }) => {
+  return (args.cron_id as string) ? truncate(args.cron_id as string, 50) : null
+})
+
+// --- Plugin uninstall ---
+
+registerPreviewRenderer('uninstall_plugin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Mini app file read ---
+
+registerPreviewRenderer('read_mini_app_file', ({ args }) => {
+  return (args.path as string) || null
+})
