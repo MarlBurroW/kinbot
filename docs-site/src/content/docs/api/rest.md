@@ -252,6 +252,7 @@ See [Providers](/kinbot/docs/providers/supported/) for the full provider referen
 | `GET` | `/api/contacts/:id` | Get contact details |
 | `PATCH` | `/api/contacts/:id` | Update a contact |
 | `DELETE` | `/api/contacts/:id` | Delete a contact |
+| `PUT` | `/api/contacts/:id/identifiers` | Replace all identifiers atomically |
 | `POST` | `/api/contacts/:id/identifiers` | Add an identifier |
 | `PATCH` | `/api/contacts/:id/identifiers/:identifierId` | Update an identifier |
 | `DELETE` | `/api/contacts/:id/identifiers/:identifierId` | Remove an identifier |
