@@ -267,3 +267,30 @@ registerPreviewRenderer('run_custom_tool', ({ args }) => {
 registerPreviewRenderer('configure_plugin', ({ args }) => {
   return (args.name as string) ? truncate(args.name as string, 50) : null
 })
+
+// --- Plugin details ---
+
+registerPreviewRenderer('get_plugin_details', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Mini app rollback ---
+
+registerPreviewRenderer('rollback_mini_app', ({ args }) => {
+  const appId = args.app_id as string | undefined
+  const version = args.version as number | undefined
+  return appId ? `${truncate(appId, 40)}${version != null ? ` → v${version}` : ''}` : null
+})
+
+// --- Human prompt ---
+
+registerPreviewRenderer('prompt_human', ({ args }) => {
+  return (args.question as string) ? truncate(args.question as string, 50) : null
+})
+
+// --- Invitations ---
+
+registerPreviewRenderer('create_invitation', ({ args }) => {
+  const label = args.label as string | undefined
+  return label ? `for ${truncate(label, 50)}` : null
+})
