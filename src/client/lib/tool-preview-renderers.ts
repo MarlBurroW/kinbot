@@ -434,3 +434,25 @@ registerPreviewRenderer('create_mini_app_snapshot', ({ args }) => {
   const label = args.label as string | undefined
   return appId ? `${truncate(appId, 35)}${label ? ` — ${truncate(label, 15)}` : ''}` : null
 })
+
+// --- Contact retrieval ---
+
+registerPreviewRenderer('get_contact', ({ args }) => {
+  return (args.contact_id as string) ? truncate(args.contact_id as string, 50) : null
+})
+
+// --- Plugin enable/disable ---
+
+registerPreviewRenderer('enable_plugin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+registerPreviewRenderer('disable_plugin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Task details ---
+
+registerPreviewRenderer('get_task_detail', ({ args }) => {
+  return (args.task_id as string) ? truncate(args.task_id as string, 50) : null
+})
