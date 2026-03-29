@@ -1172,7 +1172,7 @@
       "deleted": "Souvenir supprimé",
       "saveKinFirst": "Enregistrez le Kin d'abord pour gérer ses souvenirs.",
       "count": "{{count}} souvenirs",
-      "pagination": "{{from}}\u2013{{to}} sur {{total}}",
+      "pagination": "{{from}}–{{to}} sur {{total}}",
       "kinTip": "À quel Kin appartient ce souvenir. Chaque Kin a son propre espace mémoire.",
       "contentTip": "L'information à retenir. Soyez précis, le Kin s'en souviendra tel quel lors des conversations.",
       "categoryTip": "Catégorisez le souvenir pour une meilleure organisation et recherche.",
@@ -2043,5 +2043,8 @@
       "fetchHistoryFailed": "Impossible de charger l'historique des sessions",
       "viewSessionFailed": "Impossible de charger les messages de la session"
     }
+  },
+  "rightPanel": {
+    "taskTab": "Tâche"
   }
 }

@@ -36,6 +36,7 @@ import { SearchHighlightProvider } from '@/client/components/chat/SearchHighligh
 import { MentionLookupProvider } from '@/client/components/chat/MentionContext'
 import { useMentionables } from '@/client/hooks/useMentionables'
 import { cn } from '@/client/lib/utils'
+import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { ArrowDown, ArrowUp, Upload, Pin, PinOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
@@ -84,6 +85,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const { toggleReaction } = useReactions(kin.id)
   const [thinkingEnabled, setThinkingEnabled] = useState(kin.thinkingEnabled ?? false)
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
+  const { openTask } = useMiniAppPanel()
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -772,7 +774,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                         result={task.result}
                         error={task.error}
                         createdAt={task.createdAt}
-                        onOpenDetail={() => setDetailTaskId(task.taskId)}
+                        onOpenDetail={() => openTask({ taskId: task.taskId, kinName: task.senderName ?? kin.name, kinAvatarUrl: task.senderAvatarUrl ?? kin.avatarUrl })}
                       />
                     )
                   }
@@ -847,7 +849,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       isNew={isNew}
                       messageId={msg.id}
                       resolvedTaskId={msg.resolvedTaskId}
-                      onOpenTaskDetail={isTask && msg.resolvedTaskId ? setDetailTaskId : undefined}
+                      onOpenTaskDetail={isTask && msg.resolvedTaskId ? ((taskId: string) => {
+                        const lt = liveTasks.find((t) => t.taskId === taskId)
+                        openTask({ taskId, kinName: lt?.senderName ?? kin.name, kinAvatarUrl: lt?.senderAvatarUrl ?? kin.avatarUrl })
+                      }) : undefined}
                       reactions={msg.reactions}
                       currentUserId={user?.id}
                       onToggleReaction={toggleReaction}
@@ -971,19 +976,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         mentionableKins={mentionableKins}
       />
 
-      {/* Task detail modal — opened from live task cards */}
-      {detailTaskId !== null && (
-        <Suspense fallback={null}>
-          <TaskDetailModal
-            taskId={detailTaskId}
-            open={true}
-            onOpenChange={(open) => { if (!open) setDetailTaskId(null) }}
-            kinName={detailTask?.senderName ?? kin.name}
-            kinAvatarUrl={detailTask?.senderAvatarUrl ?? kin.avatarUrl}
-            llmModels={llmModels}
-          />
-        </Suspense>
-      )}
+      {/* Task detail modal — kept as fallback for legacy references */}
 
       {/* Quick session side panel */}
       <Sheet open={isQuickOpen} onOpenChange={(open) => { setQuickOpen(open); if (!open) setShowQuickHistory(false) }}>

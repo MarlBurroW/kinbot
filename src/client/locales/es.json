@@ -1117,7 +1117,7 @@
       "deleted": "Memoria eliminada",
       "saveKinFirst": "Guarda el Kin primero para gestionar sus memorias.",
       "count": "{{count}} memorias",
-      "pagination": "{{from}}\u2013{{to}} de {{total}}",
+      "pagination": "{{from}}–{{to}} de {{total}}",
       "kinTip": "A qué Kin pertenece esta memoria. Cada Kin tiene su propio espacio de memoria.",
       "contentTip": "La información a recordar. Sé específico, el Kin recordará esto textualmente durante las conversaciones.",
       "categoryTip": "Categoriza la memoria para mejor organización y recuperación.",
@@ -2024,5 +2024,8 @@
       "fetchHistoryFailed": "Error al cargar el historial de sesiones",
       "viewSessionFailed": "Error al cargar los mensajes de la sesión"
     }
+  },
+  "rightPanel": {
+    "taskTab": "Task"
   }
 }

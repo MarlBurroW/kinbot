@@ -1172,7 +1172,7 @@
       "deleted": "Memory deleted",
       "saveKinFirst": "Save the Kin first to manage its memories.",
       "count": "{{count}} memories",
-      "pagination": "{{from}}\u2013{{to}} of {{total}}",
+      "pagination": "{{from}}–{{to}} of {{total}}",
       "kinTip": "Which Kin this memory belongs to. Each Kin has its own memory space.",
       "contentTip": "The information to remember. Be specific, the Kin will recall this verbatim during conversations.",
       "categoryTip": "Categorize the memory for better organization and retrieval.",
@@ -2043,5 +2043,8 @@
       "fetchHistoryFailed": "Failed to load session history",
       "viewSessionFailed": "Failed to load session messages"
     }
+  },
+  "rightPanel": {
+    "taskTab": "Task"
   }
 }

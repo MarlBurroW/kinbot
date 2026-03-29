@@ -1117,7 +1117,7 @@
       "deleted": "Speicher gelöscht",
       "saveKinFirst": "Speichere zuerst den Kin, um seine Erinnerungen zu verwalten.",
       "count": "{{count}}-Speicher",
-      "pagination": "{{from}}\u2013{{to}} von {{total}}",
+      "pagination": "{{from}}–{{to}} von {{total}}",
       "kinTip": "Zu welchem ​​Kin diese Erinnerung gehört. Jeder Kin verfügt über einen eigenen Erinnerungsplatz.",
       "contentTip": "Die Informationen, die man sich merken sollte. Sei konkret, der Kin wird sich bei Gesprächen wörtlich daran erinnern.",
       "categoryTip": "Kategorisiere die Erinnerung, um sie besser organisieren und abrufen zu können.",
@@ -2024,5 +2024,8 @@
       "fetchHistoryFailed": "Der Sitzungsverlauf konnte nicht geladen werden",
       "viewSessionFailed": "Sitzungsnachrichten konnten nicht geladen werden"
     }
+  },
+  "rightPanel": {
+    "taskTab": "Task"
   }
 }
