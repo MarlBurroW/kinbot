@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { memories } from '@/server/db/schema'
 
@@ -13,7 +13,8 @@ memoryRoutes.get('/', async (c) => {
   const subject = c.req.query('subject')
   const kinId = c.req.query('kinId')
   const scope = c.req.query('scope')
-  const limit = Number(c.req.query('limit') ?? 100)
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50), 1), 200)
+  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0)
 
   const conditions = []
   if (kinId) conditions.push(eq(memories.kinId, kinId))
@@ -21,30 +22,41 @@ memoryRoutes.get('/', async (c) => {
   if (subject) conditions.push(eq(memories.subject, subject))
   if (scope) conditions.push(eq(memories.scope, scope))
 
-  const result = await db
-    .select({
-      id: memories.id,
-      kinId: memories.kinId,
-      content: memories.content,
-      category: memories.category,
-      subject: memories.subject,
-      scope: memories.scope,
-      importance: memories.importance,
-      retrievalCount: memories.retrievalCount,
-      lastRetrievedAt: memories.lastRetrievedAt,
-      consolidationGeneration: memories.consolidationGeneration,
-      sourceChannel: memories.sourceChannel,
-      sourceContext: memories.sourceContext,
-      createdAt: memories.createdAt,
-      updatedAt: memories.updatedAt,
-    })
-    .from(memories)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(memories.updatedAt))
-    .limit(limit)
-    .all()
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-  return c.json({ memories: result })
+  const [countResult, result] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(memories)
+      .where(whereClause)
+      .all(),
+    db
+      .select({
+        id: memories.id,
+        kinId: memories.kinId,
+        content: memories.content,
+        category: memories.category,
+        subject: memories.subject,
+        scope: memories.scope,
+        importance: memories.importance,
+        retrievalCount: memories.retrievalCount,
+        lastRetrievedAt: memories.lastRetrievedAt,
+        consolidationGeneration: memories.consolidationGeneration,
+        sourceChannel: memories.sourceChannel,
+        sourceContext: memories.sourceContext,
+        createdAt: memories.createdAt,
+        updatedAt: memories.updatedAt,
+      })
+      .from(memories)
+      .where(whereClause)
+      .orderBy(desc(memories.updatedAt))
+      .limit(limit)
+      .offset(offset)
+      .all(),
+  ])
+
+  const total = countResult[0]?.count ?? 0
+  return c.json({ memories: result, total, hasMore: offset + result.length < total })
 })
 
 // POST /api/memories/backfill-importance — score importance for unscored memories

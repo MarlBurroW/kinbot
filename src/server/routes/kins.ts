@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { eq, and, desc, isNull, ne, inArray } from 'drizzle-orm'
+import { eq, and, desc, isNull, ne, inArray, sql } from 'drizzle-orm'
 import { mkdirSync, existsSync } from 'fs'
 import { generateText } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
@@ -995,32 +995,49 @@ kinRoutes.get('/:id/memories', async (c) => {
   const category = c.req.query('category')
   const subject = c.req.query('subject')
   const scope = c.req.query('scope')
-  const limit = Number(c.req.query('limit') ?? 50)
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50), 1), 200)
+  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0)
 
   const conditions = [eq(memories.kinId, kinId)]
   if (category) conditions.push(eq(memories.category, category))
   if (subject) conditions.push(eq(memories.subject, subject))
   if (scope) conditions.push(eq(memories.scope, scope))
 
-  const result = await db
-    .select({
-      id: memories.id,
-      content: memories.content,
-      category: memories.category,
-      subject: memories.subject,
-      scope: memories.scope,
-      sourceChannel: memories.sourceChannel,
-      sourceContext: memories.sourceContext,
-      createdAt: memories.createdAt,
-      updatedAt: memories.updatedAt,
-    })
-    .from(memories)
-    .where(and(...conditions))
-    .orderBy(desc(memories.updatedAt))
-    .limit(limit)
-    .all()
+  const whereClause = and(...conditions)
 
-  return c.json({ memories: result })
+  const [countResult, result] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(memories)
+      .where(whereClause)
+      .all(),
+    db
+      .select({
+        id: memories.id,
+        kinId: memories.kinId,
+        content: memories.content,
+        category: memories.category,
+        subject: memories.subject,
+        scope: memories.scope,
+        importance: memories.importance,
+        retrievalCount: memories.retrievalCount,
+        lastRetrievedAt: memories.lastRetrievedAt,
+        consolidationGeneration: memories.consolidationGeneration,
+        sourceChannel: memories.sourceChannel,
+        sourceContext: memories.sourceContext,
+        createdAt: memories.createdAt,
+        updatedAt: memories.updatedAt,
+      })
+      .from(memories)
+      .where(whereClause)
+      .orderBy(desc(memories.updatedAt))
+      .limit(limit)
+      .offset(offset)
+      .all(),
+  ])
+
+  const total = countResult[0]?.count ?? 0
+  return c.json({ memories: result, total, hasMore: offset + result.length < total })
 })
 
 // DELETE /api/kins/:id/memories/:memoryId — delete a memory

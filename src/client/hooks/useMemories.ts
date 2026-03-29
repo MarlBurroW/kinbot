@@ -3,8 +3,12 @@ import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
 import type { MemorySummary, MemoryCategory, MemoryScope } from '@/shared/types'
 
+const PAGE_SIZE = 50
+
 interface MemoriesResponse {
   memories: MemorySummary[]
+  total: number
+  hasMore: boolean
 }
 
 interface MemoryFilters {
@@ -31,37 +35,40 @@ export function useMemories(kinId?: string | null) {
   const [memories, setMemories] = useState<MemorySummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filters, setFilters] = useState<MemoryFilters>({})
+  const [page, setPage] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
 
   const fetchMemories = useCallback(async (currentFilters?: MemoryFilters) => {
     setIsLoading(true)
     try {
       const f = currentFilters ?? filters
+      const params = new URLSearchParams()
+      if (f.category) params.set('category', f.category)
+      if (f.scope) params.set('scope', f.scope)
+      params.set('limit', String(PAGE_SIZE))
+      params.set('offset', String(page * PAGE_SIZE))
+
       if (kinId) {
-        // Per-Kin fetch
-        const params = new URLSearchParams()
-        if (f.category) params.set('category', f.category)
-        if (f.scope) params.set('scope', f.scope)
-        params.set('limit', '200')
         const qs = params.toString() ? `?${params.toString()}` : ''
         const data = await api.get<MemoriesResponse>(`/kins/${kinId}/memories${qs}`)
         setMemories(data.memories.map((m) => ({ ...m, kinId })))
+        setTotal(data.total)
+        setHasMore(data.hasMore)
       } else {
-        // Global fetch
-        const params = new URLSearchParams()
-        if (f.category) params.set('category', f.category)
         if (f.kinId) params.set('kinId', f.kinId)
-        if (f.scope) params.set('scope', f.scope)
-        params.set('limit', '200')
         const qs = params.toString() ? `?${params.toString()}` : ''
         const data = await api.get<MemoriesResponse>(`/memories${qs}`)
         setMemories(data.memories)
+        setTotal(data.total)
+        setHasMore(data.hasMore)
       }
     } catch {
       // Silently fail
     } finally {
       setIsLoading(false)
     }
-  }, [kinId, filters])
+  }, [kinId, filters, page])
 
   useEffect(() => {
     fetchMemories()
@@ -70,6 +77,7 @@ export function useMemories(kinId?: string | null) {
   const createMemory = useCallback(async (targetKinId: string, data: CreateMemoryData) => {
     const result = await api.post<{ memory: MemorySummary }>(`/kins/${targetKinId}/memories`, data)
     setMemories((prev) => [{ ...result.memory, kinId: targetKinId }, ...prev])
+    setTotal((prev) => prev + 1)
     return result.memory
   }, [])
 
@@ -82,19 +90,19 @@ export function useMemories(kinId?: string | null) {
   const deleteMemory = useCallback(async (memoryId: string, targetKinId: string) => {
     await api.delete(`/kins/${targetKinId}/memories/${memoryId}`)
     setMemories((prev) => prev.filter((m) => m.id !== memoryId))
+    setTotal((prev) => Math.max(prev - 1, 0))
   }, [])
 
   const applyFilters = useCallback((newFilters: MemoryFilters) => {
     setFilters(newFilters)
+    setPage(0)
   }, [])
 
   // SSE: real-time memory updates
   useSSE({
     'memory:created': (data) => {
       const memKinId = data.kinId as string
-      // If we're viewing a specific kin's memories, only react to that kin's events
       if (kinId && memKinId !== kinId) return
-      // Refetch to get full memory data with proper formatting
       fetchMemories()
     },
     'memory:updated': (data) => {
@@ -107,6 +115,7 @@ export function useMemories(kinId?: string | null) {
       const memKinId = data.kinId as string
       if (kinId && memKinId !== kinId) return
       setMemories((prev) => prev.filter((m) => m.id !== memoryId))
+      setTotal((prev) => Math.max(prev - 1, 0))
     },
   })
 
@@ -114,6 +123,11 @@ export function useMemories(kinId?: string | null) {
     memories,
     isLoading,
     filters,
+    page,
+    setPage,
+    total,
+    hasMore,
+    pageSize: PAGE_SIZE,
     applyFilters,
     createMemory,
     updateMemory,

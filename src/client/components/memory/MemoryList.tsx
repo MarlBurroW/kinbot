@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Brain, Plus, Search } from 'lucide-react'
+import { Brain, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { api, toastError } from '@/client/lib/api'
 import { useMemories } from '@/client/hooks/useMemories'
@@ -41,6 +41,11 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
   const {
     memories,
     isLoading,
+    page,
+    setPage,
+    total,
+    hasMore,
+    pageSize,
     applyFilters,
     createMemory,
     updateMemory,
@@ -181,7 +186,9 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
       {/* Count */}
       {!isLoading && (
         <p className="text-xs text-muted-foreground">
-          {t('settings.memories.count', { count: filteredMemories.length })}
+          {searchQuery.trim()
+            ? t('settings.memories.count', { count: filteredMemories.length })
+            : t('settings.memories.count', { count: total })}
         </p>
       )}
 
@@ -213,6 +220,41 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
               onDelete={() => { deletingMemoryRef.current = memory; setDeletingMemory(memory) }}
             />
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {total > pageSize && (
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-xs text-muted-foreground">
+            {t('settings.memories.pagination', {
+              from: page * pageSize + 1,
+              to: Math.min((page + 1) * pageSize, total),
+              total,
+            })}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+            >
+              <ChevronLeft className="size-4" />
+              {t('common.previous')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!hasMore}
+              onClick={() => setPage(page + 1)}
+            >
+              {t('common.next')}
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
         </div>
       )}
 
