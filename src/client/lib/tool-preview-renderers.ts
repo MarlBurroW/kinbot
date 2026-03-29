@@ -406,3 +406,31 @@ registerPreviewRenderer('get_stored_file', ({ args }) => {
   const id = args.id as string | undefined
   return name ? truncate(name, 50) : id ? truncate(id, 50) : null
 })
+
+// --- Secret deletion ---
+
+registerPreviewRenderer('delete_secret', ({ args }) => {
+  return (args.key as string) ? truncate(args.key as string, 50) : null
+})
+
+// --- Mini app updates ---
+
+registerPreviewRenderer('update_mini_app', ({ args }) => {
+  const name = args.name as string | undefined
+  const appId = args.app_id as string | undefined
+  return name ? truncate(name, 50) : appId ? truncate(appId, 50) : null
+})
+
+// --- Cron journal ---
+
+registerPreviewRenderer('get_cron_journal', ({ args }) => {
+  return (args.cron_id as string) ? truncate(args.cron_id as string, 50) : null
+})
+
+// --- Mini app snapshots ---
+
+registerPreviewRenderer('create_mini_app_snapshot', ({ args }) => {
+  const appId = args.app_id as string | undefined
+  const label = args.label as string | undefined
+  return appId ? `${truncate(appId, 35)}${label ? ` — ${truncate(label, 15)}` : ''}` : null
+})
