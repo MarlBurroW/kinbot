@@ -456,3 +456,27 @@ registerPreviewRenderer('disable_plugin', ({ args }) => {
 registerPreviewRenderer('get_task_detail', ({ args }) => {
   return (args.task_id as string) ? truncate(args.task_id as string, 50) : null
 })
+
+// --- Contact deletion ---
+
+registerPreviewRenderer('delete_contact', ({ args }) => {
+  return (args.contact_id as string) ? truncate(args.contact_id as string, 50) : null
+})
+
+// --- Memory deletion ---
+
+registerPreviewRenderer('forget', ({ args }) => {
+  return (args.memory_id as string) ? truncate(args.memory_id as string, 50) : null
+})
+
+// --- User retrieval ---
+
+registerPreviewRenderer('get_user', ({ args }) => {
+  return (args.identifier as string) ? truncate(args.identifier as string, 50) : null
+})
+
+// --- Secret update ---
+
+registerPreviewRenderer('update_secret', ({ args }) => {
+  return (args.key as string) ? truncate(args.key as string, 50) : null
+})
