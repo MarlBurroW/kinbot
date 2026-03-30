@@ -193,6 +193,42 @@ describe('ollama provider', () => {
     })
   })
 
+  describe('authentication', () => {
+    it('sends Authorization header when apiKey is provided', async () => {
+      let capturedHeaders: HeadersInit | undefined
+      globalThis.fetch = mock((input: RequestInfo | URL, init?: RequestInit) => {
+        capturedHeaders = init?.headers
+        return Promise.resolve(new Response(JSON.stringify(makeTagsResponse([])), { status: 200 }))
+      }) as unknown as typeof fetch
+
+      await ollamaProvider.testConnection({ ...mockConfig, apiKey: 'my-secret-key' })
+      expect((capturedHeaders as Record<string, string>)['Authorization']).toBe('Bearer my-secret-key')
+    })
+
+    it('does not send Authorization header when apiKey is absent', async () => {
+      let capturedHeaders: HeadersInit | undefined
+      globalThis.fetch = mock((input: RequestInfo | URL, init?: RequestInit) => {
+        capturedHeaders = init?.headers
+        return Promise.resolve(new Response(JSON.stringify(makeTagsResponse([])), { status: 200 }))
+      }) as unknown as typeof fetch
+
+      await ollamaProvider.testConnection({ ...mockConfig, apiKey: '' })
+      expect((capturedHeaders as Record<string, string>)['Authorization']).toBeUndefined()
+    })
+
+    it('does not send Authorization header when apiKey is undefined', async () => {
+      let capturedHeaders: HeadersInit | undefined
+      globalThis.fetch = mock((input: RequestInfo | URL, init?: RequestInit) => {
+        capturedHeaders = init?.headers
+        return Promise.resolve(new Response(JSON.stringify(makeTagsResponse([])), { status: 200 }))
+      }) as unknown as typeof fetch
+
+      const configWithoutKey: ProviderConfig = { apiKey: '', baseUrl: 'http://localhost:11434' }
+      await ollamaProvider.testConnection(configWithoutKey)
+      expect((capturedHeaders as Record<string, string>)['Authorization']).toBeUndefined()
+    })
+  })
+
   describe('provider metadata', () => {
     it('has type ollama', () => {
       expect(ollamaProvider.type).toBe('ollama')

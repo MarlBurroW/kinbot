@@ -6,6 +6,7 @@ import {
   PROVIDER_CAPABILITIES,
   PROVIDER_DISPLAY_NAMES,
   PROVIDERS_WITHOUT_API_KEY,
+  PROVIDERS_WITH_OPTIONAL_API_KEY,
   REQUIRED_CAPABILITIES,
   MEMORY_CATEGORIES,
   MESSAGE_SOURCES,
@@ -119,8 +120,8 @@ describe('PROVIDER_DISPLAY_NAMES', () => {
 })
 
 describe('PROVIDERS_WITHOUT_API_KEY', () => {
-  it('includes ollama', () => {
-    expect(PROVIDERS_WITHOUT_API_KEY).toContain('ollama')
+  it('does not include ollama (ollama has optional API key, not absent)', () => {
+    expect(PROVIDERS_WITHOUT_API_KEY).not.toContain('ollama')
   })
 
   it('includes anthropic-oauth', () => {
@@ -136,6 +137,24 @@ describe('PROVIDERS_WITHOUT_API_KEY', () => {
     for (const p of PROVIDERS_WITHOUT_API_KEY) {
       const meta = PROVIDER_META[p as ProviderType] as ProviderMeta
       expect(meta.noApiKey).toBe(true)
+    }
+  })
+})
+
+describe('PROVIDERS_WITH_OPTIONAL_API_KEY', () => {
+  it('includes ollama', () => {
+    expect(PROVIDERS_WITH_OPTIONAL_API_KEY).toContain('ollama')
+  })
+
+  it('excludes providers that require API keys', () => {
+    expect(PROVIDERS_WITH_OPTIONAL_API_KEY).not.toContain('openai')
+    expect(PROVIDERS_WITH_OPTIONAL_API_KEY).not.toContain('anthropic')
+  })
+
+  it('every entry has optionalApiKey=true in PROVIDER_META', () => {
+    for (const p of PROVIDERS_WITH_OPTIONAL_API_KEY) {
+      const meta = PROVIDER_META[p as ProviderType] as ProviderMeta
+      expect(meta.optionalApiKey).toBe(true)
     }
   })
 })

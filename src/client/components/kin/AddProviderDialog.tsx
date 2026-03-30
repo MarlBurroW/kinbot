@@ -19,7 +19,7 @@ import { FormErrorAlert } from '@/client/components/common/FormErrorAlert'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { api, getErrorMessage } from '@/client/lib/api'
-import { PROVIDER_API_KEY_URLS, PROVIDER_CAPABILITIES, PROVIDER_DISPLAY_NAMES, PROVIDER_TYPES, PROVIDERS_WITHOUT_API_KEY } from '@/shared/constants'
+import { PROVIDER_API_KEY_URLS, PROVIDER_CAPABILITIES, PROVIDER_DISPLAY_NAMES, PROVIDER_TYPES, PROVIDERS_WITHOUT_API_KEY, PROVIDERS_WITH_OPTIONAL_API_KEY } from '@/shared/constants'
 import type { ProviderType } from '@/shared/types'
 
 interface EditProvider {
@@ -93,6 +93,7 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
   }
 
   const isApiKeyOptional = (PROVIDERS_WITHOUT_API_KEY as readonly string[]).includes(providerType)
+  const hasOptionalApiKey = (PROVIDERS_WITH_OPTIONAL_API_KEY as readonly string[]).includes(providerType)
   const apiKeyUrl = PROVIDER_API_KEY_URLS[providerType] as string | undefined
 
   const handleTestConnection = async () => {
@@ -306,7 +307,7 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
                 type="button"
                 variant="secondary"
                 onClick={handleTestConnection}
-                disabled={isTesting || (!isEditing && !isApiKeyOptional && !apiKey)}
+                disabled={isTesting || (!isEditing && !isApiKeyOptional && !hasOptionalApiKey && !apiKey)}
               >
                 {isTesting ? (
                   <>

@@ -28,7 +28,11 @@ function classifyModel(name: string): 'llm' | 'embedding' | null {
 
 async function fetchModels(config: ProviderConfig): Promise<OllamaModel[]> {
   const baseUrl = config.baseUrl ?? 'http://localhost:11434'
-  const response = await fetch(`${baseUrl}/api/tags`)
+  const headers: Record<string, string> = {}
+  if (config.apiKey) {
+    headers['Authorization'] = `Bearer ${config.apiKey}`
+  }
+  const response = await fetch(`${baseUrl}/api/tags`, { headers })
 
   if (!response.ok) {
     throw new Error(`Ollama API error: ${response.status}`)

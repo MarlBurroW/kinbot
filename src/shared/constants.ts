@@ -42,9 +42,14 @@ export const PROVIDER_API_KEY_URLS: Record<string, string> = Object.fromEntries(
   metaEntries.filter(([, m]) => m.apiKeyUrl).map(([t, m]) => [t, m.apiKeyUrl!]),
 )
 
-/** Provider types where the API key field is optional (auto-detected credentials) */
+/** Provider types where the API key field is absent (auto-detected credentials, e.g. anthropic-oauth) */
 export const PROVIDERS_WITHOUT_API_KEY = metaEntries
   .filter(([, m]) => m.noApiKey)
+  .map(([t]) => t)
+
+/** Provider types where the API key is optional (works without one but supports one, e.g. local Ollama vs Ollama Cloud) */
+export const PROVIDERS_WITH_OPTIONAL_API_KEY = metaEntries
+  .filter(([, m]) => m.optionalApiKey)
   .map(([t]) => t)
 
 export const REQUIRED_CAPABILITIES = ['llm', 'embedding'] as const

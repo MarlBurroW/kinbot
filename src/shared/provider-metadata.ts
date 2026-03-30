@@ -12,6 +12,8 @@ export interface ProviderMeta {
   readonly displayName: string
   /** True when no API key is required (local or auto-detected credentials) */
   readonly noApiKey?: boolean
+  /** True when the API key is optional (provider works without one, but supports one) */
+  readonly optionalApiKey?: boolean
   /** URL where users can obtain or manage their API key */
   readonly apiKeyUrl?: string
 }
@@ -28,7 +30,7 @@ export const PROVIDER_META = {
   together:           { capabilities: ['llm', 'embedding', 'image'],  displayName: 'Together AI',           apiKeyUrl: 'https://api.together.xyz/settings/api-keys' },
   fireworks:          { capabilities: ['llm', 'embedding', 'image'],  displayName: 'Fireworks AI',          apiKeyUrl: 'https://fireworks.ai/account/api-keys' },
   deepseek:           { capabilities: ['llm', 'embedding'],           displayName: 'DeepSeek',              apiKeyUrl: 'https://platform.deepseek.com/api_keys' },
-  ollama:             { capabilities: ['llm', 'embedding'],           displayName: 'Ollama',                noApiKey: true },
+  ollama:             { capabilities: ['llm', 'embedding'],           displayName: 'Ollama',                optionalApiKey: true, apiKeyUrl: 'https://ollama.com/settings/api-keys' },
   openrouter:         { capabilities: ['llm', 'embedding', 'image'],  displayName: 'OpenRouter',            apiKeyUrl: 'https://openrouter.ai/keys' },
   cohere:             { capabilities: ['llm', 'embedding', 'rerank'], displayName: 'Cohere',                apiKeyUrl: 'https://dashboard.cohere.com/api-keys' },
   xai:                { capabilities: ['llm', 'embedding', 'image'],  displayName: 'xAI',                   apiKeyUrl: 'https://console.x.ai/' },
