@@ -1,6 +1,6 @@
 import { eq, and, like, or, sql } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
-import { db } from '@/server/db/index'
+import { db, sqlite } from '@/server/db/index'
 import { contacts, contactIdentifiers, contactNotes, contactPlatformIds, kins, user, userProfiles } from '@/server/db/schema'
 import { sseManager } from '@/server/sse/index'
 
@@ -419,6 +419,51 @@ export function removeContactIdentifier(identifierId: string, contactId?: string
   })
 
   return true
+}
+
+/**
+ * Atomically replace all identifiers for a contact in a single SQLite transaction.
+ * Deletes all existing identifiers and inserts the new list.
+ * Returns the new identifiers list, or null if the contact doesn't exist.
+ */
+export function replaceContactIdentifiers(
+  contactId: string,
+  identifiers: Array<{ label: string; value: string }>,
+) {
+  const contact = db.select().from(contacts).where(eq(contacts.id, contactId)).get()
+  if (!contact) return null
+
+  const now = new Date()
+  const txn = sqlite.transaction(() => {
+    // Delete all existing identifiers for this contact
+    db.delete(contactIdentifiers)
+      .where(eq(contactIdentifiers.contactId, contactId))
+      .run()
+
+    // Insert all new identifiers
+    for (const ident of identifiers) {
+      db.insert(contactIdentifiers).values({
+        id: uuid(),
+        contactId,
+        label: ident.label,
+        value: ident.value,
+        createdAt: now,
+        updatedAt: now,
+      }).run()
+    }
+  })
+  txn()
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId },
+  })
+
+  return db
+    .select({ id: contactIdentifiers.id, label: contactIdentifiers.label, value: contactIdentifiers.value })
+    .from(contactIdentifiers)
+    .where(eq(contactIdentifiers.contactId, contactId))
+    .all()
 }
 
 export function findContactByIdentifier(label: string, value: string) {

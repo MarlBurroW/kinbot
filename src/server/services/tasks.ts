@@ -6,7 +6,7 @@ import { createLogger } from '@/server/logger'
 import { tasks, kins, messages } from '@/server/db/schema'
 import { enqueueMessage } from '@/server/services/queue'
 import { buildSystemPrompt } from '@/server/services/prompt-builder'
-import { resolveLLMModel } from '@/server/services/kin-engine'
+import { resolveLLMModel, buildThinkingProviderOptions } from '@/server/services/kin-engine'
 import { toolRegistry } from '@/server/tools/index'
 import { resolveMCPTools } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
@@ -14,7 +14,8 @@ import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
 import { getGlobalPrompt } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
-import type { TaskStatus, TaskMode, KinToolConfig } from '@/shared/types'
+import type { TaskStatus, TaskMode, KinToolConfig, KinThinkingConfig } from '@/shared/types'
+import { guessProviderType } from '@/shared/model-ref'
 
 const log = createLogger('tasks')
 
@@ -243,6 +244,7 @@ interface SpawnParams {
   allowHumanPrompt?: boolean
   channelOriginId?: string
   webhookId?: string
+  thinkingConfig?: KinThinkingConfig
   concurrencyGroup?: string
   concurrencyMax?: number
 }
@@ -298,6 +300,7 @@ export async function spawnTask(params: SpawnParams) {
     channelOriginId: params.channelOriginId ?? null,
     webhookId: params.webhookId ?? null,
     allowHumanPrompt: params.allowHumanPrompt ?? true,
+    thinkingConfig: params.thinkingConfig ? JSON.stringify(params.thinkingConfig) : null,
     concurrencyGroup,
     concurrencyMax,
     queuedAt: initialStatus === 'queued' ? now : null,
@@ -433,6 +436,15 @@ async function executeSubKin(taskId: string, isNudge = false) {
       throw new Error('No LLM provider available')
     }
 
+    // Resolve thinking config: task-level override takes precedence over parent Kin
+    const taskThinkingConfig: KinThinkingConfig | null = task.thinkingConfig
+      ? JSON.parse(task.thinkingConfig as string)
+      : kinIdentity.thinkingConfig
+        ? JSON.parse(kinIdentity.thinkingConfig as string)
+        : null
+    const taskProviderType = guessProviderType(modelId) ?? kinIdentity.providerId ?? ''
+    const taskThinkingProviderOptions = buildThinkingProviderOptions(taskProviderType, taskThinkingConfig)
+
     // Resolve tools: spawned Kin's full toolset (minus excluded) + sub-Kin communication tools
     const kinToolConfig: KinToolConfig | null = kinIdentity.toolConfig
       ? JSON.parse(kinIdentity.toolConfig)
@@ -546,6 +558,8 @@ async function executeSubKin(taskId: string, isNudge = false) {
     // Execute LLM with streaming (same pattern as kin-engine)
     const assistantMessageId = uuid()
     let fullContent = ''
+    const reasoningSegments: Array<{ offset: number; text: string }> = []
+    let currentReasoning = ''
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
     let streamError: Error | null = null
     let lastCheckpointAt = Date.now()
@@ -598,6 +612,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
         messages: messageHistory,
         tools: toolSchemas,
         abortSignal: abortController.signal,
+        ...(taskThinkingProviderOptions ? { providerOptions: taskThinkingProviderOptions as any } : {}),
       })
 
       // Collect tool call intents from this step
@@ -618,6 +633,34 @@ async function executeSubKin(taskId: string, isNudge = false) {
                 contentOffset: fullContent.length,
                 taskId,
               },
+            })
+            continue
+          }
+
+          // Handle reasoning/thinking stream parts
+          if ((part.type as string) === 'reasoning-start') {
+            currentReasoning = ''
+            continue
+          }
+          if ((part.type as string) === 'reasoning-delta') {
+            const p = part as unknown as { text: string }
+            currentReasoning += p.text
+            sseManager.sendToKin(task.parentKinId, {
+              type: 'chat:reasoning-token',
+              kinId: task.parentKinId,
+              data: { messageId: assistantMessageId, token: p.text, taskId },
+            })
+            continue
+          }
+          if ((part.type as string) === 'reasoning-end') {
+            if (currentReasoning) {
+              reasoningSegments.push({ offset: fullContent.length, text: currentReasoning })
+              currentReasoning = ''
+            }
+            sseManager.sendToKin(task.parentKinId, {
+              type: 'chat:reasoning-done',
+              kinId: task.parentKinId,
+              data: { messageId: assistantMessageId, taskId },
             })
             continue
           }
@@ -811,6 +854,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
       .set({
         content: responseText,
         toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+        reasoning: reasoningSegments.length > 0 ? JSON.stringify(reasoningSegments) : null,
       })
       .where(eq(messages.id, assistantMessageId))
 

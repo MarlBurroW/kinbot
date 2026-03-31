@@ -7,6 +7,7 @@
     "confirm": "Confirmer",
     "back": "Retour",
     "next": "Suivant",
+    "previous": "Précédent",
     "or": "ou",
     "required": "Requis",
     "optional": "Optionnel",
@@ -336,6 +337,8 @@
       "memoryEmptyDescription": "Une fois votre Kin créé, il construira automatiquement des souvenirs à partir des conversations. Vous pouvez aussi ajouter des souvenirs manuellement depuis le dialogue d'édition.",
       "compactionEmptyTitle": "La compaction se configure après la création",
       "compactionEmptyDescription": "Une fois votre Kin créé, vous pourrez personnaliser les paramètres de compaction ici.",
+      "thinkingEmptyTitle": "La réflexion se configure après la création",
+      "thinkingEmptyDescription": "Une fois votre Kin créé, vous pourrez activer la réflexion étendue pour les modèles compatibles.",
       "nameHint": "Un nom court et mémorable pour ce Kin.",
       "roleHint": "Une brève description de ce que fait ce Kin (affiché dans la barre latérale).",
       "nameTip": "Un nom court et reconnaissable. C'est ainsi que le Kin apparaît dans la barre latérale et les conversations.",
@@ -356,7 +359,8 @@
       "general": "Général",
       "tools": "Outils",
       "memory": "Mémoire",
-      "compaction": "Compaction"
+      "compaction": "Compaction",
+      "thinking": "Réflexion"
     },
     "tools": {
       "native": "Outils natifs",
@@ -415,6 +419,14 @@
       "modeKinOwn": "Utiliser le modèle du Kin",
       "modeCustom": "Modèle personnalisé",
       "selectCustomModel": "Sélectionner un modèle"
+    },
+    "thinking": {
+      "title": "Réflexion / Raisonnement",
+      "description": "Lorsqu'elle est activée, les modèles compatibles raisonnent étape par étape avant de répondre. Cela peut améliorer la qualité pour les tâches complexes mais consomme plus de tokens. Tous les modèles ne supportent pas cette fonctionnalité.",
+      "enableLabel": "Activer la réflexion étendue",
+      "budgetLabel": "Budget de tokens",
+      "budgetPlaceholder": "Adaptatif (défaut du fournisseur)",
+      "budgetHint": "Nombre maximum de tokens que le modèle peut utiliser pour raisonner. Laisser vide pour le mode adaptatif."
     },
     "avatar": {
       "title": "Choisir l'avatar",
@@ -551,6 +563,7 @@
       "tools": "Outils",
       "systemPrompt": "Prompt système",
       "summary": "Résumé",
+      "cronRuns": "Exécutions précédentes",
       "messages": "Messages",
       "total": "Total"
     },
@@ -577,9 +590,12 @@
         "summary": "Résumé",
         "summaries": "Résumés ({{count}})",
         "messages": "Messages",
-        "tools": "Outils"
+        "tools": "Outils",
+        "cronRuns": "Exécutions précédentes ({{count}})"
       },
       "summariesTitle": "Résumés de conversation ({{count}})",
+      "cronRunsTitle": "Exécutions précédentes ({{count}})",
+      "cronRunLabel": "Exécution #{{n}}",
       "summaryLabel": "Résumé #{{n}}",
       "compressed": "compressé",
       "messagesCount": "{{count}} messages",
@@ -627,6 +643,10 @@
     "viewImage": "Voir en taille réelle",
     "memoriesUsed": "{{count}} souvenirs",
     "memoriesUsedSingular": "1 souvenir",
+    "thinking": "Réflexion...",
+    "thinkingToggle": "Réflexion",
+    "thinkingEnable": "Activer la réflexion étendue pour ce Kin",
+    "thinkingDisable": "Désactiver la réflexion étendue pour ce Kin",
     "welcome": {
       "title": "Bienvenue sur KinBot",
       "description": "Les Kins sont des personnalités IA que vous créez et personnalisez. Chaque Kin a son propre caractère, son expertise, ses outils et sa mémoire. Créez votre premier Kin pour commencer !",
@@ -1152,6 +1172,7 @@
       "deleted": "Souvenir supprimé",
       "saveKinFirst": "Enregistrez le Kin d'abord pour gérer ses souvenirs.",
       "count": "{{count}} souvenirs",
+      "pagination": "{{from}}–{{to}} sur {{total}}",
       "kinTip": "À quel Kin appartient ce souvenir. Chaque Kin a son propre espace mémoire.",
       "contentTip": "L'information à retenir. Soyez précis, le Kin s'en souviendra tel quel lors des conversations.",
       "categoryTip": "Catégorisez le souvenir pour une meilleure organisation et recherche.",
@@ -2022,5 +2043,8 @@
       "fetchHistoryFailed": "Impossible de charger l'historique des sessions",
       "viewSessionFailed": "Impossible de charger les messages de la session"
     }
+  },
+  "rightPanel": {
+    "taskTab": "Tâche"
   }
 }

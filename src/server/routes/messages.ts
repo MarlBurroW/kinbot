@@ -141,8 +141,10 @@ messageRoutes.get('/', async (c) => {
       const kinInfo = (m.sourceType === 'kin' || m.sourceType === 'task') && m.sourceId ? kinInfoMap.get(m.sourceId) : null
       let meta: Record<string, unknown> | null = null
       let toolCalls: unknown = null
+      let reasoning: unknown = null
       try { meta = m.metadata ? JSON.parse(m.metadata as string) : null } catch { /* corrupted metadata */ }
       try { toolCalls = m.toolCalls ? JSON.parse(m.toolCalls as string) : null } catch { /* corrupted toolCalls */ }
+      try { reasoning = m.reasoning ? JSON.parse(m.reasoning as string) : null } catch { /* corrupted reasoning */ }
       return {
         id: m.id,
         role: m.role,
@@ -158,6 +160,7 @@ messageRoutes.get('/', async (c) => {
         memoriesExtracted: meta?.memoriesExtracted ?? null,
         compactingError: meta?.error ?? null,
         stepLimitReached: meta?.stepLimitReached ?? false,
+        reasoning,
         files: (fileMap.get(m.id) ?? []).map(serializeFile),
         reactions: reactionMap.get(m.id) ?? [],
         createdAt: m.createdAt,

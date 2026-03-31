@@ -21,7 +21,9 @@ export function guessProviderType(modelId: string): string | null {
   ) return 'openai'
   if (modelId.startsWith('gemini-')) return 'gemini'
   if (modelId.startsWith('deepseek')) return 'deepseek'
-  if (modelId.includes('/')) return 'openrouter'
+  // Can't distinguish openrouter from openai-compatible by model ID alone
+  // Return null and let provider resolution handle it
+  if (modelId.includes('/')) return null
   return null
 }
 

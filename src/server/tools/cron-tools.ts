@@ -46,8 +46,12 @@ export const createCronTool: ToolRegistration = {
           .boolean()
           .optional()
           .describe('If true, fires once then auto-deactivates.'),
+        thinking: z
+          .boolean()
+          .optional()
+          .describe('Enable extended thinking/reasoning for tasks spawned by this cron. Omit to inherit from Kin config.'),
       }),
-      execute: async ({ name, schedule, task_description, target_kin_slug, model, provider_id, run_once }) => {
+      execute: async ({ name, schedule, task_description, target_kin_slug, model, provider_id, run_once, thinking }) => {
         let targetKinId: string | undefined
         if (target_kin_slug) {
           const resolved = resolveKinId(target_kin_slug)
@@ -68,6 +72,7 @@ export const createCronTool: ToolRegistration = {
             providerId: provider_id,
             createdBy: 'kin',
             runOnce: run_once,
+            thinkingConfig: thinking !== undefined ? { enabled: thinking } : undefined,
           })
           return {
             cronId: cron.id,
@@ -99,14 +104,17 @@ export const updateCronTool: ToolRegistration = {
         schedule: z.string().optional(),
         task_description: z.string().optional(),
         is_active: z.boolean().optional(),
+        thinking: z.boolean().optional()
+          .describe('Enable or disable thinking for tasks spawned by this cron. Omit to keep current.'),
       }),
-      execute: async ({ cron_id, name, schedule, task_description, is_active }) => {
+      execute: async ({ cron_id, name, schedule, task_description, is_active, thinking }) => {
         try {
           const updates: Record<string, unknown> = {}
           if (name !== undefined) updates.name = name
           if (schedule !== undefined) updates.schedule = schedule
           if (task_description !== undefined) updates.taskDescription = task_description
           if (is_active !== undefined) updates.isActive = is_active
+          if (thinking !== undefined) updates.thinkingConfig = JSON.stringify({ enabled: thinking })
 
           const updated = await updateCron(cron_id, updates)
           if (!updated) return { error: 'Cron not found' }

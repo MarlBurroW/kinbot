@@ -107,7 +107,7 @@ export const updateMcpServerTool: ToolRegistration = {
         name: z.string().optional(),
         command: z.string().optional(),
         args: z.array(z.string()).optional(),
-        env: z.record(z.string(), z.string()).optional().describe('Merged with existing. Pass null to clear all.'),
+        env: z.object({}).catchall(z.string()).optional().describe('Environment variables as key-value pairs. Merged with existing. Pass null to clear all.'),
       }),
       execute: async ({ server_id, name, command, args, env }) => {
         try {

@@ -7,6 +7,7 @@
     "confirm": "Confirm",
     "back": "Back",
     "next": "Next",
+    "previous": "Previous",
     "or": "or",
     "required": "Required",
     "optional": "Optional",
@@ -336,6 +337,8 @@
       "memoryEmptyDescription": "Once your Kin is created, it will automatically build memories from conversations. You can also add memories manually from the edit dialog.",
       "compactionEmptyTitle": "Compaction is configured after creation",
       "compactionEmptyDescription": "Once your Kin is created, you can override global compaction settings here.",
+      "thinkingEmptyTitle": "Thinking is configured after creation",
+      "thinkingEmptyDescription": "Once your Kin is created, you can enable extended thinking for compatible models.",
       "nameHint": "A short, memorable name for this Kin.",
       "roleHint": "A brief description of what this Kin does (shown in the sidebar).",
       "nameTip": "A short, recognizable name. This is how the Kin appears in the sidebar and in conversations.",
@@ -356,7 +359,8 @@
       "general": "General",
       "tools": "Tools",
       "memory": "Memory",
-      "compaction": "Compaction"
+      "compaction": "Compaction",
+      "thinking": "Thinking"
     },
     "tools": {
       "native": "Native Tools",
@@ -415,6 +419,14 @@
       "animDone": "Cycle complete. The process repeats indefinitely as the conversation grows.",
       "animContinuing": "Conversation continues. {{summaries}} summary(ies) preserved, new messages keep flowing.",
       "animExplanation": "When the context window fills up, the oldest messages are compressed into dated summaries. These summaries accumulate chronologically. When too many summaries pile up, the oldest ones are merged together — keeping recent summaries detailed and older ones compressed."
+    },
+    "thinking": {
+      "title": "Thinking / Reasoning",
+      "description": "When enabled, compatible models will reason step-by-step before responding. This can improve quality for complex tasks but uses more tokens. Not all models support this feature.",
+      "enableLabel": "Enable extended thinking",
+      "budgetLabel": "Token budget",
+      "budgetPlaceholder": "Adaptive (provider default)",
+      "budgetHint": "Maximum tokens the model can use for reasoning. Leave empty for adaptive mode."
     },
     "avatar": {
       "title": "Choose avatar",
@@ -551,6 +563,7 @@
       "tools": "Tools",
       "systemPrompt": "System prompt",
       "summary": "Summary",
+      "cronRuns": "Previous runs",
       "messages": "Messages",
       "total": "Total"
     },
@@ -577,9 +590,12 @@
         "summary": "Summary",
         "summaries": "Summaries ({{count}})",
         "messages": "Messages",
-        "tools": "Tools"
+        "tools": "Tools",
+        "cronRuns": "Previous runs ({{count}})"
       },
       "summariesTitle": "Conversation summaries ({{count}})",
+      "cronRunsTitle": "Previous runs ({{count}})",
+      "cronRunLabel": "Run #{{n}}",
       "summaryLabel": "Summary #{{n}}",
       "compressed": "compressed",
       "messagesCount": "{{count}} messages",
@@ -627,6 +643,10 @@
     "viewImage": "View full size",
     "memoriesUsed": "{{count}} memories",
     "memoriesUsedSingular": "1 memory",
+    "thinking": "Thinking...",
+    "thinkingToggle": "Thinking",
+    "thinkingEnable": "Enable extended thinking for this Kin",
+    "thinkingDisable": "Disable extended thinking for this Kin",
     "welcome": {
       "title": "Welcome to KinBot",
       "description": "Kins are AI personalities you create and customize. Each Kin has its own character, expertise, tools, and memory. Create your first one to get started!",
@@ -1152,6 +1172,7 @@
       "deleted": "Memory deleted",
       "saveKinFirst": "Save the Kin first to manage its memories.",
       "count": "{{count}} memories",
+      "pagination": "{{from}}–{{to}} of {{total}}",
       "kinTip": "Which Kin this memory belongs to. Each Kin has its own memory space.",
       "contentTip": "The information to remember. Be specific, the Kin will recall this verbatim during conversations.",
       "categoryTip": "Categorize the memory for better organization and retrieval.",
@@ -2022,5 +2043,8 @@
       "fetchHistoryFailed": "Failed to load session history",
       "viewSessionFailed": "Failed to load session messages"
     }
+  },
+  "rightPanel": {
+    "taskTab": "Task"
   }
 }

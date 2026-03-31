@@ -1,5 +1,36 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
 
+// ─── Prevent Bun mock isolation leak ─────────────────────────────────────────
+// contacts.test.ts mocks @/server/services/contacts via mock.module().
+// Between test files, Bun tries to resolve the real module, which imports
+// `sqlite` from @/server/db/index (globally mocked by onboarding.test.ts).
+// This causes a "SyntaxError: Export named 'replaceContactIdentifiers' not found".
+// Adding a stub mock here prevents Bun from resolving the real contacts module.
+mock.module('@/server/services/contacts', () => ({
+  createContact: async () => null,
+  getContact: async () => null,
+  listContacts: async () => [],
+  listContactsWithDetails: async () => [],
+  getContactWithDetails: async () => null,
+  updateContact: async () => null,
+  deleteContact: async () => false,
+  searchContacts: async () => [],
+  addContactIdentifier: () => null,
+  updateContactIdentifier: () => null,
+  removeContactIdentifier: () => false,
+  replaceContactIdentifiers: () => null,
+  findContactByIdentifier: () => null,
+  findContactByLinkedUserId: () => null,
+  listContactIdentifiers: () => [],
+  setContactNote: () => null,
+  updateContactNote: () => null,
+  deleteContactNote: () => false,
+  getVisibleNotes: () => [],
+  deleteNotesByKin: () => {},
+  listContactsForPrompt: async () => [],
+  ensureUserContactsExist: async () => {},
+}))
+
 // ─── Re-implement the in-memory stores locally to test the contract ──────────
 // Bun's mock.module is global and other test files mock @/server/services/channels,
 // which corrupts the real module's Map. Instead, we replicate the logic here and

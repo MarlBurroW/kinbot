@@ -156,6 +156,14 @@ export interface KinCompactingConfig {
   maxSummaries?: number | null
 }
 
+/** Per-Kin thinking/reasoning configuration (stored as JSON in kins.thinking_config) */
+export interface KinThinkingConfig {
+  /** Whether thinking/reasoning is enabled for this Kin */
+  enabled: boolean
+  /** Token budget for reasoning (null = adaptive/provider default) */
+  budgetTokens?: number | null
+}
+
 /** Task summary as returned by GET /api/tasks */
 export interface TaskSummary {
   id: string
@@ -194,6 +202,7 @@ export interface CronSummary {
   targetKinAvatarUrl: string | null
   model: string | null
   providerId: string | null
+  thinkingEnabled: boolean
   runOnce: boolean
   isActive: boolean
   requiresApproval: boolean
@@ -498,6 +507,8 @@ export interface ContextTokenBreakdown {
   tools: number
   /** Tokens from the compacting summary (split from systemPrompt). */
   summary: number
+  /** Tokens from previous cron run results (only for cron-spawned tasks). */
+  cronRuns?: number
   total: number
 }
 

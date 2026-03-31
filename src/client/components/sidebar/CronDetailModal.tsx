@@ -30,6 +30,7 @@ import {
   Cpu,
   Copy,
   Play,
+  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
@@ -292,6 +293,13 @@ export function CronDetailModal({
                   <p className="text-sm text-muted-foreground italic">{t('cron.detail.modelInherited')}</p>
                 )}
               </div>
+
+              {cron.thinkingEnabled && (
+                <div className="flex items-center gap-1.5 text-xs text-chart-4">
+                  <Sparkles className="size-3" />
+                  <span>{t('chat.thinkingToggle')}</span>
+                </div>
+              )}
 
               {/* Active toggle */}
               {!cron.requiresApproval && (

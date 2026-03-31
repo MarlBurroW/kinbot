@@ -16,7 +16,8 @@ import { MarkdownEditor } from '@/client/components/ui/markdown-editor'
 import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
 import { KinSelector } from '@/client/components/common/KinSelector'
 import { KinSelectItem, type KinOption } from '@/client/components/common/KinSelectItem'
-import { Loader2, Trash2 } from 'lucide-react'
+import { Switch } from '@/client/components/ui/switch'
+import { Loader2, Sparkles, Trash2 } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { UnsavedChangesDialog } from '@/client/components/common/UnsavedChangesDialog'
 import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
@@ -52,6 +53,7 @@ interface CronFormModalProps {
     model?: string
     providerId?: string
     runOnce?: boolean
+    thinkingEnabled?: boolean
   }) => Promise<CronSummary>
   onUpdate?: (id: string, updates: Record<string, unknown>) => Promise<CronSummary>
   onDelete?: (id: string) => Promise<void>
@@ -97,6 +99,7 @@ export function CronFormModal({
   const [targetKinId, setTargetKinId] = useState<string>('')
   const [model, setModel] = useState('')
   const [modelProviderId, setModelProviderId] = useState('')
+  const [thinkingEnabled, setThinkingEnabled] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -119,6 +122,7 @@ export function CronFormModal({
         setTargetKinId(cron.targetKinId ?? '')
         setModel(cron.model ?? '')
         setModelProviderId(cron.providerId ?? '')
+        setThinkingEnabled(cron.thinkingEnabled ?? false)
       } else if (defaults) {
         setName(defaults.name ?? '')
         setKinId(defaults.kinId ?? (kins.length === 1 ? kins[0]!.id : ''))
@@ -129,6 +133,7 @@ export function CronFormModal({
         setTargetKinId(defaults.targetKinId ?? '')
         setModel(defaults.model ?? '')
         setModelProviderId(defaults.providerId ?? '')
+        setThinkingEnabled(defaults.thinkingEnabled ?? false)
       } else {
         setName('')
         setKinId(kins.length === 1 ? kins[0]!.id : '')
@@ -139,6 +144,7 @@ export function CronFormModal({
         setTargetKinId('')
         setModel('')
         setModelProviderId('')
+        setThinkingEnabled(false)
       }
       setError(null)
       resetDirty()
@@ -162,6 +168,7 @@ export function CronFormModal({
           model: model || null,
           providerId: modelProviderId || null,
           runOnce,
+          thinkingEnabled,
         })
       } else if (onCreate) {
         await onCreate({
@@ -173,6 +180,7 @@ export function CronFormModal({
           model: model || undefined,
           providerId: modelProviderId || undefined,
           runOnce: runOnce || undefined,
+          thinkingEnabled: thinkingEnabled || undefined,
         })
       }
       resetDirty()
@@ -406,6 +414,15 @@ export function CronFormModal({
                 placeholder={t('cron.create.modelPlaceholder')}
                 allowClear
               />
+            </div>
+
+            {/* Thinking toggle */}
+            <div className="flex items-center justify-between">
+              <Label className="inline-flex items-center gap-1.5">
+                <Sparkles className="size-3.5" />
+                {t('kin.thinking.enableLabel')}
+              </Label>
+              <Switch checked={thinkingEnabled} onCheckedChange={(v) => { setThinkingEnabled(v); markDirty() }} />
             </div>
           </div>
 

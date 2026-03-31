@@ -13,9 +13,11 @@ import {
   AlertDialogAction,
 } from '@/client/components/ui/alert-dialog'
 import { Input } from '@/client/components/ui/input'
-import { X, RotateCw, Maximize2, Minimize2, Sparkles, Loader2, AlertTriangle } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { X, RotateCw, Maximize2, Minimize2, Sparkles, Loader2, AlertTriangle, ClipboardList } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
 import { api } from '@/client/lib/api'
+const TaskPanelContent = lazy(() => import('@/client/components/sidebar/TaskPanelContent').then(m => ({ default: m.TaskPanelContent })))
 import { toast } from 'sonner'
 import { useAuth } from '@/client/hooks/useAuth'
 import type { MiniAppSummary } from '@/shared/types'
@@ -624,6 +626,11 @@ export function MiniAppViewer() {
     )
   }
 
+  const { activeTab, activeTask, switchTab, closeTask } = useMiniAppPanel()
+  const hasBothTabs = activeAppId !== null && activeTask !== null
+  const showMiniApp = activeTab === 'mini-app'
+  const showTask = activeTab === 'task'
+
   // Side panel mode (default)
   return (
     <div
@@ -633,67 +640,172 @@ export function MiniAppViewer() {
     >
       <div className="flex h-full w-[480px] lg:w-[600px] flex-col border-l border-border">
         {dialogElement}
-        {/* Header */}
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
-          {app?.iconUrl ? (
-            <img src={app.iconUrl} alt={app.name} className="size-6 rounded-md object-cover" />
-          ) : app?.icon ? (
-            <span className="text-base">{app.icon}</span>
-          ) : null}
-          <span className="flex-1 truncate text-sm font-medium">
-            {customTitle || (app?.name ?? '...')}
-          </span>
-          {errorBadge}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={handleGenerateIcon}
-            disabled={generatingIcon}
-            title={t('miniApps.icon.generate')}
-          >
-            {generatingIcon ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={handleRefresh}
-            title={t('miniApps.refresh')}
-          >
-            <RotateCw className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={toggleFullPage}
-            title={t('miniApps.fullPage')}
-          >
-            <Maximize2 className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={closePanel}
-            title={t('miniApps.closePanel')}
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
 
-        {/* Iframe */}
-        {activeAppId && (
-          <iframe
-            ref={iframeRef}
-            key={iframeKey}
-            src={iframeSrc}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-            className="min-h-0 flex-1 w-full border-0"
-            title={app?.name ?? 'Mini App'}
-            onLoad={handleIframeLoad}
-          />
+        {/* Tab bar — only shown when both a mini-app and task are loaded */}
+        {hasBothTabs && (
+          <div className="flex shrink-0 items-center border-b border-border bg-muted/30">
+            <button
+              onClick={() => switchTab('mini-app')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors border-b-2 ${
+                showMiniApp
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {app?.icon ? (
+                <span className="text-sm">{app.icon}</span>
+              ) : app?.iconUrl ? (
+                <img src={app.iconUrl} alt="" className="size-3.5 rounded" />
+              ) : (
+                <span className="text-sm">🧩</span>
+              )}
+              <span className="truncate max-w-[100px]">{customTitle || (app?.name ?? '...')}</span>
+            </button>
+            <button
+              onClick={() => switchTab('task')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors border-b-2 ${
+                showTask
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <ClipboardList className="size-3.5" />
+              <span className="truncate max-w-[100px]">{t('rightPanel.taskTab')}</span>
+            </button>
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 mr-1"
+              onClick={closePanel}
+              title={t('miniApps.closePanel')}
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        )}
+
+        {/* Mini-app content */}
+        {showMiniApp && (
+          <>
+            {/* Header — only shown when no tab bar (single mode) */}
+            {!hasBothTabs && (
+              <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
+                {app?.iconUrl ? (
+                  <img src={app.iconUrl} alt={app.name} className="size-6 rounded-md object-cover" />
+                ) : app?.icon ? (
+                  <span className="text-base">{app.icon}</span>
+                ) : null}
+                <span className="flex-1 truncate text-sm font-medium">
+                  {customTitle || (app?.name ?? '...')}
+                </span>
+                {errorBadge}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={handleGenerateIcon}
+                  disabled={generatingIcon}
+                  title={t('miniApps.icon.generate')}
+                >
+                  {generatingIcon ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={handleRefresh}
+                  title={t('miniApps.refresh')}
+                >
+                  <RotateCw className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={toggleFullPage}
+                  title={t('miniApps.fullPage')}
+                >
+                  <Maximize2 className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={closePanel}
+                  title={t('miniApps.closePanel')}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            )}
+
+            {/* Mini-app action buttons when in tab mode */}
+            {hasBothTabs && (
+              <div className="flex shrink-0 items-center gap-1 px-2 py-1 border-b border-border">
+                {app?.iconUrl ? (
+                  <img src={app.iconUrl} alt={app.name} className="size-5 rounded-md object-cover" />
+                ) : app?.icon ? (
+                  <span className="text-sm">{app.icon}</span>
+                ) : null}
+                <span className="flex-1 truncate text-xs font-medium">
+                  {customTitle || (app?.name ?? '...')}
+                </span>
+                {errorBadge}
+                <Button variant="ghost" size="icon" className="size-6" onClick={handleGenerateIcon} disabled={generatingIcon} title={t('miniApps.icon.generate')}>
+                  {generatingIcon ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="size-6" onClick={handleRefresh} title={t('miniApps.refresh')}>
+                  <RotateCw className="size-3" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-6" onClick={toggleFullPage} title={t('miniApps.fullPage')}>
+                  <Maximize2 className="size-3" />
+                </Button>
+              </div>
+            )}
+
+            {/* Iframe */}
+            {activeAppId && (
+              <iframe
+                ref={iframeRef}
+                key={iframeKey}
+                src={iframeSrc}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                className="min-h-0 flex-1 w-full border-0"
+                title={app?.name ?? 'Mini App'}
+                onLoad={handleIframeLoad}
+              />
+            )}
+          </>
+        )}
+
+        {/* Task content */}
+        {showTask && activeTask && (
+          <>
+            {/* Close button when in single task mode (no tab bar) */}
+            {!hasBothTabs && (
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border px-3">
+                <ClipboardList className="size-4 text-muted-foreground" />
+                <span className="flex-1 truncate text-sm font-medium">{t('rightPanel.taskTab')}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={closeTask}
+                  title={t('taskDetail.close')}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            )}
+            <Suspense fallback={<div className="flex items-center justify-center py-8"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>}>
+              <TaskPanelContent
+                taskId={activeTask.taskId}
+                kinName={activeTask.kinName}
+                kinAvatarUrl={activeTask.kinAvatarUrl}
+              />
+            </Suspense>
+          </>
         )}
       </div>
     </div>

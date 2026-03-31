@@ -53,8 +53,9 @@ describe('guessProviderType', () => {
     expect(guessProviderType('deepseek-chat')).toBe('deepseek')
   })
 
-  it('detects openrouter-style models (with slash)', () => {
-    expect(guessProviderType('openai/gpt-4o')).toBe('openrouter')
+  it('returns null for slash-containing models (cannot distinguish openrouter from openai-compatible)', () => {
+    expect(guessProviderType('openai/gpt-4o')).toBeNull()
+    expect(guessProviderType('moonshotai/Kimi-K2.5')).toBeNull()
   })
 
   it('returns null for unknown models', () => {

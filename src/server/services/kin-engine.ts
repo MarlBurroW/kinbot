@@ -31,7 +31,7 @@ import { getRelevantMemories, rewriteQueryWithContext } from '@/server/services/
 import { maybeCompact } from '@/server/services/compacting'
 import { resolveMCPTools, getMCPToolsSummary } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
-import type { KinToolConfig, ContextTokenBreakdown, ContextPipelineStatus } from '@/shared/types'
+import type { KinToolConfig, KinThinkingConfig, ContextTokenBreakdown, ContextPipelineStatus } from '@/shared/types'
 import { listAvailableKins } from '@/server/services/inter-kin'
 import { listContactsForPrompt, findContactByLinkedUserId } from '@/server/services/contacts'
 import { contactNotes as contactNotesTable } from '@/server/db/schema'
@@ -855,6 +855,13 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       ? JSON.parse(kin.toolConfig)
       : null
 
+    // Resolve thinking config for this Kin
+    const thinkingConfig: KinThinkingConfig | null = kin.thinkingConfig
+      ? JSON.parse(kin.thinkingConfig)
+      : null
+    const providerType = guessProviderType(kin.model) ?? kin.providerId ?? ''
+    const thinkingProviderOptions = buildThinkingProviderOptions(providerType, thinkingConfig)
+
     const nativeTools = toolRegistry.resolve({
       kinId,
       userId: effectiveUserId,
@@ -957,7 +964,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     // results back to the LLM.
     const assistantMessageId = uuid()
     let fullContent = ''
-    const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number; [key: string]: unknown }> = []
+    const reasoningSegments: Array<{ offset: number; text: string }> = []
+    let currentReasoning = ''
+    const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
 
     // Create an AbortController so the stream can be cancelled from outside
     const abortController = new AbortController()
@@ -980,6 +989,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         messages: messageHistory,
         tools: toolSchemas,
         abortSignal: abortController.signal,
+        ...(thinkingProviderOptions ? { providerOptions: thinkingProviderOptions as any } : {}),
       })
 
       // Collect tool call intents from this step
@@ -999,6 +1009,34 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
                 toolName: p.toolName,
                 contentOffset: fullContent.length,
               },
+            })
+            continue
+          }
+
+          // Handle reasoning/thinking stream parts
+          if ((part.type as string) === 'reasoning-start') {
+            currentReasoning = ''
+            continue
+          }
+          if ((part.type as string) === 'reasoning-delta') {
+            const p = part as unknown as { text: string }
+            currentReasoning += p.text
+            sseManager.sendToKin(kinId, {
+              type: 'chat:reasoning-token',
+              kinId,
+              data: { messageId: assistantMessageId, token: p.text },
+            })
+            continue
+          }
+          if ((part.type as string) === 'reasoning-end') {
+            if (currentReasoning) {
+              reasoningSegments.push({ offset: fullContent.length, text: currentReasoning })
+              currentReasoning = ''
+            }
+            sseManager.sendToKin(kinId, {
+              type: 'chat:reasoning-done',
+              kinId,
+              data: { messageId: assistantMessageId },
             })
             continue
           }
@@ -1182,6 +1220,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         sourceId: kinId,
         toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
         channelOriginId: queueItem.channelOriginId ?? null,
+        reasoning: reasoningSegments.length > 0 ? JSON.stringify(reasoningSegments) : null,
         metadata: (() => {
           const meta: Record<string, unknown> = {}
           if (relevantMemories.length > 0) meta.injectedMemories = relevantMemories
@@ -1526,6 +1565,13 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       return true
     }
 
+    // Resolve thinking config for quick session
+    const qsThinkingConfig: KinThinkingConfig | null = kin.thinkingConfig
+      ? JSON.parse(kin.thinkingConfig)
+      : null
+    const qsProviderType = guessProviderType(kin.model) ?? kin.providerId ?? ''
+    const qsThinkingProviderOptions = buildThinkingProviderOptions(qsProviderType, qsThinkingConfig)
+
     // Resolve tools (with exclusion list for quick sessions)
     const toolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
     const quickEffectiveUserId = queueItem.sourceType === 'user' ? (queueItem.sourceId ?? undefined) : undefined
@@ -1550,6 +1596,8 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     // Stream LLM response — custom single-step loop (same pattern as processKinQueue)
     const assistantMessageId = uuid()
     let fullContent = ''
+    const reasoningSegments: Array<{ offset: number; text: string }> = []
+    let currentReasoning = ''
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
 
     const abortController = new AbortController()
@@ -1571,6 +1619,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
         messages: messageHistory,
         tools: toolSchemas,
         abortSignal: abortController.signal,
+        ...(qsThinkingProviderOptions ? { providerOptions: qsThinkingProviderOptions as any } : {}),
       })
 
       // Collect tool call intents from this step
@@ -1585,6 +1634,34 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
               type: 'chat:tool-call-start',
               kinId,
               data: { messageId: assistantMessageId, toolCallId: p.toolCallId, toolName: p.toolName, contentOffset: fullContent.length, sessionId },
+            })
+            continue
+          }
+
+          // Handle reasoning/thinking stream parts
+          if ((part.type as string) === 'reasoning-start') {
+            currentReasoning = ''
+            continue
+          }
+          if ((part.type as string) === 'reasoning-delta') {
+            const p = part as unknown as { text: string }
+            currentReasoning += p.text
+            sseManager.sendToKin(kinId, {
+              type: 'chat:reasoning-token',
+              kinId,
+              data: { messageId: assistantMessageId, token: p.text, sessionId },
+            })
+            continue
+          }
+          if ((part.type as string) === 'reasoning-end') {
+            if (currentReasoning) {
+              reasoningSegments.push({ offset: fullContent.length, text: currentReasoning })
+              currentReasoning = ''
+            }
+            sseManager.sendToKin(kinId, {
+              type: 'chat:reasoning-done',
+              kinId,
+              data: { messageId: assistantMessageId, sessionId },
             })
             continue
           }
@@ -1717,6 +1794,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
         sourceType: 'kin',
         sourceId: kinId,
         toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+        reasoning: reasoningSegments.length > 0 ? JSON.stringify(reasoningSegments) : null,
         metadata: (() => {
           const meta: Record<string, unknown> = {}
           if (relevantMemories.length > 0) meta.injectedMemories = relevantMemories
@@ -2102,6 +2180,41 @@ function getProviderTypeForModel(modelId: string): string | null {
 }
 
 /**
+ * Build provider-specific options to enable thinking/reasoning on the LLM call.
+ * Returns undefined when thinking is disabled or the provider doesn't support it.
+ */
+export function buildThinkingProviderOptions(
+  providerType: string,
+  config: KinThinkingConfig | null,
+): Record<string, Record<string, unknown>> | undefined {
+  if (!config?.enabled) return undefined
+  const budget = config.budgetTokens
+
+  if (providerType === 'anthropic' || providerType === 'anthropic-oauth') {
+    return {
+      anthropic: {
+        thinking: budget != null
+          ? { type: 'enabled', budgetTokens: budget }
+          : { type: 'adaptive' },
+      },
+    }
+  }
+  if (providerType === 'gemini') {
+    return {
+      google: {
+        thinkingConfig: {
+          includeThoughts: true,
+          ...(budget != null ? { thinkingBudget: budget } : {}),
+        },
+      },
+    }
+  }
+  // OpenAI o1/o3/o4: reasoning is native, no providerOptions needed
+  // Other providers: thinking not supported, silently ignored
+  return undefined
+}
+
+/**
  * Try to instantiate a Vercel AI SDK model from a specific provider.
  * Returns the model instance on success, or null if this provider can't serve the model.
  */
@@ -2170,18 +2283,42 @@ async function tryCreateModel(
       return anthropic(modelId)
     } else if (provider.type === 'openai') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-      return openai(modelId)
+      return openai.chat(modelId)
     } else if (provider.type === 'gemini') {
       const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-      return google(modelId, { structuredOutputs: false })
-    } else {
-      // By checking PROVIDER_META, we ensure that new providers registered are handled cleanly
-      // We look up the default base URL for this provider type (if it exists)
-      const pm = (PROVIDER_META as Record<string, { defaultBaseUrl?: string }>)[provider.type]
-      const baseUrl = providerConfig.baseUrl ?? pm?.defaultBaseUrl
-      
-      const apiKey = providerConfig.apiKey || 'not-needed'
-      const openai = createOpenAI({ apiKey, baseURL: baseUrl })
+      return google(modelId)
+    } else if (provider.type === 'openrouter') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://openrouter.ai/api/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'deepseek') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.deepseek.com/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'groq') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.groq.com/openai/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'together') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.together.xyz/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'fireworks') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.fireworks.ai/inference/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'mistral') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.mistral.ai/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'xai') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.x.ai/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'perplexity') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.perplexity.ai' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'cohere') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.cohere.com/v2' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'ollama') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey || 'ollama', baseURL: providerConfig.baseUrl ?? 'http://localhost:11434/v1' })
+      return openai.chat(modelId)
+    } else if (provider.type === 'openai-compatible') {
+      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
       return openai.chat(modelId)
     }
   } catch {

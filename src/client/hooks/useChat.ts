@@ -28,6 +28,7 @@ export interface ChatMessage {
   memoriesExtracted: number | null
   compactingError: string | null
   stepLimitReached: boolean
+  reasoning: Array<{ offset: number; text: string }> | null
   files: MessageFile[]
   reactions: MessageReaction[]
   createdAt: string
@@ -72,8 +73,8 @@ export function useChat(kinId: string | null) {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const {
-    streamingMessage, isStreaming, tokenStalled,
-    handleToken, handleDone, resetStreaming, cleanup,
+    streamingMessage, isStreaming, tokenStalled, streamingReasoning,
+    handleToken, handleReasoningToken, handleDone, resetStreaming, cleanup,
   } = useChatStreaming({ trackTokenStall: true })
 
   // Map task title → taskId, populated from SSE events so we can enrich
@@ -263,6 +264,17 @@ export function useChat(kinId: string | null) {
       })
     },
 
+    'chat:reasoning-token': (data) => {
+      if (data.kinId !== kinId) return
+      if (data.taskId) return
+      if (data.sessionId) return
+
+      handleReasoningToken({
+        messageId: data.messageId as string,
+        token: data.token as string,
+      })
+    },
+
     'chat:done': (data) => {
       if (data.kinId !== kinId) return
       if (data.taskId) return // Ignore done events from sub-Kin tasks
@@ -325,6 +337,7 @@ export function useChat(kinId: string | null) {
         files: [],
         reactions: [],
           stepLimitReached: false,
+        reasoning: null,
         createdAt: new Date(data.createdAt as number).toISOString(),
       }
       setMessages((prev) => [...prev, message])
@@ -496,6 +509,7 @@ export function useChat(kinId: string | null) {
         files: optimisticFiles ?? [],
         reactions: [],
           stepLimitReached: false,
+        reasoning: null,
         createdAt: new Date().toISOString(),
       }
 
@@ -540,6 +554,7 @@ export function useChat(kinId: string | null) {
   return {
     messages,
     streamingMessage,
+    streamingReasoning,
     liveTasks,
     liveCompacting,
     isLoading,

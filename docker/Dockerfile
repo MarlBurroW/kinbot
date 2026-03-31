@@ -44,6 +44,8 @@ COPY --from=build /app/src/server ./src/server
 COPY --from=build /app/src/shared ./src/shared
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=build /app/registry ./registry
+COPY --from=build /app/store ./store
 
 # Create non-root user for security
 RUN groupadd --gid 1001 kinbot && \

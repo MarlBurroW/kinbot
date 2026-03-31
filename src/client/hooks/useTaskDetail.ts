@@ -13,6 +13,7 @@ interface TaskDetail {
   status: TaskStatus
   mode: string
   model: string | null
+  thinkingEnabled?: boolean
   depth: number
   result: string | null
   error: string | null

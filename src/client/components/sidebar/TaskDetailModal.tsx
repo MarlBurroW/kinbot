@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -35,10 +35,14 @@ import {
   Layers,
   Wrench,
   Cpu,
+  Sparkles,
   FileText,
   ListOrdered,
   Play,
+  Pin,
+  PinOff,
 } from 'lucide-react'
+import { useAutoScroll } from '@/client/hooks/useAutoScroll'
 import { api } from '@/client/lib/api'
 import type { TaskStatus, ContextTokenBreakdown } from '@/shared/types'
 
@@ -102,7 +106,6 @@ export function TaskDetailModal({
     task ? task.parentKinId : null,
     open ? taskId : null,
   )
-  const bottomRef = useRef<HTMLDivElement>(null)
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
 
   // Fetch context-preview for the task (shows the task's actual context, not the parent's)
@@ -136,10 +139,13 @@ export function TaskDetailModal({
     [messages, streamingMessage],
   )
 
-  // Auto-scroll when messages or streaming update
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
-  }, [visibleMessages, streamingMessage, isStreaming, pendingPrompts])
+  // Auto-scroll with toggle
+  const { autoScroll, toggleAutoScroll, containerRef: scrollContainerRef, bottomRef } = useAutoScroll([
+    visibleMessages.length,
+    streamingMessage,
+    isStreaming,
+    pendingPrompts.length,
+  ])
 
   // Reset panels when modal closes
   useEffect(() => {
@@ -238,6 +244,14 @@ export function TaskDetailModal({
                       <span className="truncate max-w-[140px]">{resolvedModel?.name ?? task.model}</span>
                     </span>
                   )}
+                  {task.thinkingEnabled && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Sparkles className="size-3 text-chart-4" />
+                      </TooltipTrigger>
+                      <TooltipContent>{t('chat.thinkingToggle')}</TooltipContent>
+                    </Tooltip>
+                  )}
                   {toolCallCount > 0 && (
                     <Button
                       variant={isToolCallsOpen ? 'secondary' : 'ghost'}
@@ -284,7 +298,7 @@ export function TaskDetailModal({
         {/* Middle: messages + optional tool calls panel */}
         <div className="flex min-h-0 flex-1">
           {/* Conversation */}
-          <div className="flex-1 min-h-0 overflow-y-auto py-4">
+          <div className="relative flex-1 min-h-0 overflow-y-auto py-4" ref={scrollContainerRef}>
             {isLoading && !task ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -385,6 +399,19 @@ export function TaskDetailModal({
             )}
 
             <div ref={bottomRef} />
+            {/* Auto-scroll toggle — pinned bottom-right */}
+            <button
+              onClick={toggleAutoScroll}
+              className={cn(
+                'sticky bottom-2 float-right mr-2 z-10 flex items-center justify-center size-7 rounded-full shadow-lg transition-colors',
+                autoScroll
+                  ? 'bg-primary text-primary-foreground hover:opacity-90'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
+              )}
+              title={autoScroll ? t('chat.autoScroll.on') : t('chat.autoScroll.off')}
+            >
+              {autoScroll ? <Pin className="size-3" /> : <PinOff className="size-3" />}
+            </button>
           </div>
 
           {/* Tool calls side panel — animated width */}

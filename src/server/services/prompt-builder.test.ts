@@ -578,9 +578,9 @@ describe('buildSystemPrompt', () => {
     expect(result).not.toContain('## Conversation history summaries')
   })
 
-  // --- Cron run result truncation ---
+  // --- Cron run results are included in full ---
 
-  it('truncates long cron run results to 500 chars', () => {
+  it('includes full cron run results without truncation', () => {
     const longResult = 'x'.repeat(600)
     const result = buildSystemPrompt(makeParams({
       isSubKin: true,
@@ -595,12 +595,11 @@ describe('buildSystemPrompt', () => {
       ],
     }))
     expect(result).toContain('## Previous runs')
-    // Should contain truncated result (500 chars + ...)
-    expect(result).toContain('x'.repeat(500) + '...')
-    expect(result).not.toContain('x'.repeat(501))
+    // Full result should be present, not truncated
+    expect(result).toContain('x'.repeat(600))
   })
 
-  it('does not truncate short cron run results', () => {
+  it('includes short cron run results', () => {
     const shortResult = 'All good'
     const result = buildSystemPrompt(makeParams({
       isSubKin: true,
@@ -615,7 +614,6 @@ describe('buildSystemPrompt', () => {
       ],
     }))
     expect(result).toContain('All good')
-    expect(result).not.toContain('...')
   })
 
   it('shows execution time in seconds for cron runs', () => {

@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { eq, and, desc, isNull, ne, inArray } from 'drizzle-orm'
+import { eq, and, desc, isNull, ne, inArray, sql } from 'drizzle-orm'
 import { mkdirSync, existsSync } from 'fs'
 import { generateText } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
@@ -19,7 +19,7 @@ import { deleteMemory, createMemory, updateMemory } from '@/server/services/memo
 import { getMCPToolsForConfig } from '@/server/services/mcp'
 import { toolRegistry } from '@/server/tools/index'
 import { TOOL_DOMAIN_MAP, TOOL_DOMAIN_META } from '@/shared/constants'
-import type { KinToolConfig, ToolDomain, MemoryCategory, MemoryScope } from '@/shared/types'
+import type { KinToolConfig, KinThinkingConfig, ToolDomain, MemoryCategory, MemoryScope } from '@/shared/types'
 import { sseManager } from '@/server/sse/index'
 import { resolveKinByIdOrSlug } from '@/server/services/kin-resolver'
 import {
@@ -36,7 +36,7 @@ import type { AppVariables } from '@/server/app'
 /** Provider types that use the OpenAI-compatible SDK (createOpenAI) */
 const OPENAI_COMPATIBLE_PROVIDERS = new Set([
   'openrouter', 'deepseek', 'fireworks', 'together', 'groq',
-  'mistral', 'perplexity', 'xai', 'ollama', 'cohere',
+  'mistral', 'perplexity', 'xai', 'ollama', 'cohere', 'openai-compatible',
 ])
 import { createLogger } from '@/server/logger'
 import { getLastContextUsage, compactingKins } from '@/server/services/kin-engine'
@@ -79,6 +79,7 @@ kinRoutes.get('/', async (c) => {
         providerId: k.providerId ?? null,
         createdAt: k.createdAt,
         isHub: k.id === hubKinId,
+        thinkingEnabled: k.thinkingConfig ? (JSON.parse(k.thinkingConfig) as { enabled?: boolean }).enabled === true : false,
         isProcessing: qs?.isProcessing ?? false,
         queueSize: qs?.queueSize ?? 0,
         processingStartedAt: qs?.processingStartedAt ?? undefined,
@@ -121,10 +122,23 @@ kinRoutes.post('/generate-config', async (c) => {
     baseUrl?: string
   }
 
+  // Helper: pick the first available LLM model ID for a provider, with a fallback default
+  async function pickFirstLlmModelId(fallback: string): Promise<string> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const providerModels = await listModelsForProvider(llmProvider!.type, providerConfig)
+      const first = providerModels.find((m) => m.capability === 'llm')
+      return first?.id ?? fallback
+    } catch {
+      return fallback
+    }
+  }
+
   let model
   if (llmProvider.type === 'anthropic') {
     const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = anthropic('claude-haiku-4-5-20251001')
+    const modelId = await pickFirstLlmModelId('claude-haiku-4-5-20251001')
+    model = anthropic(modelId)
   } else if (llmProvider.type === 'anthropic-oauth') {
     const { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK } = await import('@/server/providers/anthropic-oauth')
     const accessToken = await getOAuthAccessToken(providerConfig.apiKey || undefined)
@@ -152,9 +166,14 @@ kinRoutes.post('/generate-config', async (c) => {
       }) as unknown as typeof fetch,
     })
     model = anthropic('claude-haiku-4-5-20251001')
-  } else if (llmProvider.type === 'openai' || OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
+  } else if (llmProvider.type === 'openai') {
     const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = openai('gpt-4o-mini')
+    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
+    model = openai.chat(modelId)
+  } else if (OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
+    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
+    model = openai.chat(modelId)
   } else if (llmProvider.type === 'gemini') {
     const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
     model = google('gemini-2.0-flash')
@@ -500,6 +519,7 @@ kinRoutes.get('/:id', async (c) => {
     workspacePath: details.workspacePath,
     toolConfig: details.toolConfig ? JSON.parse(details.toolConfig) : null,
     compactingConfig: details.compactingConfig ? JSON.parse(details.compactingConfig) : null,
+    thinkingConfig: details.thinkingConfig ? JSON.parse(details.thinkingConfig) : null,
     mcpServers: details.mcpServers,
     queueSize,
     isProcessing,
@@ -607,6 +627,7 @@ kinRoutes.patch('/:id', async (c) => {
     slug: body.slug,
     toolConfig: body.toolConfig,
     compactingConfig: body.compactingConfig,
+    thinkingConfig: body.thinkingConfig,
     mcpServerIds: body.mcpServerIds,
   })
 
@@ -630,6 +651,7 @@ kinRoutes.patch('/:id', async (c) => {
       workspacePath: details.workspacePath,
       toolConfig: details.toolConfig ? JSON.parse(details.toolConfig) : null,
       compactingConfig: details.compactingConfig ? JSON.parse(details.compactingConfig) : null,
+      thinkingConfig: details.thinkingConfig ? JSON.parse(details.thinkingConfig) : null,
       mcpServers: details.mcpServers,
       queueSize: 0,
       isProcessing: false,
@@ -991,32 +1013,49 @@ kinRoutes.get('/:id/memories', async (c) => {
   const category = c.req.query('category')
   const subject = c.req.query('subject')
   const scope = c.req.query('scope')
-  const limit = Number(c.req.query('limit') ?? 50)
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50), 1), 200)
+  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0)
 
   const conditions = [eq(memories.kinId, kinId)]
   if (category) conditions.push(eq(memories.category, category))
   if (subject) conditions.push(eq(memories.subject, subject))
   if (scope) conditions.push(eq(memories.scope, scope))
 
-  const result = await db
-    .select({
-      id: memories.id,
-      content: memories.content,
-      category: memories.category,
-      subject: memories.subject,
-      scope: memories.scope,
-      sourceChannel: memories.sourceChannel,
-      sourceContext: memories.sourceContext,
-      createdAt: memories.createdAt,
-      updatedAt: memories.updatedAt,
-    })
-    .from(memories)
-    .where(and(...conditions))
-    .orderBy(desc(memories.updatedAt))
-    .limit(limit)
-    .all()
+  const whereClause = and(...conditions)
 
-  return c.json({ memories: result })
+  const [countResult, result] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(memories)
+      .where(whereClause)
+      .all(),
+    db
+      .select({
+        id: memories.id,
+        kinId: memories.kinId,
+        content: memories.content,
+        category: memories.category,
+        subject: memories.subject,
+        scope: memories.scope,
+        importance: memories.importance,
+        retrievalCount: memories.retrievalCount,
+        lastRetrievedAt: memories.lastRetrievedAt,
+        consolidationGeneration: memories.consolidationGeneration,
+        sourceChannel: memories.sourceChannel,
+        sourceContext: memories.sourceContext,
+        createdAt: memories.createdAt,
+        updatedAt: memories.updatedAt,
+      })
+      .from(memories)
+      .where(whereClause)
+      .orderBy(desc(memories.updatedAt))
+      .limit(limit)
+      .offset(offset)
+      .all(),
+  ])
+
+  const total = countResult[0]?.count ?? 0
+  return c.json({ memories: result, total, hasMore: offset + result.length < total })
 })
 
 // DELETE /api/kins/:id/memories/:memoryId — delete a memory
@@ -1169,6 +1208,7 @@ kinRoutes.get('/:id/export', async (c) => {
     model: details.model,
     toolConfig: details.toolConfig ? JSON.parse(details.toolConfig) : null,
     compactingConfig: details.compactingConfig ? JSON.parse(details.compactingConfig) : null,
+    thinkingConfig: details.thinkingConfig ? JSON.parse(details.thinkingConfig) : null,
     mcpServers: mcpServerDetails,
   }
 
@@ -1185,13 +1225,14 @@ kinRoutes.post('/import', async (c) => {
   const body = await c.req.json()
 
   // Validate required fields
-  const { name, role, character, expertise, model, toolConfig } = body as {
+  const { name, role, character, expertise, model, toolConfig, thinkingConfig } = body as {
     name?: string
     role?: string
     character?: string
     expertise?: string
     model?: string
     toolConfig?: KinToolConfig | null
+    thinkingConfig?: KinThinkingConfig | null
     _kinbot?: { version?: number }
   }
 
@@ -1237,9 +1278,12 @@ kinRoutes.post('/import', async (c) => {
     createdBy: user.id,
   })
 
-  // Apply toolConfig if present
-  if (toolConfig) {
-    await updateKin(newKin.id, { toolConfig })
+  // Apply toolConfig and thinkingConfig if present
+  if (toolConfig || thinkingConfig) {
+    await updateKin(newKin.id, {
+      ...(toolConfig ? { toolConfig } : {}),
+      ...(thinkingConfig ? { thinkingConfig } : {}),
+    })
   }
 
   return c.json(

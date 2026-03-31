@@ -58,20 +58,32 @@ interface MessageBubbleProps {
   onQuoteReply?: (text: string) => void
   onEditResend?: (text: string) => void
   onToggleReaction?: (messageId: string, emoji: string) => void
+  /** Reasoning/thinking segments with offsets into content */
+  reasoning?: Array<{ offset: number; text: string }> | string
 }
 
-/** A content part is either a text segment or a group of tool calls at the same offset. */
+/** A content part is either a text segment, a group of tool calls, or a reasoning block at the same offset. */
 type ContentPart =
   | { type: 'text'; text: string }
   | { type: 'tools'; tools: ToolCallViewItem[] }
+  | { type: 'reasoning'; text: string }
+
+/** A positioned element (tool call group or reasoning block) to be interleaved with text. */
+type PositionedElement =
+  | { kind: 'tools'; offset: number; tools: ToolCallViewItem[] }
+  | { kind: 'reasoning'; offset: number; text: string }
 
 /**
- * Split message content into interleaved text and tool call parts using offsets.
+ * Split message content into interleaved text, tool call, and reasoning parts using offsets.
  * Tool calls at the same offset are grouped together.
  * Falls back to [all text, then all tools] when offsets are missing.
  */
-function buildContentParts(content: string, toolCalls: ToolCallViewItem[]): ContentPart[] {
-  const hasOffsets = toolCalls.some((tc) => tc.offset !== undefined)
+function buildContentParts(
+  content: string,
+  toolCalls: ToolCallViewItem[],
+  reasoningSegments?: Array<{ offset: number; text: string }>,
+): ContentPart[] {
+  const hasOffsets = toolCalls.some((tc) => tc.offset !== undefined) || (reasoningSegments && reasoningSegments.length > 0)
   if (!hasOffsets) {
     // Fallback: text first, then all tool calls at the end
     const parts: ContentPart[] = []
@@ -80,36 +92,46 @@ function buildContentParts(content: string, toolCalls: ToolCallViewItem[]): Cont
     return parts
   }
 
-  // Sort tool calls by offset
+  // Sort tool calls by offset and group consecutive ones at the same offset
   const sorted = [...toolCalls].sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0))
-
-  // Group consecutive tool calls at the same offset
-  const groups: Array<{ offset: number; tools: ToolCallViewItem[] }> = []
+  const toolGroups: Array<{ offset: number; tools: ToolCallViewItem[] }> = []
   for (const tc of sorted) {
     const offset = tc.offset ?? 0
-    const last = groups[groups.length - 1]
+    const last = toolGroups[toolGroups.length - 1]
     if (last && last.offset === offset) {
       last.tools.push(tc)
     } else {
-      groups.push({ offset, tools: [tc] })
+      toolGroups.push({ offset, tools: [tc] })
     }
   }
+
+  // Merge tool groups and reasoning segments into a single sorted list
+  const elements: PositionedElement[] = []
+  for (const g of toolGroups) elements.push({ kind: 'tools', offset: g.offset, tools: g.tools })
+  if (reasoningSegments) {
+    for (const r of reasoningSegments) elements.push({ kind: 'reasoning', offset: r.offset, text: r.text })
+  }
+  elements.sort((a, b) => a.offset - b.offset)
 
   // Build interleaved parts
   const parts: ContentPart[] = []
   let cursor = 0
 
-  for (const group of groups) {
-    // Text segment before this tool call group
-    if (group.offset > cursor) {
-      const text = content.slice(cursor, group.offset)
+  for (const el of elements) {
+    // Text segment before this element
+    if (el.offset > cursor) {
+      const text = content.slice(cursor, el.offset)
       if (text.trim()) parts.push({ type: 'text', text })
     }
-    parts.push({ type: 'tools', tools: group.tools })
-    cursor = group.offset
+    if (el.kind === 'tools') {
+      parts.push({ type: 'tools', tools: el.tools })
+    } else {
+      parts.push({ type: 'reasoning', text: el.text })
+    }
+    cursor = el.offset
   }
 
-  // Remaining text after the last tool call
+  // Remaining text after the last element
   if (cursor < content.length) {
     const text = content.slice(cursor)
     if (text.trim()) {
@@ -231,6 +253,27 @@ function InjectedMemoriesIndicator({ memories }: { memories: InjectedMemory[] })
               </span>
             </div>
           ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+// ─── Reasoning/thinking block ────────────────────────────────────────────────
+
+function ReasoningBlock({ reasoning }: { reasoning: string }) {
+  const { t } = useTranslation()
+
+  return (
+    <Collapsible defaultOpen>
+      <CollapsibleTrigger className="group mt-1.5 flex items-center gap-1.5 text-xs text-chart-4 hover:text-chart-4/80 transition-colors">
+        <Brain className="size-3.5" />
+        <span>{t('chat.thinking')}</span>
+        <ChevronDown className="size-3 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-1.5 rounded-lg border border-chart-4/20 bg-chart-4/5 px-3 py-2 text-xs text-muted-foreground italic">
+          <MarkdownContent content={reasoning} />
         </div>
       </CollapsibleContent>
     </Collapsible>
@@ -651,6 +694,7 @@ export const MessageBubble = memo(function MessageBubble({
   onQuoteReply,
   onEditResend,
   onToggleReaction,
+  reasoning,
 }: MessageBubbleProps) {
   const handleToggleReaction = useCallback((emoji: string) => {
     if (onToggleReaction && messageId) onToggleReaction(messageId, emoji)
@@ -684,9 +728,17 @@ export const MessageBubble = memo(function MessageBubble({
   const hasFiles = files && files.length > 0
   const hasMemories = injectedMemories && injectedMemories.length > 0
 
+  // Normalize reasoning prop: string (streaming) → single segment at offset 0, array → as-is
+  const reasoningSegments = useMemo(() => {
+    if (!reasoning) return undefined
+    if (typeof reasoning === 'string') return [{ offset: 0, text: reasoning }]
+    return reasoning
+  }, [reasoning])
+  const hasReasoning = reasoningSegments && reasoningSegments.length > 0
+
   const contentParts = useMemo(
-    () => (hasToolCalls ? buildContentParts(content, dedupedToolCalls) : null),
-    [content, dedupedToolCalls, hasToolCalls],
+    () => (hasToolCalls || hasReasoning ? buildContentParts(content, dedupedToolCalls ?? [], reasoningSegments) : null),
+    [content, dedupedToolCalls, hasToolCalls, reasoningSegments, hasReasoning],
   )
 
   // Task result cards (from persisted messages)
@@ -751,6 +803,8 @@ export const MessageBubble = memo(function MessageBubble({
               >
                 {isRedacted ? redactedContent : <MarkdownContent content={part.text} isUser={false} />}
               </div>
+            ) : part.type === 'reasoning' ? (
+              <ReasoningBlock key={`reasoning-${i}`} reasoning={part.text} />
             ) : (
               <div key={`tools-${i}`} className="space-y-1">
                 {part.tools.map((tc) => (

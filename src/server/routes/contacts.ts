@@ -2,12 +2,14 @@ import { Hono } from 'hono'
 import {
   listContactsWithDetails,
   getContactWithDetails,
+  getContact,
   createContact,
   updateContact,
   deleteContact,
   addContactIdentifier,
   updateContactIdentifier,
   removeContactIdentifier,
+  replaceContactIdentifiers,
   setContactNote,
   updateContactNote,
   deleteContactNote,
@@ -129,6 +131,54 @@ contactRoutes.delete('/:id', async (c) => {
 
 // ─── Identifiers ─────────────────────────────────────────────────────────────
 
+// PUT /api/contacts/:id/identifiers — atomically replace all identifiers
+contactRoutes.put('/:id/identifiers', async (c) => {
+  const contactId = c.req.param('id')
+  const { identifiers } = (await c.req.json()) as {
+    identifiers: Array<{ label: string; value: string }>
+  }
+
+  if (!Array.isArray(identifiers)) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'identifiers must be an array' } },
+      400,
+    )
+  }
+
+  // Validate each identifier
+  for (const ident of identifiers) {
+    const trimmedLabel = ident.label?.trim()
+    const trimmedValue = ident.value?.trim()
+    if (!trimmedLabel || !trimmedValue) {
+      return c.json(
+        { error: { code: 'INVALID_INPUT', message: 'Each identifier must have a non-empty label and value' } },
+        400,
+      )
+    }
+    if (trimmedLabel.length > 100) {
+      return c.json(
+        { error: { code: 'INVALID_INPUT', message: 'Label must be 100 characters or less' } },
+        400,
+      )
+    }
+    if (trimmedValue.length > 500) {
+      return c.json(
+        { error: { code: 'INVALID_INPUT', message: 'Value must be 500 characters or less' } },
+        400,
+      )
+    }
+    ident.label = trimmedLabel
+    ident.value = trimmedValue
+  }
+
+  const result = replaceContactIdentifiers(contactId, identifiers)
+  if (result === null) {
+    return c.json({ error: { code: 'CONTACT_NOT_FOUND', message: 'Contact not found' } }, 404)
+  }
+
+  return c.json({ identifiers: result })
+})
+
 // POST /api/contacts/:id/identifiers — add an identifier
 contactRoutes.post('/:id/identifiers', async (c) => {
   const contactId = c.req.param('id')
@@ -240,6 +290,15 @@ contactRoutes.post('/:id/platform-ids', async (c) => {
     return c.json(
       { error: { code: 'INVALID_INPUT', message: 'platform and platformId are required' } },
       400,
+    )
+  }
+
+  // Verify the contact exists before inserting
+  const contact = await getContact(contactId)
+  if (!contact) {
+    return c.json(
+      { error: { code: 'CONTACT_NOT_FOUND', message: 'Contact not found' } },
+      404,
     )
   }
 

@@ -215,7 +215,7 @@ export const configurePluginTool: ToolRegistration = {
       description: 'Update configuration for an installed plugin.',
       inputSchema: z.object({
         name: z.string(),
-        config: z.record(z.string(), z.unknown()),
+        config: z.object({}).catchall(z.unknown()).describe('Plugin configuration as key-value pairs'),
       }),
       execute: async ({ name, config }) => {
         log.info({ name }, 'Configuring plugin')

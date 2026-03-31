@@ -92,6 +92,7 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
         files: [],
           reactions: [],
           stepLimitReached: false,
+        reasoning: null,
         createdAt: new Date(data.createdAt as number).toISOString(),
       }
       setMessages((prev) => [...prev, message])
@@ -123,6 +124,7 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
         files: optimisticFiles ?? [],
         reactions: [],
           stepLimitReached: false,
+        reasoning: null,
         createdAt: new Date().toISOString(),
       }
 

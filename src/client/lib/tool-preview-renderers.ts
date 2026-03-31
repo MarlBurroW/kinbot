@@ -3,7 +3,7 @@
  * Each function returns a short string shown inline when a tool call is collapsed,
  * or null to show no preview.
  */
-import { registerPreviewRenderer } from '@/client/lib/tool-renderers'
+import { registerPreviewRenderer } from '@/client/lib/tool-registry'
 
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + '…' : s
@@ -179,4 +179,330 @@ registerPreviewRenderer('extract_links', ({ args }) => {
 
 registerPreviewRenderer('create_webhook', ({ args }) => {
   return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Contacts ---
+
+registerPreviewRenderer('create_contact', ({ args }) => {
+  const name = args.name as string | undefined
+  const type = args.type as string | undefined
+  return name ? `${name}${type ? ` (${type})` : ''}` : null
+})
+
+// --- Crons ---
+
+registerPreviewRenderer('create_cron', ({ args }) => {
+  const name = args.name as string | undefined
+  const schedule = args.schedule as string | undefined
+  return name ? `${truncate(name, 35)}${schedule ? ` — ${schedule}` : ''}` : null
+})
+
+// --- Wakeups ---
+
+registerPreviewRenderer('wake_me_in', ({ args }) => {
+  const seconds = args.seconds as number | undefined
+  if (!seconds) return null
+  if (seconds >= 3600) return `${Math.round(seconds / 3600)}h`
+  if (seconds >= 60) return `${Math.round(seconds / 60)}m`
+  return `${seconds}s`
+})
+
+// --- Mini apps ---
+
+registerPreviewRenderer('write_mini_app_file', ({ args }) => {
+  return (args.path as string) || null
+})
+
+registerPreviewRenderer('create_mini_app', ({ args }) => {
+  const name = args.name as string | undefined
+  const slug = args.slug as string | undefined
+  return name ? `${truncate(name, 40)}${slug ? ` (${slug})` : ''}` : null
+})
+
+// --- Plugins ---
+
+registerPreviewRenderer('install_plugin', ({ args }) => {
+  const name = args.name as string | undefined
+  const source = args.source as string | undefined
+  return name ? `${source ? `${source}: ` : ''}${truncate(name, 45)}` : null
+})
+
+// --- Channels ---
+
+registerPreviewRenderer('send_channel_message', ({ args }) => {
+  const message = args.message as string | undefined
+  return message ? truncate(message, 50) : null
+})
+
+// --- Vault ---
+
+registerPreviewRenderer('create_secret', ({ args }) => {
+  return (args.key as string) || null
+})
+
+// --- Vault entries ---
+
+registerPreviewRenderer('create_vault_entry', ({ args }) => {
+  const key = args.key as string | undefined
+  const entryType = args.entry_type as string | undefined
+  return key ? `${truncate(key, 40)}${entryType ? ` (${entryType})` : ''}` : null
+})
+
+// --- Contact notes ---
+
+registerPreviewRenderer('set_contact_note', ({ args }) => {
+  const scope = args.scope as string | undefined
+  const content = args.content as string | undefined
+  return content ? `${scope ? `${scope}: ` : ''}${truncate(content, 45)}` : null
+})
+
+// --- Custom tools ---
+
+registerPreviewRenderer('run_custom_tool', ({ args }) => {
+  return (args.tool_name as string) ? truncate(args.tool_name as string, 50) : null
+})
+
+// --- Plugin config ---
+
+registerPreviewRenderer('configure_plugin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Plugin details ---
+
+registerPreviewRenderer('get_plugin_details', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Mini app rollback ---
+
+registerPreviewRenderer('rollback_mini_app', ({ args }) => {
+  const appId = args.app_id as string | undefined
+  const version = args.version as number | undefined
+  return appId ? `${truncate(appId, 40)}${version != null ? ` → v${version}` : ''}` : null
+})
+
+// --- Human prompt ---
+
+registerPreviewRenderer('prompt_human', ({ args }) => {
+  return (args.question as string) ? truncate(args.question as string, 50) : null
+})
+
+// --- Invitations ---
+
+registerPreviewRenderer('create_invitation', ({ args }) => {
+  const label = args.label as string | undefined
+  return label ? `for ${truncate(label, 50)}` : null
+})
+
+// --- Webhook updates ---
+
+registerPreviewRenderer('update_webhook', ({ args }) => {
+  const name = args.name as string | undefined
+  const id = args.webhook_id as string | undefined
+  return name ? truncate(name, 50) : id ? truncate(id, 50) : null
+})
+
+// --- Kin creation ---
+
+registerPreviewRenderer('create_kin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Contact updates ---
+
+registerPreviewRenderer('update_contact', ({ args }) => {
+  const name = args.name as string | undefined
+  const id = args.contact_id as string | undefined
+  return name ? truncate(name, 50) : id ? truncate(id, 50) : null
+})
+
+// --- Secret search ---
+
+registerPreviewRenderer('search_secrets', ({ args }) => {
+  return (args.query as string) ? truncate(args.query as string, 50) : null
+})
+
+// --- Recurring wakeups ---
+
+registerPreviewRenderer('wake_me_every', ({ args }) => {
+  const interval = args.interval_seconds as number | undefined
+  if (!interval) return null
+  const label = interval >= 3600 ? `${Math.round(interval / 3600)}h` : interval >= 60 ? `${Math.round(interval / 60)}m` : `${interval}s`
+  const reason = args.reason as string | undefined
+  return reason ? `every ${label} — ${truncate(reason, 35)}` : `every ${label}`
+})
+
+// --- Cron updates ---
+
+registerPreviewRenderer('update_cron', ({ args }) => {
+  const name = args.name as string | undefined
+  const id = args.cron_id as string | undefined
+  return name ? truncate(name, 50) : id ? truncate(id, 50) : null
+})
+
+// --- MCP servers ---
+
+registerPreviewRenderer('add_mcp_server', ({ args }) => {
+  const name = args.name as string | undefined
+  const command = args.command as string | undefined
+  return name ? `${truncate(name, 35)}${command ? ` (${truncate(command, 15)})` : ''}` : null
+})
+
+// --- Contact lookup ---
+
+registerPreviewRenderer('find_contact_by_identifier', ({ args }) => {
+  const label = args.label as string | undefined
+  const value = args.value as string | undefined
+  return label && value ? `${label}: ${truncate(value, 45)}` : null
+})
+
+// --- Vault retrieval ---
+
+registerPreviewRenderer('get_vault_entry', ({ args }) => {
+  return (args.key as string) ? truncate(args.key as string, 50) : null
+})
+
+// --- Cron trigger ---
+
+registerPreviewRenderer('trigger_cron', ({ args }) => {
+  return (args.cron_id as string) ? truncate(args.cron_id as string, 50) : null
+})
+
+// --- Plugin uninstall ---
+
+registerPreviewRenderer('uninstall_plugin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Mini app file read ---
+
+registerPreviewRenderer('read_mini_app_file', ({ args }) => {
+  return (args.path as string) || null
+})
+
+// --- Secret retrieval ---
+
+registerPreviewRenderer('get_secret', ({ args }) => {
+  return (args.key as string) ? truncate(args.key as string, 50) : null
+})
+
+// --- Stored file search ---
+
+registerPreviewRenderer('search_stored_files', ({ args }) => {
+  return (args.query as string) ? `"${truncate(args.query as string, 40)}"` : null
+})
+
+// --- Cancel wakeup ---
+
+registerPreviewRenderer('cancel_wakeup', ({ args }) => {
+  return (args.wakeup_id as string) ? truncate(args.wakeup_id as string, 50) : null
+})
+
+// --- Stored file retrieval ---
+
+registerPreviewRenderer('get_stored_file', ({ args }) => {
+  const name = args.name as string | undefined
+  const id = args.id as string | undefined
+  return name ? truncate(name, 50) : id ? truncate(id, 50) : null
+})
+
+// --- Secret deletion ---
+
+registerPreviewRenderer('delete_secret', ({ args }) => {
+  return (args.key as string) ? truncate(args.key as string, 50) : null
+})
+
+// --- Mini app updates ---
+
+registerPreviewRenderer('update_mini_app', ({ args }) => {
+  const name = args.name as string | undefined
+  const appId = args.app_id as string | undefined
+  return name ? truncate(name, 50) : appId ? truncate(appId, 50) : null
+})
+
+// --- Cron journal ---
+
+registerPreviewRenderer('get_cron_journal', ({ args }) => {
+  return (args.cron_id as string) ? truncate(args.cron_id as string, 50) : null
+})
+
+// --- Mini app snapshots ---
+
+registerPreviewRenderer('create_mini_app_snapshot', ({ args }) => {
+  const appId = args.app_id as string | undefined
+  const label = args.label as string | undefined
+  return appId ? `${truncate(appId, 35)}${label ? ` — ${truncate(label, 15)}` : ''}` : null
+})
+
+// --- Contact retrieval ---
+
+registerPreviewRenderer('get_contact', ({ args }) => {
+  return (args.contact_id as string) ? truncate(args.contact_id as string, 50) : null
+})
+
+// --- Plugin enable/disable ---
+
+registerPreviewRenderer('enable_plugin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+registerPreviewRenderer('disable_plugin', ({ args }) => {
+  return (args.name as string) ? truncate(args.name as string, 50) : null
+})
+
+// --- Task details ---
+
+registerPreviewRenderer('get_task_detail', ({ args }) => {
+  return (args.task_id as string) ? truncate(args.task_id as string, 50) : null
+})
+
+// --- Contact deletion ---
+
+registerPreviewRenderer('delete_contact', ({ args }) => {
+  return (args.contact_id as string) ? truncate(args.contact_id as string, 50) : null
+})
+
+// --- Memory deletion ---
+
+registerPreviewRenderer('forget', ({ args }) => {
+  return (args.memory_id as string) ? truncate(args.memory_id as string, 50) : null
+})
+
+// --- User retrieval ---
+
+registerPreviewRenderer('get_user', ({ args }) => {
+  return (args.identifier as string) ? truncate(args.identifier as string, 50) : null
+})
+
+// --- Secret update ---
+
+registerPreviewRenderer('update_secret', ({ args }) => {
+  return (args.key as string) ? truncate(args.key as string, 50) : null
+})
+
+// --- Cron deletion ---
+
+registerPreviewRenderer('delete_cron', ({ args }) => {
+  return (args.cron_id as string) ? truncate(args.cron_id as string, 50) : null
+})
+
+// --- Mini app deletion ---
+
+registerPreviewRenderer('delete_mini_app', ({ args }) => {
+  return (args.app_id as string) ? truncate(args.app_id as string, 50) : null
+})
+
+// --- Memory update ---
+
+registerPreviewRenderer('update_memory', ({ args }) => {
+  const memoryId = args.memory_id as string | undefined
+  const content = args.content as string | undefined
+  return content ? truncate(content, 50) : memoryId ? truncate(memoryId, 50) : null
+})
+
+// --- Mini app file deletion ---
+
+registerPreviewRenderer('delete_mini_app_file', ({ args }) => {
+  return (args.path as string) || null
 })

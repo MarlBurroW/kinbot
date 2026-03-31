@@ -43,11 +43,16 @@ function setStatus(next: SSEConnectionStatus) {
 // hot-reloads don't orphan the SSE connection.
 // ---------------------------------------------------------------------------
 
+const MAX_CONSECUTIVE_FAILURES = 5
+const BASE_RECONNECT_MS = 3000
+const MAX_RECONNECT_MS = 60000
+
 interface SSEState {
   eventSource: EventSource | null
   reconnectTimer: ReturnType<typeof setTimeout> | null
   teardownTimer: ReturnType<typeof setTimeout> | null
   subscribers: Set<React.MutableRefObject<HandlersMap>>
+  consecutiveFailures: number
 }
 
 function getState(): SSEState {
@@ -59,6 +64,7 @@ function getState(): SSEState {
     reconnectTimer: null,
     teardownTimer: null,
     subscribers: new Set(),
+    consecutiveFailures: 0,
   }
   if (import.meta.hot) {
     import.meta.hot.data.sseState = state
@@ -101,26 +107,35 @@ function connect() {
   })
 
   es.addEventListener('connected', () => {
+    state.consecutiveFailures = 0
     setStatus('connected')
   })
 
   es.onerror = () => {
     es.close()
     state.eventSource = null
+    state.consecutiveFailures++
+
+    // After too many consecutive failures (likely expired session), stop
+    // retrying to avoid flooding the server with 401s. resetSSE() will
+    // restart the connection after a successful login.
+    if (state.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      setStatus('disconnected')
+      return
+    }
+
     setStatus('reconnecting')
-    // Always schedule reconnect — during HMR, subscribers may temporarily be 0
-    // but components will remount shortly. The teardown grace period handles
-    // the case where the page is truly unloading.
     scheduleReconnect()
   }
 }
 
 function scheduleReconnect() {
   if (state.reconnectTimer) return // Already scheduled
+  const delay = Math.min(BASE_RECONNECT_MS * 2 ** (state.consecutiveFailures - 1), MAX_RECONNECT_MS)
   state.reconnectTimer = setTimeout(() => {
     state.reconnectTimer = null
     connect()
-  }, 3000)
+  }, delay)
 }
 
 function teardown() {
@@ -182,6 +197,22 @@ function getStatusSnapshot(): SSEConnectionStatus {
 
 export function useSSEStatus(): SSEConnectionStatus {
   return useSyncExternalStore(subscribeStatus, getStatusSnapshot)
+}
+
+// ---------------------------------------------------------------------------
+// Reset — call after login to restart SSE after auth-related failures
+// ---------------------------------------------------------------------------
+
+export function resetSSE() {
+  state.consecutiveFailures = 0
+  // If already connected, nothing to do
+  if (state.eventSource && state.eventSource.readyState !== EventSource.CLOSED) return
+  // If a reconnect is already scheduled, let it proceed with reset counter
+  if (state.reconnectTimer) return
+  // Only reconnect if there are active subscribers
+  if (state.subscribers.size > 0) {
+    connect()
+  }
 }
 
 // ---------------------------------------------------------------------------

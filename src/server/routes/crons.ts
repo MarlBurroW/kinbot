@@ -41,6 +41,7 @@ function serializeCron(cron: any, kinInfo?: KinInfo, targetKinInfo?: KinInfo) {
     targetKinAvatarUrl: cron.targetKinId && targetKinInfo ? kinAvatarUrl(cron.targetKinId, targetKinInfo.avatarPath) : null,
     model: cron.model,
     providerId: cron.providerId ?? null,
+    thinkingEnabled: cron.thinkingConfig ? (JSON.parse(cron.thinkingConfig)?.enabled ?? false) : false,
     runOnce: cron.runOnce,
     isActive: cron.isActive,
     requiresApproval: cron.requiresApproval,
@@ -82,6 +83,7 @@ cronRoutes.post('/', async (c) => {
     model?: string
     providerId?: string
     runOnce?: boolean
+    thinkingEnabled?: boolean
   }>()
 
   if (!body.kinId || !body.name || !body.schedule || !body.taskDescription) {
@@ -101,6 +103,7 @@ cronRoutes.post('/', async (c) => {
       model: body.model,
       providerId: body.providerId,
       runOnce: body.runOnce,
+      thinkingConfig: body.thinkingEnabled !== undefined ? { enabled: body.thinkingEnabled } : undefined,
       createdBy: 'user',
     })
 
@@ -134,10 +137,16 @@ cronRoutes.patch('/:id', async (c) => {
     providerId?: string | null
     isActive?: boolean
     runOnce?: boolean
+    thinkingEnabled?: boolean
   }>()
 
   try {
-    const updated = await updateCron(cronId, body)
+    const updates: Record<string, unknown> = { ...body }
+    if (body.thinkingEnabled !== undefined) {
+      updates.thinkingConfig = JSON.stringify({ enabled: body.thinkingEnabled })
+      delete updates.thinkingEnabled
+    }
+    const updated = await updateCron(cronId, updates)
     if (!updated) {
       return c.json({ error: { code: 'NOT_FOUND', message: 'Cron not found' } }, 404)
     }

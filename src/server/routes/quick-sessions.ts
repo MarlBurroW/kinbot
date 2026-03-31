@@ -208,7 +208,10 @@ sessionRoutes.get('/:id', async (c) => {
       expiresAt: session!.expiresAt ? (session!.expiresAt as Date).getTime() : null,
     } satisfies QuickSessionSummary,
     messages: sessionMessages.map((m) => {
-      const meta = m.metadata ? JSON.parse(m.metadata as string) : null
+      let meta: Record<string, unknown> | null = null
+      let reasoning: unknown = null
+      try { meta = m.metadata ? JSON.parse(m.metadata as string) : null } catch { /* ignore */ }
+      try { reasoning = m.reasoning ? JSON.parse(m.reasoning as string) : null } catch { /* ignore */ }
       return {
         id: m.id,
         role: m.role,
@@ -222,6 +225,7 @@ sessionRoutes.get('/:id', async (c) => {
         resolvedTaskId: null,
         injectedMemories: meta?.injectedMemories ?? null,
         stepLimitReached: meta?.stepLimitReached ?? false,
+        reasoning,
         files: (fileMap.get(m.id) ?? []).map(serializeFile),
         createdAt: m.createdAt,
       }

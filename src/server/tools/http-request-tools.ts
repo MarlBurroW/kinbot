@@ -57,8 +57,10 @@ export const httpRequestTool: ToolRegistration = {
           .enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
         url: z.string().url(),
         headers: z
-          .record(z.string(), z.string())
-          .optional(),
+          .object({})
+          .catchall(z.string())
+          .optional()
+          .describe('HTTP headers as key-value pairs (e.g. {"Authorization": "Bearer token"})'),
         body: z
           .union([z.string(), z.record(z.string(), z.unknown())])
           .optional()

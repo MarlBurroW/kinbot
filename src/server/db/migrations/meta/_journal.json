@@ -351,6 +351,27 @@
       "when": 1774376406123,
       "tag": "0049_blue_moondragon",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1774652501249,
+      "tag": "0050_wealthy_jack_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "6",
+      "when": 1774661773197,
+      "tag": "0051_futuristic_deathbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "6",
+      "when": 1774717843704,
+      "tag": "0052_lumpy_tag",
+      "breakpoints": true
     }
   ]
 }

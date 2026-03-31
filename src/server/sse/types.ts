@@ -5,6 +5,8 @@ export type SSEEventType =
   | 'chat:tool-call-start'
   | 'chat:tool-call'
   | 'chat:tool-result'
+  | 'chat:reasoning-token'
+  | 'chat:reasoning-done'
   | 'chat:cleared'
   | 'task:status'
   | 'task:done'

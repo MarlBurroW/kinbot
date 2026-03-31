@@ -36,7 +36,7 @@ import { useUnsavedChanges } from '@/client/hooks/useUnsavedChanges'
 import { cn } from '@/client/lib/utils'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { TOOL_DOMAIN_MAP } from '@/shared/constants'
-import type { KinToolConfig, KinCompactingConfig } from '@/shared/types'
+import type { KinToolConfig, KinCompactingConfig, KinThinkingConfig } from '@/shared/types'
 import type { GeneratedKinConfig } from '@/client/hooks/useKins'
 
 interface Model {
@@ -60,6 +60,7 @@ interface KinDetail {
   providerId?: string | null
   toolConfig?: KinToolConfig | null
   compactingConfig?: KinCompactingConfig | null
+  thinkingConfig?: KinThinkingConfig | null
   isHub?: boolean
 }
 
@@ -107,7 +108,7 @@ interface KinFormModalProps {
   hubMode?: boolean
 }
 
-type TabId = 'general' | 'tools' | 'memory' | 'compaction'
+type TabId = 'general' | 'tools' | 'memory' | 'compaction' | 'thinking'
 type WizardStep = 'describe' | 'form'
 
 const TABS: Array<{ id: TabId; icon: typeof Settings; labelKey: string }> = [
@@ -115,6 +116,7 @@ const TABS: Array<{ id: TabId; icon: typeof Settings; labelKey: string }> = [
   { id: 'tools', icon: Wrench, labelKey: 'kin.tabs.tools' },
   { id: 'memory', icon: Brain, labelKey: 'kin.tabs.memory' },
   { id: 'compaction', icon: Archive, labelKey: 'kin.tabs.compaction' },
+  { id: 'thinking', icon: Sparkles, labelKey: 'kin.tabs.thinking' },
 ]
 
 /** Convert AI domain-level suggestions into KinToolConfig */
@@ -202,6 +204,7 @@ export function KinFormModal({
   const [providerId, setProviderId] = useState<string | null>(null)
   const [toolConfig, setToolConfig] = useState<KinToolConfig | null>(null)
   const [compactingConfig, setCompactingConfig] = useState<KinCompactingConfig | null>(null)
+  const [thinkingConfig, setThinkingConfig] = useState<KinThinkingConfig | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
@@ -249,6 +252,7 @@ export function KinFormModal({
       setProviderId(kin.providerId ?? null)
       setToolConfig(kin.toolConfig ?? null)
       setCompactingConfig(kin.compactingConfig ?? null)
+      setThinkingConfig(kin.thinkingConfig ?? null)
       setAvatarPreview(kin.avatarUrl)
       setWizardStep('form')
       setWasAiGenerated(false)
@@ -262,6 +266,7 @@ export function KinFormModal({
       setProviderId(null)
       setToolConfig(null)
       setCompactingConfig(null)
+      setThinkingConfig(null)
       setAvatarPreview(null)
       setWizardStep('describe')
       setWasAiGenerated(false)
@@ -424,7 +429,7 @@ export function KinFormModal({
           compactingConfig?.summaryBudgetPercent != null ||
           compactingConfig?.maxSummaries != null
         ) ? compactingConfig : null
-        await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig, compactingConfig: effectiveCompactingConfig })
+        await onUpdateKin(kin.id, { name, slug, role, character, expertise, model, providerId, toolConfig, compactingConfig: effectiveCompactingConfig, thinkingConfig })
         if (avatarFile) await onUploadAvatar(kin.id, avatarFile)
       } else if (onCreateKin) {
         const created = await onCreateKin({ name, slug: slug || undefined, role, character, expertise, model, providerId })
@@ -1003,6 +1008,59 @@ export function KinFormModal({
                           icon={Brain}
                           title={t('kin.create.memoryEmptyTitle')}
                           description={t('kin.create.memoryEmptyDescription')}
+                        />
+                      )}
+
+                      {/* ── Thinking tab ────────────────────────── */}
+                      {activeTab === 'thinking' && isEdit && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="size-4 text-chart-4" />
+                            <h3 className="text-sm font-medium">{t('kin.thinking.title')}</h3>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground">{t('kin.thinking.description')}</p>
+
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="thinking-enabled">{t('kin.thinking.enableLabel')}</Label>
+                            <Switch
+                              id="thinking-enabled"
+                              checked={thinkingConfig?.enabled ?? false}
+                              onCheckedChange={(checked) => {
+                                setThinkingConfig({ ...thinkingConfig, enabled: checked })
+                                markDirty()
+                              }}
+                            />
+                          </div>
+
+                          {thinkingConfig?.enabled && (
+                            <div className="space-y-1.5">
+                              <Label htmlFor="thinking-budget">{t('kin.thinking.budgetLabel')}</Label>
+                              <Input
+                                id="thinking-budget"
+                                type="number"
+                                min={1024}
+                                step={1024}
+                                placeholder={t('kin.thinking.budgetPlaceholder')}
+                                value={thinkingConfig?.budgetTokens ?? ''}
+                                onChange={(e) => {
+                                  const val = e.target.value ? Number(e.target.value) : null
+                                  setThinkingConfig({ ...thinkingConfig, enabled: true, budgetTokens: val })
+                                  markDirty()
+                                }}
+                              />
+                              <p className="text-[10px] text-muted-foreground">{t('kin.thinking.budgetHint')}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {activeTab === 'thinking' && !isEdit && (
+                        <EmptyState
+                          minimal
+                          icon={Sparkles}
+                          title={t('kin.create.thinkingEmptyTitle')}
+                          description={t('kin.create.thinkingEmptyDescription')}
                         />
                       )}
                     </div>

@@ -13,7 +13,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/client/components/ui/collapsible'
-import { Copy, Check, Loader2, RefreshCw, ChevronRight, ChevronDown, Layers } from 'lucide-react'
+import { Copy, Check, Loader2, RefreshCw, ChevronRight, ChevronDown, Layers, Clock } from 'lucide-react'
 import { useCopyToClipboard } from '@/client/hooks/useCopyToClipboard'
 import { getErrorMessage } from '@/client/lib/api'
 
@@ -43,10 +43,19 @@ interface SummaryPreview {
   messageCount: number
 }
 
+interface CronRunPreview {
+  status: string
+  result: string | null
+  createdAt: string
+  updatedAt: string
+  durationSec: number
+}
+
 interface ContextPreviewData {
   systemPrompt: string
   compactingSummary: string | null
   summaries: SummaryPreview[]
+  cronRuns: CronRunPreview[]
   rawPayload: {
     system: string
     messages: MessagePreview[]
@@ -55,6 +64,7 @@ interface ContextPreviewData {
   tokenEstimate?: {
     systemPrompt: number
     summary: number
+    cronRuns: number
     messages: number
     tools: number
     total: number
@@ -66,6 +76,7 @@ interface ContextPreviewData {
 }
 
 const SUMMARY_HEADER = '## Conversation history summaries'
+const CRON_RUNS_HEADER = '## Previous runs'
 
 function formatTokenCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
@@ -108,13 +119,27 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
     return JSON.stringify(data.rawPayload, null, 2)
   }, [data])
 
-  // Split system prompt: remove the summary section (it's shown separately)
-  const systemPromptWithoutSummary = useMemo(() => {
+  // Split system prompt: remove the summary and cron runs sections (shown separately)
+  const systemPromptClean = useMemo(() => {
     if (!data) return ''
-    const system = data.rawPayload.system
-    const idx = system.indexOf(SUMMARY_HEADER)
-    if (idx === -1) return system
-    return system.slice(0, idx).trimEnd()
+    let system = data.rawPayload.system
+
+    // Strip cron runs section
+    const cronIdx = system.indexOf(CRON_RUNS_HEADER)
+    if (cronIdx !== -1) {
+      const afterCron = system.indexOf('\n## ', cronIdx + CRON_RUNS_HEADER.length)
+      system = afterCron === -1
+        ? system.slice(0, cronIdx).trimEnd()
+        : (system.slice(0, cronIdx) + system.slice(afterCron)).trimEnd()
+    }
+
+    // Strip compacting summary section
+    const summaryIdx = system.indexOf(SUMMARY_HEADER)
+    if (summaryIdx !== -1) {
+      system = system.slice(0, summaryIdx).trimEnd()
+    }
+
+    return system
   }, [data])
 
   const fetchPreview = async () => {
@@ -160,6 +185,7 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
   const isMainConversation = !taskId && !sessionId
   const hasSummaries = data?.summaries && data.summaries.length > 0
   const totalSummaryTokens = data?.summaries?.reduce((sum, s) => sum + s.tokenEstimate, 0) ?? 0
+  const hasCronRuns = data?.cronRuns && data.cronRuns.length > 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,6 +231,9 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                 {data.tokenEstimate.summary > 0 && (
                   <div className="bg-amber-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.summary / data.contextWindow) * 100)}%` }} />
                 )}
+                {data.tokenEstimate.cronRuns > 0 && (
+                  <div className="bg-orange-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.cronRuns / data.contextWindow) * 100)}%` }} />
+                )}
                 {data.tokenEstimate.messages > 0 && (
                   <div className="bg-emerald-500" style={{ width: `${Math.max(0.5, (data.tokenEstimate.messages / data.contextWindow) * 100)}%` }} />
                 )}
@@ -231,6 +260,12 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                   <span className="flex items-center gap-1">
                     <span className="inline-block size-2 rounded-sm bg-amber-500" />
                     {t('chat.contextViewer.legend.summaries', { count: data.summaries?.length ?? 0 })} {formatTokenCount(data.tokenEstimate.summary)}
+                  </span>
+                )}
+                {data.tokenEstimate.cronRuns > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block size-2 rounded-sm bg-orange-500" />
+                    {t('chat.contextViewer.legend.cronRuns', { count: data.cronRuns?.length ?? 0 })} {formatTokenCount(data.tokenEstimate.cronRuns)}
                   </span>
                 )}
                 <span className="flex items-center gap-1">
@@ -309,7 +344,7 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                     </div>
                   }
                 >
-                  <MarkdownContent content={systemPromptWithoutSummary} />
+                  <MarkdownContent content={systemPromptClean} />
                 </Suspense>
               </FadingSection>
 
@@ -325,6 +360,23 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                   <div className="space-y-2">
                     {data.summaries.map((s, i) => (
                       <SummaryCard key={i} summary={s} index={i} />
+                    ))}
+                  </div>
+                </FadingSection>
+              )}
+
+              {/* Previous cron runs section (orange) */}
+              {hasCronRuns && (
+                <FadingSection
+                  color="orange"
+                  label={t('chat.contextViewer.cronRunsTitle', { count: data.cronRuns.length })}
+                  tokens={data.tokenEstimate ? formatTokenCount(data.tokenEstimate.cronRuns) : undefined}
+                  icon={<Clock className="size-3.5" />}
+                  defaultOpen
+                >
+                  <div className="space-y-2">
+                    {data.cronRuns.map((run, i) => (
+                      <CronRunCard key={i} run={run} index={i} />
                     ))}
                   </div>
                 </FadingSection>
@@ -417,6 +469,7 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
 const SECTION_COLORS = {
   purple: { ring: 'ring-purple-500/50', bg: 'bg-purple-500/10', border: 'rgb(168 85 247)', text: 'text-purple-500', muted: 'text-purple-500/70' },
   amber: { ring: 'ring-amber-500/50', bg: 'bg-amber-500/10', border: 'rgb(245 158 11)', text: 'text-amber-500', muted: 'text-amber-500/70' },
+  orange: { ring: 'ring-orange-500/50', bg: 'bg-orange-500/10', border: 'rgb(249 115 22)', text: 'text-orange-500', muted: 'text-orange-500/70' },
   emerald: { ring: 'ring-emerald-500/50', bg: 'bg-emerald-500/10', border: 'rgb(16 185 129)', text: 'text-emerald-500', muted: 'text-emerald-500/70' },
   blue: { ring: 'ring-blue-500/50', bg: 'bg-blue-500/10', border: 'rgb(59 130 246)', text: 'text-blue-500', muted: 'text-blue-500/70' },
 } as const
@@ -539,6 +592,68 @@ function SummaryCard({ summary, index }: { summary: SummaryPreview; index: numbe
             </Suspense>
           </div>
         </CollapsibleContent>
+      </div>
+    </Collapsible>
+  )
+}
+
+// ─── Cron Run Card ──────────────────────────────────────────────────────────
+
+function CronRunCard({ run, index }: { run: CronRunPreview; index: number }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const isFailed = run.status === 'failed'
+  const hasResult = run.result && run.result.length > 0
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div
+        className="rounded-lg ring-1 ring-orange-500/40 bg-orange-500/10 pl-3 pr-3 py-2.5"
+        style={{ borderLeft: '4px solid rgb(249 115 22)' }}
+      >
+        <CollapsibleTrigger className="flex w-full cursor-pointer items-center gap-2 text-left">
+          {hasResult && (
+            <ChevronRight
+              className={`size-3 shrink-0 text-orange-500 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-orange-600 dark:text-orange-400">
+                {t('chat.contextViewer.cronRunLabel', { n: index + 1 })}
+              </span>
+              <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${
+                isFailed
+                  ? 'bg-red-500/20 text-red-600 dark:text-red-400'
+                  : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+              }`}>
+                {run.status}
+              </span>
+            </div>
+            <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+              <span>{formatDateShort(run.createdAt)}</span>
+              <span>·</span>
+              <span>{run.durationSec}s</span>
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        {hasResult && (
+          <CollapsibleContent>
+            <div className="mt-2 rounded-lg bg-orange-500/5 p-3">
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  </div>
+                }
+              >
+                <div className="text-xs leading-relaxed">
+                  <MarkdownContent content={run.result!} isUser={false} />
+                </div>
+              </Suspense>
+            </div>
+          </CollapsibleContent>
+        )}
       </div>
     </Collapsible>
   )

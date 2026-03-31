@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ScrollArea } from '@/client/components/ui/scroll-area'
 import { Button } from '@/client/components/ui/button'
 import { Textarea } from '@/client/components/ui/textarea'
 import { Checkbox } from '@/client/components/ui/checkbox'
@@ -25,7 +24,9 @@ import { useFileUpload } from '@/client/hooks/useFileUpload'
 import { useAuth } from '@/client/hooks/useAuth'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 // ModelPicker removed from quick chat to avoid changing Kin model globally (#71)
-import { X, Zap, MessageSquare, LogOut, History } from 'lucide-react'
+import { X, Zap, MessageSquare, LogOut, History, Pin, PinOff } from 'lucide-react'
+import { useAutoScroll } from '@/client/hooks/useAutoScroll'
+import { cn } from '@/client/lib/utils'
 import { ContextBar } from '@/client/components/chat/ContextBar'
 import type { ContextTokenBreakdown } from '@/shared/types'
 
@@ -62,7 +63,6 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
   const [showCloseDialog, setShowCloseDialog] = useState(false)
   const [saveAsMemory, setSaveAsMemory] = useState(false)
   const [memorySummary, setMemorySummary] = useState('')
-  const bottomRef = useRef<HTMLDivElement>(null)
   const [timeLeft, setTimeLeft] = useState<string | null>(null)
 
   // Fetch context-preview for the quick session (shows the session's actual context)
@@ -92,10 +92,13 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
     return () => clearInterval(interval)
   }, [expiresAt])
 
-  // Auto-scroll
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
-  }, [messages, streamingMessage, isStreaming, isProcessing])
+  // Auto-scroll with toggle
+  const { autoScroll, toggleAutoScroll, containerRef: scrollContainerRef, bottomRef } = useAutoScroll([
+    messages.length,
+    streamingMessage,
+    isStreaming,
+    isProcessing,
+  ])
 
   const handleSend = useCallback(
     (content: string, fileIds?: string[]) => {
@@ -185,7 +188,7 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
       </div>
 
       {/* Messages */}
-      <ScrollArea className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1 overflow-y-auto" ref={scrollContainerRef}>
         <div className="p-4">
           {messages.length === 0 && !streamingMessage ? (
             <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
@@ -213,6 +216,7 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
                     toolCalls={toolCallsByMessage.get(msg.id)}
                     injectedMemories={msg.injectedMemories}
                     stepLimitReached={msg.stepLimitReached}
+                    reasoning={msg.reasoning ?? undefined}
                   />
                 )
               })}
@@ -233,7 +237,20 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
           )}
           <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+        {/* Auto-scroll toggle — pinned bottom-right */}
+        <button
+          onClick={toggleAutoScroll}
+          className={cn(
+            'absolute bottom-2 right-2 z-10 flex items-center justify-center size-7 rounded-full shadow-lg transition-colors',
+            autoScroll
+              ? 'bg-primary text-primary-foreground hover:opacity-90'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80',
+          )}
+          title={autoScroll ? t('chat.autoScroll.on') : t('chat.autoScroll.off')}
+        >
+          {autoScroll ? <Pin className="size-3" /> : <PinOff className="size-3" />}
+        </button>
+      </div>
 
       {/* Input */}
       <MessageInput

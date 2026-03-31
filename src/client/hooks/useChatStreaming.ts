@@ -12,6 +12,11 @@ export interface StreamingTokenData {
   sourceAvatarUrl?: string | null
 }
 
+export interface StreamingReasoningTokenData {
+  messageId: string
+  token: string
+}
+
 export interface StreamingDoneData {
   content?: string | null
   sourceType?: string | null
@@ -39,10 +44,13 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [tokenStalled, setTokenStalled] = useState(false)
+  const [streamingReasoning, setStreamingReasoning] = useState('')
 
   const streamingContentRef = useRef('')
   const streamingMessageIdRef = useRef<string | null>(null)
+  const streamingReasoningRef = useRef('')
   const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reasoningBatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const tokenStallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /**
@@ -82,6 +90,7 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
         files: [],
         reactions: [],
         stepLimitReached: false,
+        reasoning: null,
         createdAt: new Date().toISOString(),
       })
     } else {
@@ -100,6 +109,56 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
   }, [trackTokenStall])
 
   /**
+   * Handle an incoming reasoning/thinking token from SSE.
+   */
+  const handleReasoningToken = useCallback((data: StreamingReasoningTokenData) => {
+    const { messageId } = data
+
+    // If we haven't started streaming yet, initialize the streaming message
+    // (reasoning can arrive before the first text token)
+    if (!streamingMessageIdRef.current) {
+      streamingMessageIdRef.current = messageId
+      setIsStreaming(true)
+      setStreamingMessage({
+        id: messageId,
+        role: 'assistant',
+        content: '',
+        sourceType: 'kin',
+        sourceId: null,
+        sourceName: null,
+        sourceAvatarUrl: null,
+        isRedacted: false,
+        toolCalls: null,
+        resolvedTaskId: null,
+        injectedMemories: null,
+        memoriesExtracted: null,
+        compactingError: null,
+        files: [],
+        reactions: [],
+        stepLimitReached: false,
+        reasoning: null,
+        createdAt: new Date().toISOString(),
+      })
+    }
+
+    // Reset token stall timer (reasoning tokens also indicate activity)
+    if (trackTokenStall) {
+      setTokenStalled(false)
+      if (tokenStallTimerRef.current) clearTimeout(tokenStallTimerRef.current)
+      tokenStallTimerRef.current = setTimeout(() => setTokenStalled(true), TOKEN_STALL_MS)
+    }
+
+    streamingReasoningRef.current += data.token
+
+    if (!reasoningBatchTimerRef.current) {
+      reasoningBatchTimerRef.current = setTimeout(() => {
+        reasoningBatchTimerRef.current = null
+        setStreamingReasoning(streamingReasoningRef.current)
+      }, STREAMING_BATCH_MS)
+    }
+  }, [trackTokenStall])
+
+  /**
    * Handle a `chat:done` SSE event.
    * Flushes pending timers, builds the promoted ChatMessage (or null if no
    * streaming was active), and resets internal state.
@@ -112,6 +171,10 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
     if (batchTimerRef.current) {
       clearTimeout(batchTimerRef.current)
       batchTimerRef.current = null
+    }
+    if (reasoningBatchTimerRef.current) {
+      clearTimeout(reasoningBatchTimerRef.current)
+      reasoningBatchTimerRef.current = null
     }
     if (tokenStallTimerRef.current) {
       clearTimeout(tokenStallTimerRef.current)
@@ -138,6 +201,7 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
         files: [],
         reactions: [],
         stepLimitReached: (data?.stepLimitReached as boolean) ?? false,
+        reasoning: streamingReasoningRef.current ? [{ offset: 0, text: streamingReasoningRef.current }] : null,
         createdAt: new Date().toISOString(),
       }
     }
@@ -145,7 +209,9 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
     setIsStreaming(false)
     setStreamingMessage(null)
     setTokenStalled(false)
+    setStreamingReasoning('')
     streamingContentRef.current = ''
+    streamingReasoningRef.current = ''
     streamingMessageIdRef.current = null
 
     return promoted
@@ -159,6 +225,10 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
       clearTimeout(batchTimerRef.current)
       batchTimerRef.current = null
     }
+    if (reasoningBatchTimerRef.current) {
+      clearTimeout(reasoningBatchTimerRef.current)
+      reasoningBatchTimerRef.current = null
+    }
     if (tokenStallTimerRef.current) {
       clearTimeout(tokenStallTimerRef.current)
       tokenStallTimerRef.current = null
@@ -166,7 +236,9 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
     setIsStreaming(false)
     setStreamingMessage(null)
     setTokenStalled(false)
+    setStreamingReasoning('')
     streamingContentRef.current = ''
+    streamingReasoningRef.current = ''
     streamingMessageIdRef.current = null
   }, [])
 
@@ -175,6 +247,7 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
    */
   const cleanup = useCallback(() => {
     if (batchTimerRef.current) clearTimeout(batchTimerRef.current)
+    if (reasoningBatchTimerRef.current) clearTimeout(reasoningBatchTimerRef.current)
     if (tokenStallTimerRef.current) clearTimeout(tokenStallTimerRef.current)
   }, [])
 
@@ -182,7 +255,9 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
     streamingMessage,
     isStreaming,
     tokenStalled,
+    streamingReasoning,
     handleToken,
+    handleReasoningToken,
     handleDone,
     resetStreaming,
     cleanup,

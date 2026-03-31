@@ -292,6 +292,7 @@ export function ChatPage() {
                       model: selectedKin.model,
                       providerId: selectedKin.providerId ?? null,
                       avatarUrl: selectedKin.avatarUrl,
+                      thinkingEnabled: selectedKin.thinkingEnabled,
                     }}
                     llmModels={llmModels}
                     modelUnavailable={unavailableKinIds.has(selectedKin.id)}

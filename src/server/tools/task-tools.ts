@@ -14,6 +14,7 @@ import { db } from '@/server/db/index'
 import { kins, messages, tasks } from '@/server/db/schema'
 import { sql } from 'drizzle-orm'
 import { createLogger } from '@/server/logger'
+import type { KinThinkingConfig } from '@/shared/types'
 import type { ToolRegistration } from '@/server/tools/types'
 
 const log = createLogger('tools:tasks')
@@ -45,8 +46,10 @@ export const spawnSelfTool: ToolRegistration = {
             'Excess tasks are queued and auto-promoted when a slot frees.'),
         concurrency_max: z.number().int().min(1).optional()
           .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
+        thinking: z.boolean().optional()
+          .describe('Enable extended thinking/reasoning for this task. Omit to inherit from parent Kin config.'),
       }),
-      execute: async ({ title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max }) => {
+      execute: async ({ title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max, thinking }) => {
         log.debug({ kinId: ctx.kinId, mode, spawnType: 'self' }, 'Task spawn requested (spawn_self)')
         const { taskId, queued } = await spawnTask({
           parentKinId: ctx.kinId,
@@ -62,6 +65,7 @@ export const spawnSelfTool: ToolRegistration = {
           depth: ctx.taskDepth ? ctx.taskDepth + 1 : undefined,
           concurrencyGroup: concurrency_group,
           concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
+          thinkingConfig: thinking !== undefined ? { enabled: thinking } : undefined,
         })
         return { taskId, status: queued ? 'queued' : 'pending' }
       },
@@ -96,8 +100,10 @@ export const spawnKinTool: ToolRegistration = {
             'Excess tasks are queued and auto-promoted when a slot frees.'),
         concurrency_max: z.number().int().min(1).optional()
           .describe('Max concurrent tasks in this group. Required if concurrency_group is set. Default: 1'),
+        thinking: z.boolean().optional()
+          .describe('Enable extended thinking/reasoning for this task. Omit to inherit from parent Kin config.'),
       }),
-      execute: async ({ kin_slug, title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max }) => {
+      execute: async ({ kin_slug, title, task_description, mode, model, provider_id, allow_human_prompt, concurrency_group, concurrency_max, thinking }) => {
         const kinId = resolveKinId(kin_slug)
         if (!kinId) {
           return { error: `Kin not found for slug "${kin_slug}"` }
@@ -118,6 +124,7 @@ export const spawnKinTool: ToolRegistration = {
           depth: ctx.taskDepth ? ctx.taskDepth + 1 : undefined,
           concurrencyGroup: concurrency_group,
           concurrencyMax: concurrency_max ?? (concurrency_group ? 1 : undefined),
+          thinkingConfig: thinking !== undefined ? { enabled: thinking } : undefined,
         })
         return { taskId, status: queued ? 'queued' : 'pending' }
       },

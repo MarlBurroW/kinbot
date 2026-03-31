@@ -16,7 +16,7 @@ const TaskDetailModal = lazy(() => import('@/client/components/sidebar/TaskDetai
 import { Sheet, SheetContent, SheetTitle } from '@/client/components/ui/sheet'
 const QuickChatPanel = lazy(() => import('@/client/components/chat/QuickChatPanel').then(m => ({ default: m.QuickChatPanel })))
 const QuickSessionHistory = lazy(() => import('@/client/components/chat/QuickSessionHistory').then(m => ({ default: m.QuickSessionHistory })))
-import { useChat } from '@/client/hooks/useChat'
+import { useChat, type LiveTask } from '@/client/hooks/useChat'
 import { useToolCalls } from '@/client/hooks/useToolCalls'
 import { useHumanPrompts } from '@/client/hooks/useHumanPrompts'
 import { useQuickSession } from '@/client/hooks/useQuickSession'
@@ -36,6 +36,7 @@ import { SearchHighlightProvider } from '@/client/components/chat/SearchHighligh
 import { MentionLookupProvider } from '@/client/components/chat/MentionContext'
 import { useMentionables } from '@/client/hooks/useMentionables'
 import { cn } from '@/client/lib/utils'
+import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import { ArrowDown, ArrowUp, Upload, Pin, PinOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
@@ -47,6 +48,7 @@ interface KinInfo {
   model: string
   providerId: string | null
   avatarUrl: string | null
+  thinkingEnabled?: boolean
 }
 
 interface LLMModel {
@@ -70,7 +72,7 @@ interface ChatPanelProps {
 export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin }: ChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, streamingMessage, liveTasks, liveCompacting, isLoading, isStreaming, hasMore, isLoadingMore, tokenStalled, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
+  const { messages, streamingMessage, streamingReasoning, liveTasks, liveCompacting, isLoading, isStreaming, hasMore, isLoadingMore, tokenStalled, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
@@ -81,7 +83,9 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const { exportAsMarkdown, exportAsJSON } = useExportConversation(messages, kin.name)
   const { users: mentionableUsers, kins: mentionableKins } = useMentionables()
   const { toggleReaction } = useReactions(kin.id)
+  const [thinkingEnabled, setThinkingEnabled] = useState(kin.thinkingEnabled ?? false)
   const [isToolCallsOpen, setIsToolCallsOpen] = useState(false)
+  const { openTask } = useMiniAppPanel()
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -95,6 +99,21 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       return true
     }
   })
+
+  // Sync thinking state from prop when kin changes
+  useEffect(() => {
+    setThinkingEnabled(kin.thinkingEnabled ?? false)
+  }, [kin.id, kin.thinkingEnabled])
+
+  const toggleThinking = useCallback(async () => {
+    const next = !thinkingEnabled
+    setThinkingEnabled(next) // optimistic
+    try {
+      await api.patch(`/kins/${kin.id}`, { thinkingConfig: { enabled: next } })
+    } catch {
+      setThinkingEnabled(!next) // revert on error
+    }
+  }, [thinkingEnabled, kin.id])
 
   const toggleAutoScroll = useCallback(() => {
     setAutoScroll((prev) => {
@@ -600,6 +619,30 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     })
   }, [displayMessages, searchQuery, searchHighlightId])
 
+  // Build a unified chronological timeline merging messages and live tasks
+  type TimelineItem =
+    | { kind: 'message'; entry: (typeof processedMessages)[number] }
+    | { kind: 'liveTask'; task: LiveTask }
+
+  const timeline = useMemo<TimelineItem[]>(() => {
+    const items: TimelineItem[] = processedMessages.map((entry) => ({ kind: 'message' as const, entry }))
+    for (const task of liveTasks) {
+      items.push({ kind: 'liveTask' as const, task })
+    }
+    // Stable sort by createdAt (string ISO dates compare lexicographically)
+    items.sort((a, b) => {
+      const tsA = a.kind === 'message' ? a.entry.msg.createdAt : a.task.createdAt
+      const tsB = b.kind === 'message' ? b.entry.msg.createdAt : b.task.createdAt
+      if (tsA < tsB) return -1
+      if (tsA > tsB) return 1
+      // Keep messages before live tasks at the same timestamp
+      if (a.kind === 'message' && b.kind === 'liveTask') return -1
+      if (a.kind === 'liveTask' && b.kind === 'message') return 1
+      return 0
+    })
+    return items
+  }, [processedMessages, liveTasks])
+
   // Mark initial load as done after the first batch of messages is processed
   useEffect(() => {
     if (!initialLoadDoneRef.current && displayMessages.length > 0 && !isLoading) {
@@ -663,6 +706,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onClearConversation={clearConversation}
         messages={messages}
         scrollViewportRef={scrollAreaRef}
+        thinkingEnabled={thinkingEnabled}
+        onToggleThinking={toggleThinking}
       />
 
       {/* Search bar */}
@@ -714,7 +759,27 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
               />
             ) : (
               <div className="space-y-1">
-                {processedMessages.map(({ msg, showDateSeparator, isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch, isNew }) => {
+                {timeline.map((item) => {
+                  if (item.kind === 'liveTask') {
+                    const task = item.task
+                    return (
+                      <TaskResultCard
+                        key={`live-${task.taskId}`}
+                        mode="live"
+                        taskId={task.taskId}
+                        status={task.status}
+                        title={task.title}
+                        senderName={task.senderName}
+                        senderAvatarUrl={task.senderAvatarUrl}
+                        result={task.result}
+                        error={task.error}
+                        createdAt={task.createdAt}
+                        onOpenDetail={() => openTask({ taskId: task.taskId, kinName: task.senderName ?? kin.name, kinAvatarUrl: task.senderAvatarUrl ?? kin.avatarUrl })}
+                      />
+                    )
+                  }
+
+                  const { msg, showDateSeparator, isGrouped, showTimeGap, prevTimestamp, isSearchMatch, isCurrentMatch, isNew } = item.entry
                   const dateSeparator = showDateSeparator
                     ? <DateSeparator key={`date-${msg.id}`} date={msg.createdAt} />
                     : null
@@ -784,33 +849,22 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                       isNew={isNew}
                       messageId={msg.id}
                       resolvedTaskId={msg.resolvedTaskId}
-                      onOpenTaskDetail={isTask && msg.resolvedTaskId ? setDetailTaskId : undefined}
+                      onOpenTaskDetail={isTask && msg.resolvedTaskId ? ((taskId: string) => {
+                        const lt = liveTasks.find((t) => t.taskId === taskId)
+                        openTask({ taskId, kinName: lt?.senderName ?? kin.name, kinAvatarUrl: lt?.senderAvatarUrl ?? kin.avatarUrl })
+                      }) : undefined}
                       reactions={msg.reactions}
                       currentUserId={user?.id}
                       onToggleReaction={toggleReaction}
                       onQuoteReply={handleQuoteReply}
                       onEditResend={handleEditResend}
                       onRegenerate={msg.id === lastAssistantMsgId && !isStreaming && !isProcessing ? handleRegenerate : undefined}
+                      reasoning={streamingMessage && msg.id === streamingMessage.id ? streamingReasoning : msg.reasoning ?? undefined}
                     />
                     </div>
                     </React.Fragment>
                   )
                 })}
-                {liveTasks.map((task) => (
-                  <TaskResultCard
-                    key={`live-${task.taskId}`}
-                    mode="live"
-                    taskId={task.taskId}
-                    status={task.status}
-                    title={task.title}
-                    senderName={task.senderName}
-                    senderAvatarUrl={task.senderAvatarUrl}
-                    result={task.result}
-                    error={task.error}
-                    createdAt={task.createdAt}
-                    onOpenDetail={() => setDetailTaskId(task.taskId)}
-                  />
-                ))}
                 {liveCompacting && (
                   <CompactingCard
                     status={liveCompacting.status}
@@ -922,19 +976,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         mentionableKins={mentionableKins}
       />
 
-      {/* Task detail modal — opened from live task cards */}
-      {detailTaskId !== null && (
-        <Suspense fallback={null}>
-          <TaskDetailModal
-            taskId={detailTaskId}
-            open={true}
-            onOpenChange={(open) => { if (!open) setDetailTaskId(null) }}
-            kinName={detailTask?.senderName ?? kin.name}
-            kinAvatarUrl={detailTask?.senderAvatarUrl ?? kin.avatarUrl}
-            llmModels={llmModels}
-          />
-        </Suspense>
-      )}
+      {/* Task detail modal — kept as fallback for legacy references */}
 
       {/* Quick session side panel */}
       <Sheet open={isQuickOpen} onOpenChange={(open) => { setQuickOpen(open); if (!open) setShowQuickHistory(false) }}>

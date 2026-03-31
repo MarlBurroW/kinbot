@@ -75,8 +75,9 @@ describe('PROVIDER_META', () => {
     expect(PROVIDER_META.openai.capabilities).toContain('image')
   })
 
-  it('ollama is marked as noApiKey', () => {
-    expect(PROVIDER_META.ollama.noApiKey).toBe(true)
+  it('ollama has optionalApiKey (supports key for Ollama Cloud but not required for local)', () => {
+    expect(PROVIDER_META.ollama.optionalApiKey).toBe(true)
+    expect((PROVIDER_META.ollama as ProviderMeta).noApiKey).toBeUndefined()
   })
 
   it('anthropic-oauth is marked as noApiKey', () => {

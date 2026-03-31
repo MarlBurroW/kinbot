@@ -9,11 +9,12 @@ import { createLogger } from '@/server/logger'
 import { providers } from '@/server/db/schema'
 import { decrypt } from '@/server/services/encryption'
 import { getDefaultImageModel, getDefaultImageProviderId } from '@/server/services/app-settings'
+import { listModelsForProvider } from '@/server/providers/index'
 
 /** Provider types that use the OpenAI-compatible SDK (createOpenAI) */
 const OPENAI_COMPATIBLE_PROVIDERS = new Set([
   'openrouter', 'deepseek', 'fireworks', 'together', 'groq',
-  'mistral', 'perplexity', 'xai', 'ollama', 'cohere',
+  'mistral', 'perplexity', 'xai', 'ollama', 'cohere', 'openai-compatible',
 ])
 import { config } from '@/server/config'
 
@@ -261,13 +262,31 @@ export async function buildAvatarPrompt(kin: {
     baseUrl?: string
   }
 
+  // Helper: pick the first available LLM model ID for a provider, with a fallback default
+  async function pickFirstLlmModelId(fallback: string): Promise<string> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const providerModels = await listModelsForProvider(llmProvider!.type, providerConfig)
+      const first = providerModels.find((m) => m.capability === 'llm')
+      return first?.id ?? fallback
+    } catch {
+      return fallback
+    }
+  }
+
   let model
   if (llmProvider.type === 'anthropic') {
     const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = anthropic('claude-haiku-4-5-20251001')
-  } else if (llmProvider.type === 'openai' || OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
+    const modelId = await pickFirstLlmModelId('claude-haiku-4-5-20251001')
+    model = anthropic(modelId)
+  } else if (llmProvider.type === 'openai') {
     const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = openai('gpt-4o-mini')
+    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
+    model = openai.chat(modelId)
+  } else if (OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
+    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
+    model = openai.chat(modelId)
   } else if (llmProvider.type === 'gemini') {
     const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
     model = google('gemini-2.0-flash')
@@ -323,13 +342,31 @@ export async function buildMiniAppIconPrompt(app: {
     baseUrl?: string
   }
 
+  // Helper: pick the first available LLM model ID for a provider, with a fallback default
+  async function pickFirstLlmModelId(fallback: string): Promise<string> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const providerModels = await listModelsForProvider(llmProvider!.type, providerConfig)
+      const first = providerModels.find((m) => m.capability === 'llm')
+      return first?.id ?? fallback
+    } catch {
+      return fallback
+    }
+  }
+
   let model
   if (llmProvider.type === 'anthropic') {
     const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = anthropic('claude-haiku-4-5-20251001')
-  } else if (llmProvider.type === 'openai' || OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
+    const modelId = await pickFirstLlmModelId('claude-haiku-4-5-20251001')
+    model = anthropic(modelId)
+  } else if (llmProvider.type === 'openai') {
     const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = openai('gpt-4o-mini')
+    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
+    model = openai.chat(modelId)
+  } else if (OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
+    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
+    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
+    model = openai.chat(modelId)
   } else if (llmProvider.type === 'gemini') {
     const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
     model = google('gemini-2.0-flash')

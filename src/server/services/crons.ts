@@ -26,6 +26,7 @@ interface CreateCronParams {
   providerId?: string
   createdBy: 'user' | 'kin'
   runOnce?: boolean
+  thinkingConfig?: { enabled: boolean; budgetTokens?: number | null }
 }
 
 export async function createCron(params: CreateCronParams) {
@@ -69,6 +70,7 @@ export async function createCron(params: CreateCronParams) {
     targetKinId: params.targetKinId ?? null,
     model: params.model ?? null,
     providerId: params.providerId ?? null,
+    thinkingConfig: params.thinkingConfig ? JSON.stringify(params.thinkingConfig) : null,
     isActive: !isKinCreated,
     requiresApproval: isKinCreated,
     runOnce: params.runOnce ?? false,
@@ -118,6 +120,7 @@ export async function updateCron(
     targetKinId: string | null
     model: string | null
     providerId: string | null
+    thinkingConfig: string | null
     isActive: boolean
     runOnce: boolean
   }>,
@@ -290,6 +293,7 @@ export async function triggerCronManually(cronId: string): Promise<{ taskId: str
     model: cron.model ?? undefined,
     providerId: cron.providerId ?? undefined,
     cronId: cron.id,
+    thinkingConfig: cron.thinkingConfig ? JSON.parse(cron.thinkingConfig) : undefined,
   })
 
   sseManager.sendToKin(cron.kinId, {
@@ -324,6 +328,7 @@ async function triggerCron(cronId: string) {
     model: cron.model ?? undefined,
     providerId: cron.providerId ?? undefined,
     cronId: cron.id,
+    thinkingConfig: cron.thinkingConfig ? JSON.parse(cron.thinkingConfig) : undefined,
     concurrencyGroup: `cron:${cron.id}`,
     concurrencyMax: config.crons.maxConcurrentExecutions,
   })

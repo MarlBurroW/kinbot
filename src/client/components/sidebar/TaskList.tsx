@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useMemo, Suspense, memo } from 'react'
-import { lazyWithRetry as lazy } from '@/client/lib/lazy-with-retry'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SidebarGroupContent,
@@ -9,7 +8,7 @@ import { cn } from '@/client/lib/utils'
 import { formatDurationBetween, formatElapsed } from '@/client/lib/time'
 import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, MessageSquare, Search, ListTodo, ListOrdered, ChevronDown } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
-const TaskDetailModal = lazy(() => import('@/client/components/sidebar/TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
+import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import type { TaskStatus, TaskSummary } from '@/shared/types'
 
 interface LLMModel {
@@ -204,6 +203,7 @@ interface TaskListProps {
 
 export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskListProps) {
   const { t } = useTranslation()
+  const { openTask } = useMiniAppPanel()
   const {
     activeTasks,
     queuedTasks,
@@ -215,7 +215,6 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
     setSearchQuery,
     loadMore,
   } = taskData
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [queueFilter, setQueueFilter] = useState<string | null>(null)
   const [queueFilterOpen, setQueueFilterOpen] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -284,15 +283,13 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
     return positions
   }, [queuedTasks])
 
-  // Find selected task across all lists
-  const allVisible = useMemo(
-    () => [...activeTasks, ...queuedTasks, ...deduplicatedHistory],
-    [activeTasks, queuedTasks, deduplicatedHistory],
-  )
-  const selectedTask = useMemo(
-    () => allVisible.find((t) => t.id === selectedTaskId) ?? null,
-    [allVisible, selectedTaskId],
-  )
+  const handleOpenTask = (task: TaskSummary) => {
+    openTask({
+      taskId: task.id,
+      kinName: task.sourceKinName ?? task.parentKinName,
+      kinAvatarUrl: task.sourceKinAvatarUrl ?? task.parentKinAvatarUrl,
+    })
+  }
 
   const isEmpty = activeTasks.length === 0 && queuedTasks.length === 0 && deduplicatedHistory.length === 0 && !isLoading
   const totalItems = activeTasks.length + queuedTasks.length + deduplicatedHistory.length
@@ -345,7 +342,7 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
                     <TimelineTaskCard
                       key={task.id}
                       task={task}
-                      onClick={() => setSelectedTaskId(task.id)}
+                      onClick={() => handleOpenTask(task)}
                       isLast={i === activeTasks.length - 1 && queuedTasks.length === 0 && deduplicatedHistory.length === 0}
                     />
                   ))}
@@ -406,7 +403,7 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
                     <TimelineTaskCard
                       key={task.id}
                       task={task}
-                      onClick={() => setSelectedTaskId(task.id)}
+                      onClick={() => handleOpenTask(task)}
                       isLast={i === filteredQueuedTasks.length - 1 && deduplicatedHistory.length === 0}
                       queuePosition={queuePositions.get(task.id)}
                     />
@@ -434,7 +431,7 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
                       <TimelineTaskCard
                         key={task.id}
                         task={task}
-                        onClick={() => setSelectedTaskId(task.id)}
+                        onClick={() => handleOpenTask(task)}
                         isLast={isLastGroup && i === tasks.length - 1 && !hasMore}
                       />
                     ))}
@@ -452,18 +449,7 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
         )}
       </SidebarGroupContent>
 
-      {selectedTaskId !== null && (
-        <Suspense fallback={null}>
-          <TaskDetailModal
-            taskId={selectedTaskId}
-            open={true}
-            onOpenChange={(open) => { if (!open) setSelectedTaskId(null) }}
-            kinName={selectedTask?.sourceKinName ?? selectedTask?.parentKinName}
-            kinAvatarUrl={selectedTask?.sourceKinAvatarUrl ?? selectedTask?.parentKinAvatarUrl}
-            llmModels={llmModels}
-          />
-        </Suspense>
-      )}
+
     </>
   )
 })

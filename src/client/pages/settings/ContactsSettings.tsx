@@ -28,6 +28,8 @@ export function ContactsSettings() {
     const q = searchQuery.toLowerCase()
     if (contact.name.toLowerCase().includes(q)) return true
     if (contact.identifiers?.some((id) => id.value.toLowerCase().includes(q) || id.label.toLowerCase().includes(q))) return true
+    if (contact.platformIds?.some((p) => p.platform.toLowerCase().includes(q) || p.platformId.toLowerCase().includes(q))) return true
+    if (contact.notes?.some((n) => n.content.toLowerCase().includes(q))) return true
     return false
   })
 

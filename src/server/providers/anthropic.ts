@@ -50,7 +50,7 @@ export const anthropicProvider: ProviderDefinition = {
     try {
       const apiModels = await fetchAnthropicModels(config)
       const models = apiModels
-        .filter((m) => m.type === 'model')
+        .filter((m) => !m.type || m.type === 'model')
         .map((m): ProviderModel => ({
           id: m.id,
           name: m.display_name,

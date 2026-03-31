@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, FileText, FileJson, Search, Trash2, MoreVertical } from 'lucide-react'
+import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, FileText, FileJson, Search, Trash2, MoreVertical, Sparkles } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { ContextBar } from '@/client/components/chat/ContextBar'
 import { ConversationStats } from '@/client/components/chat/ConversationStats'
@@ -76,6 +76,8 @@ interface ConversationHeaderProps {
   summaryBudgetTokens?: number
   messages?: ChatMessage[]
   scrollViewportRef?: React.RefObject<HTMLElement | null>
+  thinkingEnabled?: boolean
+  onToggleThinking?: () => void
 }
 
 export const ConversationHeader = memo(function ConversationHeader({
@@ -113,6 +115,8 @@ export const ConversationHeader = memo(function ConversationHeader({
   summaryBudgetTokens,
   messages,
   scrollViewportRef,
+  thinkingEnabled = false,
+  onToggleThinking,
 }: ConversationHeaderProps) {
   const { t } = useTranslation()
 
@@ -199,6 +203,21 @@ export const ConversationHeader = memo(function ConversationHeader({
                 }}
                 className="h-8 text-xs"
               />
+              {onToggleThinking && (
+                <button
+                  type="button"
+                  onClick={onToggleThinking}
+                  className={cn(
+                    'mt-1 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
+                    thinkingEnabled
+                      ? 'bg-chart-4/15 text-chart-4 hover:bg-chart-4/25'
+                      : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50',
+                  )}
+                >
+                  <Sparkles className="size-3" />
+                  <span>{t(thinkingEnabled ? 'chat.thinkingDisable' : 'chat.thinkingEnable')}</span>
+                </button>
+              )}
             </div>
             {/* Context usage — reuse ContextBar (compact) */}
             <ContextBar
@@ -229,6 +248,27 @@ export const ConversationHeader = memo(function ConversationHeader({
           onValueChange={onModelChange}
           className="h-7 w-auto max-w-[280px] text-xs"
         />
+
+        {/* Thinking toggle */}
+        {onToggleThinking && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onToggleThinking}
+                className={cn(
+                  'flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-colors',
+                  thinkingEnabled
+                    ? 'bg-chart-4/15 text-chart-4 hover:bg-chart-4/25'
+                    : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50',
+                )}
+              >
+                <Sparkles className="size-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t(thinkingEnabled ? 'chat.thinkingDisable' : 'chat.thinkingEnable')}</TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Context usage + compacting proximity */}
         <ContextBar

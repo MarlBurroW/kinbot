@@ -5,7 +5,7 @@ import { resolve } from 'path'
 
 const log = createLogger('plugin-registry')
 
-const DEFAULT_REGISTRY_URL = 'https://raw.githubusercontent.com/MarlBurroW/kinbot-plugins/main/registry.json'
+const DEFAULT_REGISTRY_URL = 'https://raw.githubusercontent.com/MarlBurroW/kinbot/main/registry/registry.json'
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 interface RegistryCache {

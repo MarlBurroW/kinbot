@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { api } from '@/client/lib/api'
 import { useSSE, useSSEStatus } from '@/client/hooks/useSSE'
 import { useModels, type ProviderModel } from '@/client/hooks/useModels'
-import type { KinToolConfig, KinCompactingConfig, ContextTokenBreakdown, ContextPipelineStatus } from '@/shared/types'
+import type { KinToolConfig, KinCompactingConfig, KinThinkingConfig, ContextTokenBreakdown, ContextPipelineStatus } from '@/shared/types'
 
 interface KinSummary {
   id: string
@@ -14,6 +14,7 @@ interface KinSummary {
   providerId: string | null
   createdAt: string
   isHub: boolean
+  thinkingEnabled: boolean
 }
 
 interface KinDetail extends KinSummary {
@@ -22,6 +23,7 @@ interface KinDetail extends KinSummary {
   workspacePath: string
   toolConfig: KinToolConfig | null
   compactingConfig: KinCompactingConfig | null
+  thinkingConfig: KinThinkingConfig | null
   mcpServers: { id: string; name: string }[]
   queueSize: number
   isProcessing: boolean
@@ -60,6 +62,7 @@ interface UpdateKinData {
   providerId?: string | null
   toolConfig?: KinToolConfig | null
   compactingConfig?: KinCompactingConfig | null
+  thinkingConfig?: KinThinkingConfig | null
 }
 
 interface UserProfile {
@@ -145,6 +148,7 @@ export function useKins() {
         avatarUrl: (data.avatarUrl as string | null) ?? null,
         createdAt: data.createdAt as string,
         isHub: false,
+        thinkingEnabled: (data.thinkingEnabled as boolean) ?? false,
       }
       setKins((prev) => {
         // Avoid duplicates (e.g. if this client also called createKin via the UI)

@@ -1,0 +1,1 @@
+ALTER TABLE `kins` ADD `thinking_config` text;

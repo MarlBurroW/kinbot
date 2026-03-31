@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kinbot-v1';
+const CACHE_NAME = 'kinbot-v2';
 
 // App shell files to cache
 const APP_SHELL = [
@@ -31,6 +31,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Only handle http(s) requests — skip chrome-extension://, etc.
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    return;
+  }
+
   // Skip SSE, API calls, and WebSocket upgrades - always go to network
   if (
     url.pathname.startsWith('/api/') ||
@@ -53,7 +58,7 @@ self.addEventListener('fetch', (event) => {
       const fetchPromise = fetch(request).then((response) => {
         if (response.ok) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
         }
         return response;
       });
