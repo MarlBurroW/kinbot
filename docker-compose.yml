@@ -1,0 +1,85 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/www:/var/www/certbot
+    networks:
+      - default
+    depends_on:
+      - kinbot
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - default
+
+  kinbot:
+    build:
+      context: .
+    container_name: kinbot
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+    volumes:
+      - ./data:/app/data
+      - ./agents:/app/agents
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      hf-embeddings:
+        condition: service_healthy
+    networks:
+      - default
+    restart: unless-stopped
+
+  hf-embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+    container_name: hf_embeddings
+    environment:
+      - MODEL_ID=BAAI/bge-base-en-v1.5
+      - PORT=80
+    volumes:
+      - ./hf_cache:/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:80/health || exit 1" ]
+      interval: 10s
+    networks:
+      - default
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5
+    container_name: kinbot_graph
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    env_file: .env
+    environment:
+      - NEO4J_AUTH=${NEO4J_AUTH}
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - ./neo4j-data:/data
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:7474 || exit 1" ]
+      interval: 10s
+    networks:
+      - default
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
