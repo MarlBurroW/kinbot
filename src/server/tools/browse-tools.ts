@@ -19,6 +19,7 @@ const log = createLogger('tools:browse')
 
 export const browseUrlTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
+  readOnly: true,
   create: () =>
     tool({
       description:
@@ -77,6 +78,7 @@ export const browseUrlTool: ToolRegistration = {
 
 export const extractLinksTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
+  readOnly: true,
   create: () =>
     tool({
       description:
@@ -113,6 +115,7 @@ export const extractLinksTool: ToolRegistration = {
 
 export const screenshotUrlTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:

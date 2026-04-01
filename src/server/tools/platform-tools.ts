@@ -59,6 +59,7 @@ const UPDATABLE_KEYS = new Set([
  */
 export const getPlatformLogsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   defaultDisabled: true,
   create: (ctx) =>
     tool({
@@ -122,6 +123,7 @@ export const getPlatformLogsTool: ToolRegistration = {
  */
 export const getPlatformConfigTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:

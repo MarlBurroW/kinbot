@@ -76,12 +76,18 @@ class ToolRegistry {
     }
   }
 
+  /** Check if a tool is read-only (safe for concurrent execution). */
+  isReadOnly(name: string): boolean {
+    return this.tools.get(name)?.readOnly === true
+  }
+
   /** List all registered tool names with their availability (for API/UI). */
-  list(): Array<{ name: string; availability: ToolAvailability[]; defaultDisabled: boolean }> {
+  list(): Array<{ name: string; availability: ToolAvailability[]; defaultDisabled: boolean; readOnly: boolean }> {
     return Array.from(this.tools.entries()).map(([name, reg]) => ({
       name,
       availability: reg.availability,
       defaultDisabled: reg.defaultDisabled ?? false,
+      readOnly: reg.readOnly ?? false,
     }))
   }
 

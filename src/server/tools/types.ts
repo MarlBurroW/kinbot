@@ -26,4 +26,8 @@ export interface ToolRegistration {
   availability: ToolAvailability[]
   /** If true, tool is DISABLED by default — requires explicit opt-in via enabledOptInTools */
   defaultDisabled?: boolean
+  /** Whether this tool only reads data and has no side effects.
+   *  Read-only tools may be executed concurrently when a step
+   *  contains only read-only tool calls. Defaults to false. */
+  readOnly?: boolean
 }

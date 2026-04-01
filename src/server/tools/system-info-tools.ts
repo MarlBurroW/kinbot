@@ -112,6 +112,7 @@ function getDetailedSystemInfo() {
  */
 export const getSystemInfoTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: () =>
     tool({
       description:

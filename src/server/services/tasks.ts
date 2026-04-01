@@ -14,6 +14,7 @@ import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
 import { getGlobalPrompt } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
+import { executeToolBatch } from '@/server/services/tool-executor'
 import type { TaskStatus, TaskMode, KinToolConfig, KinThinkingConfig } from '@/shared/types'
 import { guessProviderType } from '@/shared/model-ref'
 
@@ -725,7 +726,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
       // No tool calls this step or error/abort → exit loop
       if (stepToolCalls.length === 0 || streamError || abortController.signal.aborted) break
 
-      // Execute tool calls sequentially (we own this, not the SDK)
+      // Build assistant content for history
       const assistantContent: Array<
         | { type: 'text'; text: string }
         | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
@@ -735,53 +736,33 @@ async function executeSubKin(taskId: string, isNudge = false) {
         assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
       }
 
-      const toolResultMsgs: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
+      // Execute tool calls (concurrently if all read-only, sequentially otherwise)
+      const batch = await executeToolBatch({
+        stepToolCalls,
+        tools,
+        abortController,
+        kinId: task.parentKinId,
+        assistantMessageId,
+        sseExtra: { taskId },
+      })
+      toolCallsLog.push(...batch.toolCallsLog)
 
-      for (const tc of stepToolCalls) {
-        if (abortController.signal.aborted) break
-
-        const toolDef = tools[tc.name]
-        let toolResult: unknown = null
-        if (toolDef && 'execute' in toolDef && typeof toolDef.execute === 'function') {
-          try {
-            toolResult = await (toolDef.execute as Function)(tc.args, { abortSignal: abortController.signal })
-          } catch (err) {
-            toolResult = { error: err instanceof Error ? err.message : String(err) }
-          }
-        } else {
-          toolResult = { error: `Tool ${tc.name} has no execute function` }
-        }
-
-        toolCallsLog.push({ id: tc.id, name: tc.name, args: tc.args, result: toolResult, offset: tc.offset })
-        toolResultMsgs.push({ type: 'tool-result', toolCallId: tc.id, toolName: tc.name, output: { type: 'json', value: toolResult as import('ai').JSONValue } })
-
-        sseManager.sendToKin(task.parentKinId, {
-          type: 'chat:tool-result',
-          kinId: task.parentKinId,
-          data: {
-            messageId: assistantMessageId,
-            toolCallId: tc.id,
-            toolName: tc.name,
-            result: toolResult,
-            taskId,
-          },
-        })
-
-        // Checkpoint: persist partial content + tool calls so a page refresh
-        // can show progress instead of an empty message.
+      // Checkpoint: persist partial content + tool calls so a page refresh
+      // can show progress instead of an empty message.
+      if (batch.toolCallsLog.length > 0) {
         await db.update(messages)
           .set({
             content: fullContent,
-            toolCalls: toolCallsLog.length > 0 ? JSON.stringify(toolCallsLog) : null,
+            toolCalls: JSON.stringify(toolCallsLog),
           })
           .where(eq(messages.id, assistantMessageId))
       }
 
-      if (abortController.signal.aborted) break
+      if (batch.wasAborted) break
 
       // Append assistant message (with tool calls) + tool results to history for next step
       messageHistory.push({ role: 'assistant', content: assistantContent })
-      messageHistory.push({ role: 'tool' as const, content: toolResultMsgs })
+      messageHistory.push({ role: 'tool' as const, content: batch.toolResults })
 
       // Text accumulates across steps so tool call offsets remain valid
     }

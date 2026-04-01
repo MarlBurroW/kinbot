@@ -173,6 +173,7 @@ export const deleteMiniAppTool: ToolRegistration = {
 
 export const listMiniAppsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List all your mini apps.',
@@ -242,6 +243,7 @@ export const writeMiniAppFileTool: ToolRegistration = {
 
 export const readMiniAppFileTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Read a file from a mini app. Returns text or base64 for binary files.',
@@ -313,6 +315,7 @@ export const deleteMiniAppFileTool: ToolRegistration = {
 
 export const listMiniAppFilesTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List all files in a mini app with sizes and MIME types.',
@@ -339,6 +342,7 @@ export const listMiniAppFilesTool: ToolRegistration = {
 
 export const getMiniAppStorageTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Read a value from a mini app\'s key-value storage.',
@@ -417,6 +421,7 @@ export const deleteMiniAppStorageTool: ToolRegistration = {
 
 export const listMiniAppStorageTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List all storage keys for a mini app with their sizes.',
@@ -504,6 +509,7 @@ export const createMiniAppSnapshotTool: ToolRegistration = {
 
 export const listMiniAppSnapshotsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List available snapshots for a mini app.',
@@ -620,6 +626,7 @@ export const generateMiniAppIconTool: ToolRegistration = {
 
 export const getMiniAppConsoleTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Get recent console output (logs, warnings, errors) from a running mini app.',

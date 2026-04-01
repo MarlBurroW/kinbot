@@ -45,6 +45,7 @@ function formatMemoryAge(updatedAt: Date | null): string | null {
  */
 export const recallTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:
@@ -195,6 +196,7 @@ export const forgetTool: ToolRegistration = {
  */
 export const listMemoriesTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:
@@ -248,6 +250,7 @@ export const listMemoriesTool: ToolRegistration = {
  */
 export const reviewMemoriesTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:

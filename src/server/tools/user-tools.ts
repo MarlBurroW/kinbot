@@ -15,6 +15,7 @@ const log = createLogger('tools:users')
  */
 export const listUsersTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (_ctx) =>
     tool({
       description:
@@ -45,6 +46,7 @@ export const listUsersTool: ToolRegistration = {
  */
 export const getUserTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (_ctx) =>
     tool({
       description:

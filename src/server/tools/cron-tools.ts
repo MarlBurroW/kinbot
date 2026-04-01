@@ -155,6 +155,7 @@ export const deleteCronTool: ToolRegistration = {
  */
 export const listCronsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List all your scheduled tasks (crons).',
@@ -184,6 +185,7 @@ export const listCronsTool: ToolRegistration = {
  */
 export const getCronJournalTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:

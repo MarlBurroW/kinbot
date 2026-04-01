@@ -86,6 +86,7 @@ export const runCustomToolTool: ToolRegistration = {
  */
 export const listCustomToolsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List all your registered custom tools.',

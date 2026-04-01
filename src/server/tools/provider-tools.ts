@@ -15,6 +15,7 @@ const log = createLogger('tools:providers')
  */
 export const listProvidersTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
+  readOnly: true,
   create: (_ctx) =>
     tool({
       description:
@@ -46,6 +47,7 @@ export const listProvidersTool: ToolRegistration = {
  */
 export const listModelsTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
+  readOnly: true,
   create: (_ctx) =>
     tool({
       description:

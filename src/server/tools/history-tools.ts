@@ -15,6 +15,7 @@ const log = createLogger('tools:history')
  */
 export const searchHistoryTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:
@@ -104,6 +105,7 @@ export const searchHistoryTool: ToolRegistration = {
  */
 export const browseHistoryTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:
@@ -175,6 +177,7 @@ export const browseHistoryTool: ToolRegistration = {
  */
 export const listSummariesTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:
@@ -233,6 +236,7 @@ export const listSummariesTool: ToolRegistration = {
  */
 export const readSummaryTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:

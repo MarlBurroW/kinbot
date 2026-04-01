@@ -25,6 +25,7 @@ const log = createLogger('tools:vault')
  */
 export const getSecretTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:
@@ -175,6 +176,7 @@ export const deleteSecretTool: ToolRegistration = {
  */
 export const searchSecretsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Search secrets by key or description. Returns metadata only, never values.',
@@ -197,6 +199,7 @@ export const searchSecretsTool: ToolRegistration = {
  */
 export const getVaultEntryTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Retrieve a typed vault entry by key. Never include sensitive values in responses.',
@@ -294,6 +297,7 @@ export const createVaultTypeTool: ToolRegistration = {
  */
 export const getVaultAttachmentTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Download a vault attachment as base64.',

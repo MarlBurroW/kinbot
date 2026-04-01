@@ -183,6 +183,7 @@ export const cancelTaskTool: ToolRegistration = {
  */
 export const listTasksTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:
@@ -261,6 +262,7 @@ export const listTasksTool: ToolRegistration = {
  */
 export const listActiveQueuesTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
+  readOnly: true,
   create: (_ctx) =>
     tool({
       description:
@@ -302,6 +304,7 @@ export const listActiveQueuesTool: ToolRegistration = {
  */
 export const getTaskDetailTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:

@@ -13,6 +13,7 @@ const log = createLogger('tools:plugins')
  */
 export const listInstalledPluginsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   defaultDisabled: true,
   create: () =>
     tool({
@@ -46,6 +47,7 @@ export const listInstalledPluginsTool: ToolRegistration = {
  */
 export const browsePluginStoreTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   defaultDisabled: true,
   create: () =>
     tool({
@@ -240,6 +242,7 @@ export const configurePluginTool: ToolRegistration = {
  */
 export const getPluginDetailsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   defaultDisabled: true,
   create: () =>
     tool({
@@ -283,6 +286,7 @@ export const getPluginDetailsTool: ToolRegistration = {
  */
 export const checkPluginUpdatesTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   defaultDisabled: true,
   create: () =>
     tool({

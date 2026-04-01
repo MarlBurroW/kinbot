@@ -216,6 +216,7 @@ export const deleteKinTool: ToolRegistration = {
  */
 export const getKinDetailsTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   defaultDisabled: true,
   create: (ctx) =>
     tool({

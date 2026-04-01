@@ -218,6 +218,7 @@ export const deleteWebhookTool: ToolRegistration = {
  */
 export const listWebhooksTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description:

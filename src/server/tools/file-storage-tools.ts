@@ -102,6 +102,7 @@ export const storeFileTool: ToolRegistration = {
 
 export const getStoredFileTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Get metadata and share URL for a stored file by ID or name.',
@@ -129,6 +130,7 @@ export const getStoredFileTool: ToolRegistration = {
 
 export const listStoredFilesTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List all files in your file storage.',
@@ -149,6 +151,7 @@ export const listStoredFilesTool: ToolRegistration = {
 
 export const searchStoredFilesTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'Search stored files by name or description.',

@@ -40,6 +40,7 @@ import { popStagedAttachments, clearStagedAttachments } from '@/server/tools/att
 import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import { getGlobalPrompt, getHubKinId, getSetting, setSetting } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
+import { executeToolBatch } from '@/server/services/tool-executor'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -1110,7 +1111,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       // No tool calls this step → LLM is done, exit loop
       if (stepToolCalls.length === 0 || wasAborted) break
 
-      // Execute tool calls sequentially (we own this, not the SDK)
+      // Build assistant content for history
       const assistantContent: Array<
         | { type: 'text'; text: string }
         | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
@@ -1120,43 +1121,20 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
       }
 
-      const toolResults: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
-
-      for (const tc of stepToolCalls) {
-        if (abortController.signal.aborted) { wasAborted = true; break }
-
-        const toolDef = tools[tc.name]
-        let result: unknown = null
-        if (toolDef && 'execute' in toolDef && typeof toolDef.execute === 'function') {
-          try {
-            result = await (toolDef.execute as Function)(tc.args, { abortSignal: abortController.signal })
-          } catch (err) {
-            result = { error: err instanceof Error ? err.message : String(err) }
-          }
-        } else {
-          result = { error: `Tool ${tc.name} has no execute function` }
-        }
-
-        toolCallsLog.push({ id: tc.id, name: tc.name, args: tc.args, result, offset: tc.offset })
-        toolResults.push({ type: 'tool-result', toolCallId: tc.id, toolName: tc.name, output: { type: 'json', value: result as import('ai').JSONValue } })
-
-        sseManager.sendToKin(kinId, {
-          type: 'chat:tool-result',
-          kinId,
-          data: {
-            messageId: assistantMessageId,
-            toolCallId: tc.id,
-            toolName: tc.name,
-            result,
-          },
-        })
-      }
-
-      if (wasAborted) break
+      // Execute tool calls (concurrently if all read-only, sequentially otherwise)
+      const batch = await executeToolBatch({
+        stepToolCalls,
+        tools,
+        abortController,
+        kinId,
+        assistantMessageId,
+      })
+      toolCallsLog.push(...batch.toolCallsLog)
+      if (batch.wasAborted) { wasAborted = true; break }
 
       // Append assistant message (with tool calls) + tool results to history for next step
       messageHistory.push({ role: 'assistant', content: assistantContent })
-      messageHistory.push({ role: 'tool' as const, content: toolResults })
+      messageHistory.push({ role: 'tool' as const, content: batch.toolResults })
 
       // Text accumulates across steps so tool call offsets remain valid
     }
@@ -1682,7 +1660,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       // No tool calls this step → LLM is done, exit loop
       if (stepToolCalls.length === 0 || wasAborted) break
 
-      // Execute tool calls sequentially (we own this, not the SDK)
+      // Build assistant content for history
       const assistantContent: Array<
         | { type: 'text'; text: string }
         | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
@@ -1692,38 +1670,21 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
         assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
       }
 
-      const toolResults: Array<{ type: 'tool-result'; toolCallId: string; toolName: string; output: { type: 'json'; value: import('ai').JSONValue } }> = []
-
-      for (const tc of stepToolCalls) {
-        if (abortController.signal.aborted) { wasAborted = true; break }
-
-        const toolDef = tools[tc.name]
-        let result: unknown = null
-        if (toolDef && 'execute' in toolDef && typeof toolDef.execute === 'function') {
-          try {
-            result = await (toolDef.execute as Function)(tc.args, { abortSignal: abortController.signal })
-          } catch (err) {
-            result = { error: err instanceof Error ? err.message : String(err) }
-          }
-        } else {
-          result = { error: `Tool ${tc.name} has no execute function` }
-        }
-
-        toolCallsLog.push({ id: tc.id, name: tc.name, args: tc.args, result, offset: tc.offset })
-        toolResults.push({ type: 'tool-result', toolCallId: tc.id, toolName: tc.name, output: { type: 'json', value: result as import('ai').JSONValue } })
-
-        sseManager.sendToKin(kinId, {
-          type: 'chat:tool-result',
-          kinId,
-          data: { messageId: assistantMessageId, toolCallId: tc.id, toolName: tc.name, result, sessionId },
-        })
-      }
-
-      if (wasAborted) break
+      // Execute tool calls (concurrently if all read-only, sequentially otherwise)
+      const batch = await executeToolBatch({
+        stepToolCalls,
+        tools,
+        abortController,
+        kinId,
+        assistantMessageId,
+        sseExtra: { sessionId },
+      })
+      toolCallsLog.push(...batch.toolCallsLog)
+      if (batch.wasAborted) { wasAborted = true; break }
 
       // Append assistant message (with tool calls) + tool results to history for next step
       messageHistory.push({ role: 'assistant', content: assistantContent })
-      messageHistory.push({ role: 'tool' as const, content: toolResults })
+      messageHistory.push({ role: 'tool' as const, content: batch.toolResults })
 
       // Text accumulates across steps so tool call offsets remain valid
     }

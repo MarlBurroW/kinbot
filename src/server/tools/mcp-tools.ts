@@ -193,6 +193,7 @@ export const removeMcpServerTool: ToolRegistration = {
  */
 export const listMcpServersTool: ToolRegistration = {
   availability: ['main'],
+  readOnly: true,
   create: (ctx) =>
     tool({
       description: 'List all MCP servers on the platform.',
