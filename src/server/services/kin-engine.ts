@@ -2060,9 +2060,13 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
 
       if (toolCalls && toolCalls.length > 0) {
         // Build structured content: text part (if any) + tool call parts
+        // NOTE: Only use the explicit fields (id/name/args) — do NOT spread extra
+        // properties from the stored DB record. Those may contain SDK-internal fields
+        // (e.g. toolCallId, toolName, input, type, providerExecuted) that corrupt the
+        // ModelMessage schema and cause validation errors with strict providers like Gemini.
         const assistantContent: Array<
           | { type: 'text'; text: string }
-          | ({ type: 'tool-call'; toolCallId: string; toolName: string; input: unknown } & Record<string, unknown>)
+          | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
         > = []
 
         const textContent = msg.content ?? ''
@@ -2070,15 +2074,12 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
           assistantContent.push({ type: 'text', text: textContent })
         }
 
-        for (const tc of toolCalls as any[]) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { id, name, args, result, offset, ...rest } = tc
+        for (const tc of toolCalls) {
           assistantContent.push({
             type: 'tool-call',
-            toolCallId: id,
-            toolName: name,
-            input: args,
-            ...rest
+            toolCallId: tc.id,
+            toolName: tc.name,
+            input: tc.args,
           })
         }
 
