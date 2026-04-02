@@ -151,7 +151,7 @@ export async function executeCustomTool(
   const start = Date.now()
 
   try {
-    const proc = Bun.spawn([resolvedPath], {
+    const proc = Bun.spawn(['sh', resolvedPath], {
       cwd: workspace,
       stdin: new Blob([JSON.stringify(args)]),
       stdout: 'pipe',
