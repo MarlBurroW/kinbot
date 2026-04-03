@@ -246,6 +246,7 @@ export function TokenUsageSettings() {
 
     Promise.all(promises)
       .then(([mainRes, dailyRes]) => {
+        if (!mainRes) return
         setSummaryRows(mainRes.summary)
         setDailyData(dailyRes ? dailyRes.summary : mainRes.summary)
       })
