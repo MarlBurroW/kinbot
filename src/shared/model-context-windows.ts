@@ -28,6 +28,12 @@ const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   'o3': 200_000,
   'o4-mini': 200_000,
 
+  // ── OpenAI Codex ──
+  'gpt-5.3-codex': 200_000,
+  'gpt-5.2-codex': 200_000,
+  'gpt-5.1-codex': 200_000,
+  'gpt-5-codex': 200_000,
+
   // ── Google ──
   'gemini-2.5': 1_000_000,
   'gemini-2.0': 1_000_000,

@@ -22,6 +22,7 @@ export const PROVIDER_META = {
   anthropic:          { capabilities: ['llm'],                       displayName: 'Anthropic',              apiKeyUrl: 'https://console.anthropic.com/settings/keys' },
   'anthropic-oauth':  { capabilities: ['llm'],                       displayName: 'Anthropic (Claude Max)', noApiKey: true },
   openai:             { capabilities: ['llm', 'embedding', 'image'],  displayName: 'OpenAI',                apiKeyUrl: 'https://platform.openai.com/api-keys' },
+  'openai-codex':     { capabilities: ['llm'],                       displayName: 'OpenAI (Codex CLI)',     noApiKey: true },
   gemini:             { capabilities: ['llm', 'image', 'embedding'],   displayName: 'Gemini',                apiKeyUrl: 'https://aistudio.google.com/apikey' },
   voyage:             { capabilities: ['embedding'],                  displayName: 'Voyage',                apiKeyUrl: 'https://dash.voyageai.com/api-keys' },
   'brave-search':     { capabilities: ['search'],                     displayName: 'Brave Search',          apiKeyUrl: 'https://brave.com/search/api/' },

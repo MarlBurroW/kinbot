@@ -12,6 +12,7 @@
  */
 export function guessProviderType(modelId: string): string | null {
   if (modelId.startsWith('claude-')) return 'anthropic'
+  if (modelId.includes('-codex')) return 'openai-codex'
   if (
     modelId.startsWith('gpt-') ||
     modelId.startsWith('chatgpt-') ||

@@ -25,6 +25,7 @@ import { stabilityProvider } from '@/server/providers/stability'
 import { falProvider } from '@/server/providers/fal'
 import { serperProvider } from '@/server/providers/serper'
 import { perplexityProvider } from '@/server/providers/perplexity'
+import { openaiCodexProvider } from '@/server/providers/openai-codex'
 
 const log = createLogger('providers')
 
@@ -32,6 +33,7 @@ const builtinRegistry: Record<string, ProviderDefinition> = {
   anthropic: anthropicProvider,
   'anthropic-oauth': anthropicOAuthProvider,
   openai: openaiProvider,
+  'openai-codex': openaiCodexProvider,
   gemini: geminiProvider,
   voyage: voyageProvider,
   'brave-search': braveSearchProvider,
