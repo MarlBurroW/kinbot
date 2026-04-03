@@ -329,7 +329,7 @@ async function getDistinctSubjects(kinId: string): Promise<string[]> {
  * When known subjects are provided, the LLM can generate more targeted
  * entity-specific queries instead of abstract rephrasing.
  */
-async function generateQueryVariations(query: string, knownSubjects?: string[]): Promise<string[]> {
+async function generateQueryVariations(query: string, knownSubjects?: string[], kinId?: string): Promise<string[]> {
   const multiQueryModel = config.memory.multiQueryModel
   if (!multiQueryModel) return [query]
 
@@ -345,6 +345,9 @@ async function generateQueryVariations(query: string, knownSubjects?: string[]):
     const result = await safeGenerateText({
       model,
       providerId: config.memory.multiQueryProviderId ?? null,
+      callSite: 'memory-multi-query',
+      modelId: multiQueryModel,
+      kinId,
       prompt:
         `Generate 3 alternative search queries for retrieving relevant memories based on this message. ` +
         `Each query should target a DIFFERENT aspect, entity, or sub-topic to maximize recall. ` +
@@ -377,7 +380,7 @@ async function generateQueryVariations(query: string, knownSubjects?: string[]):
  *
  * Returns null if HyDE is disabled or generation fails.
  */
-async function generateHypotheticalMemory(query: string): Promise<string | null> {
+async function generateHypotheticalMemory(query: string, kinId?: string): Promise<string | null> {
   const hydeModel = config.memory.hydeModel
   if (!hydeModel) return null
 
@@ -389,6 +392,9 @@ async function generateHypotheticalMemory(query: string): Promise<string | null>
     const result = await safeGenerateText({
       model,
       providerId: config.memory.hydeProviderId ?? null,
+      callSite: 'memory-hyde',
+      modelId: hydeModel,
+      kinId,
       prompt:
         `You are a personal AI companion that stores memories about its user. ` +
         `Given a search query, write a SHORT hypothetical memory entry (1-2 sentences) that would answer it. ` +
@@ -575,9 +581,9 @@ export async function searchMemories(
   // Generate query variations (multi-query) and/or hypothetical document (HyDE)
   const [multiQueries, hydeDoc] = await Promise.all([
     config.memory.multiQueryModel
-      ? generateQueryVariations(query, await getDistinctSubjects(kinId))
+      ? generateQueryVariations(query, await getDistinctSubjects(kinId), kinId)
       : Promise.resolve([query]),
-    generateHypotheticalMemory(query),
+    generateHypotheticalMemory(query, kinId),
   ])
 
   // Combine: multi-query variations + HyDE hypothetical doc (if generated)
@@ -652,7 +658,7 @@ export async function searchMemories(
 
   // Apply re-ranking if enabled: try cross-encoder API first, fall back to LLM
   if (useRerank && sorted.length > 0) {
-    const reranked = await rerankCandidates(query, sorted, maxResults)
+    const reranked = await rerankCandidates(query, sorted, maxResults, kinId)
     return applyAdaptiveK(reranked)
   }
 
@@ -773,6 +779,7 @@ async function rerankCandidates(
   query: string,
   candidates: MemorySearchResult[],
   limit: number,
+  kinId?: string,
 ): Promise<MemorySearchResult[]> {
   const rerankModel = config.memory.rerankModel
   if (!rerankModel || candidates.length === 0) return candidates.slice(0, limit)
@@ -801,7 +808,7 @@ async function rerankCandidates(
   }
 
   // Fall back to LLM-based re-ranking
-  return rerankWithLLM(query, candidates, limit)
+  return rerankWithLLM(query, candidates, limit, kinId)
 }
 
 /**
@@ -813,6 +820,7 @@ async function rerankWithLLM(
   query: string,
   candidates: MemorySearchResult[],
   limit: number,
+  kinId?: string,
 ): Promise<MemorySearchResult[]> {
   const rerankModel = config.memory.rerankModel
   if (!rerankModel || candidates.length === 0) return candidates.slice(0, limit)
@@ -830,6 +838,9 @@ async function rerankWithLLM(
     const result = await safeGenerateText({
       model,
       providerId: config.memory.rerankProviderId ?? null,
+      callSite: 'memory-rerank',
+      modelId: rerankModel,
+      kinId,
       prompt:
         `You are a relevance judge. Given a user query and a list of memory snippets, ` +
         `score each memory's relevance to the query from 0 (irrelevant) to 10 (highly relevant).\n\n` +
@@ -934,6 +945,7 @@ function needsContextualRewrite(message: string): boolean {
 export async function rewriteQueryWithContext(
   message: string,
   recentMessages: Array<{ role: string; content: string }>,
+  kinId?: string,
 ): Promise<string> {
   const model = config.memory.contextualRewriteModel
   if (!model || !needsContextualRewrite(message) || recentMessages.length === 0) {
@@ -954,6 +966,9 @@ export async function rewriteQueryWithContext(
     const result = await safeGenerateText({
       model: resolved,
       providerId: config.memory.contextualRewriteProviderId ?? null,
+      callSite: 'memory-contextual-rewrite',
+      modelId: model,
+      kinId,
       prompt:
         `Rewrite the user's last message into a standalone search query for retrieving relevant memories. ` +
         `The query should capture the full intent by incorporating context from the conversation.\n\n` +

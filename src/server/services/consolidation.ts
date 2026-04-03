@@ -103,6 +103,8 @@ async function mergeCluster(
   cluster: MemoryRow[],
   model: Awaited<ReturnType<typeof import('@/server/services/kin-engine').resolveLLMModel>>,
   providerId?: string | null,
+  kinId?: string,
+  modelId?: string,
 ): Promise<{ content: string; category: string; subject: string | null; importance: number } | null> {
   if (!model) return null
 
@@ -129,6 +131,9 @@ async function mergeCluster(
       model,
       providerId,
       prompt,
+      callSite: 'consolidation',
+      modelId,
+      kinId,
     })
 
     const jsonMatch = result.text.match(/\{[\s\S]*\}/)
@@ -264,7 +269,8 @@ export async function consolidateMemories(kinId: string): Promise<number> {
   let totalRemoved = 0
 
   for (const cluster of clusters) {
-    const merged = await mergeCluster(cluster, model, config.memory.consolidationProviderId ?? config.compacting.providerId ?? null)
+    const consolidationModelId = config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano'
+    const merged = await mergeCluster(cluster, model, config.memory.consolidationProviderId ?? config.compacting.providerId ?? null, kinId, consolidationModelId)
     if (!merged) continue
 
     // Compute the new generation: max of sources + 1

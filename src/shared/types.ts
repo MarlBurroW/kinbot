@@ -523,3 +523,55 @@ export interface ContextPipelineStatus {
   /** Number of messages dropped by emergency token-budget trimming. */
   emergencyTrimmedCount: number
 }
+
+// ─── LLM Usage Tracking ───────────────────────────────────────────────────────
+
+export type LlmUsageCallSite =
+  | 'chat'
+  | 'quick-session'
+  | 'task'
+  | 'compacting'
+  | 'consolidation'
+  | 'memory-review'
+  | 'memory-multi-query'
+  | 'memory-hyde'
+  | 'memory-rerank'
+  | 'memory-contextual-rewrite'
+  | 'importance-backfill'
+  | 'embedding'
+  | 'image-gen'
+  | 'avatar-prompt'
+  | 'icon-prompt'
+  | 'kin-generate'
+
+export type LlmUsageCallType = 'stream-text' | 'generate-text' | 'embed' | 'generate-image'
+
+export interface LlmUsageRow {
+  id: string
+  createdAt: number
+  callSite: string
+  callType: string
+  providerType: string | null
+  providerId: string | null
+  modelId: string | null
+  kinId: string | null
+  taskId: string | null
+  cronId: string | null
+  sessionId: string | null
+  inputTokens: number | null
+  outputTokens: number | null
+  totalTokens: number | null
+  cacheReadTokens: number | null
+  cacheWriteTokens: number | null
+  reasoningTokens: number | null
+  embeddingTokens: number | null
+  stepCount: number
+}
+
+export interface UsageSummaryRow {
+  group: string
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  count: number
+}

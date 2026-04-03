@@ -39,6 +39,7 @@ const OPENAI_COMPATIBLE_PROVIDERS = new Set([
   'mistral', 'perplexity', 'xai', 'ollama', 'cohere', 'openai-compatible',
 ])
 import { createLogger } from '@/server/logger'
+import { recordUsage } from '@/server/services/token-usage'
 import { getLastContextUsage, compactingKins } from '@/server/services/kin-engine'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -285,6 +286,18 @@ Generate the complete Kin configuration as JSON.`
       model,
       system: systemPrompt,
       prompt: userPrompt,
+    })
+
+    const genModelId = llmProvider.type === 'anthropic' || llmProvider.type === 'anthropic-oauth'
+      ? 'claude-haiku-4-5-20251001'
+      : llmProvider.type === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'
+    recordUsage({
+      callSite: 'kin-generate',
+      callType: 'generate-text',
+      providerType: llmProvider.type,
+      providerId: llmProvider.id,
+      modelId: genModelId,
+      usage: result.usage,
     })
 
     // Parse JSON from response (handle potential markdown fences)

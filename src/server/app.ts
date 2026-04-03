@@ -40,6 +40,7 @@ import { miniAppRoutes, miniAppSdkRoutes } from '@/server/routes/mini-apps'
 import { pluginRoutes } from '@/server/routes/plugins'
 import { knowledgeRoutes } from '@/server/routes/knowledge'
 import { logRoutes } from '@/server/routes/logs'
+import { usageRoutes } from '@/server/routes/usage'
 import { versionCheckRoutes } from '@/server/routes/version-check'
 
 export type AppVariables = {
@@ -182,6 +183,7 @@ app.route('/api/mini-apps/sdk', miniAppSdkRoutes)
 app.route('/api/mini-apps', miniAppRoutes)
 app.route('/api/plugins', pluginRoutes)
 app.route('/api/logs', logRoutes)
+app.route('/api/usage', usageRoutes)
 app.route('/api/version-check', versionCheckRoutes)
 app.route('/s', sharedRoutes)
 

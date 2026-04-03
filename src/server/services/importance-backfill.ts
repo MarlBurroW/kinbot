@@ -71,6 +71,9 @@ export async function backfillImportance(kinId?: string): Promise<{ updated: num
         model,
         providerId: config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
         prompt,
+        callSite: 'importance-backfill',
+        modelId: config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
+        kinId,
       })
 
       const jsonMatch = result.text.match(/\[[\s\S]*\]/)

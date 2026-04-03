@@ -17,6 +17,7 @@ const OPENAI_COMPATIBLE_PROVIDERS = new Set([
   'mistral', 'perplexity', 'xai', 'ollama', 'cohere', 'openai-compatible',
 ])
 import { config } from '@/server/config'
+import { recordUsage } from '@/server/services/token-usage'
 
 const log = createLogger('image-gen')
 
@@ -82,9 +83,25 @@ export async function generateImage(
   }
 
   if (provider.type === 'openai') {
-    return generateWithOpenAI(providerConfig, prompt, effectiveModelId, imageData)
+    const result = await generateWithOpenAI(providerConfig, prompt, effectiveModelId, imageData)
+    recordUsage({
+      callSite: 'image-gen',
+      callType: 'generate-image',
+      providerType: 'openai',
+      providerId: provider.id,
+      modelId: effectiveModelId ?? 'dall-e-3',
+    })
+    return result
   } else if (provider.type === 'gemini') {
-    return generateWithGoogle(providerConfig, prompt, effectiveModelId, imageData)
+    const result = await generateWithGoogle(providerConfig, prompt, effectiveModelId, imageData)
+    recordUsage({
+      callSite: 'image-gen',
+      callType: 'generate-image',
+      providerType: 'gemini',
+      providerId: provider.id,
+      modelId: effectiveModelId ?? 'imagen-3.0-generate-002',
+    })
+    return result
   }
 
   throw new ImageGenerationError(
@@ -297,14 +314,25 @@ export async function buildAvatarPrompt(kin: {
   const charSnippet = kin.character.slice(0, 300)
   const expertSnippet = kin.expertise.slice(0, 300)
 
-  const { text } = await generateText({
+  const avatarResult = await generateText({
     model,
     system: AVATAR_STYLE_SYSTEM,
     prompt: `Name: ${kin.name}\nRole: ${kin.role}\nPersonality: ${charSnippet}\nExpertise: ${expertSnippet}`,
     maxOutputTokens: 200,
   })
 
-  return text.trim()
+  const avatarModelId = llmProvider.type === 'anthropic' ? 'claude-haiku-4-5-20251001'
+    : llmProvider.type === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'
+  recordUsage({
+    callSite: 'avatar-prompt',
+    callType: 'generate-text',
+    providerType: llmProvider.type,
+    providerId: llmProvider.id,
+    modelId: avatarModelId,
+    usage: avatarResult.usage,
+  })
+
+  return avatarResult.text.trim()
 }
 
 // ─── Mini-App Icon Prompt ────────────────────────────────────────────────────
@@ -377,14 +405,25 @@ export async function buildMiniAppIconPrompt(app: {
   const desc = app.description?.slice(0, 300) ?? ''
   const emoji = app.icon ?? ''
 
-  const { text } = await generateText({
+  const iconResult = await generateText({
     model,
     system: MINI_APP_ICON_STYLE_SYSTEM,
     prompt: `App name: ${app.name}\nDescription: ${desc}\nEmoji hint: ${emoji}`,
     maxOutputTokens: 200,
   })
 
-  return text.trim()
+  const iconModelId = llmProvider.type === 'anthropic' ? 'claude-haiku-4-5-20251001'
+    : llmProvider.type === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'
+  recordUsage({
+    callSite: 'icon-prompt',
+    callType: 'generate-text',
+    providerType: llmProvider.type,
+    providerId: llmProvider.id,
+    modelId: iconModelId,
+    usage: iconResult.usage,
+  })
+
+  return iconResult.text.trim()
 }
 
 /**

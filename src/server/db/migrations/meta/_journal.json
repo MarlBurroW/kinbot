@@ -372,6 +372,13 @@
       "when": 1774717843704,
       "tag": "0052_lumpy_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "6",
+      "when": 1775079923377,
+      "tag": "0053_heavy_lionheart",
+      "breakpoints": true
     }
   ]
 }

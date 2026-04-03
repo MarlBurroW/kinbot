@@ -35,6 +35,7 @@ import { NotificationPreferences } from '@/client/components/notifications/Notif
 import { PluginsSettings } from '@/client/pages/settings/PluginsSettings'
 import { PluginMarketplace } from '@/client/pages/settings/PluginMarketplace'
 import { LogsSettings } from '@/client/pages/settings/LogsSettings'
+import { TokenUsageSettings } from '@/client/pages/settings/TokenUsageSettings'
 import {
   Bell,
   Brain,
@@ -56,6 +57,7 @@ import {
   Contact,
   ShoppingBag,
   ScrollText,
+  Coins,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/client/components/ui/tooltip'
 import { api } from '@/client/lib/api'
@@ -111,6 +113,7 @@ const sectionGroups: SectionGroup[] = [
     groupKey: 'settings.groups.system',
     items: [
       { id: 'logs', icon: ScrollText, labelKey: 'settings.logs.title' },
+      { id: 'tokenUsage', icon: Coins, labelKey: 'settings.tokenUsage.title' },
     ],
   },
 ]
@@ -136,6 +139,7 @@ const sectionComponents: Record<string, React.FC> = {
   marketplace: PluginMarketplace,
   notifications: NotificationPreferences,
   logs: LogsSettings,
+  tokenUsage: TokenUsageSettings,
 }
 
 interface SettingsModalProps {

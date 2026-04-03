@@ -729,3 +729,48 @@ export const pluginStorage = sqliteTable('plugin_storage', {
   uniqueIndex('idx_plugin_storage_name_key').on(table.pluginName, table.key),
   index('idx_plugin_storage_plugin').on(table.pluginName),
 ])
+
+// ─── LLM Usage Tracking ───────────────────────────────────────────────────────
+
+export const llmUsage = sqliteTable('llm_usage', {
+  id: text('id').primaryKey(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+
+  // Call classification
+  callSite: text('call_site').notNull(), // 'chat' | 'quick-session' | 'task' | 'compacting' | 'consolidation' | 'memory-review' | 'embedding' | 'image-gen' | etc.
+  callType: text('call_type').notNull(), // 'stream-text' | 'generate-text' | 'embed' | 'generate-image'
+
+  // Dimensions
+  providerType: text('provider_type'),   // 'anthropic' | 'openai' | 'gemini' | etc.
+  providerId: text('provider_id'),       // Provider UUID (nullable — provider may be deleted)
+  modelId: text('model_id'),             // e.g. 'claude-sonnet-4-20250514'
+  kinId: text('kin_id'),                 // Nullable for non-kin calls
+  taskId: text('task_id'),               // Nullable
+  cronId: text('cron_id'),               // Nullable
+  sessionId: text('session_id'),         // Quick session ID, nullable
+
+  // Token counts (from LanguageModelUsage)
+  inputTokens: integer('input_tokens'),
+  outputTokens: integer('output_tokens'),
+  totalTokens: integer('total_tokens'),
+
+  // Input details
+  cacheReadTokens: integer('cache_read_tokens'),
+  cacheWriteTokens: integer('cache_write_tokens'),
+
+  // Output details
+  reasoningTokens: integer('reasoning_tokens'),
+
+  // Embedding-specific
+  embeddingTokens: integer('embedding_tokens'),
+
+  // Multi-step context (for streamText multi-step loops)
+  stepCount: integer('step_count').notNull().default(1),
+}, (table) => [
+  index('idx_llm_usage_created').on(table.createdAt),
+  index('idx_llm_usage_kin').on(table.kinId, table.createdAt),
+  index('idx_llm_usage_provider_type').on(table.providerType, table.createdAt),
+  index('idx_llm_usage_model').on(table.modelId, table.createdAt),
+  index('idx_llm_usage_task').on(table.taskId),
+  index('idx_llm_usage_cron').on(table.cronId),
+])

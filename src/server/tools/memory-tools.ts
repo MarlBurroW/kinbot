@@ -14,6 +14,8 @@ import { kins } from '@/server/db/schema'
 import { createLogger } from '@/server/logger'
 import { config } from '@/server/config'
 import { getExtractionModel, getExtractionProviderId } from '@/server/services/app-settings'
+import { recordUsage } from '@/server/services/token-usage'
+import { guessProviderType } from '@/shared/model-ref'
 import type { ToolRegistration } from '@/server/tools/types'
 import type { MemoryCategory, MemoryScope } from '@/shared/types'
 
@@ -332,6 +334,17 @@ export const reviewMemoriesTool: ToolRegistration = {
           const result = await generateText({
             model,
             messages: [{ role: 'user', content: reviewPrompt }],
+          })
+
+          const reviewModelId = effectiveModel ?? 'gpt-4.1-mini'
+          recordUsage({
+            callSite: 'memory-review',
+            callType: 'generate-text',
+            providerType: guessProviderType(reviewModelId),
+            providerId: settingsProviderId ?? config.memory.extractionProviderId ?? null,
+            modelId: reviewModelId,
+            kinId: ctx.kinId,
+            usage: result.usage,
           })
 
           const jsonMatch = result.text.match(/\{[\s\S]*\}/)

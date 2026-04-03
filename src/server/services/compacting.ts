@@ -336,6 +336,9 @@ export async function runCompacting(kinId: string, contextWindow?: number): Prom
       model,
       providerId: effectiveConfig.providerId,
       prompt: systemPrompt,
+      callSite: 'compacting',
+      modelId: effectiveConfig.model,
+      kinId,
     })
 
     const summary = result.text
@@ -525,6 +528,9 @@ async function maybeMergeSummaries(kinId: string, contextWindow: number): Promis
       model,
       providerId: effectiveConfig.providerId,
       prompt: mergePrompt,
+      callSite: 'compacting',
+      modelId: effectiveConfig.model,
+      kinId,
     })
 
     const mergedSummary = result.text
@@ -690,6 +696,9 @@ async function extractMemories(
       model,
       providerId: extractionProviderId,
       prompt: extractionPrompt,
+      callSite: 'compacting',
+      modelId: effectiveExtractionModel ?? kinModel,
+      kinId,
     })
 
     // Parse JSON array from response

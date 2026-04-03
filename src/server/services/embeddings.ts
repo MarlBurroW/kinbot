@@ -7,6 +7,7 @@ import { providers } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { getEmbeddingModel } from '@/server/services/app-settings'
 import { decrypt } from '@/server/services/encryption'
+import { recordUsage } from '@/server/services/token-usage'
 
 const log = createLogger('embeddings')
 
@@ -45,6 +46,16 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   }
 
   const result = await embed({ model, value: text })
+
+  recordUsage({
+    callSite: 'embedding',
+    callType: 'embed',
+    providerType: provider.type,
+    providerId: provider.id,
+    modelId: embeddingModelId,
+    embeddingTokens: result.usage?.tokens,
+  })
+
   return result.embedding
 }
 

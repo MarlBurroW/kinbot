@@ -15,6 +15,7 @@ import { config } from '@/server/config'
 import { getGlobalPrompt } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { executeToolBatch } from '@/server/services/tool-executor'
+import { recordUsage } from '@/server/services/token-usage'
 import type { TaskStatus, TaskMode, KinToolConfig, KinThinkingConfig } from '@/shared/types'
 import { guessProviderType } from '@/shared/model-ref'
 
@@ -602,6 +603,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const toolSchemas = hasTools ? stripToolExecute(tools) : undefined
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
+    const stepResults: Array<ReturnType<typeof streamText>> = []
 
     let step = 0
     for (; step < maxSteps; step++) {
@@ -615,6 +617,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
         abortSignal: abortController.signal,
         ...(taskThinkingProviderOptions ? { providerOptions: taskThinkingProviderOptions as any } : {}),
       })
+      stepResults.push(result)
 
       // Collect tool call intents from this step
       const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
@@ -768,6 +771,43 @@ async function executeSubKin(taskId: string, isNudge = false) {
     }
 
     activeTaskAbortControllers.delete(taskId)
+
+    // Fire-and-forget: record token usage for this task turn
+    const taskModelId = task.model ?? kinIdentity.model
+    const taskProviderId = task.providerId ?? (task.model ? null : kinIdentity.providerId)
+    if (stepResults.length > 0) {
+      Promise.allSettled(stepResults.map(r => Promise.resolve(r.usage))).then(settled => {
+        const turn = { inputTokens: 0, outputTokens: 0, totalTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 }
+        for (const s of settled) {
+          if (s.status === 'fulfilled' && s.value) {
+            turn.inputTokens += s.value.inputTokens ?? 0
+            turn.outputTokens += s.value.outputTokens ?? 0
+            turn.totalTokens += s.value.totalTokens ?? 0
+            turn.cacheReadTokens += s.value.inputTokenDetails?.cacheReadTokens ?? 0
+            turn.cacheWriteTokens += s.value.inputTokenDetails?.cacheWriteTokens ?? 0
+            turn.reasoningTokens += s.value.outputTokenDetails?.reasoningTokens ?? 0
+          }
+        }
+        recordUsage({
+          callSite: 'task',
+          callType: 'stream-text',
+          providerType: guessProviderType(taskModelId),
+          providerId: taskProviderId,
+          modelId: taskModelId,
+          kinId: task.parentKinId,
+          taskId,
+          cronId: task.cronId ?? null,
+          usage: {
+            inputTokens: turn.inputTokens,
+            outputTokens: turn.outputTokens,
+            totalTokens: turn.totalTokens,
+            inputTokenDetails: { cacheReadTokens: turn.cacheReadTokens, cacheWriteTokens: turn.cacheWriteTokens },
+            outputTokenDetails: { reasoningTokens: turn.reasoningTokens },
+          },
+          stepCount: stepResults.length,
+        })
+      }).catch(() => {})
+    }
 
     // If the stream was aborted (cancel), persist partial content and stop
     if (abortController.signal.aborted) {

@@ -26,6 +26,7 @@ import { hookRegistry } from '@/server/hooks/index'
 import { toolRegistry } from '@/server/tools/index'
 import { config } from '@/server/config'
 import { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK } from '@/server/providers/anthropic-oauth'
+import { getCodexOAuthCredentials, CODEX_BASE_URL } from '@/server/providers/openai-codex'
 import { getRelevantMemories, rewriteQueryWithContext } from '@/server/services/memory'
 import { maybeCompact } from '@/server/services/compacting'
 import { resolveMCPTools, getMCPToolsSummary } from '@/server/services/mcp'
@@ -41,6 +42,7 @@ import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import { getGlobalPrompt, getHubKinId, getSetting, setSetting } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { executeToolBatch } from '@/server/services/tool-executor'
+import { recordUsage } from '@/server/services/token-usage'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -666,7 +668,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           .slice(0, -1) // drop last (= current user message)
           .filter((m) => m.content)
           .map((m) => ({ role: m.role, content: m.content! }))
-        memoryQuery = await rewriteQueryWithContext(queueItem.content, contextMsgs)
+        memoryQuery = await rewriteQueryWithContext(queueItem.content, contextMsgs, kinId)
       }
       relevantMemories = await getRelevantMemories(kinId, memoryQuery)
     } catch {
@@ -978,6 +980,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
     let wasAborted = false
+    const stepResults: Array<ReturnType<typeof streamText>> = []
 
     let step = 0
     for (; step < maxSteps; step++) {
@@ -991,6 +994,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         abortSignal: abortController.signal,
         ...(thinkingProviderOptions ? { providerOptions: thinkingProviderOptions as any } : {}),
       })
+      stepResults.push(result)
 
       // Collect tool call intents from this step
       const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
@@ -1140,6 +1144,39 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
 
     activeAbortControllers.delete(kinId)
+
+    // Fire-and-forget: record token usage for this turn
+    if (stepResults.length > 0) {
+      Promise.allSettled(stepResults.map(r => Promise.resolve(r.usage))).then(settled => {
+        const turn = { inputTokens: 0, outputTokens: 0, totalTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 }
+        for (const s of settled) {
+          if (s.status === 'fulfilled' && s.value) {
+            turn.inputTokens += s.value.inputTokens ?? 0
+            turn.outputTokens += s.value.outputTokens ?? 0
+            turn.totalTokens += s.value.totalTokens ?? 0
+            turn.cacheReadTokens += s.value.inputTokenDetails?.cacheReadTokens ?? 0
+            turn.cacheWriteTokens += s.value.inputTokenDetails?.cacheWriteTokens ?? 0
+            turn.reasoningTokens += s.value.outputTokenDetails?.reasoningTokens ?? 0
+          }
+        }
+        recordUsage({
+          callSite: 'chat',
+          callType: 'stream-text',
+          providerType: guessProviderType(kin.model),
+          providerId: kin.providerId,
+          modelId: kin.model,
+          kinId,
+          usage: {
+            inputTokens: turn.inputTokens,
+            outputTokens: turn.outputTokens,
+            totalTokens: turn.totalTokens,
+            inputTokenDetails: { cacheReadTokens: turn.cacheReadTokens, cacheWriteTokens: turn.cacheWriteTokens },
+            outputTokenDetails: { reasoningTokens: turn.reasoningTokens },
+          },
+          stepCount: stepResults.length,
+        })
+      }).catch(() => {})
+    }
 
     log.info({ kinId, messageId: assistantMessageId, contentLength: fullContent.length, toolCalls: toolCallsLog.length, wasAborted }, 'LLM turn completed')
 
@@ -1562,6 +1599,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
     let wasAborted = false
+    const stepResults: Array<ReturnType<typeof streamText>> = []
 
     let step = 0
     for (; step < maxSteps; step++) {
@@ -1575,6 +1613,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
         abortSignal: abortController.signal,
         ...(qsThinkingProviderOptions ? { providerOptions: qsThinkingProviderOptions as any } : {}),
       })
+      stepResults.push(result)
 
       // Collect tool call intents from this step
       const stepToolCalls: Array<{ id: string; name: string; args: unknown; offset: number }> = []
@@ -1690,6 +1729,40 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     }
 
     quickAbortControllers.delete(sessionId)
+
+    // Fire-and-forget: record token usage for this quick session turn
+    if (stepResults.length > 0) {
+      Promise.allSettled(stepResults.map(r => Promise.resolve(r.usage))).then(settled => {
+        const turn = { inputTokens: 0, outputTokens: 0, totalTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 }
+        for (const s of settled) {
+          if (s.status === 'fulfilled' && s.value) {
+            turn.inputTokens += s.value.inputTokens ?? 0
+            turn.outputTokens += s.value.outputTokens ?? 0
+            turn.totalTokens += s.value.totalTokens ?? 0
+            turn.cacheReadTokens += s.value.inputTokenDetails?.cacheReadTokens ?? 0
+            turn.cacheWriteTokens += s.value.inputTokenDetails?.cacheWriteTokens ?? 0
+            turn.reasoningTokens += s.value.outputTokenDetails?.reasoningTokens ?? 0
+          }
+        }
+        recordUsage({
+          callSite: 'quick-session',
+          callType: 'stream-text',
+          providerType: guessProviderType(kin.model),
+          providerId: kin.providerId,
+          modelId: kin.model,
+          kinId,
+          sessionId,
+          usage: {
+            inputTokens: turn.inputTokens,
+            outputTokens: turn.outputTokens,
+            totalTokens: turn.totalTokens,
+            inputTokenDetails: { cacheReadTokens: turn.cacheReadTokens, cacheWriteTokens: turn.cacheWriteTokens },
+            outputTokenDetails: { reasoningTokens: turn.reasoningTokens },
+          },
+          stepCount: stepResults.length,
+        })
+      }).catch(() => {})
+    }
 
     // Detect truncated turns (same as main path)
     const stepLimitReached = step >= maxSteps && toolCallsLog.length > 0 && !wasAborted && config.tools.maxSteps > 0
@@ -2144,7 +2217,9 @@ async function tryCreateModel(
     const capabilities = JSON.parse(provider.capabilities) as string[]
     if (!capabilities.includes('llm')) return null
 
-    const providerFamily = provider.type === 'anthropic-oauth' ? 'anthropic' : provider.type
+    const providerFamily = provider.type === 'anthropic-oauth' ? 'anthropic'
+      : provider.type === 'openai-codex' ? 'openai'
+      : provider.type
     // OpenRouter can proxy any model, so skip the type check for it
     if (expectedType && providerFamily !== expectedType && providerFamily !== 'openrouter') return null
 
@@ -2196,6 +2271,32 @@ async function tryCreateModel(
         }) as unknown as typeof fetch,
       })
       return anthropic(modelId)
+    } else if (provider.type === 'openai-codex') {
+      const { accessToken, accountId } = await getCodexOAuthCredentials(providerConfig.apiKey || undefined)
+      const openai = createOpenAI({
+        apiKey: 'codex-oauth', // placeholder — overridden by custom fetch
+        baseURL: CODEX_BASE_URL,
+        fetch: (async (url: URL | RequestInfo, init: RequestInit | undefined) => {
+          const headers = new Headers(init?.headers)
+          headers.set('Authorization', `Bearer ${accessToken}`)
+          headers.set('ChatGPT-Account-ID', accountId)
+
+          // Modify request body: strip forbidden params, enforce store: false
+          if (init?.body && typeof init.body === 'string') {
+            try {
+              const body = JSON.parse(init.body)
+              delete body.max_output_tokens
+              body.store = false
+              init = { ...init, body: JSON.stringify(body) }
+            } catch {
+              // Not JSON, pass through
+            }
+          }
+
+          return globalThis.fetch(url, { ...init, headers })
+        }) as unknown as typeof fetch,
+      })
+      return openai.responses(modelId)
     } else if (provider.type === 'openai') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
       return openai.chat(modelId)

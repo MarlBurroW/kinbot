@@ -15,6 +15,8 @@ import { eq } from 'drizzle-orm'
 // Note: The REQUIRED_SYSTEM_BLOCK is injected by the OAuth provider's fetch wrapper
 // when it detects a `system` field in the request body. We don't need to import it here.
 import { createLogger } from '@/server/logger'
+import { recordUsage } from '@/server/services/token-usage'
+import { guessProviderType } from '@/shared/model-ref'
 
 const log = createLogger('llm-helpers')
 
@@ -42,6 +44,12 @@ interface SafeGenerateTextOptions {
   prompt: string
   /** Optional max tokens for the response */
   maxTokens?: number
+  /** If set, auto-records token usage with this call site label */
+  callSite?: string
+  /** Model ID string for usage tracking (e.g. 'claude-sonnet-4-20250514') */
+  modelId?: string
+  /** Kin ID for usage tracking */
+  kinId?: string | null
 }
 
 /**
@@ -55,26 +63,38 @@ interface SafeGenerateTextOptions {
 export async function safeGenerateText(
   options: SafeGenerateTextOptions,
 ): Promise<GenerateTextResult<Record<string, never>, never>> {
-  const { model, providerId, prompt, maxTokens } = options
+  const { model, providerId, prompt, maxTokens, callSite, modelId, kinId } = options
   const oauth = await isOAuthProvider(providerId)
+
+  let result: GenerateTextResult<Record<string, never>, never>
 
   if (oauth) {
     log.debug('Using OAuth-safe generateText with system block')
-    // The anthropic-oauth provider's fetch wrapper injects the REQUIRED_SYSTEM_BLOCK
-    // when it sees a `system` field in the request body. We must provide a `system`
-    // string so the wrapper can intercept it — otherwise the magic block is never injected
-    // and the OAuth endpoint returns 400.
-    return generateText({
+    result = await generateText({
       model,
       system: prompt,
       messages: [{ role: 'user', content: 'Please proceed with the task described in the system prompt.' }],
       ...(maxTokens ? { maxTokens } : {}),
     })
+  } else {
+    result = await generateText({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      ...(maxTokens ? { maxTokens } : {}),
+    })
   }
 
-  return generateText({
-    model,
-    messages: [{ role: 'user', content: prompt }],
-    ...(maxTokens ? { maxTokens } : {}),
-  })
+  if (callSite) {
+    recordUsage({
+      callSite,
+      callType: 'generate-text',
+      providerType: modelId ? guessProviderType(modelId) : null,
+      providerId,
+      modelId,
+      kinId,
+      usage: result.usage,
+    })
+  }
+
+  return result
 }
