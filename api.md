@@ -799,6 +799,82 @@ Retourne tous les modèles/services par défaut en un seul payload.
 
 ---
 
+## Usage (admin uniquement)
+
+Suivi de la consommation de tokens LLM. Toutes les routes nécessitent le rôle admin.
+
+### `GET /api/usage`
+
+Liste paginée des enregistrements de consommation LLM.
+
+```typescript
+// Query params (tous optionnels)
+kinId?: string
+providerId?: string
+providerType?: string
+modelId?: string
+taskId?: string
+cronId?: string
+callSite?: string
+from?: number        // timestamp ms
+to?: number          // timestamp ms
+limit?: number       // max 200, default 50
+offset?: number      // default 0
+
+// Response 200
+{
+  items: Array<{
+    id: string
+    createdAt: number
+    callSite: string
+    callType: string
+    providerType: string | null
+    providerId: string | null
+    modelId: string | null
+    kinId: string | null
+    taskId: string | null
+    cronId: string | null
+    sessionId: string | null
+    inputTokens: number | null
+    outputTokens: number | null
+    totalTokens: number | null
+    cacheReadTokens: number | null
+    cacheWriteTokens: number | null
+    reasoningTokens: number | null
+    embeddingTokens: number | null
+    stepCount: number
+  }>,
+  total: number
+}
+```
+
+### `GET /api/usage/summary`
+
+Agrégation de la consommation groupée par une dimension.
+
+```typescript
+// Query params
+groupBy: 'provider_type' | 'model_id' | 'kin_id' | 'call_site' | 'day'  // obligatoire
+kinId?: string
+providerType?: string
+modelId?: string
+from?: number
+to?: number
+
+// Response 200
+{
+  summary: Array<{
+    group: string
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+    count: number
+  }>
+}
+```
+
+---
+
 ## SSE
 
 ### `GET /api/sse`

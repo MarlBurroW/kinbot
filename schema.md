@@ -590,6 +590,42 @@ Fichiers uploadés par les utilisateurs ou générés par les Kins.
 
 ---
 
+### `llm_usage`
+
+Suivi des consommations de tokens LLM pour toutes les invocations AI (chat, tâches, quick sessions, compacting, mémoire, embeddings, génération d'images).
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `created_at` | integer | NOT NULL | Timestamp de l'appel |
+| `call_site` | text | NOT NULL | Point d'appel : 'chat', 'quick-session', 'task', 'compacting', 'consolidation', 'memory-review', 'embedding', 'image-gen', etc. |
+| `call_type` | text | NOT NULL | Type d'appel : 'stream-text', 'generate-text', 'embed', 'generate-image' |
+| `provider_type` | text | | Type de provider : 'anthropic', 'openai', 'gemini', etc. |
+| `provider_id` | text | | UUID du provider (nullable — le provider peut être supprimé) |
+| `model_id` | text | | Ex: 'claude-sonnet-4-20250514' |
+| `kin_id` | text | | ID du Kin (nullable pour les appels hors Kin) |
+| `task_id` | text | | ID de la tâche (nullable) |
+| `cron_id` | text | | ID du cron (nullable) |
+| `session_id` | text | | ID de quick session (nullable) |
+| `input_tokens` | integer | | Tokens d'entrée |
+| `output_tokens` | integer | | Tokens de sortie |
+| `total_tokens` | integer | | Total des tokens |
+| `cache_read_tokens` | integer | | Tokens lus depuis le cache |
+| `cache_write_tokens` | integer | | Tokens écrits dans le cache |
+| `reasoning_tokens` | integer | | Tokens de raisonnement (sortie) |
+| `embedding_tokens` | integer | | Tokens d'embedding |
+| `step_count` | integer | NOT NULL, DEFAULT 1 | Nombre d'étapes (pour les boucles multi-step streamText) |
+
+**Index** :
+- `idx_llm_usage_created` sur (`created_at`)
+- `idx_llm_usage_kin` sur (`kin_id`, `created_at`)
+- `idx_llm_usage_provider_type` sur (`provider_type`, `created_at`)
+- `idx_llm_usage_model` sur (`model_id`, `created_at`)
+- `idx_llm_usage_task` sur (`task_id`)
+- `idx_llm_usage_cron` sur (`cron_id`)
+
+---
+
 ## Tables virtuelles (FTS5 + sqlite-vec)
 
 ### `memories_fts` (FTS5)
@@ -676,4 +712,6 @@ webhooks
 vault_secrets
  ├── N:1  vault_types
  └── 1:N  vault_attachments
+
+llm_usage (standalone, indexes sur kin_id, provider_type, model_id, task_id, cron_id)
 ```
