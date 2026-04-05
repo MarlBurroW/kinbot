@@ -1,6 +1,6 @@
-import { eq, and, lt } from 'drizzle-orm'
+import { eq, and, lt, inArray } from 'drizzle-orm'
 import { db } from '@/server/db/index'
-import { quickSessions } from '@/server/db/schema'
+import { quickSessions, messages } from '@/server/db/schema'
 import { config } from '@/server/config'
 import { createLogger } from '@/server/logger'
 import { sseManager } from '@/server/sse/index'
@@ -63,6 +63,9 @@ export function startQuickSessionCleanup() {
         .all()
 
       if (stale.length > 0) {
+        const staleIds = stale.map((s) => s.id)
+        // Delete messages first — the DB DDL may lack ON DELETE CASCADE
+        await db.delete(messages).where(inArray(messages.sessionId, staleIds))
         for (const s of stale) {
           await db.delete(quickSessions).where(eq(quickSessions.id, s.id))
         }
