@@ -62,5 +62,23 @@ export function useQueueItems(kinId: string | null) {
     }
   }, [kinId])
 
-  return { items, removeItem, isRemoving }
+  const injectItem = useCallback(async (itemId: string) => {
+    if (!kinId) return
+    const item = items.find((i) => i.id === itemId)
+    if (!item) return
+    setIsRemoving(itemId)
+    try {
+      await api.post(`/kins/${kinId}/messages/inject`, {
+        content: item.content,
+        queueItemId: itemId,
+      })
+      setItems((prev) => prev.filter((i) => i.id !== itemId))
+    } catch {
+      // Will be corrected by next SSE-triggered refetch
+    } finally {
+      setIsRemoving(null)
+    }
+  }, [kinId, items])
+
+  return { items, removeItem, injectItem, isRemoving }
 }

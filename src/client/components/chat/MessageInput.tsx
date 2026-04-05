@@ -4,10 +4,11 @@ import { Button } from '@/client/components/ui/button'
 import { Textarea } from '@/client/components/ui/textarea'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/client/components/ui/tooltip'
 import { cn } from '@/client/lib/utils'
-import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2, Bold, Italic, Strikethrough, Code, Braces } from 'lucide-react'
+import { SendHorizontal, Square, Paperclip, X, FileIcon, Loader2 } from 'lucide-react'
 import { useInputHistory } from '@/client/hooks/useInputHistory'
 import { MAX_MESSAGE_LENGTH } from '@/shared/constants'
 import { MentionPopover, getMentionItemCount, getMentionItemAt, type MentionItem } from '@/client/components/chat/MentionPopover'
+import { CommandPopover, getFilteredCommands, SLASH_COMMANDS, type SlashCommand } from '@/client/components/chat/CommandPopover'
 import { getCaretCoordinates } from '@/client/lib/getCaretCoordinates'
 import type { MentionableUser, MentionableKin } from '@/client/hooks/useMentionables'
 import type { PendingFile } from '@/client/hooks/useFileUpload'
@@ -20,6 +21,8 @@ interface MessageInputProps {
   onSend: (content: string, fileIds?: string[]) => void
   onStop?: () => void
   isStreaming?: boolean
+  /** Kin is processing (dequeued) but may not have started streaming tokens yet */
+  isProcessing?: boolean
   disabled?: boolean
   disabledReason?: string
   /** Controlled text value */
@@ -34,6 +37,10 @@ interface MessageInputProps {
   onAddFiles?: (files: FileList | File[]) => void
   /** Remove a pending file */
   onRemoveFile?: (localId: string) => void
+  /** Inject a message into the current streaming response (/btw) */
+  onInject?: (content: string) => void
+  /** Handle a slash command (name without /, optional arg) */
+  onCommand?: (command: string, arg?: string) => void
   /** Kin ID for input history (Up/Down arrow to cycle through sent messages) */
   kinId?: string
   /** Users available for @mention autocomplete */
@@ -46,6 +53,7 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
   onSend,
   onStop,
   isStreaming = false,
+  isProcessing = false,
   disabled,
   disabledReason,
   value,
@@ -54,6 +62,8 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
   isUploading,
   onAddFiles,
   onRemoveFile,
+  onInject,
+  onCommand,
   kinId,
   mentionableUsers,
   mentionableKins,
@@ -62,7 +72,6 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [showToolbar, setShowToolbar] = useState(false)
   const dragCounterRef = useRef(0)
 
   // Mention autocomplete state
@@ -71,6 +80,12 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0)
   const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number }>({ top: 8, left: 0 })
   const isMentionOpen = mentionQuery !== null && (mentionableUsers?.length || mentionableKins?.length)
+
+  // Slash command autocomplete state
+  const [commandQuery, setCommandQuery] = useState<string | null>(null)
+  const [commandSelectedIndex, setCommandSelectedIndex] = useState(0)
+  const [commandPosition, setCommandPosition] = useState<{ top: number; left: number }>({ top: 8, left: 0 })
+  const isCommandOpen = commandQuery !== null
 
   useImperativeHandle(ref, () => ({
     focus: () => textareaRef.current?.focus(),
@@ -107,15 +122,40 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
     setMentionQuery(null)
   }, [])
 
-  /** Handle change: update value and detect mention */
+  /** Detect /command trigger: only when / is at position 0 and no space yet (typing the command name) */
+  const detectCommand = useCallback((text: string, cursorPos: number) => {
+    // Command must start at beginning of input with /
+    if (text.startsWith('/')) {
+      // Extract the part after / up to cursor or first space
+      const afterSlash = text.slice(1, cursorPos)
+      // Only show popover while typing the command name (no space yet)
+      if (!afterSlash.includes(' ')) {
+        setCommandQuery(afterSlash)
+        setCommandSelectedIndex(0)
+        // Position popover above the textarea
+        const textarea = textareaRef.current
+        if (textarea) {
+          const coords = getCaretCoordinates(textarea, 0)
+          const textareaRect = textarea.getBoundingClientRect()
+          const distanceFromBottom = textareaRect.height - coords.top - coords.height
+          setCommandPosition({ top: Math.max(distanceFromBottom, 8), left: coords.left })
+        }
+        return
+      }
+    }
+    setCommandQuery(null)
+  }, [])
+
+  /** Handle change: update value and detect mention/command */
   const handleChange = useCallback((newValue: string) => {
     onChange(newValue)
     // Use requestAnimationFrame to read cursor position after React updates the textarea
     requestAnimationFrame(() => {
       const cursor = textareaRef.current?.selectionStart ?? newValue.length
       detectMention(newValue, cursor)
+      detectCommand(newValue, cursor)
     })
-  }, [onChange, detectMention])
+  }, [onChange, detectMention, detectCommand])
 
   /** Insert selected mention into the text */
   const handleMentionSelect = useCallback((item: MentionItem) => {
@@ -133,17 +173,87 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
     })
   }, [value, onChange, mentionStartIndex, mentionQuery])
 
+  /** Handle selecting a slash command from the popover */
+  const handleCommandSelect = useCallback((cmd: SlashCommand) => {
+    if (cmd.hasArg) {
+      // Commands with args: insert "/name " and let user type the argument
+      const newValue = `/${cmd.name} `
+      onChange(newValue)
+      setCommandQuery(null)
+      requestAnimationFrame(() => {
+        textareaRef.current?.setSelectionRange(newValue.length, newValue.length)
+        textareaRef.current?.focus()
+      })
+    } else {
+      // Commands without args: execute immediately
+      onChange('')
+      setCommandQuery(null)
+      onCommand?.(cmd.name)
+    }
+  }, [onChange, onCommand])
+
   const hasPendingFiles = pendingFiles && pendingFiles.length > 0
   const readyFileIds = pendingFiles?.filter((f) => f.status === 'done').map((f) => f.serverId!)
 
   const handleSubmit = () => {
     const trimmed = value.trim()
-    if ((!trimmed && !hasPendingFiles) || disabled || isStreaming || isUploading || trimmed.length > MAX_MESSAGE_LENGTH) return
+    if ((!trimmed && !hasPendingFiles) || disabled || isUploading || trimmed.length > MAX_MESSAGE_LENGTH) return
+
+    // Handle slash commands
+    const cmdMatch = trimmed.match(/^\/(\S+)(?:\s+(.+))?$/s)
+    if (cmdMatch) {
+      const cmdName = cmdMatch[1]!.toLowerCase()
+      const cmdArg = cmdMatch[2]?.trim()
+
+      // /btw: inject into current streaming response
+      if (cmdName === 'btw' && cmdArg && (isStreaming || isProcessing) && onInject) {
+        onInject(cmdArg)
+        onChange('')
+        return
+      }
+
+      // All other known commands: delegate to onCommand
+      const knownCommands = SLASH_COMMANDS.map((c) => c.name)
+      if (knownCommands.includes(cmdName) && onCommand) {
+        onCommand(cmdName, cmdArg)
+        onChange('')
+        return
+      }
+    }
+
     history.push(trimmed)
     onSend(trimmed, readyFileIds?.length ? readyFileIds : undefined)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Command popover keyboard navigation
+    if (isCommandOpen) {
+      const cmds = getFilteredCommands(commandQuery!, isStreaming)
+      if (cmds.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setCommandSelectedIndex((prev) => (prev + 1) % cmds.length)
+          return
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setCommandSelectedIndex((prev) => (prev - 1 + cmds.length) % cmds.length)
+          return
+        }
+        if (e.key === 'Tab') {
+          e.preventDefault()
+          const cmd = cmds[commandSelectedIndex]
+          if (cmd) handleCommandSelect(cmd)
+          return
+        }
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setCommandQuery(null)
+        return
+      }
+    }
+
     // Mention popover keyboard navigation
     if (isMentionOpen && mentionableUsers && mentionableKins) {
       const count = getMentionItemCount(mentionQuery!, mentionableUsers, mentionableKins)
@@ -307,14 +417,6 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
     [value, onChange],
   )
 
-  const formatActions = [
-    { key: 'bold', icon: Bold, prefix: '**', suffix: '**', shortcut: 'Ctrl+B' },
-    { key: 'italic', icon: Italic, prefix: '_', suffix: '_', shortcut: 'Ctrl+I' },
-    { key: 'strikethrough', icon: Strikethrough, prefix: '~~', suffix: '~~', shortcut: 'Ctrl+Shift+X' },
-    { key: 'code', icon: Code, prefix: '`', suffix: '`', shortcut: 'Ctrl+E' },
-    { key: 'codeBlock', icon: Braces, prefix: '```\n', suffix: '\n```', shortcut: 'Ctrl+Shift+E' },
-  ] as const
-
   return (
     <div
       className="relative border-t bg-background/80 backdrop-blur-sm p-4"
@@ -376,34 +478,6 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
           </div>
         )}
 
-        {/* Formatting toolbar — visible when input is focused or has content */}
-        {showToolbar && (
-          <div className="mb-1.5 flex items-center gap-0.5">
-            {formatActions.map(({ key, icon: Icon, prefix, suffix, shortcut }) => (
-              <Tooltip key={key}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onMouseDown={(e) => {
-                      // Prevent stealing focus from textarea
-                      e.preventDefault()
-                      wrapSelection(prefix, suffix)
-                    }}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-                    aria-label={t(`chat.format.${key}`)}
-                  >
-                    <Icon className="size-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {t(`chat.format.${key}`)} <kbd className="ml-1 text-[10px] text-muted-foreground">{shortcut.replace('Ctrl', navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl')}</kbd>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        )}
-
         {/* Input row */}
         <div className="flex items-end gap-2">
           {/* Attach button */}
@@ -416,7 +490,7 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
                     variant="ghost"
                     size="icon"
                     className="shrink-0"
-                    disabled={disabled || isStreaming}
+                    disabled={disabled}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Paperclip className="size-4" />
@@ -441,10 +515,8 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
               onChange={(e) => handleChange(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              onFocus={() => setShowToolbar(true)}
-              onBlur={() => { if (!value) setShowToolbar(false) }}
               placeholder={disabledReason ?? t('chat.placeholder')}
-              disabled={disabled || isStreaming}
+              disabled={disabled}
               rows={1}
               className={cn(
                 'min-h-10 max-h-40 resize-none',
@@ -463,9 +535,20 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
                 onSelect={handleMentionSelect}
               />
             )}
+
+            {/* /command autocomplete popover */}
+            {isCommandOpen && !isMentionOpen && (
+              <CommandPopover
+                query={commandQuery!}
+                selectedIndex={commandSelectedIndex}
+                position={commandPosition}
+                isStreaming={isStreaming}
+                onSelect={handleCommandSelect}
+              />
+            )}
           </div>
 
-          {isStreaming ? (
+          {(isStreaming || isProcessing) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -479,37 +562,37 @@ export const MessageInput = memo(forwardRef<MessageInputHandle, MessageInputProp
               </TooltipTrigger>
               <TooltipContent>{t('chat.stop')}</TooltipContent>
             </Tooltip>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={disabled || isUploading || (!value.trim() && !hasPendingFiles) || value.length > MAX_MESSAGE_LENGTH}
-              size="icon"
-              className="shrink-0"
-            >
-              <SendHorizontal className="size-4" />
-            </Button>
           )}
+          <Button
+            onClick={handleSubmit}
+            disabled={disabled || isUploading || (!value.trim() && !hasPendingFiles) || value.length > MAX_MESSAGE_LENGTH}
+            size="icon"
+            className="shrink-0"
+          >
+            <SendHorizontal className="size-4" />
+          </Button>
         </div>
 
-        {/* Character count */}
-        {value.length > 0 && (
-          <div className="mt-1 flex justify-end px-1">
-            <span className={cn(
-              'text-[10px] tabular-nums transition-colors',
-              value.length > MAX_MESSAGE_LENGTH
-                ? 'text-destructive font-medium'
-                : value.length > MAX_MESSAGE_LENGTH * 0.75
-                  ? 'text-destructive'
-                  : value.length > MAX_MESSAGE_LENGTH * 0.5
-                    ? 'text-warning'
-                    : 'text-muted-foreground/50',
-            )}>
-              {value.length > MAX_MESSAGE_LENGTH
-                ? t('chat.messageTooLong', { count: value.length, max: MAX_MESSAGE_LENGTH })
-                : t('chat.charCount', { count: value.length })}
-            </span>
-          </div>
-        )}
+        {/* Character count — always rendered to avoid layout shift */}
+        <div className="mt-1 flex justify-end px-1">
+          <span className={cn(
+            'text-[10px] tabular-nums transition-opacity duration-150',
+            value.length > 0 ? 'opacity-100' : 'opacity-0',
+            value.length > MAX_MESSAGE_LENGTH
+              ? 'text-destructive font-medium'
+              : value.length > MAX_MESSAGE_LENGTH * 0.75
+                ? 'text-destructive'
+                : value.length > MAX_MESSAGE_LENGTH * 0.5
+                  ? 'text-warning'
+                  : 'text-muted-foreground/50',
+          )}>
+            {value.length > MAX_MESSAGE_LENGTH
+              ? t('chat.messageTooLong', { count: value.length, max: MAX_MESSAGE_LENGTH })
+              : value.length > 0
+                ? t('chat.charCount', { count: value.length })
+                : '\u00A0'}
+          </span>
+        </div>
       </div>
     </div>
   )

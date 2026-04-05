@@ -186,6 +186,49 @@ messageRoutes.post('/stop', async (c) => {
   return c.json({ ok: true })
 })
 
+// POST /api/kins/:kinId/messages/inject — inject a message into the current streaming response (/btw)
+messageRoutes.post('/inject', async (c) => {
+  const kinIdParam = c.req.param('kinId')
+  const kinId = kinIdParam ? resolveKinId(kinIdParam) : null
+  if (!kinId) {
+    return c.json({ error: { code: 'KIN_NOT_FOUND', message: 'Kin not found' } }, 404)
+  }
+
+  const user = c.get('user') as { id: string; name: string }
+  const body = await c.req.json()
+  const { content, queueItemId } = body as { content: string; queueItemId?: string }
+
+  if (!content?.trim()) {
+    return c.json({ error: { code: 'EMPTY_MESSAGE', message: 'Message content required' } }, 400)
+  }
+
+  if (content.length > MAX_MESSAGE_LENGTH) {
+    return c.json({ error: { code: 'MESSAGE_TOO_LONG', message: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` } }, 400)
+  }
+
+  // If promoting from queue, remove the original item
+  if (queueItemId) {
+    try { await removeQueueItem(kinId, queueItemId) } catch { /* already removed or processing */ }
+  }
+
+  // Abort current stream so the partial response is saved
+  const aborted = abortKinStream(kinId)
+
+  // Enqueue with high priority so it processes next
+  const { id, queuePosition } = await enqueueMessage({
+    kinId,
+    messageType: aborted ? 'user_addendum' : 'user',
+    content: content.trim(),
+    sourceType: 'user',
+    sourceId: user.id,
+    priority: 999,
+  })
+
+  log.debug({ kinId, messageId: id, aborted, queueItemId }, 'Message injected')
+
+  return c.json({ messageId: id, queuePosition, injected: aborted }, 202)
+})
+
 // DELETE /api/kins/:kinId/messages — clear all conversation messages (not task/session messages)
 messageRoutes.delete('/', async (c) => {
   const kinIdParam = c.req.param('kinId')

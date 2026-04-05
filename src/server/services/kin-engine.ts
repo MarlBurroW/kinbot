@@ -505,6 +505,11 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     log.info({ kinId, queueItemId: queueItem.id, messageType: queueItem.messageType, sourceType: queueItem.sourceType }, 'Processing message')
 
+    // Create an AbortController early so the stream can be cancelled even before
+    // the LLM call starts (during prompt building, memory search, etc.)
+    const abortController = new AbortController()
+    activeAbortControllers.set(kinId, abortController)
+
     // Notify clients that this Kin started processing
     const pendingCount = await getQueueSize(kinId)
     const processingStartedAt = Date.now()
@@ -529,7 +534,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       // can link the message back to its task detail modal.
       const messageMetadata = queueItem.sourceType === 'task' && queueItem.taskId
         ? JSON.stringify({ resolvedTaskId: queueItem.taskId })
-        : null
+        : queueItem.messageType === 'user_addendum'
+          ? JSON.stringify({ isAddendum: true })
+          : null
       await db.insert(messages).values({
         id: userMessageId,
         kinId,
@@ -969,10 +976,6 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const reasoningSegments: Array<{ offset: number; text: string }> = []
     let currentReasoning = ''
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
-
-    // Create an AbortController so the stream can be cancelled from outside
-    const abortController = new AbortController()
-    activeAbortControllers.set(kinId, abortController)
 
     // Strip execute functions from tools so the SDK only collects intents
     // (we execute tools ourselves between steps)
@@ -1962,6 +1965,15 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
       if (msg.sourceType === 'user' && msg.sourceId) {
         const pseudo = pseudonymMap.get(msg.sourceId)
         if (pseudo) textContent = `[${pseudo}] ${textContent}`
+      }
+      // Addendum messages: prefix with context so the LLM knows this was injected mid-response
+      if (msg.metadata) {
+        try {
+          const meta = JSON.parse(msg.metadata as string)
+          if (meta.isAddendum) {
+            textContent += '\n\n[The user sent this additional context while you were in the middle of responding. Take it into account and continue.]'
+          }
+        } catch { /* ignore parse errors */ }
       }
       // Inter-kin messages: prefix the content with context instead of a separate system message
       if (msg.sourceType === 'kin' && msg.sourceId) {

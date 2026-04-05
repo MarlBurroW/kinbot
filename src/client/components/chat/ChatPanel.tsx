@@ -77,7 +77,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
   const { toolCalls, toolCallCount, toolCallsByMessage } = useToolCalls(kin.id, messages)
   const { prompts: pendingPrompts, respond: respondToPrompt, isResponding } = useHumanPrompts(kin.id)
   const { content: draftContent, setContent: setDraftContent, clearDraft } = useDraftMessage(kin.id)
-  const { items: queueItems, removeItem: removeQueueItem, isRemoving: isRemovingQueueItem } = useQueueItems(kin.id)
+  const { items: queueItems, removeItem: removeQueueItem, injectItem: injectQueueItem, isRemoving: isRemovingQueueItem } = useQueueItems(kin.id)
   const { pendingFiles, addFiles, removeFile, clearFiles, isUploading } = useFileUpload(kin.id)
   const { activeSession, isOpen: isQuickOpen, setIsOpen: setQuickOpen, createSession, closeSession } = useQuickSession(kin.id)
   const [showQuickHistory, setShowQuickHistory] = useState(false)
@@ -529,6 +529,19 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
     [sendMessage, clearDraft, clearFiles, pendingFiles, t],
   )
 
+  // Inject a message into the current streaming response (/btw)
+  const handleInject = useCallback(
+    async (content: string) => {
+      try {
+        await api.post(`/kins/${kin.id}/messages/inject`, { content })
+        clearDraft()
+      } catch {
+        toast.error(t('chat.sendFailed'))
+      }
+    },
+    [kin.id, clearDraft, t],
+  )
+
   // Regenerate: find the last user message and re-send it
   const handleRegenerate = useCallback(() => {
     // Find the last user message (walking backwards)
@@ -541,6 +554,36 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
       }
     }
   }, [messages, sendMessage])
+
+  // Handle slash commands from the input
+  const handleCommand = useCallback(
+    (command: string, _arg?: string) => {
+      switch (command) {
+        case 'stop':
+          stopStreaming()
+          break
+        case 'regen':
+          handleRegenerate()
+          break
+        case 'compact':
+          handleForceCompact()
+          break
+        case 'thinking':
+          toggleThinking()
+          break
+        case 'clear':
+          clearConversation()
+          break
+        case 'help':
+          toast.info(
+            t('chat.commands.helpMessage'),
+            { duration: 8000 },
+          )
+          break
+      }
+    },
+    [stopStreaming, handleRegenerate, clearConversation, handleForceCompact, toggleThinking, t],
+  )
 
   // Determine the last assistant message id (for showing the regenerate button)
   const lastAssistantMsgId = useMemo(() => {
@@ -957,6 +1000,8 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         items={queueItems}
         isRemoving={isRemovingQueueItem}
         onRemove={removeQueueItem}
+        isStreaming={isStreaming}
+        onInject={injectQueueItem}
       />
 
       {/* Input */}
@@ -966,7 +1011,10 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         onChange={setDraftContent}
         onSend={handleSend}
         onStop={stopStreaming}
+        onInject={handleInject}
+        onCommand={handleCommand}
         isStreaming={isStreaming}
+        isProcessing={isProcessing}
         disabled={modelUnavailable || isCompacting}
         disabledReason={isCompacting ? t('chat.compacting.inputDisabled') : modelUnavailable ? t('kin.modelUnavailableInput') : undefined}
         pendingFiles={pendingFiles}

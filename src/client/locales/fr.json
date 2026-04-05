@@ -723,10 +723,22 @@
       "title_one": "{{count}} message en file d'attente",
       "title_other": "{{count}} messages en file d'attente",
       "remove": "Retirer de la file",
+      "inject": "Injecter dans la réponse en cours",
       "filesOnly": "(fichiers uniquement)"
     },
     "charCount": "{{count}} caractères",
     "messageTooLong": "{{count}} / {{max}}, message trop long",
+    "commands": {
+      "btw": "Injecter du contexte dans la réponse en cours",
+      "stop": "Arrêter la génération en cours",
+      "regen": "Régénérer la dernière réponse",
+      "compact": "Compacter l'historique de conversation",
+      "thinking": "Activer/désactiver la réflexion étendue",
+      "clear": "Effacer la conversation",
+      "help": "Afficher les commandes disponibles",
+      "helpMessage": "/btw — injecter du contexte pendant le streaming\n/stop — arrêter la génération\n/regen — régénérer la dernière réponse\n/compact — compacter l'historique\n/thinking — activer/désactiver la réflexion étendue\n/clear — effacer la conversation",
+      "noResults": "Aucune commande correspondante"
+    },
     "mention": {
       "users": "Utilisateur",
       "kins": "Kin",

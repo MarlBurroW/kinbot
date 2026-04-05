@@ -723,10 +723,22 @@
       "title_one": "{{count}} message queued",
       "title_other": "{{count}} messages queued",
       "remove": "Remove from queue",
+      "inject": "Inject into current response",
       "filesOnly": "(files only)"
     },
     "charCount": "{{count}} characters",
     "messageTooLong": "{{count}} / {{max}}, message too long",
+    "commands": {
+      "btw": "Inject context into current response",
+      "stop": "Stop current generation",
+      "regen": "Regenerate last response",
+      "compact": "Compact conversation history",
+      "thinking": "Toggle extended thinking",
+      "clear": "Clear conversation",
+      "help": "Show available commands",
+      "helpMessage": "/btw — inject context during streaming\n/stop — stop generation\n/regen — regenerate last response\n/compact — compact history\n/thinking — toggle extended thinking\n/clear — clear conversation",
+      "noResults": "No matching commands"
+    },
     "mention": {
       "users": "User",
       "kins": "Kin",
