@@ -36,6 +36,14 @@ export interface RecordUsageParams {
 export function recordUsage(params: RecordUsageParams): void {
   try {
     const u = params.usage
+    // For embedding calls, also populate inputTokens/totalTokens so aggregates work
+    const embTokens = params.embeddingTokens ?? null
+    const inputTokens = u?.inputTokens ?? embTokens
+    const outputTokens = u?.outputTokens ?? null
+    const totalTokens = u?.totalTokens ?? (inputTokens != null || outputTokens != null
+      ? (inputTokens ?? 0) + (outputTokens ?? 0)
+      : null)
+
     db.insert(llmUsage).values({
       id: uuid(),
       createdAt: new Date(Date.now()),
@@ -48,13 +56,13 @@ export function recordUsage(params: RecordUsageParams): void {
       taskId: params.taskId ?? null,
       cronId: params.cronId ?? null,
       sessionId: params.sessionId ?? null,
-      inputTokens: u?.inputTokens ?? null,
-      outputTokens: u?.outputTokens ?? null,
-      totalTokens: u?.totalTokens ?? null,
+      inputTokens,
+      outputTokens,
+      totalTokens,
       cacheReadTokens: u?.inputTokenDetails?.cacheReadTokens ?? null,
       cacheWriteTokens: u?.inputTokenDetails?.cacheWriteTokens ?? null,
       reasoningTokens: u?.outputTokenDetails?.reasoningTokens ?? null,
-      embeddingTokens: params.embeddingTokens ?? null,
+      embeddingTokens: embTokens,
       stepCount: params.stepCount ?? 1,
     }).run()
   } catch (err) {

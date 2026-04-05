@@ -10,12 +10,21 @@ import {
 } from '@/client/components/ui/select'
 import { Card, CardContent } from '@/client/components/ui/card'
 import { Skeleton } from '@/client/components/ui/skeleton'
-import { ArrowDownRight, ArrowUpRight, Activity, Hash } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
+import { ProviderIcon } from '@/client/components/common/ProviderIcon'
+import { ArrowDownRight, ArrowUpRight, Activity, Hash, X } from 'lucide-react'
 import { api } from '@/client/lib/api'
 import type { UsageSummaryRow } from '@/shared/types'
 
 type Period = '24h' | '7d' | '30d' | 'all'
 type GroupBy = 'provider_type' | 'model_id' | 'kin_id' | 'call_site' | 'day'
+
+interface KinInfo {
+  id: string
+  name: string
+  role: string
+  avatarUrl: string | null
+}
 
 const PERIODS: Period[] = ['24h', '7d', '30d', 'all']
 const GROUP_OPTIONS: GroupBy[] = ['model_id', 'provider_type', 'kin_id', 'call_site', 'day']
@@ -132,11 +141,57 @@ function DailySparkline({ data, t }: { data: UsageSummaryRow[]; t: (key: string)
   )
 }
 
+// ─── Row Label (with avatar/icon) ──────────────────────────────────────────
+
+function RowLabel({ group, groupBy, kinMap }: {
+  group: string
+  groupBy: GroupBy
+  kinMap: Map<string, KinInfo>
+}) {
+  if (groupBy === 'kin_id') {
+    if (!group) return <span className="truncate font-medium text-muted-foreground">(unknown)</span>
+    const kin = kinMap.get(group)
+    if (kin) {
+      const name = kin.name || group.slice(0, 8)
+      const initials = name.slice(0, 2).toUpperCase()
+      return (
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar className="size-5 shrink-0">
+            {kin.avatarUrl && <AvatarImage src={kin.avatarUrl} alt={name} />}
+            <AvatarFallback className="text-[8px] bg-secondary">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <span className="block truncate text-xs font-medium">{name}</span>
+            {kin.role && (
+              <span className="block truncate text-[10px] text-muted-foreground leading-tight">{kin.role}</span>
+            )}
+          </div>
+        </div>
+      )
+    }
+    // Fallback for unknown kin — show truncated UUID
+    return <span className="truncate font-medium text-muted-foreground" title={group}>{group.slice(0, 8)}…</span>
+  }
+
+  if (groupBy === 'provider_type') {
+    return (
+      <div className="flex items-center gap-2 min-w-0">
+        <ProviderIcon providerType={group} className="size-4 shrink-0" variant="color" />
+        <span className="truncate font-medium capitalize">{group}</span>
+      </div>
+    )
+  }
+
+  return <span className="truncate font-medium" title={group}>{group || '(unknown)'}</span>
+}
+
 // ─── Breakdown Table ────────────────────────────────────────────────────────
 
-function BreakdownTable({ rows, loading, t }: {
+function BreakdownTable({ rows, loading, groupBy, kinMap, t }: {
   rows: UsageSummaryRow[]
   loading: boolean
+  groupBy: GroupBy
+  kinMap: Map<string, KinInfo>
   t: (key: string) => string
 }) {
   if (loading) {
@@ -172,11 +227,9 @@ function BreakdownTable({ rows, loading, t }: {
         {rows.map((row) => (
           <div
             key={row.group}
-            className="grid grid-cols-[1fr_80px_80px_80px_60px] gap-2 px-3 py-1.5 text-xs hover:bg-muted/30 border-b border-border/20"
+            className="grid grid-cols-[1fr_80px_80px_80px_60px] gap-2 px-3 py-1.5 text-xs hover:bg-muted/30 border-b border-border/20 items-center"
           >
-            <span className="truncate font-medium" title={row.group}>
-              {row.group || '(unknown)'}
-            </span>
+            <RowLabel group={row.group} groupBy={groupBy} kinMap={kinMap} />
             <span className="text-right font-mono tabular-nums text-muted-foreground">
               {formatTokens(row.inputTokens)}
             </span>
@@ -196,33 +249,150 @@ function BreakdownTable({ rows, loading, t }: {
   )
 }
 
+// ─── Kin Filter ─────────────────────────────────────────────────────────────
+
+function KinFilter({ value, onValueChange, kins, t }: {
+  value: string
+  onValueChange: (v: string) => void
+  kins: KinInfo[]
+  t: (key: string) => string
+}) {
+  const selectedKin = kins.find((k) => k.id === value)
+
+  return (
+    <div className="relative">
+      <Select value={value || '__all__'} onValueChange={(v) => onValueChange(v === '__all__' ? '' : v)}>
+        <SelectTrigger className={`w-[200px] h-8 text-xs ${value ? 'pr-7' : ''}`}>
+          {selectedKin ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <Avatar className="size-4 shrink-0">
+                {selectedKin.avatarUrl && <AvatarImage src={selectedKin.avatarUrl} alt={selectedKin.name} />}
+                <AvatarFallback className="text-[7px] bg-secondary">{(selectedKin.name || '??').slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="truncate">{selectedKin.name}</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">{t('settings.tokenUsage.filterKin')}</span>
+          )}
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value="__all__" className="text-xs">{t('settings.tokenUsage.filterKin')}</SelectItem>
+          {kins.map((kin) => (
+            <SelectItem key={kin.id} value={kin.id} className="text-xs py-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <Avatar className="size-5 shrink-0">
+                  {kin.avatarUrl && <AvatarImage src={kin.avatarUrl} alt={kin.name} />}
+                  <AvatarFallback className="text-[8px] bg-secondary">{kin.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <span className="block truncate text-xs">{kin.name}</span>
+                  {kin.role && (
+                    <span className="block truncate text-[10px] text-muted-foreground leading-tight">{kin.role}</span>
+                  )}
+                </div>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {value && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onValueChange('') }}
+          className="absolute right-7 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 transition-colors"
+        >
+          <X className="size-3" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Provider Filter ────────────────────────────────────────────────────────
+
+function ProviderFilter({ value, onValueChange, providers, t }: {
+  value: string
+  onValueChange: (v: string) => void
+  providers: string[]
+  t: (key: string) => string
+}) {
+  return (
+    <div className="relative">
+      <Select value={value || '__all__'} onValueChange={(v) => onValueChange(v === '__all__' ? '' : v)}>
+        <SelectTrigger className={`w-[200px] h-8 text-xs ${value ? 'pr-7' : ''}`}>
+          {value ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <ProviderIcon providerType={value} className="size-3.5 shrink-0" variant="color" />
+              <span className="truncate capitalize">{value}</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">{t('settings.tokenUsage.filterProvider')}</span>
+          )}
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value="__all__" className="text-xs">{t('settings.tokenUsage.filterProvider')}</SelectItem>
+          {providers.map((p) => (
+            <SelectItem key={p} value={p} className="text-xs">
+              <span className="flex items-center gap-2">
+                <ProviderIcon providerType={p} className="size-4" variant="color" />
+                <span className="capitalize">{p}</span>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {value && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onValueChange('') }}
+          className="absolute right-7 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 transition-colors"
+        >
+          <X className="size-3" />
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export function TokenUsageSettings() {
+export function TokenUsageSettings({ initialKinFilter }: { initialKinFilter?: string } = {}) {
   const { t } = useTranslation()
 
   const [period, setPeriod] = useState<Period>('7d')
-  const [groupBy, setGroupBy] = useState<GroupBy>('model_id')
-  const [kinFilter, setKinFilter] = useState<string>('')
+  const [groupBy, setGroupBy] = useState<GroupBy>(initialKinFilter ? 'model_id' : 'model_id')
+  const [kinFilter, setKinFilter] = useState<string>(initialKinFilter ?? '')
   const [providerFilter, setProviderFilter] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [summaryRows, setSummaryRows] = useState<UsageSummaryRow[]>([])
   const [dailyData, setDailyData] = useState<UsageSummaryRow[]>([])
 
-  // Available filter options (populated from data)
-  const [kinOptions, setKinOptions] = useState<UsageSummaryRow[]>([])
-  const [providerOptions, setProviderOptions] = useState<UsageSummaryRow[]>([])
+  // Kin info for resolving UUIDs to names/avatars
+  const [kins, setKins] = useState<KinInfo[]>([])
+  const kinMap = useMemo(() => new Map(kins.map((k) => [k.id, k])), [kins])
 
-  // Fetch filter options on mount
+  // Available filter options (populated from data)
+  const [kinOptionIds, setKinOptionIds] = useState<string[]>([])
+  const [providerOptions, setProviderOptions] = useState<string[]>([])
+
+  // Fetch kins + filter options on mount
   useEffect(() => {
     Promise.all([
+      api.get<{ kins: KinInfo[] }>('/kins'),
       api.get<{ summary: UsageSummaryRow[] }>('/usage/summary?groupBy=kin_id'),
       api.get<{ summary: UsageSummaryRow[] }>('/usage/summary?groupBy=provider_type'),
-    ]).then(([kinsRes, providersRes]) => {
-      setKinOptions(kinsRes.summary.filter((r) => r.group))
-      setProviderOptions(providersRes.summary.filter((r) => r.group))
+    ]).then(([kinsRes, kinUsageRes, providersRes]) => {
+      setKins(kinsRes.kins)
+      setKinOptionIds(kinUsageRes.summary.filter((r) => r.group).map((r) => r.group))
+      setProviderOptions(providersRes.summary.filter((r) => r.group).map((r) => r.group))
     }).catch(() => {})
   }, [])
+
+  // Kins that have usage data (for filter dropdown)
+  const kinFilterOptions = useMemo(
+    () => kins.filter((k) => kinOptionIds.includes(k.id)),
+    [kins, kinOptionIds],
+  )
 
   // Fetch data when filters change
   useEffect(() => {
@@ -301,52 +471,41 @@ export function TokenUsageSettings() {
         <DailySparkline data={dailyData} t={t} />
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-          <SelectTrigger className="w-[160px] h-8 text-xs">
-            <SelectValue placeholder={t('settings.tokenUsage.groupBy')} />
-          </SelectTrigger>
-          <SelectContent>
-            {GROUP_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={opt} className="text-xs">
-                {t(`settings.tokenUsage.groupBy${opt === 'provider_type' ? 'Provider' : opt === 'model_id' ? 'Model' : opt === 'kin_id' ? 'Kin' : opt === 'call_site' ? 'CallSite' : 'Day'}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {kinOptions.length > 0 && (
-          <Select value={kinFilter || '__all__'} onValueChange={(v) => setKinFilter(v === '__all__' ? '' : v)}>
-            <SelectTrigger className="w-[160px] h-8 text-xs">
-              <SelectValue placeholder={t('settings.tokenUsage.filterKin')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__" className="text-xs">{t('settings.tokenUsage.filterKin')}</SelectItem>
-              {kinOptions.map((k) => (
-                <SelectItem key={k.group} value={k.group} className="text-xs">{k.group}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        {providerOptions.length > 0 && (
-          <Select value={providerFilter || '__all__'} onValueChange={(v) => setProviderFilter(v === '__all__' ? '' : v)}>
-            <SelectTrigger className="w-[160px] h-8 text-xs">
-              <SelectValue placeholder={t('settings.tokenUsage.filterProvider')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__" className="text-xs">{t('settings.tokenUsage.filterProvider')}</SelectItem>
-              {providerOptions.map((p) => (
-                <SelectItem key={p.group} value={p.group} className="text-xs">{p.group}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+      {/* Group by — toggle buttons */}
+      <div className="space-y-1.5">
+        <span className="text-xs text-muted-foreground">{t('settings.tokenUsage.groupBy')}</span>
+        <div className="flex flex-wrap items-center gap-1">
+          {GROUP_OPTIONS.map((opt) => (
+            <Button
+              key={opt}
+              size="sm"
+              variant={groupBy === opt ? 'secondary' : 'ghost'}
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setGroupBy(opt)}
+            >
+              {t(`settings.tokenUsage.groupBy${opt === 'provider_type' ? 'Provider' : opt === 'model_id' ? 'Model' : opt === 'kin_id' ? 'Kin' : opt === 'call_site' ? 'CallSite' : 'Day'}`)}
+            </Button>
+          ))}
+        </div>
       </div>
 
+      {/* Filters — dropdowns */}
+      {(kinFilterOptions.length > 0 || providerOptions.length > 0) && (
+        <div className="space-y-1.5">
+          <span className="text-xs text-muted-foreground">{t('settings.tokenUsage.filters')}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {kinFilterOptions.length > 0 && (
+              <KinFilter value={kinFilter} onValueChange={setKinFilter} kins={kinFilterOptions} t={t} />
+            )}
+            {providerOptions.length > 0 && (
+              <ProviderFilter value={providerFilter} onValueChange={setProviderFilter} providers={providerOptions} t={t} />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Breakdown Table */}
-      <BreakdownTable rows={summaryRows} loading={loading} t={t} />
+      <BreakdownTable rows={summaryRows} loading={loading} groupBy={groupBy} kinMap={kinMap} t={t} />
     </div>
   )
 }

@@ -75,10 +75,12 @@ export function ChatPage() {
   const [editingKin, setEditingKin] = useState<Awaited<ReturnType<typeof getKin>> | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>()
+  const [settingsFilters, setSettingsFilters] = useState<{ kinId?: string } | undefined>()
   const [accountOpen, setAccountOpen] = useState(false)
 
-  const handleOpenSettings = useCallback((section?: string) => {
+  const handleOpenSettings = useCallback((section?: string, filters?: { kinId?: string }) => {
     setSettingsInitialSection(section)
+    setSettingsFilters(filters)
     setSettingsOpen(true)
   }, [])
 
@@ -299,6 +301,7 @@ export function ChatPage() {
                     queueState={kinQueueState.get(selectedKin.id)}
                     onModelChange={(modelId, providerId) => handleModelChange(selectedKin.id, modelId, providerId)}
                     onEditKin={() => handleOpenEditModal()}
+                    onOpenSettings={handleOpenSettings}
                   />
                 ) : (
                   <div className="surface-chat flex flex-1 flex-col items-center justify-center p-6">
@@ -401,7 +404,7 @@ export function ChatPage() {
         {accountOpen && <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />}
 
         {/* Settings modal */}
-        {settingsOpen && <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} initialSection={settingsInitialSection} />}
+        {settingsOpen && <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} initialSection={settingsInitialSection} initialFilters={settingsFilters} />}
       </Suspense>
 
       {/* Command palette (Cmd+K) */}

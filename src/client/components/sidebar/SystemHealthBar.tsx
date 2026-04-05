@@ -6,7 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/client/components/ui/tooltip'
-import { BrainCircuit, Radio, Activity } from 'lucide-react'
+import { BrainCircuit, Radio, Activity, Coins } from 'lucide-react'
 import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
 import { cn } from '@/client/lib/utils'
@@ -23,7 +23,7 @@ interface ChannelHealth {
 }
 
 interface SystemHealthBarProps {
-  onOpenSettings?: (section?: string) => void
+  onOpenSettings?: (section?: string, filters?: { kinId?: string }) => void
 }
 
 export const SystemHealthBar = memo(function SystemHealthBar({ onOpenSettings }: SystemHealthBarProps) {
@@ -185,6 +185,22 @@ export const SystemHealthBar = memo(function SystemHealthBar({ onOpenSettings }:
             </TooltipContent>
           </Tooltip>
         )}
+
+        {/* Token usage shortcut */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onOpenSettings?.('tokenUsage')}
+              className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-muted-foreground ml-auto"
+            >
+              <Coins className="size-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {t('settings.tokenUsage.title')}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </TooltipProvider>
   )

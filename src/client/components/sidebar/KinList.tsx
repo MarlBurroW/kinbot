@@ -48,12 +48,13 @@ interface KinListProps {
   onEditKin: (id: string) => void
   onDeleteKin?: (id: string) => void
   onSetAsHub?: (id: string) => void
+  onViewUsage?: (kinId: string) => void
   onReorderKins: (newOrder: string[]) => void
 }
 
 const KIN_SEARCH_THRESHOLD = 5
 
-export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onSetAsHub, onReorderKins }: KinListProps) {
+export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug, unavailableKinIds, kinQueueState, onSelectKin, onCreateKin, onEditKin, onDeleteKin, onSetAsHub, onViewUsage, onReorderKins }: KinListProps) {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -171,6 +172,7 @@ export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug,
                   onDelete={onDeleteKin ? () => onDeleteKin(hubKin.id) : undefined}
                   onExport={() => handleExportKin(hubKin.id)}
                   onSetAsHub={onSetAsHub ? () => onSetAsHub(hubKin.id) : undefined}
+                  onViewUsage={onViewUsage ? () => onViewUsage(hubKin.id) : undefined}
                 />
                 {filteredKins.length > 0 && (
                   <div className="mx-2 mt-1 border-t border-border/40" />
@@ -201,6 +203,7 @@ export const KinList = memo(function KinList({ kins, llmModels, selectedKinSlug,
                       onDelete={onDeleteKin ? () => onDeleteKin(kin.id) : undefined}
                       onExport={() => handleExportKin(kin.id)}
                       onSetAsHub={onSetAsHub ? () => onSetAsHub(kin.id) : undefined}
+                      onViewUsage={onViewUsage ? () => onViewUsage(kin.id) : undefined}
                     />
                   )
                 })}

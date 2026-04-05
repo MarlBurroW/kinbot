@@ -47,7 +47,7 @@ interface AppSidebarProps {
   onDeleteKin?: (id: string) => void
   onSetAsHub?: (id: string) => void
   onReorderKins: (newOrder: string[]) => void
-  onOpenSettings?: (section?: string) => void
+  onOpenSettings?: (section?: string, filters?: { kinId?: string }) => void
 }
 
 export function AppSidebar({
@@ -125,6 +125,7 @@ export function AppSidebar({
           onEditKin={onEditKin}
           onDeleteKin={onDeleteKin}
           onSetAsHub={onSetAsHub}
+          onViewUsage={onOpenSettings ? (kinId: string) => onOpenSettings('tokenUsage', { kinId }) : undefined}
           onReorderKins={onReorderKins}
         />
 

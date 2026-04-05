@@ -67,9 +67,10 @@ interface ChatPanelProps {
   queueState?: { isProcessing: boolean; queueSize: number; processingStartedAt?: number; contextTokens?: number; contextWindow?: number; contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }
   onModelChange: (modelId: string, providerId: string) => void
   onEditKin: () => void
+  onOpenSettings?: (section?: string, filters?: { kinId?: string }) => void
 }
 
-export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin }: ChatPanelProps) {
+export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState, onModelChange, onEditKin, onOpenSettings }: ChatPanelProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { messages, streamingMessage, streamingReasoning, liveTasks, liveCompacting, isLoading, isStreaming, hasMore, isLoadingMore, tokenStalled, sendMessage, stopStreaming, clearConversation, fetchOlderMessages } = useChat(kin.id)
@@ -708,6 +709,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         scrollViewportRef={scrollAreaRef}
         thinkingEnabled={thinkingEnabled}
         onToggleThinking={toggleThinking}
+        onViewUsage={onOpenSettings ? () => onOpenSettings('tokenUsage', { kinId: kin.id }) : undefined}
       />
 
       {/* Search bar */}

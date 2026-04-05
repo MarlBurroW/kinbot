@@ -209,7 +209,8 @@
       "contextMenu": {
         "edit": "Modifier les paramètres",
         "delete": "Supprimer le Kin",
-        "setAsHub": "Définir comme Hub"
+        "setAsHub": "Définir comme Hub",
+        "viewUsage": "Consommation de tokens"
       }
     },
     "tasks": {
@@ -696,6 +697,7 @@
       "on": "Défilement auto activé. Cliquer pour désactiver",
       "off": "Défilement auto désactivé. Cliquer pour activer"
     },
+    "viewUsage": "Consommation de tokens",
     "export": {
       "title": "Exporter la conversation",
       "markdown": "Exporter en Markdown",
@@ -1652,7 +1654,8 @@
       "noData": "Aucune donnée pour cette période",
       "dailyTrend": "Tendance journalière",
       "legendInput": "Entrée",
-      "legendOutput": "Sortie"
+      "legendOutput": "Sortie",
+      "filters": "Filtres"
     }
   },
   "notifications": {

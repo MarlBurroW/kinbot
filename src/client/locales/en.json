@@ -209,7 +209,8 @@
       "contextMenu": {
         "edit": "Edit settings",
         "delete": "Delete Kin",
-        "setAsHub": "Set as Hub"
+        "setAsHub": "Set as Hub",
+        "viewUsage": "Token usage"
       }
     },
     "tasks": {
@@ -696,6 +697,7 @@
       "on": "Auto-scroll enabled. Click to disable",
       "off": "Auto-scroll disabled. Click to enable"
     },
+    "viewUsage": "Token usage",
     "export": {
       "title": "Export conversation",
       "markdown": "Export as Markdown",
@@ -1652,7 +1654,8 @@
       "noData": "No usage data for this period",
       "dailyTrend": "Daily trend",
       "legendInput": "Input",
-      "legendOutput": "Output"
+      "legendOutput": "Output",
+      "filters": "Filters"
     }
   },
   "notifications": {

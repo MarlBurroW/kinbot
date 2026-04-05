@@ -142,10 +142,15 @@ const sectionComponents: Record<string, React.FC> = {
   tokenUsage: TokenUsageSettings,
 }
 
+export interface SettingsFilters {
+  kinId?: string
+}
+
 interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialSection?: string
+  initialFilters?: SettingsFilters
 }
 
 interface SystemInfo {
@@ -226,7 +231,7 @@ function SettingsFooter() {
   )
 }
 
-export function SettingsModal({ open, onOpenChange, initialSection }: SettingsModalProps) {
+export function SettingsModal({ open, onOpenChange, initialSection, initialFilters }: SettingsModalProps) {
   const { t } = useTranslation()
   const [activeSection, setActiveSection] = useState<SectionId>('general')
 
@@ -318,7 +323,11 @@ export function SettingsModal({ open, onOpenChange, initialSection }: SettingsMo
           {/* Main content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="mx-auto max-w-2xl">
-              {ActiveComponent && <ActiveComponent />}
+              {ActiveComponent && (
+                activeSection === 'tokenUsage' && initialFilters
+                  ? <TokenUsageSettings initialKinFilter={initialFilters.kinId} />
+                  : <ActiveComponent />
+              )}
             </div>
           </div>
         </div>

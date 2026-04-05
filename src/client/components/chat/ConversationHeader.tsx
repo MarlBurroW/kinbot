@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, FileText, FileJson, Search, Trash2, MoreVertical, Sparkles } from 'lucide-react'
+import { AlertTriangle, Bot, Settings2, MessageSquare, Loader2, Wrench, Archive, Zap, FileText, FileJson, Search, Trash2, MoreVertical, Sparkles, Coins } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { ContextBar } from '@/client/components/chat/ContextBar'
 import { ConversationStats } from '@/client/components/chat/ConversationStats'
@@ -66,6 +66,7 @@ interface ConversationHeaderProps {
   onExportJSON?: () => void
   onSearch?: () => void
   onClearConversation?: () => void
+  onViewUsage?: () => void
   contextBreakdown?: ContextTokenBreakdown
   pipelineStatus?: ContextPipelineStatus
   compactingPercent?: number
@@ -105,6 +106,7 @@ export const ConversationHeader = memo(function ConversationHeader({
   onExportJSON,
   onSearch,
   onClearConversation,
+  onViewUsage,
   contextBreakdown,
   pipelineStatus,
   compactingPercent,
@@ -346,6 +348,18 @@ export const ConversationHeader = memo(function ConversationHeader({
         <span className="hidden md:inline-flex">
           <ConversationStats messages={messages} toolCallCount={toolCallCount} />
         </span>
+      )}
+
+      {/* Token usage button */}
+      {onViewUsage && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" onClick={onViewUsage}>
+              <Coins className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{t('chat.viewUsage')}</TooltipContent>
+        </Tooltip>
       )}
 
       {/* More actions dropdown */}
