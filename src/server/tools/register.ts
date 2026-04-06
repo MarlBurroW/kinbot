@@ -147,6 +147,8 @@ import {
   rollbackMiniAppTool,
   generateMiniAppIconTool,
   getMiniAppConsoleTool,
+  editMiniAppFileTool,
+  multiEditMiniAppFileTool,
 } from '@/server/tools/mini-app-tools'
 import { getMiniAppTemplatesTool } from '@/server/tools/mini-app-templates'
 import { getMiniAppDocsTool } from '@/server/tools/mini-app-docs'
@@ -353,6 +355,8 @@ export function registerAllTools(): void {
   toolRegistry.register('browse_mini_apps', browseMiniAppsTool)
   toolRegistry.register('generate_mini_app_icon', generateMiniAppIconTool)
   toolRegistry.register('get_mini_app_console', getMiniAppConsoleTool)
+  toolRegistry.register('edit_mini_app_file', editMiniAppFileTool)
+  toolRegistry.register('multi_edit_mini_app_file', multiEditMiniAppFileTool)
 
   // Plugin management tools (main only, opt-in)
   toolRegistry.register('list_installed_plugins', listInstalledPluginsTool)

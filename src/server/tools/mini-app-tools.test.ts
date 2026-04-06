@@ -136,6 +136,8 @@ describe('mini-app-tools', () => {
         mod.rollbackMiniAppTool,
         mod.generateMiniAppIconTool,
         mod.getMiniAppConsoleTool,
+        mod.editMiniAppFileTool,
+        mod.multiEditMiniAppFileTool,
       ]
       for (const t of tools) {
         expect(t.availability).toContain('main')
@@ -651,6 +653,251 @@ describe('mini-app-tools', () => {
       const tool = mod.getMiniAppConsoleTool.create(otherCtx)
       const result = await tool.execute({ app_id: 'app-1' }, execOpts)
       expect(result.error).toContain('only access your own')
+    })
+  })
+
+  // ─── edit_mini_app_file ─────────────────────────────────────────────────
+
+  describe('editMiniAppFileTool', () => {
+    it('replaces single occurrence', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('const interval = 120000;'))
+      )
+      const tool = mod.editMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        { app_id: 'app-1', path: 'app.jsx', oldText: '120000', newText: '600000' },
+        execOpts
+      )
+      expect(result.success).toBe(true)
+      expect(result.replacementCount).toBe(1)
+      expect(result.path).toBe('app.jsx')
+      // Verify writeAppFile was called with correct content
+      const callArgs = mockMiniApps.writeAppFile.mock.calls[0] as any
+      expect(callArgs[0]).toBe('app-1')
+      expect(callArgs[1]).toBe('app.jsx')
+      expect(callArgs[2]).toBe('const interval = 600000;')
+    })
+
+    it('returns error when oldText not found', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('const x = 1;'))
+      )
+      const tool = mod.editMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        { app_id: 'app-1', path: 'app.jsx', oldText: 'notfound', newText: 'x' },
+        execOpts
+      )
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('oldText not found')
+    })
+
+    it('returns error when multiple occurrences without replaceAll', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('a = 1; b = 1;'))
+      )
+      const tool = mod.editMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        { app_id: 'app-1', path: 'app.jsx', oldText: '1', newText: '2' },
+        execOpts
+      )
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('matches 2 locations')
+    })
+
+    it('replaces all occurrences with replaceAll=true', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('a = 1; b = 1; c = 1;'))
+      )
+      const tool = mod.editMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        { app_id: 'app-1', path: 'app.jsx', oldText: '1', newText: '2', replaceAll: true },
+        execOpts
+      )
+      expect(result.success).toBe(true)
+      expect(result.replacementCount).toBe(3)
+      const callArgs = mockMiniApps.writeAppFile.mock.calls[0] as any
+      expect(callArgs[2]).toBe('a = 2; b = 2; c = 2;')
+    })
+
+    it('blocks edit of other kin apps', async () => {
+      const tool = mod.editMiniAppFileTool.create(otherCtx)
+      const result = await tool.execute(
+        { app_id: 'app-1', path: 'app.jsx', oldText: 'x', newText: 'y' },
+        execOpts
+      )
+      expect(result.error).toContain('only edit your own')
+    })
+
+    it('returns error for missing app', async () => {
+      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null as any))
+      const tool = mod.editMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        { app_id: 'nope', path: 'app.jsx', oldText: 'x', newText: 'y' },
+        execOpts
+      )
+      expect(result.error).toBe('App not found')
+    })
+
+    it('broadcasts file-updated event', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('hello world'))
+      )
+      const tool = mod.editMiniAppFileTool.create(ctx)
+      await tool.execute(
+        { app_id: 'app-1', path: 'app.jsx', oldText: 'hello', newText: 'hi' },
+        execOpts
+      )
+      expect(mockSSE.sseManager.broadcast).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'miniapp:file-updated' })
+      )
+    })
+
+    it('handles readAppFile error', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() => Promise.reject(new Error('File not found: app.jsx')))
+      const tool = mod.editMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        { app_id: 'app-1', path: 'app.jsx', oldText: 'x', newText: 'y' },
+        execOpts
+      )
+      expect(result.error).toBe('File not found: app.jsx')
+    })
+  })
+
+  // ─── multi_edit_mini_app_file ───────────────────────────────────────────
+
+  describe('multiEditMiniAppFileTool', () => {
+    it('applies multiple edits atomically', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('const a = 1;\nconst b = 2;'))
+      )
+      const tool = mod.multiEditMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        {
+          app_id: 'app-1',
+          path: 'app.jsx',
+          edits: [
+            { oldText: 'const a = 1;', newText: 'const a = 10;' },
+            { oldText: 'const b = 2;', newText: 'const b = 20;' },
+          ],
+        },
+        execOpts
+      )
+      expect(result.success).toBe(true)
+      expect(result.editsApplied).toBe(2)
+      const callArgs = mockMiniApps.writeAppFile.mock.calls[0] as any
+      expect(callArgs[2]).toBe('const a = 10;\nconst b = 20;')
+    })
+
+    it('returns error when first edit fails', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('const x = 1;'))
+      )
+      const tool = mod.multiEditMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        {
+          app_id: 'app-1',
+          path: 'app.jsx',
+          edits: [
+            { oldText: 'notfound', newText: 'x' },
+            { oldText: 'const x', newText: 'let x' },
+          ],
+        },
+        execOpts
+      )
+      expect(result.success).toBe(false)
+      expect(result.failedEditIndex).toBe(0)
+      expect(result.editsAppliedBeforeFailure).toBe(0)
+      // Should not have written anything
+      expect(mockMiniApps.writeAppFile).not.toHaveBeenCalled()
+    })
+
+    it('returns error when second edit has multiple matches', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('a = 1; b = 1; c = 1;'))
+      )
+      const tool = mod.multiEditMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        {
+          app_id: 'app-1',
+          path: 'app.jsx',
+          edits: [
+            { oldText: 'a = 1', newText: 'a = 10' },
+            { oldText: '1', newText: '2' }, // matches 3 times after first edit (10 contains 1)
+          ],
+        },
+        execOpts
+      )
+      expect(result.success).toBe(false)
+      expect(result.failedEditIndex).toBe(1)
+      expect(result.error).toContain('matches 3 locations')
+      expect(mockMiniApps.writeAppFile).not.toHaveBeenCalled()
+    })
+
+    it('blocks edit of other kin apps', async () => {
+      const tool = mod.multiEditMiniAppFileTool.create(otherCtx)
+      const result = await tool.execute(
+        {
+          app_id: 'app-1',
+          path: 'app.jsx',
+          edits: [{ oldText: 'x', newText: 'y' }],
+        },
+        execOpts
+      )
+      expect(result.error).toContain('only edit your own')
+    })
+
+    it('returns error for missing app', async () => {
+      mockMiniApps.getMiniApp.mockImplementation(() => Promise.resolve(null as any))
+      const tool = mod.multiEditMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        {
+          app_id: 'nope',
+          path: 'app.jsx',
+          edits: [{ oldText: 'x', newText: 'y' }],
+        },
+        execOpts
+      )
+      expect(result.error).toBe('App not found')
+    })
+
+    it('broadcasts file-updated event', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('hello world'))
+      )
+      const tool = mod.multiEditMiniAppFileTool.create(ctx)
+      await tool.execute(
+        {
+          app_id: 'app-1',
+          path: 'app.jsx',
+          edits: [{ oldText: 'hello', newText: 'hi' }],
+        },
+        execOpts
+      )
+      expect(mockSSE.sseManager.broadcast).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'miniapp:file-updated' })
+      )
+    })
+
+    it('edits are applied sequentially (second sees result of first)', async () => {
+      mockMiniApps.readAppFile.mockImplementation(() =>
+        Promise.resolve(Buffer.from('foo bar'))
+      )
+      const tool = mod.multiEditMiniAppFileTool.create(ctx)
+      const result = await tool.execute(
+        {
+          app_id: 'app-1',
+          path: 'app.jsx',
+          edits: [
+            { oldText: 'foo', newText: 'baz' },
+            { oldText: 'baz bar', newText: 'done' },
+          ],
+        },
+        execOpts
+      )
+      expect(result.success).toBe(true)
+      expect(result.editsApplied).toBe(2)
+      const callArgs = mockMiniApps.writeAppFile.mock.calls[0] as any
+      expect(callArgs[2]).toBe('done')
     })
   })
 })

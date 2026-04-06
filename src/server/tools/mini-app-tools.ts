@@ -622,6 +622,177 @@ export const generateMiniAppIconTool: ToolRegistration = {
     }),
 }
 
+// ─── edit_mini_app_file ─────────────────────────────────────────────────────
+
+export const editMiniAppFileTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Edit a mini app file by replacing exact text. By default oldText must match exactly once; set replaceAll=true to replace all occurrences. For multiple different edits, use multi_edit_mini_app_file instead.',
+      inputSchema: z.object({
+        app_id: z.string(),
+        path: z.string().describe('Relative file path (e.g. "app.jsx")'),
+        oldText: z.string().describe('Exact text to find (must match once)'),
+        newText: z.string().describe('Replacement text'),
+        replaceAll: z
+          .boolean()
+          .optional()
+          .describe('If true, replace ALL occurrences of oldText. Default: false'),
+      }),
+      execute: async ({ app_id, path, oldText, newText, replaceAll }) => {
+        log.debug({ kinId: ctx.kinId, appId: app_id, path }, 'edit_mini_app_file invoked')
+
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only edit your own apps' }
+
+        try {
+          const buffer = await readAppFile(app_id, path)
+          const content = buffer.toString('utf-8')
+
+          // Count occurrences
+          const occurrences = content.split(oldText).length - 1
+          if (occurrences === 0) {
+            return {
+              success: false,
+              error: 'oldText not found in file. Make sure it matches exactly (including whitespace and newlines).',
+              path,
+            }
+          }
+          if (!replaceAll && occurrences > 1) {
+            return {
+              success: false,
+              error: `oldText matches ${occurrences} locations. It must match exactly once. Use a larger context to disambiguate, or set replaceAll=true to replace all occurrences.`,
+              path,
+            }
+          }
+
+          // Apply the edit(s)
+          const newContent = replaceAll
+            ? content.split(oldText).join(newText)
+            : content.replace(oldText, newText)
+
+          await writeAppFile(app_id, path, newContent)
+
+          const row = await getMiniAppRow(app_id)
+          if (row) {
+            sseManager.broadcast({
+              type: 'miniapp:file-updated',
+              kinId: ctx.kinId,
+              data: { appId: app_id, path, version: row.version },
+            })
+          }
+
+          log.info(
+            { kinId: ctx.kinId, appId: app_id, path, replacementCount: replaceAll ? occurrences : 1 },
+            'Mini app file edited',
+          )
+
+          return {
+            success: true,
+            path,
+            replacementCount: replaceAll ? occurrences : 1,
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to edit file'
+          return { error: message }
+        }
+      },
+    }),
+}
+
+// ─── multi_edit_mini_app_file ───────────────────────────────────────────────
+
+export const multiEditMiniAppFileTool: ToolRegistration = {
+  availability: ['main'],
+  create: (ctx) =>
+    tool({
+      description:
+        'Apply multiple text replacements to a single mini app file atomically. All edits succeed or none are applied. Edits are applied sequentially — each edit sees the result of previous ones.',
+      inputSchema: z.object({
+        app_id: z.string(),
+        path: z.string().describe('Relative file path (e.g. "app.jsx")'),
+        edits: z
+          .array(
+            z.object({
+              oldText: z.string().min(1).describe('Exact text to find (must match once)'),
+              newText: z.string().describe('Replacement text'),
+            }),
+          )
+          .min(1)
+          .max(50)
+          .describe('Ordered list of edits. Each oldText must match exactly once in the content at that point.'),
+      }),
+      execute: async ({ app_id, path, edits }) => {
+        log.debug({ kinId: ctx.kinId, appId: app_id, path }, 'multi_edit_mini_app_file invoked')
+
+        const existing = await getMiniApp(app_id)
+        if (!existing) return { error: 'App not found' }
+        if (existing.kinId !== ctx.kinId) return { error: 'You can only edit your own apps' }
+
+        try {
+          const buffer = await readAppFile(app_id, path)
+          let content = buffer.toString('utf-8')
+
+          // Apply edits sequentially in memory
+          for (let i = 0; i < edits.length; i++) {
+            const { oldText, newText } = edits[i]!
+            const occurrences = content.split(oldText).length - 1
+
+            if (occurrences === 0) {
+              return {
+                success: false,
+                error: `Edit #${i + 1}: oldText not found in file. Make sure it matches exactly (including whitespace and newlines).`,
+                failedEditIndex: i,
+                editsAppliedBeforeFailure: i,
+                path,
+              }
+            }
+
+            if (occurrences > 1) {
+              return {
+                success: false,
+                error: `Edit #${i + 1}: oldText matches ${occurrences} locations. It must match exactly once. Use a larger context to disambiguate.`,
+                failedEditIndex: i,
+                editsAppliedBeforeFailure: i,
+                path,
+              }
+            }
+
+            content = content.replace(oldText, newText)
+          }
+
+          // All edits succeeded — write once
+          await writeAppFile(app_id, path, content)
+
+          const row = await getMiniAppRow(app_id)
+          if (row) {
+            sseManager.broadcast({
+              type: 'miniapp:file-updated',
+              kinId: ctx.kinId,
+              data: { appId: app_id, path, version: row.version },
+            })
+          }
+
+          log.info(
+            { kinId: ctx.kinId, appId: app_id, path, editsApplied: edits.length },
+            'Mini app file multi-edited',
+          )
+
+          return {
+            success: true,
+            path,
+            editsApplied: edits.length,
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to edit file'
+          return { error: message }
+        }
+      },
+    }),
+}
+
 // ─── get_mini_app_console ───────────────────────────────────────────────────
 
 export const getMiniAppConsoleTool: ToolRegistration = {
