@@ -30,6 +30,7 @@ import {
   Cpu,
   Copy,
   Play,
+  Pause,
   Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -74,6 +75,7 @@ const TASK_STATUS_CONFIG: Record<TaskStatus, {
   queued: { icon: Clock, iconClass: 'text-orange-500' },
   pending: { icon: Clock, iconClass: 'text-muted-foreground' },
   in_progress: { icon: Loader2, iconClass: 'text-primary animate-spin' },
+  paused: { icon: Pause, iconClass: 'text-amber-500' },
   completed: { icon: CheckCircle2, iconClass: 'text-success' },
   failed: { icon: XCircle, iconClass: 'text-destructive' },
   cancelled: { icon: Ban, iconClass: 'text-muted-foreground' },

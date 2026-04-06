@@ -6,7 +6,7 @@ import {
 import { Input } from '@/client/components/ui/input'
 import { cn } from '@/client/lib/utils'
 import { formatDurationBetween, formatElapsed } from '@/client/lib/time'
-import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, MessageSquare, Search, ListTodo, ListOrdered, ChevronDown } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, MessageSquare, Pause, Search, ListTodo, ListOrdered, ChevronDown } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { useMiniAppPanel } from '@/client/contexts/MiniAppContext'
 import type { TaskStatus, TaskSummary } from '@/shared/types'
@@ -43,6 +43,12 @@ const STATUS_CONFIG: Record<TaskStatus, {
     iconClass: 'text-primary animate-spin',
     dotClass: 'bg-primary',
     ringClass: 'ring-primary/30',
+  },
+  paused: {
+    icon: Pause,
+    iconClass: 'text-amber-500',
+    dotClass: 'bg-amber-500/50',
+    ringClass: 'ring-amber-500/20',
   },
   awaiting_human_input: {
     icon: UserCheck,
@@ -120,7 +126,7 @@ function TimelineTaskCard({ task, onClick, isLast, queuePosition }: { task: Task
   const kinName = task.sourceKinName ?? task.parentKinName
   const isCancelled = task.status === 'cancelled'
   const isQueued = task.status === 'queued'
-  const isActive = task.status === 'in_progress' || task.status === 'awaiting_human_input' || task.status === 'awaiting_kin_response' || task.status === 'pending'
+  const isActive = task.status === 'in_progress' || task.status === 'paused' || task.status === 'awaiting_human_input' || task.status === 'awaiting_kin_response' || task.status === 'pending'
   const isFinished = task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled'
   const duration = isFinished
     ? formatDurationBetween(task.createdAt, task.updatedAt)

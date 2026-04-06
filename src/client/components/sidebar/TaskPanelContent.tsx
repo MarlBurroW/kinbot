@@ -39,6 +39,8 @@ import {
   FileText,
   ListOrdered,
   Play,
+  Pause,
+  Send,
   Pin,
   PinOff,
 } from 'lucide-react'
@@ -73,6 +75,7 @@ const STATUS_CONFIG: Record<
   queued: { icon: ListOrdered, iconClass: 'text-orange-500', badgeVariant: 'outline' },
   pending: { icon: Clock, iconClass: 'text-muted-foreground', badgeVariant: 'secondary' },
   in_progress: { icon: Loader2, iconClass: 'animate-spin', badgeVariant: 'default' },
+  paused: { icon: Pause, iconClass: 'text-amber-500', badgeVariant: 'outline' },
   awaiting_human_input: { icon: UserCheck, iconClass: 'text-warning animate-pulse', badgeVariant: 'outline' },
   awaiting_kin_response: { icon: MessageSquare, iconClass: 'text-info animate-pulse', badgeVariant: 'outline' },
   completed: { icon: CheckCircle2, iconClass: 'text-success', badgeVariant: 'outline' },
@@ -94,6 +97,9 @@ export function TaskPanelContent({
     isStreaming,
     streamingMessage,
     cancelTask,
+    pauseTask,
+    resumeTask,
+    injectIntoTask,
     allToolCalls,
     toolCallCount,
     toolCallsByMessage,
@@ -143,7 +149,9 @@ export function TaskPanelContent({
   const statusConfig = task ? STATUS_CONFIG[task.status] : null
   const StatusIcon = statusConfig?.icon
   const isQueued = task?.status === 'queued'
-  const isActive = task?.status === 'pending' || task?.status === 'in_progress' || task?.status === 'awaiting_human_input' || task?.status === 'awaiting_kin_response'
+  const isRunning = task?.status === 'in_progress'
+  const isPaused = task?.status === 'paused'
+  const isActive = isRunning || isPaused || task?.status === 'pending' || task?.status === 'awaiting_human_input' || task?.status === 'awaiting_kin_response'
   const initials = kinName?.slice(0, 2).toUpperCase() ?? 'K'
   const resolvedModel = task?.model ? llmModels.find((m) => m.id === task.model) : null
 
@@ -158,6 +166,39 @@ export function TaskPanelContent({
       setIsForceStarting(false)
     }
   }, [task])
+
+  // Inject / Resume message input
+  const [injectMessage, setInjectMessage] = useState('')
+  const [isInjecting, setIsInjecting] = useState(false)
+
+  const handleInject = useCallback(async () => {
+    if (!injectMessage.trim()) return
+    setIsInjecting(true)
+    try {
+      await injectIntoTask(injectMessage.trim())
+      setInjectMessage('')
+    } catch {
+      // Error handled by API layer
+    } finally {
+      setIsInjecting(false)
+    }
+  }, [injectMessage, injectIntoTask])
+
+  const handlePause = useCallback(async () => {
+    await pauseTask()
+  }, [pauseTask])
+
+  const handleResume = useCallback(async () => {
+    setIsInjecting(true)
+    try {
+      await resumeTask(injectMessage.trim() || undefined)
+      setInjectMessage('')
+    } catch {
+      // Error handled by API layer
+    } finally {
+      setIsInjecting(false)
+    }
+  }, [injectMessage, resumeTask])
 
   return (
     <div className="flex h-full flex-col">
@@ -433,20 +474,75 @@ export function TaskPanelContent({
 
       {/* Footer actions */}
       {task && (isActive || isQueued) && (
-        <div className="shrink-0 flex items-center gap-2 border-t border-border px-3 py-2">
-          {isQueued && (
-            <Button variant="default" size="sm" className="h-7 text-xs" onClick={handleForceStart} disabled={isForceStarting}>
-              {isForceStarting ? (
-                <Loader2 className="size-3 animate-spin mr-1" />
+        <div className="shrink-0 border-t border-border px-3 py-2 space-y-2">
+          {/* Message input — visible when running or paused */}
+          {(isRunning || isPaused) && (
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                className="flex-1 h-7 rounded-md border border-border bg-background px-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                value={injectMessage}
+                onChange={(e) => setInjectMessage(e.target.value)}
+                placeholder={isPaused ? t('taskDetail.resumeMessagePlaceholder') : t('taskDetail.injectPlaceholder')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (isPaused) handleResume()
+                    else if (injectMessage.trim()) handleInject()
+                  }
+                }}
+                disabled={isInjecting}
+              />
+              {isPaused ? (
+                <Button size="sm" className="h-7 text-xs" onClick={handleResume} disabled={isInjecting}>
+                  {isInjecting ? (
+                    <Loader2 className="size-3 animate-spin mr-1" />
+                  ) : (
+                    <Play className="size-3 mr-1" />
+                  )}
+                  {injectMessage.trim() ? t('taskDetail.resumeWithMessage') : t('taskDetail.resume')}
+                </Button>
               ) : (
-                <Play className="size-3 mr-1" />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 text-xs"
+                  onClick={handleInject}
+                  disabled={isInjecting || !injectMessage.trim()}
+                >
+                  {isInjecting ? (
+                    <Loader2 className="size-3 animate-spin mr-1" />
+                  ) : (
+                    <Send className="size-3 mr-1" />
+                  )}
+                  {t('taskDetail.inject')}
+                </Button>
               )}
-              {t('taskDetail.forceStart')}
-            </Button>
+            </div>
           )}
-          <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={cancelTask}>
-            {t('taskDetail.cancel')}
-          </Button>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {isQueued && (
+              <Button variant="default" size="sm" className="h-7 text-xs" onClick={handleForceStart} disabled={isForceStarting}>
+                {isForceStarting ? (
+                  <Loader2 className="size-3 animate-spin mr-1" />
+                ) : (
+                  <Play className="size-3 mr-1" />
+                )}
+                {t('taskDetail.forceStart')}
+              </Button>
+            )}
+            {isRunning && (
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handlePause}>
+                <Pause className="size-3 mr-1" />
+                {t('taskDetail.pause')}
+              </Button>
+            )}
+            <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={cancelTask}>
+              {t('taskDetail.cancel')}
+            </Button>
+          </div>
         </div>
       )}
     </div>
