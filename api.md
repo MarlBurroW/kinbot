@@ -396,7 +396,7 @@ Injecte un message dans la conversation en cours. Si le Kin est en train de stre
 Liste toutes les tâches en cours.
 
 ```typescript
-// Query params : ?status={pending|in_progress|completed|failed|cancelled}&kinId={string}
+// Query params : ?status={pending|in_progress|paused|completed|failed|cancelled}&kinId={string}
 
 // Response 200
 {
@@ -405,7 +405,7 @@ Liste toutes les tâches en cours.
     parentKinId: string
     parentKinName: string
     description: string
-    status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
+    status: 'pending' | 'in_progress' | 'paused' | 'completed' | 'failed' | 'cancelled'
     mode: 'await' | 'async'
     depth: number
     createdAt: number
@@ -431,6 +431,51 @@ Détail d'une tâche avec ses messages.
 ```typescript
 // Response 200
 { success: true }
+```
+
+### `POST /api/tasks/:id/pause`
+
+Met en pause une tâche en cours d'exécution. La tâche conserve son état et peut être reprise ultérieurement.
+
+```typescript
+// Response 200
+{ success: true }
+
+// Response 409 — tâche non en cours
+{ error: { code: 'TASK_NOT_PAUSABLE', message: 'Task is not currently running' } }
+```
+
+### `POST /api/tasks/:id/resume`
+
+Reprend une tâche en pause, avec un message optionnel injecté dans le contexte.
+
+```typescript
+// Request (optionnel)
+{ message?: string }
+
+// Response 200
+{ success: true }
+
+// Response 409 — tâche non en pause
+{ error: { code: 'TASK_NOT_PAUSED', message: 'Task is not paused' } }
+```
+
+### `POST /api/tasks/:id/inject`
+
+Injecte un message dans une tâche en cours d'exécution. Si la tâche est en train de streamer, le stream est interrompu et relancé avec le message additionnel.
+
+```typescript
+// Request
+{ content: string }
+
+// Response 202
+{ success: true, injected: boolean }
+
+// Response 400 — contenu vide
+{ error: { code: 'EMPTY_CONTENT', message: 'Message content is required' } }
+
+// Response 409 — injection échouée
+{ error: { code: 'INJECT_FAILED', message: string } }
 ```
 
 ---

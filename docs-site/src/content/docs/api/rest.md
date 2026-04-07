@@ -219,6 +219,9 @@ Sub-tasks spawned by Kins (inter-Kin delegation, subtasks). Tasks support **conc
 | `GET` | `/api/tasks` | List all tasks |
 | `GET` | `/api/tasks/:id` | Get task details with messages |
 | `POST` | `/api/tasks/:id/cancel` | Cancel a running task |
+| `POST` | `/api/tasks/:id/pause` | Pause a running task (preserves state) |
+| `POST` | `/api/tasks/:id/resume` | Resume a paused task, optionally with a message (`{ message?: string }`) |
+| `POST` | `/api/tasks/:id/inject` | Inject a message into a running task (`{ content: string }`) — aborts current stream and re-triggers with addendum |
 | `POST` | `/api/tasks/:id/force-promote` | Force-start a queued task (ignoring concurrency limit) |
 
 ## Plugins

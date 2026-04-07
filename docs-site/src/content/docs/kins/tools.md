@@ -132,6 +132,9 @@ Excess tasks enter `queued` status and are automatically promoted (FIFO) when a 
 | `get_mini_app_docs` | Get mini-app SDK documentation |
 | `browse_mini_apps` | Browse the App Gallery (apps from all Kins) |
 | `generate_mini_app_icon` | Generate an icon for an app |
+| `get_mini_app_console` | Get recent console output (logs, warnings, errors) from a running mini-app |
+| `edit_mini_app_file` | Edit a mini-app file by replacing exact text (single match by default, optional `replaceAll`) |
+| `multi_edit_mini_app_file` | Apply multiple text replacements to a single mini-app file atomically |
 
 ### Channels
 
@@ -345,6 +348,7 @@ Tools declare which contexts they're available in:
 Most tools are **main-only**. The following are also available to sub-kins:
 
 - `report_to_parent`, `update_task_status`, `request_input` (sub-kin only)
+- `save_run_learning`, `delete_run_learning` (sub-kin only, cron tasks only — persist lessons learned across cron runs)
 - `prompt_human`, `notify`, `run_shell`, `http_request`
 
 Sub-kins have access to standard tools (memory, web, contacts, vault, files, etc.) and **inter-Kin communication** (`send_message`, `list_kins`), but not administrative tools (cron, webhooks, channels, kin management).

@@ -385,7 +385,7 @@ Sous-Kins éphémères (tâches déléguées).
 | `provider_id` | text | | Override du provider pour le modèle |
 | `title` | text | | Titre optionnel de la tâche |
 | `description` | text | NOT NULL | Instructions de la tâche |
-| `status` | text | NOT NULL, DEFAULT 'pending' | 'queued', 'pending', 'in_progress', 'awaiting_human_input', 'awaiting_kin_response', 'completed', 'failed', 'cancelled' |
+| `status` | text | NOT NULL, DEFAULT 'pending' | 'queued', 'pending', 'in_progress', 'paused', 'awaiting_human_input', 'awaiting_kin_response', 'completed', 'failed', 'cancelled' |
 | `result` | text | | Résultat final de la tâche |
 | `error` | text | | Détail de l'erreur si failed |
 | `depth` | integer | NOT NULL, DEFAULT 1 | Profondeur de nesting |
@@ -433,6 +433,24 @@ Tâches planifiées récurrentes.
 | `created_by` | text | | 'user' ou 'kin' — qui a créé le cron |
 | `created_at` | integer | NOT NULL | |
 | `updated_at` | integer | NOT NULL | |
+
+---
+
+### `cron_learnings`
+
+Apprentissages persistants enregistrés par les agents lors de l'exécution de tâches cron. Chaque cron peut stocker jusqu'à 20 learnings (FIFO avec éviction automatique des plus anciens).
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | text PK | UUID | |
+| `cron_id` | text | FK → crons.id, ON DELETE CASCADE, NOT NULL | Cron associé |
+| `content` | text | NOT NULL | Contenu de l'apprentissage (texte libre) |
+| `category` | text | | 'error_recovery', 'optimization', 'environment', 'general' |
+| `task_id` | text | FK → tasks.id, ON DELETE SET NULL | Tâche qui a enregistré ce learning |
+| `created_at` | integer | NOT NULL | |
+
+**Index** :
+- `idx_cron_learnings_cron` sur `cron_id`
 
 ---
 
