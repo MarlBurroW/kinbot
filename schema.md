@@ -708,6 +708,7 @@ kins
  ├── 1:N  custom_tools
  ├── 1:N  tasks               (en tant que parent_kin_id)
  ├── 1:N  crons
+ │         └── 1:N  cron_learnings  (FIFO cap 20, ON DELETE CASCADE)
  ├── 1:N  webhooks
  ├── 1:N  queue_items
  └── 1:N  files
