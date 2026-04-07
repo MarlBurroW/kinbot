@@ -48,15 +48,19 @@ jobs:
 
           # Try to extract the section for this version from CHANGELOG.md
           # Matches "## [X.Y.Z]" and captures everything until the next "## [" or EOF
-          SECTION=$(awk -v ver="$VERSION" '
-            /^## \[/ {
-              if (found) exit
-              if (index($0, "[" ver "]")) { found=1; next }
-            }
-            found { print }
-          ' CHANGELOG.md)
+          # Try to extract from CHANGELOG.md if it exists
+          SECTION=""
+          if [ -f CHANGELOG.md ]; then
+            SECTION=$(awk -v ver="$VERSION" '
+              /^## \[/ {
+                if (found) exit
+                if (index($0, "[" ver "]")) { found=1; next }
+              }
+              found { print }
+            ' CHANGELOG.md)
+          fi
 
-          # Fallback to git log if version not found in CHANGELOG.md
+          # Fallback to git log if no CHANGELOG.md or version not found
           if [ -z "$SECTION" ]; then
             PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
             if [ -n "$PREV_TAG" ]; then
