@@ -1605,26 +1605,32 @@ export async function resumeTask(taskId: string, message?: string): Promise<bool
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get()
   if (!task) return false
 
-  // If a message was provided, inject it into the task's message history
-  if (message?.trim()) {
-    const msgId = uuid()
-    await db.insert(messages).values({
-      id: msgId,
-      kinId: task.parentKinId,
-      taskId,
-      role: 'user',
-      content: message.trim() + '\n\n[The user sent this message while the task was paused. Take it into account and continue.]',
-      sourceType: 'user',
-      createdAt: new Date(),
-    })
+  // Insert a user message so the LLM history doesn't end with the partial assistant response.
+  // Without this, the LLM sees the last message as an assistant message and returns empty.
+  const msgId = uuid()
+  const userContent = message?.trim()
+    ? message.trim() + '\n\n[The user sent this message while the task was paused. Take it into account and continue.]'
+    : '[System] The task was paused by the user and has now been resumed. Continue where you left off.'
+  const displayContent = message?.trim() || undefined
 
+  await db.insert(messages).values({
+    id: msgId,
+    kinId: task.parentKinId,
+    taskId,
+    role: 'user',
+    content: userContent,
+    sourceType: message?.trim() ? 'user' : 'system',
+    createdAt: new Date(),
+  })
+
+  if (displayContent) {
     sseManager.sendToKin(task.parentKinId, {
       type: 'chat:message',
       kinId: task.parentKinId,
       data: {
         id: msgId,
         role: 'user',
-        content: message.trim(),
+        content: displayContent,
         sourceType: 'user',
         taskId,
         createdAt: new Date().toISOString(),
