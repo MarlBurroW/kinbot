@@ -153,6 +153,13 @@ function getStatusConfig(status: DisplayTaskStatus, t: (key: string) => string) 
         label: t('sidebar.tasks.status.awaiting_kin_response'),
         animate: true,
       }
+    case 'paused':
+      return {
+        icon: Pause,
+        colorClass: 'text-amber-500',
+        label: t('sidebar.tasks.status.paused'),
+        animate: false,
+      }
     case 'cancelled':
       return {
         icon: XCircle,
@@ -211,7 +218,7 @@ export const TaskResultCard = memo(function TaskResultCard(props: TaskResultCard
 
   const statusConfig = getStatusConfig(task.status, t)
   const StatusIcon = statusConfig.icon
-  const isActive = task.status === 'pending' || task.status === 'in_progress' || task.status === 'awaiting_human_input' || task.status === 'awaiting_kin_response'
+  const isActive = task.status === 'pending' || task.status === 'in_progress' || task.status === 'paused' || task.status === 'awaiting_human_input' || task.status === 'awaiting_kin_response'
   const isError = task.status === 'failed'
   const hasResult = task.result.trim().length > 0
 
