@@ -15,7 +15,7 @@ Self-hosted. Persistent memory. Real collaboration.
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/MarlBurroW/kinbot/pkgs/container/kinbot)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/MarlBurroW/kinbot/pulls)
 
-[Website](https://marlburrow.github.io/kinbot/) · [Documentation](https://marlburrow.github.io/kinbot/docs/) · [Quick Start](#-quick-start) · [Features](#-features) · [Compare](#-how-does-kinbot-compare) · [Architecture](#-architecture) · [E2E Report](https://marlburrow.github.io/kinbot/e2e-report/) · [Discussions](https://github.com/MarlBurroW/kinbot/discussions) · [Troubleshooting](TROUBLESHOOTING.md) · [Changelog](https://marlburrow.github.io/kinbot/changelog) · [Contributing](#contributing)
+[Website](https://marlburrow.github.io/kinbot/) · [Documentation](https://marlburrow.github.io/kinbot/docs/) · [Quick Start](#-quick-start) · [Features](#-features) · [Use Cases](#-what-people-build-with-kinbot) · [Architecture](#-architecture) · [E2E Report](https://marlburrow.github.io/kinbot/e2e-report/) · [Discussions](https://github.com/MarlBurroW/kinbot/discussions) · [Troubleshooting](TROUBLESHOOTING.md) · [Changelog](https://marlburrow.github.io/kinbot/changelog) · [Contributing](#contributing)
 
 </div>
 
@@ -135,40 +135,19 @@ Kins have access to a rich set of native tools out of the box, no configuration 
 
 </details>
 
-## 🔍 How does KinBot compare?
+## 💡 What people build with KinBot
 
-| Feature | KinBot | ChatGPT | Open WebUI | LobeChat | AnythingLLM | OpenClaw | CrewAI |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Self-hosted / your data | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Persistent agent identity | ✅ | ⚠️ | ❌ | ⚠️ | ⚠️ | ⚠️ | ❌ |
-| Long-term memory | ✅ | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ❌ |
-| Session compacting | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ❌ |
-| Multi-agent collaboration | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Sub-agent delegation | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ✅ |
-| Cron jobs / autonomy | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Encrypted secrets vault | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| MCP tool servers | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Multi-provider (23+) | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
-| Webhooks | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Chat integrations (6 platforms) | ✅ | ❌ | ❌ | ❌ | ⚠️ | ✅ | ❌ |
-| Custom tools (agent-created) | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ⚠️ |
-| Mini Apps (agent-built UIs) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Plugin system (hot-reload) | ✅ | ❌ | ⚠️ | ✅ | ⚠️ | ⚠️ | ❌ |
-| RAG / document embedding | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ❌ | ⚠️ |
-| Multi-user with roles | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ | ❌ |
-| Web UI | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Zero-infra (no Postgres/Redis) | ✅ | ❌ | ❌ | ⚠️ | ❌ | ✅ | ✅ |
-| Free & open source | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+**DevOps copilot** — A Kin connected to GitHub webhooks triages new issues, reviews PRs, runs CI checks, and creates releases. It remembers your codebase conventions and past decisions. Cron jobs monitor infrastructure and alert you on Telegram.
 
-✅ Full support · ⚠️ Partial · ❌ Not available · *Based on default capabilities as of March 2026*
+**Home automation brain** — A Kin talks to Home Assistant via MCP, learns your routines over time, and adjusts lighting/heating based on context. Ask it "why was the heating on last night?" and it remembers.
 
-**vs ChatGPT:** Great for quick questions, but ephemeral sessions, cloud-only, no self-hosting.
+**Personal knowledge base** — Upload docs, meeting notes, project specs. A Kin indexes everything with RAG and answers questions across months of accumulated context. Unlike ChatGPT, it never forgets previous conversations.
 
-**vs OpenClaw:** Powerful single-agent personal assistant, CLI-first. KinBot is multi-agent, multi-user, web UI, with inter-agent collaboration.
+**Multi-agent team** — A dispatcher Kin receives requests and delegates to specialists (one for code, one for sysadmin, one for writing). They collaborate, share context through memories, and report back.
 
-**vs CrewAI / AutoGPT:** Task orchestration frameworks where agents execute a workflow and disappear. No persistence, no memory between runs. KinBot agents live permanently, accumulate knowledge, and work autonomously on schedules. Contractors vs. a team.
+**Business monitoring** — Webhooks feed sales data, support tickets, or server metrics into a Kin. It builds mini-app dashboards, sends daily Slack summaries, and flags anomalies before you notice them.
 
-👉 [Full comparison with positioning details](https://marlburrow.github.io/kinbot/#comparison)
+**Family assistant** — Multiple users share the same instance. One Kin manages groceries via Telegram, another handles kids' schedules, another tracks household tasks. Each remembers everyone's preferences.
 
 ---
 
