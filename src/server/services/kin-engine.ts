@@ -49,6 +49,38 @@ import { getModelContextWindow } from '@/shared/model-context-windows'
 const log = createLogger('kin-engine')
 
 /**
+ * Maximum number of tools to send to the LLM in a single request.
+ * OpenAI enforces a hard limit of 128; other providers may vary.
+ */
+const MAX_LLM_TOOLS = 128
+
+/**
+ * Cap the number of tools to MAX_LLM_TOOLS. Native tools (which appear first
+ * in insertion order) are kept preferentially; MCP/custom tools are truncated
+ * last. Logs a warning when truncation occurs.
+ */
+function capTools(
+  tools: Record<string, Tool<any, any>>,
+  kinId: string,
+): Record<string, Tool<any, any>> {
+  const names = Object.keys(tools)
+  if (names.length <= MAX_LLM_TOOLS) return tools
+
+  const droppedCount = names.length - MAX_LLM_TOOLS
+  const droppedNames = names.slice(MAX_LLM_TOOLS)
+  log.warn(
+    { kinId, total: names.length, max: MAX_LLM_TOOLS, droppedCount, droppedNames },
+    `Tool array exceeds maximum (${names.length}/${MAX_LLM_TOOLS}). Dropping ${droppedCount} tool(s) to comply with LLM provider limit.`,
+  )
+
+  const capped: Record<string, Tool<any, any>> = {}
+  for (const name of names.slice(0, MAX_LLM_TOOLS)) {
+    capped[name] = tools[name]!
+  }
+  return capped
+}
+
+/**
  * Strip execute functions from tools so the SDK only collects tool call intents
  * without executing them. This allows our custom loop to execute tools
  * sequentially between LLM steps, preventing hallucinated tool results.
@@ -909,7 +941,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
 
     // Wrap tools to spill large results to temp files, then enforce sequential execution
-    const tools = wrapToolsWithSpill(mergedTools, kin.workspacePath)
+    const tools = capTools(wrapToolsWithSpill(mergedTools, kin.workspacePath), kinId)
 
     const hasTools = Object.keys(tools).length > 0
 
@@ -1584,7 +1616,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     // Apply quick session exclusion list
     for (const name of QUICK_SESSION_EXCLUDED_TOOLS) delete nativeTools[name]
 
-    const tools = wrapToolsWithSpill({ ...nativeTools }, kin.workspacePath)
+    const tools = capTools(wrapToolsWithSpill({ ...nativeTools }, kin.workspacePath), kinId)
     const hasTools = Object.keys(tools).length > 0
 
     // Stream LLM response — custom single-step loop (same pattern as processKinQueue)
