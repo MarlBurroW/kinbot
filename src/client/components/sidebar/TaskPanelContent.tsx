@@ -201,7 +201,7 @@ export function TaskPanelContent({
   }, [injectMessage, resumeTask])
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Header info */}
       <div className="shrink-0 border-b border-border px-3 py-2">
         <div className="flex items-start gap-2">
