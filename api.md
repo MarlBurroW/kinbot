@@ -361,6 +361,7 @@ Historique paginé des messages.
     sourceId: string | null
     sourceName: string | null   // pseudonym, kin name, task name, cron name
     isRedacted: boolean
+    tokenUsage: { inputTokens: number, outputTokens: number, totalTokens: number, cacheReadTokens?: number, cacheWriteTokens?: number, reasoningTokens?: number, stepCount?: number } | null
     files: Array<{ id: string, name: string, mimeType: string, url: string }>
     createdAt: number
   }>
@@ -952,7 +953,7 @@ Connexion SSE **globale** (une seule par client). Le serveur multiplex les évé
 { event: 'chat:token', data: { kinId: string, token: string } }
 
 // Réponse LLM terminée
-{ event: 'chat:done', data: { kinId: string, messageId: string } }
+{ event: 'chat:done', data: { kinId: string, messageId: string, tokenUsage?: { inputTokens: number, outputTokens: number, totalTokens: number } } }
 
 // Nouveau message dans le chat (autres sources)
 { event: 'chat:message', data: { kinId: string, message: MessageShape } }
