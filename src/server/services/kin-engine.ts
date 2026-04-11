@@ -317,6 +317,63 @@ function isTextReadable(mimeType: string): boolean {
 }
 
 /**
+ * Defensively sanitize tool calls parsed from the persisted `messages.toolCalls`
+ * JSON column before they are replayed into an LLM request.
+ *
+ * The Vercel AI SDK's `ModelMessage[]` zod schema rejects `tool-call` parts that:
+ *   - are missing `toolCallId` (empty string) or `toolName`
+ *   - have `input === undefined` (undefined is not a valid JSON value)
+ *
+ * Historical sessions can legitimately contain such entries when:
+ *   - A previous run dropped a tool via the tool cap (pre-#354) and the LLM
+ *     called the dropped tool anyway — the persisted args can round-trip as
+ *     `undefined` depending on the provider and abort timing.
+ *   - A stream was aborted mid tool-call-delta, leaving a partial entry.
+ *   - Older code paths or bugs persisted malformed entries.
+ *
+ * Once such an entry is in the history, *every* subsequent turn fails with
+ * `Invalid prompt: messages do not match the ModelMessage[] schema`, which
+ * permanently breaks the session (#355) — container restart and compaction
+ * do not help because the bad entry is reloaded from SQLite every time.
+ *
+ * This function drops entries that are unrecoverable (missing id/name) and
+ * normalizes `undefined` args to `{}` so the schema validator accepts them.
+ * It is called from every place that rebuilds history from persisted
+ * `toolCalls` JSON (buildMessageHistory + the quick-session resume path).
+ */
+function sanitizePersistedToolCalls<T extends { id: unknown; name: unknown; args: unknown; result?: unknown }>(
+  toolCalls: T[],
+  kinId: string,
+): Array<T & { id: string; name: string; args: unknown }> {
+  const out: Array<T & { id: string; name: string; args: unknown }> = []
+  let dropped = 0
+  let normalized = 0
+  for (const tc of toolCalls) {
+    if (!tc || typeof tc.id !== 'string' || tc.id.length === 0 || typeof tc.name !== 'string' || tc.name.length === 0) {
+      dropped++
+      continue
+    }
+    // `undefined` is not a valid JSON value — the Vercel AI SDK ModelMessage
+    // schema rejects `input: undefined`. Normalize to `{}` so the history
+    // replay stays structurally valid. Any other value (null, object, array,
+    // primitive) passes through untouched.
+    let args: unknown = tc.args
+    if (args === undefined) {
+      args = {}
+      normalized++
+    }
+    out.push({ ...tc, id: tc.id, name: tc.name, args })
+  }
+  if (dropped > 0 || normalized > 0) {
+    log.warn(
+      { kinId, droppedMalformed: dropped, normalizedUndefinedArgs: normalized, total: toolCalls.length },
+      'Sanitized malformed persisted tool calls before LLM replay (#355 recovery)',
+    )
+  }
+  return out
+}
+
+/**
  * Estimate the total token count of a full LLM request payload.
  * When `summaryTokens` is provided, that amount is split out of the system prompt total
  * and reported as a separate `summary` field.
@@ -1648,19 +1705,21 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
         if (msg.toolCalls) {
           try { toolCalls = JSON.parse(msg.toolCalls as string) } catch { toolCalls = null }
         }
-        if (toolCalls && toolCalls.length > 0) {
+        // Sanitize defensively — see sanitizePersistedToolCalls for rationale (#355).
+        const validToolCalls = toolCalls ? sanitizePersistedToolCalls(toolCalls, kinId) : []
+        if (validToolCalls.length > 0) {
           const assistantContent: Array<
             | { type: 'text'; text: string }
             | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
           > = []
           if (msg.content) assistantContent.push({ type: 'text', text: msg.content })
-          for (const tc of toolCalls) {
+          for (const tc of validToolCalls) {
             assistantContent.push({ type: 'tool-call', toolCallId: tc.id, toolName: tc.name, input: tc.args })
           }
           messageHistory.push({ role: 'assistant', content: assistantContent })
           messageHistory.push({
             role: 'tool' as const,
-            content: toolCalls.map((tc) => ({
+            content: validToolCalls.map((tc) => ({
               type: 'tool-result' as const,
               toolCallId: tc.id,
               toolName: tc.name,
@@ -2181,7 +2240,12 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
         }
       }
 
-      if (toolCalls && toolCalls.length > 0) {
+      // Sanitize defensively before building ModelMessage parts. Malformed
+      // tool calls (missing id/name or `args === undefined`) break the Vercel
+      // AI SDK schema validator and permanently corrupt the session (#355).
+      const validToolCalls = toolCalls ? sanitizePersistedToolCalls(toolCalls, kinId) : []
+
+      if (validToolCalls.length > 0) {
         // Build structured content: text part (if any) + tool call parts
         const assistantContent: Array<
           | { type: 'text'; text: string }
@@ -2193,7 +2257,7 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
           assistantContent.push({ type: 'text', text: textContent })
         }
 
-        for (const tc of toolCalls) {
+        for (const tc of validToolCalls) {
           assistantContent.push({
             type: 'tool-call',
             toolCallId: tc.id,
@@ -2204,10 +2268,13 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
 
         history.push({ role: 'assistant', content: assistantContent })
 
-        // Emit a corresponding tool result message
+        // Emit a corresponding tool result message. Every tool-call in the
+        // preceding assistant message MUST have a matching tool-result,
+        // otherwise the SDK schema validator rejects the whole history —
+        // using the same `validToolCalls` array keeps this invariant.
         history.push({
           role: 'tool' as const,
-          content: toolCalls.map((tc) => ({
+          content: validToolCalls.map((tc) => ({
             type: 'tool-result' as const,
             toolCallId: tc.id,
             toolName: tc.name,
@@ -2215,7 +2282,9 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
           })),
         })
       } else {
-        // Simple text-only assistant message
+        // Simple text-only assistant message (either no tool calls persisted,
+        // or every persisted tool call was malformed and dropped by the
+        // sanitizer — we keep the text portion so the turn is not lost).
         history.push({ role: 'assistant', content: msg.content ?? '' })
       }
     }
