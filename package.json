@@ -31,7 +31,7 @@
     "build": "vite build",
     "start": "bun src/server/index.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bun scripts/migrate.ts",
     "test": "bun test",
     "test:e2e": "npx playwright test",
     "store:validate": "bun scripts/validate-store-plugins.ts",
