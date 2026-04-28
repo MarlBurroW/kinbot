@@ -2556,11 +2556,11 @@ export async function resolveLLMModel(modelId: string, preferredProviderId?: str
   const allProviders = await db.select().from(providers).all()
   const expectedType = getProviderTypeForModel(modelId)
 
-  // If a preferred provider is specified, try it first
+  // If a preferred provider is specified, try it first — skip type heuristic since user explicitly chose this provider
   if (preferredProviderId) {
     const preferred = allProviders.find((p) => p.id === preferredProviderId)
     if (preferred) {
-      const result = await tryCreateModel(preferred, modelId, expectedType)
+      const result = await tryCreateModel(preferred, modelId, null)
       if (result) return result
     }
   }
