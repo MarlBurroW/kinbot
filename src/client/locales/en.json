@@ -1256,6 +1256,7 @@
       "noteAdded": "Note added",
       "noteSaved": "Note updated",
       "noteDeleted": "Note deleted",
+      "noteComboExists": "A note already exists for this kin and scope. Edit the existing note instead.",
       "added": "Contact added",
       "saved": "Contact updated",
       "deleted": "Contact deleted",

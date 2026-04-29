@@ -1167,6 +1167,7 @@
       "noteAdded": "Hinweis hinzugefügt",
       "noteSaved": "Hinweis aktualisiert",
       "noteDeleted": "Notiz gelöscht",
+      "noteComboExists": "Für diesen Kin und Bereich existiert bereits eine Notiz. Bearbeiten Sie die vorhandene Notiz.",
       "added": "Kontakt hinzugefügt",
       "saved": "Kontakt aktualisiert",
       "deleted": "Kontakt gelöscht",

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/client/components/ui/button'
@@ -12,7 +12,7 @@ import {
 } from '@/client/components/ui/select'
 import { KinSelector } from '@/client/components/common/KinSelector'
 import { ConfirmDeleteButton } from '@/client/components/common/ConfirmDeleteButton'
-import { Pencil, Bot, Globe, Lock, Plus, Check, X } from 'lucide-react'
+import { Pencil, Bot, Globe, Lock, Plus, Check, X, AlertTriangle } from 'lucide-react'
 import { api, toastError } from '@/client/lib/api'
 import type { ContactNoteData, KinInfo } from './ContactCard'
 
@@ -34,7 +34,49 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
   const [newNoteContent, setNewNoteContent] = useState('')
 
   const kinEntries = kinInfo ? [...kinInfo.entries()] : []
-  const kinOptions = kinEntries.map(([id, info]) => ({ id, name: info.name, avatarUrl: info.avatarUrl }))
+
+  // Build a set of existing kin+scope combos to prevent silent overwrites
+  const usedCombos = useMemo(() => {
+    const set = new Set<string>()
+    for (const note of notes) {
+      set.add(`${note.kinId}:${note.scope}`)
+    }
+    return set
+  }, [notes])
+
+  // Scopes used per kin id
+  const scopesUsedByKin = useMemo(() => {
+    const map = new Map<string, Set<string>>()
+    for (const note of notes) {
+      if (!map.has(note.kinId)) map.set(note.kinId, new Set())
+      map.get(note.kinId)!.add(note.scope)
+    }
+    return map
+  }, [notes])
+
+  // Filter kins to only those with at least one available scope
+  const availableKinOptions = useMemo(() => {
+    return kinEntries
+      .filter(([id]) => {
+        const used = scopesUsedByKin.get(id)
+        // Keep kin if it has fewer than 2 scopes used (global + private)
+        return !used || used.size < 2
+      })
+      .map(([id, info]) => ({ id, name: info.name, avatarUrl: info.avatarUrl }))
+  }, [kinEntries, scopesUsedByKin])
+
+  // Check if the currently selected combo already exists
+  const comboAlreadyExists = addingNote && newNoteKinId ? usedCombos.has(`${newNoteKinId}:${newNoteScope}`) : false
+
+  // Get available scopes for the currently selected kin
+  const getAvailableScopes = (kinId: string): ('global' | 'private')[] => {
+    const used = scopesUsedByKin.get(kinId)
+    if (!used) return ['global', 'private']
+    const scopes: ('global' | 'private')[] = []
+    if (!used.has('global')) scopes.push('global')
+    if (!used.has('private')) scopes.push('private')
+    return scopes
+  }
 
   const startEdit = (note: ContactNoteData) => {
     setEditingNoteId(note.id)
@@ -69,11 +111,22 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
   }
 
   const startAddNote = () => {
-    const firstKinId = kinInfo ? [...kinInfo.keys()][0] ?? '' : ''
-    setNewNoteKinId(firstKinId)
-    setNewNoteScope('global')
+    // Pick the first kin that has at least one available scope
+    const firstAvailableKin = availableKinOptions[0]?.id ?? ''
+    const scopes = firstAvailableKin ? getAvailableScopes(firstAvailableKin) : []
+    setNewNoteKinId(firstAvailableKin)
+    setNewNoteScope(scopes[0] ?? 'global')
     setNewNoteContent('')
     setAddingNote(true)
+  }
+
+  // When kin changes, auto-select the first available scope
+  const handleKinChange = (kinId: string) => {
+    setNewNoteKinId(kinId)
+    const scopes = getAvailableScopes(kinId)
+    if (scopes.length > 0 && !scopes.includes(newNoteScope)) {
+      setNewNoteScope(scopes[0])
+    }
   }
 
   const cancelAddNote = () => {
@@ -97,7 +150,7 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
   }
 
   if (notes.length === 0 && !addingNote) {
-    if (kinEntries.length > 0) {
+    if (availableKinOptions.length > 0) {
       return (
         <div className="ml-8 border-t pt-2">
           <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-6 px-2" onClick={startAddNote}>
@@ -116,7 +169,7 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
           {t('settings.contacts.notes')}
         </p>
-        {!addingNote && kinEntries.length > 0 && (
+        {!addingNote && availableKinOptions.length > 0 && (
           <Button variant="ghost" size="icon-xs" onClick={startAddNote}>
             <Plus className="size-3" />
           </Button>
@@ -197,8 +250,8 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
           <div className="flex items-center gap-2">
             <KinSelector
               value={newNoteKinId}
-              onValueChange={setNewNoteKinId}
-              kins={kinOptions}
+              onValueChange={handleKinChange}
+              kins={availableKinOptions}
               placeholder={t('settings.contacts.noteKinPlaceholder')}
               triggerClassName="h-7 w-36 text-xs"
               autoHeight={false}
@@ -208,10 +261,10 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="global">
+                <SelectItem value="global" disabled={usedCombos.has(`${newNoteKinId}:global`)}>
                   <span className="flex items-center gap-1.5"><Globe className="size-3" />{t('settings.contacts.noteGlobal')}</span>
                 </SelectItem>
-                <SelectItem value="private">
+                <SelectItem value="private" disabled={usedCombos.has(`${newNoteKinId}:private`)}>
                   <span className="flex items-center gap-1.5"><Lock className="size-3" />{t('settings.contacts.noteScopePrivate')}</span>
                 </SelectItem>
               </SelectContent>
@@ -224,6 +277,12 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
             className="text-xs min-h-[3rem] resize-none"
             rows={2}
           />
+          {comboAlreadyExists && (
+            <p className="flex items-center gap-1 text-[10px] text-amber-500">
+              <AlertTriangle className="size-3 shrink-0" />
+              {t('settings.contacts.noteComboExists')}
+            </p>
+          )}
           <div className="flex gap-1 justify-end">
             <Button variant="ghost" size="icon-xs" onClick={cancelAddNote}>
               <X className="size-3" />
@@ -232,7 +291,7 @@ export function ContactNotes({ contactId, notes, kinInfo, onRefresh }: ContactNo
               variant="ghost"
               size="icon-xs"
               onClick={saveNewNote}
-              disabled={!newNoteKinId || !newNoteContent.trim()}
+              disabled={!newNoteKinId || !newNoteContent.trim() || comboAlreadyExists}
             >
               <Check className="size-3" />
             </Button>
