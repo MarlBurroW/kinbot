@@ -78,7 +78,7 @@ jobs:
           echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: KinBot ${{ steps.changelog.outputs.version }}
           body: |
