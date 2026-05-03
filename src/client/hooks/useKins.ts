@@ -301,8 +301,22 @@ export function useKins() {
           : k,
       ),
     )
+    // If the model or provider changed, the cached contextWindow is stale —
+    // wipe it so the next fetchContextUsage() repopulates with fresh data
+    // from the server (which recomputes contextWindow from the new model).
+    if (data.model !== undefined || data.providerId !== undefined) {
+      setKinQueueState((prev) => {
+        const existing = prev.get(id)
+        if (!existing) return prev
+        const next = new Map(prev)
+        next.set(id, { ...existing, contextWindow: undefined, contextTokens: undefined })
+        return next
+      })
+      // Refetch immediately so the UI doesn't show "— / —" momentarily.
+      void fetchContextUsage(id)
+    }
     return result.kin
-  }, [])
+  }, [fetchContextUsage])
 
   const deleteKin = useCallback(async (id: string): Promise<void> => {
     await api.delete(`/kins/${id}`)
