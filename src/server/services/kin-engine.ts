@@ -17,7 +17,11 @@ import {
 } from '@/server/db/schema'
 import { guessProviderType } from '@/shared/model-ref'
 import { decrypt } from '@/server/services/encryption'
-import { buildSystemPrompt } from '@/server/services/prompt-builder'
+import { buildSystemPrompt, joinSystemPrompt } from '@/server/services/prompt-builder'
+import {
+  buildSegmentedMessages,
+  markLastToolCacheable,
+} from '@/server/services/llm-cache-hints'
 import { dequeueMessage, markQueueItemDone, isKinProcessing, getQueueSize, recoverStaleProcessingItems } from '@/server/services/queue'
 import { recoverStaleTasks } from '@/server/services/tasks'
 import { sseManager } from '@/server/sse/index'
@@ -25,7 +29,7 @@ import { eventBus } from '@/server/services/events'
 import { hookRegistry } from '@/server/hooks/index'
 import { toolRegistry } from '@/server/tools/index'
 import { config } from '@/server/config'
-import { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK } from '@/server/providers/anthropic-oauth'
+import { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK, getOAuthUserId, buildBillingHeaderText } from '@/server/providers/anthropic-oauth'
 import { getCodexOAuthCredentials, CODEX_BASE_URL } from '@/server/providers/openai-codex'
 import { getRelevantMemories, rewriteQueryWithContext } from '@/server/services/memory'
 import { maybeCompact } from '@/server/services/compacting'
@@ -200,6 +204,7 @@ function stripToolExecute(tools: Record<string, Tool>): Record<string, Tool> {
   return schemas
 }
 
+
 // In-memory lock to prevent overlapping setInterval ticks from double-processing
 const kinLocks = new Set<string>()
 
@@ -227,23 +232,36 @@ export function setLastContextUsage(kinId: string, contextTokens: number, contex
   setSetting(`context_usage:${kinId}`, JSON.stringify(data)).catch(() => {})
 }
 
-/** Get the cached context usage for a Kin, if available. */
+/** Get the cached context usage for a Kin, if available.
+ *
+ *  `contextTokens` (current usage) is read from the cache.
+ *  `contextWindow` (model's max) is always recomputed from the Kin's current
+ *  model — it doesn't depend on the conversation, and caching it would
+ *  return stale values when:
+ *    - the model spec was updated by the provider (e.g. Anthropic raised
+ *      Opus 4.7 to 1M tokens since the last LLM call)
+ *    - the Kin's model was changed in the UI
+ */
 export async function getLastContextUsage(kinId: string) {
-  // Check in-memory cache first
-  const mem = lastContextUsage.get(kinId)
-  if (mem) return mem
-
-  // Fall back to DB (survives restarts)
-  const persisted = await getSetting(`context_usage:${kinId}`)
-  if (persisted) {
-    try {
-      const data = JSON.parse(persisted)
-      lastContextUsage.set(kinId, data)
-      return data as { contextTokens: number; contextWindow: number; updatedAt: number; breakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus }
-    } catch { /* ignore corrupt data */ }
+  // Check in-memory cache first, fall back to DB (survives restarts)
+  let cached = lastContextUsage.get(kinId)
+  if (!cached) {
+    const persisted = await getSetting(`context_usage:${kinId}`)
+    if (persisted) {
+      try {
+        cached = JSON.parse(persisted) as typeof cached
+        if (cached) lastContextUsage.set(kinId, cached)
+      } catch { /* ignore corrupt data */ }
+    }
   }
+  if (!cached) return null
 
-  return null
+  // Refresh contextWindow from the current model.
+  const kinRow = db.select({ model: kins.model }).from(kins).where(eq(kins.id, kinId)).get()
+  if (kinRow?.model) {
+    return { ...cached, contextWindow: getModelContextWindow(kinRow.model) }
+  }
+  return cached
 }
 
 // Cache of last computed compacting proximity per Kin
@@ -977,7 +995,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       }
     }
 
-    const systemPrompt = buildSystemPrompt({
+    const systemSegments = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: contactsWithSlug,
       relevantMemories,
@@ -1003,6 +1021,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       },
       workspacePath: kin.workspacePath,
     })
+    const systemPrompt = joinSystemPrompt(systemSegments)
 
     // ── E2E Mock LLM: stream a fake response without calling any provider ──
     if (process.env.E2E_MOCK_LLM === 'true') {
@@ -1172,8 +1191,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
 
     // Strip execute functions from tools so the SDK only collects intents
-    // (we execute tools ourselves between steps)
-    const toolSchemas = hasTools ? stripToolExecute(tools) : undefined
+    // (we execute tools ourselves between steps), then mark the last tool as
+    // cache-eligible for Anthropic prompt caching.
+    const toolSchemas = hasTools ? markLastToolCacheable(stripToolExecute(tools)) : undefined
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
     let wasAborted = false
@@ -1185,8 +1205,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
       const result = streamText({
         model,
-        system: systemPrompt,
-        messages: messageHistory,
+        messages: buildSegmentedMessages(systemSegments, messageHistory),
         tools: toolSchemas,
         abortSignal: abortController.signal,
         ...(thinkingProviderOptions ? { providerOptions: thinkingProviderOptions as any } : {}),
@@ -1363,6 +1382,21 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         },
         stepCount: stepResults.length,
       })
+
+      // Log cache hit/miss to make prompt-caching effectiveness observable.
+      // Always emit (even when cache is 0/0) so a missing log = misconfigured
+      // pipeline, not just a cold cache.
+      const cacheRead = tokenUsage.cacheReadTokens ?? 0
+      const cacheWrite = tokenUsage.cacheWriteTokens ?? 0
+      log.info({
+        kinId, modelId: kin.model,
+        inputTokens: tokenUsage.inputTokens,
+        cacheReadTokens: cacheRead,
+        cacheWriteTokens: cacheWrite,
+        cacheHitRatio: tokenUsage.inputTokens
+          ? +(cacheRead / tokenUsage.inputTokens).toFixed(2)
+          : null,
+      }, 'Prompt cache stats')
     }
 
     log.info({ kinId, messageId: assistantMessageId, contentLength: fullContent.length, toolCalls: toolCallsLog.length, wasAborted }, 'LLM turn completed')
@@ -1675,7 +1709,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     // Build quick session system prompt (minimal — no contacts, no kin directory, no hidden instructions)
     const globalPrompt = await getGlobalPrompt()
 
-    const systemPrompt = buildSystemPrompt({
+    const systemSegments = buildSystemPrompt({
       kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
       contacts: [],
       relevantMemories,
@@ -1785,8 +1819,9 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     const abortController = new AbortController()
     quickAbortControllers.set(sessionId, abortController)
 
-    // Strip execute functions from tools so the SDK only collects intents
-    const toolSchemas = hasTools ? stripToolExecute(tools) : undefined
+    // Strip execute functions from tools so the SDK only collects intents,
+    // then mark the last tool as cache-eligible for Anthropic prompt caching.
+    const toolSchemas = hasTools ? markLastToolCacheable(stripToolExecute(tools)) : undefined
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
     let wasAborted = false
@@ -1798,8 +1833,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
 
       const result = streamText({
         model,
-        system: systemPrompt,
-        messages: messageHistory,
+        messages: buildSegmentedMessages(systemSegments, messageHistory),
         tools: toolSchemas,
         abortSignal: abortController.signal,
         ...(qsThinkingProviderOptions ? { providerOptions: qsThinkingProviderOptions as any } : {}),
@@ -2066,12 +2100,17 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
   const cutoffTimestamp = latestSummary ? (latestSummary.lastMessageAt as unknown as number) : null
 
   // [10] Recent messages (main session only, not task or quick session messages)
+  // Limit is configurable via HISTORY_MAX_MESSAGES (default 1000). A low limit
+  // produces a sliding-window effect that breaks Anthropic prompt cache: every
+  // new turn pushes 1-2 oldest messages out, shifting the prefix and
+  // invalidating cross-turn cache. The compacting service is the proper
+  // mechanism for keeping the LLM context within token-window limits.
   const recentMessages = await db
     .select()
     .from(messages)
     .where(and(eq(messages.kinId, kinId), isNull(messages.taskId), isNull(messages.sessionId), ne(messages.sourceType, 'compacting')))
     .orderBy(desc(messages.createdAt))
-    .limit(100) // Fetch generously; token budget will trim further down
+    .limit(config.historyMaxMessages)
     .all()
 
   // Reverse to get chronological order
@@ -2292,8 +2331,17 @@ async function buildMessageHistory(kinId: string): Promise<{ messages: ModelMess
     // tool results are reconstructed from the assistant's toolCalls JSON above
   }
 
-  // Mask old tool results to save context tokens
-  const maskResult = maskOldToolResults(history, config.toolResultMaskKeepLast, config.observationCompactionWindow, config.observationMaxChars)
+  // Progressive compaction (tool result masking + observation compaction).
+  //
+  // Gated behind `progressiveCompactionEnabled` because it rewrites old tool
+  // results between turns — intact → truncated → collapsed as new calls
+  // accumulate — which invalidates Anthropic's prompt cache (the prefix
+  // changes byte-for-byte every turn). When disabled, the proper compacting
+  // service (which generates summaries) takes over at the configured threshold
+  // for genuine token savings without breaking the cache.
+  const maskResult = config.progressiveCompactionEnabled
+    ? maskOldToolResults(history, config.toolResultMaskKeepLast, config.observationCompactionWindow, config.observationMaxChars)
+    : { messages: history, maskedGroupCount: 0, observationCompactedCount: 0, estimatedTokensSaved: 0 }
   const maskedHistory = maskResult.messages
   if (maskResult.maskedGroupCount > 0 || maskResult.observationCompactedCount > 0) {
     log.debug({ kinId, maskedGroups: maskResult.maskedGroupCount, observationCompacted: maskResult.observationCompactedCount, tokensSaved: maskResult.estimatedTokensSaved }, 'Context compaction pipeline applied')
@@ -2442,33 +2490,127 @@ async function tryCreateModel(
           headers.delete('x-api-key')
           headers.set('authorization', `Bearer ${accessToken}`)
 
-          // Inject the magic system block required by the OAuth endpoint
+          // Per-request Stainless headers — these change per call and can't
+          // live in the static OAUTH_HEADERS. Without them, the request looks
+          // like it's coming from a non-Anthropic-SDK client.
+          if (!headers.has('x-stainless-retry-count')) {
+            headers.set('x-stainless-retry-count', '0')
+          }
+          if (!headers.has('x-stainless-timeout')) {
+            headers.set('x-stainless-timeout', '600')
+          }
+
+          // Rewrite `/v1/messages` → `/v1/messages?beta=true` so the request
+          // shape matches the official Claude Code CLI (which uses the SDK's
+          // `beta.messages.stream()` helper, hitting the `?beta=true` URL).
+          // Without this query param, Anthropic likely classifies the request
+          // as a non-beta-aware client and re-routes to the "extra usage" pool.
+          let rewrittenUrl: URL | RequestInfo = url
+          const urlString = typeof url === 'string'
+            ? url
+            : url instanceof URL
+              ? url.toString()
+              : url instanceof Request
+                ? url.url
+                : String(url)
+          if (urlString.includes('/v1/messages') && !urlString.includes('beta=true')) {
+            const sep = urlString.includes('?') ? '&' : '?'
+            const newUrl = `${urlString}${sep}beta=true`
+            rewrittenUrl = typeof url === 'string' ? newUrl
+              : url instanceof URL ? new URL(newUrl)
+              : url instanceof Request ? new Request(newUrl, url)
+              : newUrl
+          }
+
+          // Three body rewrites needed for OAuth:
+          //
+          // 1. Compute the signed billing tag and inject it as the FIRST
+          //    text block in the system array (before the magic identity
+          //    block). Anthropic's request router validates this signature
+          //    to decide whether to bill the request against the plan pool
+          //    (signature valid) or against "extra usage" (missing/invalid).
+          //    The signature is derived from the first user message text
+          //    plus a hardcoded salt — see buildBillingHeaderText().
+          //
+          // 2. Prepend the REQUIRED_SYSTEM_BLOCK identity prefix so the OAuth
+          //    endpoint accepts the request. Do NOT add cache_control to
+          //    existing blocks — the Vercel AI SDK already places cache_control
+          //    on the right blocks (via providerOptions.anthropic.cacheControl
+          //    in llm-cache-hints.ts). Forcing cache_control here would either
+          //    blow past Anthropic's 4-breakpoint limit, or cache the volatile
+          //    segment of the system prompt (which changes each turn —
+          //    pure cache-write waste).
+          //
+          // 3. Inject `metadata.user_id` so the request shape matches the
+          //    official Claude Code CLI. Anthropic prefers the OAuth account's
+          //    UUID (from ~/.claude.json#oauthAccount.accountUuid) over a
+          //    random installation ID.
           if (init?.body && typeof init.body === 'string') {
             try {
               const body = JSON.parse(init.body)
-              if (body.system !== undefined) {
-                if (typeof body.system === 'string') {
-                  body.system = [
-                    REQUIRED_SYSTEM_BLOCK,
-                    { type: 'text', text: body.system, cache_control: { type: 'ephemeral' } },
-                  ]
-                } else if (Array.isArray(body.system)) {
-                  body.system = [
-                    REQUIRED_SYSTEM_BLOCK,
-                    ...body.system.map((block: Record<string, unknown>) => ({
-                      ...block,
-                      cache_control: { type: 'ephemeral' },
-                    })),
-                  ]
-                }
-                init = { ...init, body: JSON.stringify(body) }
+              const billingBlock = {
+                type: 'text' as const,
+                text: buildBillingHeaderText(body.messages),
               }
+              if (body.system === undefined) {
+                body.system = [billingBlock, REQUIRED_SYSTEM_BLOCK]
+              } else if (typeof body.system === 'string') {
+                body.system = [
+                  billingBlock,
+                  REQUIRED_SYSTEM_BLOCK,
+                  { type: 'text', text: body.system },
+                ]
+              } else if (Array.isArray(body.system)) {
+                body.system = [billingBlock, REQUIRED_SYSTEM_BLOCK, ...body.system]
+              }
+              if (!body.metadata || typeof body.metadata !== 'object') {
+                body.metadata = {}
+              }
+              if (!body.metadata.user_id) {
+                body.metadata.user_id = getOAuthUserId()
+              }
+
+              // Debug: dump cache breakpoint layout when DEBUG_OAUTH_CACHE=1
+              if (process.env.DEBUG_OAUTH_CACHE) {
+                const summarize = (item: unknown, idx: number, kind: 'system' | 'message') => {
+                  const it = item as { type?: string; text?: string; content?: unknown; cache_control?: unknown; role?: string }
+                  let preview = ''
+                  let length = 0
+                  let hasCacheControl = false
+                  if (kind === 'system') {
+                    preview = (it.text ?? '').slice(0, 60)
+                    length = (it.text ?? '').length
+                    hasCacheControl = !!it.cache_control
+                  } else {
+                    if (typeof it.content === 'string') {
+                      preview = it.content.slice(0, 60)
+                      length = it.content.length
+                    } else if (Array.isArray(it.content)) {
+                      const blocks = it.content as Array<{ type: string; text?: string; cache_control?: unknown }>
+                      preview = blocks.map(b => b.text ?? `<${b.type}>`).join('|').slice(0, 60)
+                      length = blocks.reduce((acc, b) => acc + (b.text?.length ?? 0), 0)
+                      hasCacheControl = blocks.some(b => !!b.cache_control)
+                    }
+                  }
+                  return `  [${idx}] ${kind} role=${it.role ?? '-'} cc=${hasCacheControl ? 'YES' : 'no '} len=${length.toString().padStart(6)} | ${preview.replace(/\n/g, '\\n')}`
+                }
+                const lines: string[] = ['OAuth wire dump:']
+                if (Array.isArray(body.system)) {
+                  body.system.forEach((s: unknown, i: number) => lines.push(summarize(s, i, 'system')))
+                }
+                if (Array.isArray(body.messages)) {
+                  body.messages.forEach((m: unknown, i: number) => lines.push(summarize(m, i, 'message')))
+                }
+                log.info({ provider: 'anthropic-oauth' }, lines.join('\n'))
+              }
+
+              init = { ...init, body: JSON.stringify(body) }
             } catch {
               // Not JSON, pass through
             }
           }
 
-          return globalThis.fetch(url, { ...init, headers })
+          return globalThis.fetch(rewrittenUrl, { ...init, headers })
         }) as unknown as typeof fetch,
       })
       return anthropic(modelId)

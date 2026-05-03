@@ -6,6 +6,10 @@ import { createLogger } from '@/server/logger'
 import { tasks, kins, messages } from '@/server/db/schema'
 import { enqueueMessage } from '@/server/services/queue'
 import { buildSystemPrompt } from '@/server/services/prompt-builder'
+import {
+  buildSegmentedMessages,
+  markLastToolCacheable,
+} from '@/server/services/llm-cache-hints'
 import { resolveLLMModel, buildThinkingProviderOptions } from '@/server/services/kin-engine'
 import { toolRegistry } from '@/server/tools/index'
 import { resolveMCPTools } from '@/server/services/mcp'
@@ -431,7 +435,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const { listAvailableKins } = await import('@/server/services/inter-kin')
     const kinDirectory = await listAvailableKins(kinIdentity.id)
 
-    const systemPrompt = buildSystemPrompt({
+    const systemSegments = buildSystemPrompt({
       kin: {
         name: kinIdentity.name,
         slug: kinIdentity.slug,
@@ -625,8 +629,9 @@ async function executeSubKin(taskId: string, isNudge = false) {
     activeTaskAbortControllers.set(taskId, abortController)
 
     // Strip execute functions from tools so the SDK only collects intents
-    // (we execute tools ourselves between steps)
-    const toolSchemas = hasTools ? stripToolExecute(tools) : undefined
+    // (we execute tools ourselves between steps), then mark the last tool as
+    // cache-eligible for Anthropic prompt caching.
+    const toolSchemas = hasTools ? markLastToolCacheable(stripToolExecute(tools)) : undefined
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : 100) : 1
     const stepResults: Array<ReturnType<typeof streamText>> = []
@@ -637,8 +642,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
 
       const result = streamText({
         model,
-        system: systemPrompt,
-        messages: messageHistory,
+        messages: buildSegmentedMessages(systemSegments, messageHistory),
         tools: toolSchemas,
         abortSignal: abortController.signal,
         ...(taskThinkingProviderOptions ? { providerOptions: taskThinkingProviderOptions as any } : {}),

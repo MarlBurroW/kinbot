@@ -445,25 +445,60 @@ const LANGUAGE_NAMES: Record<string, string> = {
 }
 
 /**
+ * System prompt assembly result.
+ *
+ * The prompt is split into two segments to enable Anthropic prompt caching:
+ *  - `stable`: rarely-changing content (identity, character, expertise, hidden
+ *    instructions, kin directory, MCP/channel descriptions). Eligible for a
+ *    cache breakpoint at the end of this segment.
+ *  - `volatile`: per-turn dynamic content (memories, contacts, current speaker,
+ *    participants, summaries, language, workspace tree, date/time).
+ *
+ * Concatenating `${stable}\n\n${volatile}` reproduces the legacy single-string
+ * output, in the same order as before (volatile blocks were already at the
+ * tail of the original assembly).
+ */
+export interface BuiltSystemPrompt {
+  stable: string
+  volatile: string
+}
+
+/**
+ * Concatenate a `BuiltSystemPrompt` back into a single string. Used by callers
+ * that don't care about cache segmentation (token estimation, previews, etc.).
+ */
+export function joinSystemPrompt(p: BuiltSystemPrompt): string {
+  if (!p.stable) return p.volatile
+  if (!p.volatile) return p.stable
+  return `${p.stable}\n\n${p.volatile}`
+}
+
+/**
  * Build the system prompt for a Kin following the block structure
  * defined in prompt-system.md.
+ *
+ * Returns a `{ stable, volatile }` pair so callers can place a cache breakpoint
+ * between them when calling Anthropic-family providers. For other providers,
+ * the two segments can simply be concatenated (and the providerOptions hint
+ * is ignored).
  */
-export function buildSystemPrompt(params: PromptParams): string {
-  const blocks: string[] = []
+export function buildSystemPrompt(params: PromptParams): BuiltSystemPrompt {
+  const stableBlocks: string[] = []
+  const volatileBlocks: string[] = []
 
   if (params.isSubKin && params.taskDescription) {
     // Sub-Kin prompt
-    blocks.push(
+    stableBlocks.push(
       `You are ${params.kin.name}, a specialized AI agent on KinBot, executing a delegated task.\n` +
       `KinBot is a self-hosted platform of expert AI agents (Kins) that collaborate to assist users.`,
     )
-    blocks.push(`## Your mission\n\n${params.taskDescription}`)
+    stableBlocks.push(`## Your mission\n\n${params.taskDescription}`)
     const isCronTask = params.previousCronRuns !== undefined
     const cronJournalInstruction = isCronTask
       ? `\n- This is a recurring scheduled task. End your final result with a concise summary of what you did and found, so the next run can pick up where you left off.` +
         `\n- When you encounter errors, unexpected behavior, or discover a useful approach, use save_run_learning() to record it for future runs. Use delete_run_learning() to remove stale or incorrect learnings.`
       : ''
-    blocks.push(
+    stableBlocks.push(
       `## Constraints\n` +
       `- Focus exclusively on this task.\n` +
       `- Use report_to_parent() to send intermediate progress updates if useful.\n` +
@@ -495,7 +530,8 @@ export function buildSystemPrompt(params: PromptParams): string {
           return `${i + 1}. [${date}] ${r.status} (${durationSec}s)${detail}`
         })
         .join('\n')
-      blocks.push(
+      // Previous runs are stable for the lifetime of this sub-Kin task instance.
+      stableBlocks.push(
         `## Previous runs\n\n` +
         `This is a recurring scheduled task. Here are your most recent executions (newest first):\n\n${runLines}`,
       )
@@ -509,7 +545,7 @@ export function buildSystemPrompt(params: PromptParams): string {
           return `- [id:${l.id}] ${l.content}${catTag}`
         })
         .join('\n')
-      blocks.push(
+      stableBlocks.push(
         `## Learnings from previous runs\n\n` +
         `Lessons discovered during previous executions of this task. Apply these proactively.\n` +
         `If any learning is wrong or outdated, use delete_run_learning() to remove it and save_run_learning() to record the correction.\n\n` +
@@ -519,11 +555,11 @@ export function buildSystemPrompt(params: PromptParams): string {
 
     // [3.5] Platform directives (global prompt) — applies to sub-Kins too
     if (params.globalPrompt) {
-      blocks.push(`## Platform directives\n\n${params.globalPrompt}`)
+      stableBlocks.push(`## Platform directives\n\n${params.globalPrompt}`)
     }
   } else {
     // [0] Platform context
-    blocks.push(
+    stableBlocks.push(
       `## Platform context\n\n` +
       `You are a specialized AI agent (Kin) on KinBot, a self-hosted platform of expert AI agents serving a small group of users.\n\n` +
       `Key facts about your environment:\n` +
@@ -534,10 +570,10 @@ export function buildSystemPrompt(params: PromptParams): string {
 
     // [1] Identity (with slug)
     const slugSuffix = params.kin.slug ? ` (slug: ${params.kin.slug})` : ''
-    blocks.push(`You are ${params.kin.name}${slugSuffix}, ${params.kin.role}.`)
+    stableBlocks.push(`You are ${params.kin.name}${slugSuffix}, ${params.kin.role}.`)
 
     // [1.5] Core principles (universal baseline for all Kins)
-    blocks.push(
+    stableBlocks.push(
       `## Core principles\n\n` +
       `- Be genuinely helpful, not performatively helpful. Skip filler phrases and deliver value through competence.\n` +
       `- Be resourceful before asking — check your memory, contacts, and available tools before requesting clarification.\n` +
@@ -551,55 +587,59 @@ export function buildSystemPrompt(params: PromptParams): string {
 
     // [2] Character
     if (params.kin.character) {
-      blocks.push(`## Personality\n\n${params.kin.character}`)
+      stableBlocks.push(`## Personality\n\n${params.kin.character}`)
     }
 
     // [3] Expertise
     if (params.kin.expertise) {
-      blocks.push(`## Expertise\n\n${params.kin.expertise}`)
+      stableBlocks.push(`## Expertise\n\n${params.kin.expertise}`)
     }
 
     // [3.5] Platform directives (global prompt)
     if (params.globalPrompt) {
-      blocks.push(`## Platform directives\n\n${params.globalPrompt}`)
+      stableBlocks.push(`## Platform directives\n\n${params.globalPrompt}`)
     }
   }
 
   // Quick session: skip contacts, kin directory, hidden instructions, and MCP blocks
   if (params.isQuickSession) {
-    // [5] Relevant memories (read-only)
+    // [5] Relevant memories (read-only) — volatile (depends on the incoming message)
     if (params.relevantMemories.length > 0) {
-      blocks.push(buildMemoriesBlock(params.relevantMemories))
+      volatileBlocks.push(buildMemoriesBlock(params.relevantMemories))
     }
 
     // [3.5] Platform directives (global prompt) — applies to quick sessions too
     if (params.globalPrompt) {
-      blocks.push(`## Platform directives\n\n${params.globalPrompt}`)
+      stableBlocks.push(`## Platform directives\n\n${params.globalPrompt}`)
     }
 
-    blocks.push(
+    stableBlocks.push(
       `## Quick session\n\n` +
       `This is a quick session. You do not have access to the main conversation history, ` +
       `inter-Kin communication, or administrative tools. Focus on the immediate task.\n` +
       `Do not offer to save memories or create contacts — those capabilities are not available here.`,
     )
 
-    // [7] Language
+    // [7] Language — volatile (per-speaker)
     const languageName = LANGUAGE_NAMES[params.userLanguage] ?? 'English'
-    blocks.push(
+    volatileBlocks.push(
       `## Language\n\n` +
       `You MUST respond in ${languageName} (${params.userLanguage}).`,
     )
 
-    // [8] Date and context
-    blocks.push(
+    // [8] Date and context — volatile (per-turn)
+    volatileBlocks.push(
       buildContextBlock(),
     )
 
-    return blocks.join('\n\n')
+    return {
+      stable: stableBlocks.join('\n\n'),
+      volatile: volatileBlocks.join('\n\n'),
+    }
   }
 
   // [4] Contacts (compact summary — global shared registry)
+  // Volatile: contacts are created/updated as the Kin interacts with new people.
   if (params.contacts.length > 0) {
     const contactLines = params.contacts
       .map((c) => {
@@ -617,7 +657,7 @@ export function buildSystemPrompt(params: PromptParams): string {
         return `- ${c.name} (${parts.join(', ')}) [id: ${c.id}]`
       })
       .join('\n')
-    blocks.push(
+    volatileBlocks.push(
       `## Known contacts\n\n` +
       `These are the shared contacts across all Kins. Use get_contact(id) to ` +
       `retrieve a contact's full details, identifiers, and notes.\n\n${contactLines}`,
@@ -625,6 +665,7 @@ export function buildSystemPrompt(params: PromptParams): string {
   }
 
   // [4.5] Kin directory + collaboration instructions (main agent only)
+  // Stable: only changes when a Kin is created/edited.
   if (!params.isSubKin && params.isHub && params.hubKinDirectory && params.hubKinDirectory.length > 0) {
     // Hub view: enriched directory with expertise summaries and routing instructions
     const directoryLines = params.hubKinDirectory
@@ -636,7 +677,7 @@ export function buildSystemPrompt(params: PromptParams): string {
         return entry
       })
       .join('\n\n')
-    blocks.push(
+    stableBlocks.push(
       `## Kin directory (Hub view)\n\n` +
       `You are the platform's Hub — the central coordinator. Your primary purpose is to understand incoming requests and either handle them yourself or route them to the most appropriate specialized Kin.\n\n` +
       `### Available Kins\n\n` +
@@ -655,7 +696,7 @@ export function buildSystemPrompt(params: PromptParams): string {
     const directoryLines = params.kinDirectory
       .map((k) => `- ${k.name} (slug: ${k.slug}) — ${k.role}`)
       .join('\n')
-    blocks.push(
+    stableBlocks.push(
       `## Kin directory\n\n` +
       `Available Kins you can communicate with:\n\n` +
       directoryLines + `\n\n` +
@@ -672,7 +713,7 @@ export function buildSystemPrompt(params: PromptParams): string {
     const directoryLines = params.kinDirectory
       .map((k) => `- ${k.name} (slug: ${k.slug}) — ${k.role}`)
       .join('\n')
-    blocks.push(
+    stableBlocks.push(
       `## Kin directory\n\n` +
       `These are the other specialized Kins on the platform:\n\n` +
       directoryLines + `\n\n` +
@@ -684,17 +725,17 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [5] Relevant memories
+  // [5] Relevant memories — volatile (retrieved per incoming message)
   if (params.relevantMemories.length > 0) {
-    blocks.push(buildMemoriesBlock(params.relevantMemories))
+    volatileBlocks.push(buildMemoriesBlock(params.relevantMemories))
   }
 
-  // [5.5] Relevant knowledge base chunks
+  // [5.5] Relevant knowledge base chunks — volatile (retrieved per message)
   if (params.relevantKnowledge && params.relevantKnowledge.length > 0) {
     const knowledgeLines = params.relevantKnowledge
       .map((k, i) => `[${i + 1}] ${k.content}`)
       .join('\n\n')
-    blocks.push(
+    volatileBlocks.push(
       `## Relevant knowledge\n\n` +
       `The following excerpts from your knowledge base may be relevant to the current conversation. ` +
       `Use this information to inform your responses when applicable.\n\n` +
@@ -702,9 +743,9 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [6] Hidden system instructions (main agent only)
+  // [6] Hidden system instructions (main agent only) — stable, large block
   if (!params.isSubKin) {
-    blocks.push(
+    stableBlocks.push(
       `## Internal instructions (do not share with the user)\n\n` +
       `### Contact management\n` +
       `- Contacts are shared across all Kins. When you create or update a contact, all Kins see it.\n` +
@@ -796,25 +837,25 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [6.5] MCP tools (external tool servers) — server-level summary only,
-  // individual tool descriptions are already in the AI SDK tools parameter
+  // [6.5] MCP tools (external tool servers) — stable summary
+  // (individual tool descriptions live in the AI SDK tools parameter)
   if (params.mcpTools && params.mcpTools.length > 0) {
     const mcpLines = params.mcpTools
       .map((server) => `- **${server.serverName}** (${server.tools.length} tools)`)
       .join('\n')
-    blocks.push(
+    stableBlocks.push(
       `## MCP Tools (external servers)\n\n` +
       `You have access to tools from the following external MCP servers. ` +
       `Call them like any other tool.\n\n${mcpLines}`,
     )
   }
 
-  // [6.7] Active channels (external messaging platforms)
+  // [6.7] Active channels (external messaging platforms) — stable channel list
   if (params.activeChannels && params.activeChannels.length > 0) {
     const channelLines = params.activeChannels
       .map((ch) => `- ${ch.platform}: "${ch.name}"`)
       .join('\n')
-    blocks.push(
+    stableBlocks.push(
       `## External channels\n\n` +
       `You are connected to the following external messaging platforms:\n\n${channelLines}\n\n` +
       `Messages prefixed with [platform:Name] come from these platforms. Your responses are automatically sent back to the originating conversation.\n` +
@@ -831,7 +872,7 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [6.75] Current speaker profile
+  // [6.75] Current speaker profile — volatile (per turn)
   if (params.currentSpeaker) {
     const { firstName, lastName, pseudonym, role, contactId, contactNotes, kinNotes } = params.currentSpeaker
     const nameParts = [firstName, lastName].filter(Boolean).join(' ')
@@ -870,10 +911,10 @@ export function buildSystemPrompt(params: PromptParams): string {
         `to learn more about ${pseudonym} — their current projects, evolving interests, or new needs. ` +
         `Update notes via set_contact_note(${contactId}, "global"|"private", ...) when you learn something new.`
     }
-    blocks.push(speakerBlock)
+    volatileBlocks.push(speakerBlock)
   }
 
-  // [6.8] Conversation participants + group/DM awareness
+  // [6.8] Conversation participants + group/DM awareness — volatile (lastSeenAt changes)
   if (params.participants && params.participants.length > 0) {
     const participantLines = params.participants
       .map((p) => {
@@ -900,20 +941,20 @@ export function buildSystemPrompt(params: PromptParams): string {
         `You can be more detailed and personalized in your responses.`
     }
 
-    blocks.push(
+    volatileBlocks.push(
       `## Active participants\n\n` +
       `${contextHint}\n\n` +
       participantLines,
     )
   }
 
-  // [6.85] Conversation state awareness
+  // [6.85] Conversation state awareness — volatile
   const stateBlock = buildConversationStateBlock(params.conversationState)
   if (stateBlock) {
-    blocks.push(stateBlock)
+    volatileBlocks.push(stateBlock)
   }
 
-  // [6.9] Compacting summaries (older conversation context)
+  // [6.9] Compacting summaries (older conversation context) — volatile (changes after each compaction)
   if (params.compactingSummaries && params.compactingSummaries.length > 0) {
     const summaryBlocks = params.compactingSummaries.map((s) => {
       const fromDate = s.firstMessageAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
@@ -921,7 +962,7 @@ export function buildSystemPrompt(params: PromptParams): string {
       const compressed = s.depth > 0 ? ' [compressed]' : ''
       return `### Summary (${fromDate} → ${toDate})${compressed}\n\n${s.summary}`
     })
-    blocks.push(
+    volatileBlocks.push(
       `## Conversation history summaries\n\n` +
       `The following summaries cover older exchanges no longer in the message history. ` +
       `Use them as background context — they are faithful summaries of what was discussed previously. ` +
@@ -931,25 +972,25 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [7] Language
+  // [7] Language — volatile (per-speaker)
   const languageName = LANGUAGE_NAMES[params.userLanguage] ?? 'English'
-  blocks.push(
+  volatileBlocks.push(
     `## Language\n\n` +
     `You MUST respond in ${languageName} (${params.userLanguage}).\n` +
     `The current speaker's preferred language is ${languageName}.\n` +
     `Always respond in this language unless the user explicitly asks you to switch.`,
   )
 
-  // [7.5] Current message source hint
+  // [7.5] Current message source hint — volatile
   const messageHint = buildCurrentMessageHint(params.currentMessageSource)
   if (messageHint) {
-    blocks.push(messageHint)
+    volatileBlocks.push(messageHint)
   }
 
-  // [7.6] Channel origin context (multi-turn awareness — delivery is automatic)
+  // [7.6] Channel origin context — volatile
   if (params.pendingChannelContext) {
     const ctx = params.pendingChannelContext
-    blocks.push(
+    volatileBlocks.push(
       `## Channel origin context\n\n` +
       `This turn is part of a conversation chain that originated from **${ctx.platform}**.\n` +
       `Your response will be **automatically delivered** back to ${ctx.platform} — ` +
@@ -959,11 +1000,11 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [7.7] Workspace awareness
+  // [7.7] Workspace awareness — volatile (tree changes when files are added)
   if (params.workspacePath) {
     const tree = generateWorkspaceTree(params.workspacePath)
     const treeLine = tree ? `\nContents:\n${tree}` : '\n(empty — use this to organize your files)'
-    blocks.push(
+    volatileBlocks.push(
       `## Workspace\n\n` +
       `Your workspace directory is your dedicated storage area. Use it to organize files, clone repos, create scripts, and store any persistent data.\n\n` +
       `Path: ${params.workspacePath}${treeLine}\n\n` +
@@ -971,10 +1012,13 @@ export function buildSystemPrompt(params: PromptParams): string {
     )
   }
 
-  // [8] Date and context
-  blocks.push(
+  // [8] Date and context — volatile (changes every minute)
+  volatileBlocks.push(
     buildContextBlock(),
   )
 
-  return blocks.join('\n\n')
+  return {
+    stable: stableBlocks.join('\n\n'),
+    volatile: volatileBlocks.join('\n\n'),
+  }
 }

@@ -68,6 +68,14 @@ export async function safeGenerateText(
 
   let result: GenerateTextResult<Record<string, never>, never>
 
+  // Note: no Anthropic cache_control here. Compacting/extraction prompts
+  // include the unique-per-call content (messages to summarize, exchanges to
+  // extract from) directly in the prompt string, so each invocation has a
+  // distinct prefix and would only ever pay the 25% cache-write penalty
+  // without ever benefiting from a cache read. If compacting templates are
+  // ever refactored to separate the static instructions from the variable
+  // content, revisit this and add cacheControl on the static system block.
+
   if (oauth) {
     log.debug('Using OAuth-safe generateText with system block')
     result = await generateText({

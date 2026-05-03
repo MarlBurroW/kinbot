@@ -53,10 +53,50 @@ describe('anthropic-oauth exports', () => {
   it('should export correct OAUTH_HEADERS', async () => {
     const mod = await import('./anthropic-oauth')
     expect(mod.OAUTH_HEADERS).toBeDefined()
-    expect(mod.OAUTH_HEADERS['anthropic-dangerous-direct-browser-access']).toBe('true')
     expect(mod.OAUTH_HEADERS['x-app']).toBe('cli')
     expect(mod.OAUTH_HEADERS['anthropic-beta']).toContain('oauth-2025-04-20')
+    expect(mod.OAUTH_HEADERS['anthropic-beta']).toContain('claude-code-20250219')
+    expect(mod.OAUTH_HEADERS['anthropic-beta']).toContain('interleaved-thinking-2025-05-14')
+    expect(mod.OAUTH_HEADERS['anthropic-beta']).toContain('fine-grained-tool-streaming-2025-05-14')
+    expect(mod.OAUTH_HEADERS['anthropic-beta']).toContain('prompt-caching-scope-2026-01-05')
+    expect(mod.OAUTH_HEADERS['anthropic-beta']).toContain('advisor-tool-2026-03-01')
     expect(mod.OAUTH_HEADERS['user-agent']).toMatch(/^claude-cli\//)
+    // X-Stainless-* family identifies the request as coming from @anthropic-ai/sdk
+    const headers = mod.OAUTH_HEADERS as Record<string, string>
+    expect(headers['X-Stainless-Lang']).toBe('js')
+    expect(headers['X-Stainless-Runtime']).toBe('node')
+    // anthropic-dangerous-direct-browser-access mirrors what the SDK sends when
+    // configured with `dangerouslyAllowBrowser: true`, which is the OAuth path.
+    expect(mod.OAUTH_HEADERS['anthropic-dangerous-direct-browser-access']).toBe('true')
+  })
+
+  it('should export getOAuthUserId returning the OAuth account UUID or <64-hex>_<UUID> fallback', async () => {
+    const mod = await import('./anthropic-oauth')
+    const userId = mod.getOAuthUserId()
+    // Two valid shapes:
+    //   - The OAuth account UUID (preferred — matches what Claude Code sends)
+    //   - A `<64-hex>_<UUID v4>` fallback when the credentials file lacks
+    //     `oauthAccount.accountUuid`
+    const accountUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    const fallbackPattern = /^[0-9a-f]{64}_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    expect(accountUuidPattern.test(userId) || fallbackPattern.test(userId)).toBe(true)
+    // Stable within a single process
+    expect(mod.getOAuthUserId()).toBe(userId)
+  })
+
+  it('buildBillingHeaderText produces a deterministic signed tag', async () => {
+    const mod = await import('./anthropic-oauth')
+    const messages = [{ role: 'user', content: 'Hello world this is a test message.' }]
+    const tag1 = mod.buildBillingHeaderText(messages, '2.1.120')
+    const tag2 = mod.buildBillingHeaderText(messages, '2.1.120')
+    expect(tag1).toBe(tag2) // deterministic
+    expect(tag1).toMatch(/^x-anthropic-billing-header: cc_version=2\.1\.120\.[0-9a-f]{3}; cc_entrypoint=sdk-cli; cch=[0-9a-f]{5};$/)
+    // Different message text produces a different signature
+    const otherTag = mod.buildBillingHeaderText([{ role: 'user', content: 'Different text entirely.' }], '2.1.120')
+    expect(otherTag).not.toBe(tag1)
+    // Different version also produces a different signature
+    const otherVersionTag = mod.buildBillingHeaderText(messages, '2.1.99')
+    expect(otherVersionTag).not.toBe(tag1)
   })
 
   it('should export REQUIRED_SYSTEM_BLOCK with correct structure', async () => {
@@ -64,8 +104,11 @@ describe('anthropic-oauth exports', () => {
     expect(mod.REQUIRED_SYSTEM_BLOCK).toEqual({
       type: 'text',
       text: "You are Claude Code, Anthropic's official CLI for Claude.",
-      cache_control: { type: 'ephemeral' },
     })
+    // No cache_control on this block — it's tiny and any breakpoint placed
+    // on later content (the stable system segment) automatically covers this
+    // block too via Anthropic's longest-prefix-match cache lookup.
+    expect(mod.REQUIRED_SYSTEM_BLOCK as Record<string, unknown>).not.toHaveProperty('cache_control')
   })
 
   it('should export anthropicOAuthProvider with correct type', async () => {

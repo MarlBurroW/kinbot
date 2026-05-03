@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'bun:test'
-import { buildSystemPrompt } from '@/server/services/prompt-builder'
+import {
+  buildSystemPrompt as buildSystemPromptSegmented,
+  joinSystemPrompt,
+} from '@/server/services/prompt-builder'
+
+// Legacy single-string wrapper so existing assertions keep working.
+// New segmentation-aware tests live at the bottom of the file and call
+// `buildSystemPromptSegmented` directly.
+function buildSystemPrompt(params: Parameters<typeof buildSystemPromptSegmented>[0]): string {
+  return joinSystemPrompt(buildSystemPromptSegmented(params))
+}
 
 // Minimal valid params factory
 function makeParams(overrides: Record<string, unknown> = {}) {
@@ -651,5 +661,90 @@ describe('buildSystemPrompt', () => {
     expect(result).toContain('## Platform directives')
     expect(result).toContain('Always sign off with a smiley.')
     expect(result).toContain('## Quick session')
+  })
+
+  // --- Stable / volatile segmentation (Anthropic prompt caching) ---
+
+  describe('segmentation', () => {
+    it('places identity, character, expertise and hidden instructions in the stable segment', () => {
+      const { stable, volatile } = buildSystemPromptSegmented(makeParams())
+      // Identity / character / expertise / hidden instructions live in `stable`
+      // because they only change when the Kin is edited.
+      expect(stable).toContain('You are TestBot')
+      expect(stable).toContain('## Personality')
+      expect(stable).toContain('Friendly and concise.')
+      expect(stable).toContain('## Expertise')
+      expect(stable).toContain('## Internal instructions')
+      expect(stable).toContain('## Platform context')
+      expect(stable).toContain('## Core principles')
+      // None of those should leak into the volatile segment
+      expect(volatile).not.toContain('## Personality')
+      expect(volatile).not.toContain('## Internal instructions')
+      expect(volatile).not.toContain('## Platform context')
+    })
+
+    it('places date, language, contacts, memories and current speaker in the volatile segment', () => {
+      const { stable, volatile } = buildSystemPromptSegmented(makeParams({
+        contacts: [{ id: 'c1', name: 'Alice', type: 'human' }],
+        relevantMemories: [{ category: 'fact', content: 'Likes cats', subject: 'Alice' }],
+        currentSpeaker: { firstName: 'Alice', lastName: null, pseudonym: 'alice', role: 'user' },
+      }))
+      expect(volatile).toContain('## Known contacts')
+      expect(volatile).toContain('## Memories')
+      expect(volatile).toContain('## Current speaker')
+      expect(volatile).toContain('## Language')
+      expect(volatile).toContain('## Context')
+      expect(volatile).toContain('Current date:')
+      // None of those should pollute the stable segment
+      expect(stable).not.toContain('## Known contacts')
+      expect(stable).not.toContain('## Memories')
+      expect(stable).not.toContain('## Current speaker')
+      expect(stable).not.toContain('## Language')
+      expect(stable).not.toContain('Current date:')
+    })
+
+    it('places kin directory in the stable segment', () => {
+      const { stable, volatile } = buildSystemPromptSegmented(makeParams({
+        kinDirectory: [{ slug: 'helper', name: 'Helper', role: 'assistant' }],
+      }))
+      expect(stable).toContain('## Kin directory')
+      expect(volatile).not.toContain('## Kin directory')
+    })
+
+    it('places workspace tree in the volatile segment', () => {
+      const { stable, volatile } = buildSystemPromptSegmented(makeParams({
+        workspacePath: '/tmp/test-workspace-segmentation',
+      }))
+      expect(volatile).toContain('## Workspace')
+      expect(stable).not.toContain('## Workspace')
+    })
+
+    it('joinSystemPrompt(buildSystemPrompt(...)) produces the legacy single-string output', () => {
+      const segmented = buildSystemPromptSegmented(makeParams())
+      const joined = joinSystemPrompt(segmented)
+      // Equivalent to a manual concat
+      expect(joined).toBe(`${segmented.stable}\n\n${segmented.volatile}`)
+    })
+
+    it('sub-Kin task: mission and constraints are stable, date is volatile', () => {
+      const { stable, volatile } = buildSystemPromptSegmented(makeParams({
+        isSubKin: true,
+        taskDescription: 'Compute the answer.',
+      }))
+      expect(stable).toContain('## Your mission')
+      expect(stable).toContain('Compute the answer.')
+      expect(stable).toContain('## Constraints')
+      expect(volatile).toContain('Current date:')
+    })
+
+    it('quick session: identity is stable, language and date are volatile', () => {
+      const { stable, volatile } = buildSystemPromptSegmented(makeParams({
+        isQuickSession: true,
+      }))
+      expect(stable).toContain('You are TestBot')
+      expect(stable).toContain('## Quick session')
+      expect(volatile).toContain('## Language')
+      expect(volatile).toContain('Current date:')
+    })
   })
 })

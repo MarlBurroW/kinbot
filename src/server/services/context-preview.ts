@@ -1,7 +1,7 @@
 import { db } from '@/server/db/index'
 import { kins, messages, userProfiles, compactingSummaries, tasks } from '@/server/db/schema'
 import { eq, and, isNull, desc, ne, asc } from 'drizzle-orm'
-import { buildSystemPrompt } from '@/server/services/prompt-builder'
+import { buildSystemPrompt, joinSystemPrompt } from '@/server/services/prompt-builder'
 import { getRelevantMemories } from '@/server/services/memory'
 import { listContactsForPrompt } from '@/server/services/contacts'
 import { listAvailableKins } from '@/server/services/inter-kin'
@@ -275,7 +275,7 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
   }
 
   // Build system prompt
-  const systemPrompt = buildSystemPrompt({
+  const systemPrompt = joinSystemPrompt(buildSystemPrompt({
     kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
     contacts: contactsWithSlug,
     relevantMemories,
@@ -295,7 +295,7 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
       hasCompactedHistory,
     },
     workspacePath: kin.workspacePath,
-  })
+  }))
 
   // Resolve tools
   const toolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
@@ -479,7 +479,7 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
     ? fetchCronLearnings(task.cronId)
     : undefined
 
-  const systemPrompt = buildSystemPrompt({
+  const systemPrompt = joinSystemPrompt(buildSystemPrompt({
     kin: { name: kinIdentity.name, slug: kinIdentity.slug, role: kinIdentity.role, character: kinIdentity.character, expertise: kinIdentity.expertise },
     contacts: [],
     relevantMemories: [],
@@ -491,7 +491,7 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
     globalPrompt,
     userLanguage: 'en',
     workspacePath: kinIdentity.workspacePath,
-  })
+  }))
 
   // Messages: only this task's messages
   const taskMessages = db
@@ -619,7 +619,7 @@ export async function buildQuickSessionContextPreview(kinId: string, sessionId: 
 
   const globalPrompt = await getGlobalPrompt()
 
-  const systemPrompt = buildSystemPrompt({
+  const systemPrompt = joinSystemPrompt(buildSystemPrompt({
     kin: { name: kin.name, slug: kin.slug, role: kin.role, character: kin.character, expertise: kin.expertise },
     contacts: [],
     relevantMemories,
@@ -630,7 +630,7 @@ export async function buildQuickSessionContextPreview(kinId: string, sessionId: 
     globalPrompt,
     userLanguage,
     workspacePath: kin.workspacePath,
-  })
+  }))
 
   // Messages: only this session
   const sessionMessages = db
