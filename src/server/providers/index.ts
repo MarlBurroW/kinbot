@@ -124,5 +124,13 @@ export async function listModelsForProvider(
     return []
   }
   log.debug({ type }, 'Listing models for provider')
-  return definition.listModels(config)
+  const models = await definition.listModels(config)
+  // Auto-populate the model-info cache so callers of getModelContextWindow()
+  // get accurate values straight from the provider's API. Lazy import to
+  // avoid a circular dependency at module load.
+  if (models.length > 0) {
+    const { populateFromProviderModels } = await import('@/server/services/model-info-cache')
+    populateFromProviderModels(models)
+  }
+  return models
 }

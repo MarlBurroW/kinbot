@@ -175,16 +175,52 @@ export const config = {
    *  Set to 0 to disable (default). */
   historyTokenBudget: Number(process.env.HISTORY_TOKEN_BUDGET ?? 0),
 
+  /** Max number of recent messages fetched from the DB when assembling the
+   *  conversation history. Acts as an upper bound on memory usage; the
+   *  compacting service is what actually keeps the LLM context window healthy.
+   *
+   *  Bumped to 1000 (was 100) because the previous limit produced a sliding
+   *  window — every new turn pushed 1-2 oldest messages out of the fetched
+   *  set, shifting the prefix and invalidating Anthropic's prompt cache. With
+   *  1000 the window only slides on conversations with 1000+ raw messages
+   *  (which the compacting service should have summarised long before). */
+  historyMaxMessages: Number(process.env.HISTORY_MAX_MESSAGES ?? 1000),
+
+  // Cron schedule for refreshing the model-info cache (context windows,
+  // max output tokens) by re-listing models from every configured provider.
+  // Default: every 6 hours. Catches provider-side spec changes (e.g.
+  // Anthropic raising a model's context window) and new models without
+  // needing a server restart. Override via MODEL_INFO_REFRESH_CRON env.
+  modelInfoRefreshCron: process.env.MODEL_INFO_REFRESH_CRON ?? '0 */6 * * *',
+
+  /** Whether the progressive context compaction pipeline (tool result masking,
+   *  observation compaction) is applied before sending the request to the LLM.
+   *
+   *  Default: **disabled**. The pipeline rewrites old tool results between turns
+   *  (intact → truncated → collapsed as new tool calls accumulate), which
+   *  invalidates Anthropic's prompt cache because the prefix changes byte-for-byte
+   *  every turn. With this disabled, the proper compacting service (which
+   *  generates summaries when the context window approaches its threshold) takes
+   *  over for genuine token savings without breaking the cache.
+   *
+   *  Re-enable on providers without prompt caching by setting
+   *  `PROGRESSIVE_COMPACTION=1`. */
+  progressiveCompactionEnabled: process.env.PROGRESSIVE_COMPACTION === '1'
+    || process.env.PROGRESSIVE_COMPACTION === 'true',
+
   /** Number of recent tool call groups to keep fully intact in context.
-   *  Older tool results are collapsed to one-line summaries to save tokens. */
+   *  Older tool results are collapsed to one-line summaries to save tokens.
+   *  Only applied when `progressiveCompactionEnabled` is true. */
   toolResultMaskKeepLast: Number(process.env.TOOL_RESULT_MASK_KEEP_LAST ?? 2),
 
   /** Number of recent turns to keep at full resolution.
    *  Older turns have tool results truncated to observationMaxChars, and
-   *  long assistant/user text is trimmed. 0 = disabled. */
+   *  long assistant/user text is trimmed. 0 = disabled.
+   *  Only applied when `progressiveCompactionEnabled` is true. */
   observationCompactionWindow: Number(process.env.OBSERVATION_COMPACTION_WINDOW ?? 10),
 
-  /** Max characters for truncated tool results in the observation compaction zone. */
+  /** Max characters for truncated tool results in the observation compaction zone.
+   *  Only applied when `progressiveCompactionEnabled` is true. */
   observationMaxChars: Number(process.env.OBSERVATION_MAX_CHARS ?? 200),
 
   memory: (() => {

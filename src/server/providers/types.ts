@@ -15,4 +15,8 @@ export interface ProviderModel {
   capability: 'llm' | 'embedding' | 'image' | 'rerank'
   /** True if the image model accepts images as input (editing/inpainting) */
   supportsImageInput?: boolean
+  /** Maximum input/context tokens. Populated when the provider's API exposes it. */
+  contextWindow?: number
+  /** Maximum output tokens. Populated when the provider's API exposes it. */
+  maxOutput?: number
 }

@@ -1,120 +1,84 @@
-import { describe, it, expect } from 'bun:test'
-import { getModelContextWindow } from './model-context-windows'
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { getModelContextWindow, setModelInfoLookup } from './model-context-windows'
 
 describe('getModelContextWindow', () => {
-  // ── Exact matches ──
+  // The cache lookup is wired in by `@/server/services/model-info-cache` at
+  // module load. In these unit tests we install our own lookup so the cache
+  // doesn't carry server state into the test process.
+  let cache: Map<string, { contextWindow?: number }>
 
-  it('returns correct window for exact model IDs', () => {
-    expect(getModelContextWindow('gpt-4')).toBe(8_192)
-    expect(getModelContextWindow('gpt-3.5-turbo')).toBe(16_385)
-    expect(getModelContextWindow('deepseek-chat')).toBe(64_000)
-    expect(getModelContextWindow('command-r-plus')).toBe(128_000)
-    expect(getModelContextWindow('command-a')).toBe(256_000)
-    expect(getModelContextWindow('codestral')).toBe(256_000)
+  beforeEach(() => {
+    cache = new Map()
+    setModelInfoLookup((id) => cache.get(id))
   })
 
-  // ── Prefix matching ──
-
-  it('matches Anthropic models by prefix', () => {
-    expect(getModelContextWindow('claude-sonnet-4-20250514')).toBe(200_000)
-    expect(getModelContextWindow('claude-opus-4-20250514')).toBe(200_000)
-    expect(getModelContextWindow('claude-3-5-sonnet-20241022')).toBe(200_000)
-    expect(getModelContextWindow('claude-3-5-haiku-20241022')).toBe(200_000)
-    expect(getModelContextWindow('claude-3-opus-20240229')).toBe(200_000)
+  afterEach(() => {
+    // Reset to undefined-like behaviour so other tests aren't affected.
+    setModelInfoLookup(() => undefined)
   })
 
-  it('matches OpenAI models by prefix', () => {
-    expect(getModelContextWindow('gpt-4o-2024-08-06')).toBe(128_000)
-    expect(getModelContextWindow('gpt-4o-mini')).toBe(128_000)
-    expect(getModelContextWindow('gpt-4-0125-preview')).toBe(128_000)
-    expect(getModelContextWindow('gpt-4.1-nano')).toBe(1_047_576)
-    expect(getModelContextWindow('gpt-4.1-mini')).toBe(1_047_576)
-    expect(getModelContextWindow('chatgpt-4o-latest')).toBe(128_000)
-    expect(getModelContextWindow('o3-mini')).toBe(200_000)
-    expect(getModelContextWindow('o4-mini-2025')).toBe(200_000)
+  describe('dynamic cache (provider-driven)', () => {
+    it('returns the cached value when the model is known', () => {
+      cache.set('claude-opus-4-7', { contextWindow: 1_000_000 })
+      expect(getModelContextWindow('claude-opus-4-7')).toBe(1_000_000)
+    })
+
+    it('cache wins over the static fallback', () => {
+      // Static fallback for `claude-` is 200k; cache says 1M → cache wins.
+      cache.set('claude-opus-4-7', { contextWindow: 1_000_000 })
+      expect(getModelContextWindow('claude-opus-4-7')).toBe(1_000_000)
+    })
+
+    it('falls through to static fallback when cache entry has no contextWindow', () => {
+      cache.set('claude-opus-4-7', {}) // entry exists but no contextWindow
+      expect(getModelContextWindow('claude-opus-4-7')).toBe(200_000) // claude- prefix fallback
+    })
   })
 
-  it('matches Google Gemini models by prefix', () => {
-    expect(getModelContextWindow('gemini-2.5-pro')).toBe(1_000_000)
-    expect(getModelContextWindow('gemini-2.5-flash')).toBe(1_000_000)
-    expect(getModelContextWindow('gemini-2.0-flash')).toBe(1_000_000)
-    expect(getModelContextWindow('gemini-1.5-pro-latest')).toBe(2_000_000)
-    expect(getModelContextWindow('gemini-1.5-flash-8b')).toBe(1_000_000)
+  describe('static fallback (cold-start safety net)', () => {
+    it('matches by exact key for embedding models', () => {
+      expect(getModelContextWindow('text-embedding-3-small')).toBe(8_191)
+      expect(getModelContextWindow('text-embedding-ada-002')).toBe(8_191)
+      expect(getModelContextWindow('voyage-3')).toBe(32_000)
+      expect(getModelContextWindow('cohere-embed-v4.0')).toBe(128_000)
+    })
+
+    it('falls back to a sensible default per model family', () => {
+      // Claude family default = 200k (older models). Cache will override
+      // for 1M-context models like opus-4-6+, sonnet-4-x.
+      expect(getModelContextWindow('claude-3-5-sonnet-20241022')).toBe(200_000)
+      // Gemini family default = 1M.
+      expect(getModelContextWindow('gemini-2.5-pro')).toBe(1_000_000)
+      // GPT family default = 128k.
+      expect(getModelContextWindow('gpt-4o-2024-08-06')).toBe(128_000)
+    })
+
+    it('uses 128k for unknown models', () => {
+      expect(getModelContextWindow('some-unknown-model')).toBe(128_000)
+      expect(getModelContextWindow('')).toBe(128_000)
+      expect(getModelContextWindow('phi-3-mini')).toBe(128_000)
+      expect(getModelContextWindow('qwen-72b')).toBe(128_000)
+    })
   })
 
-  it('matches xAI Grok models by prefix', () => {
-    expect(getModelContextWindow('grok-2')).toBe(131_072)
-    expect(getModelContextWindow('grok-beta')).toBe(131_072)
-  })
+  describe('integration scenario', () => {
+    it('reflects the realistic flow: cache populated from provider listings', () => {
+      // Simulate what listModelsForProvider() does after fetching from
+      // Anthropic /v1/models — populates the cache with real values.
+      cache.set('claude-opus-4-7', { contextWindow: 1_000_000 })
+      cache.set('claude-opus-4-6', { contextWindow: 1_000_000 })
+      cache.set('claude-opus-4-5-20251101', { contextWindow: 200_000 })
+      cache.set('claude-sonnet-4-6', { contextWindow: 1_000_000 })
+      cache.set('claude-haiku-4-5-20251001', { contextWindow: 200_000 })
 
-  it('matches Meta Llama models by prefix', () => {
-    expect(getModelContextWindow('llama-3.3-70b')).toBe(128_000)
-    expect(getModelContextWindow('llama-3.1-8b')).toBe(128_000)
-    expect(getModelContextWindow('llama-3-70b')).toBe(8_192)
-    expect(getModelContextWindow('llama3-8b')).toBe(8_192)
-  })
+      expect(getModelContextWindow('claude-opus-4-7')).toBe(1_000_000)
+      expect(getModelContextWindow('claude-opus-4-6')).toBe(1_000_000)
+      expect(getModelContextWindow('claude-opus-4-5-20251101')).toBe(200_000)
+      expect(getModelContextWindow('claude-sonnet-4-6')).toBe(1_000_000)
+      expect(getModelContextWindow('claude-haiku-4-5-20251001')).toBe(200_000)
 
-  it('matches Perplexity Sonar models by prefix', () => {
-    expect(getModelContextWindow('sonar-pro')).toBe(128_000)
-    expect(getModelContextWindow('sonar-small-chat')).toBe(128_000)
-  })
-
-  // ── Longest prefix matching ──
-
-  it('prefers longest prefix match', () => {
-    // "gpt-4o" (6 chars) should beat "gpt-4-" (6 chars) or "gpt-4" (5 chars)
-    // gpt-4o = 128k, gpt-4 = 8k
-    expect(getModelContextWindow('gpt-4o-mini-2024')).toBe(128_000)
-
-    // "gpt-4-0125" (10 chars) should beat "gpt-4-" (6 chars)
-    expect(getModelContextWindow('gpt-4-0125-preview')).toBe(128_000)
-
-    // "llama-3.3" should beat "llama-3-"
-    expect(getModelContextWindow('llama-3.3-70b-instruct')).toBe(128_000)
-  })
-
-  // ── Default fallback ──
-
-  it('returns 128k default for unknown models', () => {
-    expect(getModelContextWindow('some-unknown-model')).toBe(128_000)
-    expect(getModelContextWindow('')).toBe(128_000)
-    expect(getModelContextWindow('phi-3-mini')).toBe(128_000)
-    expect(getModelContextWindow('qwen-72b')).toBe(128_000)
-  })
-
-  // ── Edge cases ──
-
-  it('handles model IDs that are substrings of known keys', () => {
-    // "o1" is an exact key
-    expect(getModelContextWindow('o1')).toBe(200_000)
-    // "o1-mini" should match "o1" prefix
-    expect(getModelContextWindow('o1-mini')).toBe(200_000)
-    // "o3" is an exact key
-    expect(getModelContextWindow('o3')).toBe(200_000)
-  })
-
-  it('is case-sensitive', () => {
-    // Model IDs are lowercase by convention; uppercase should fall to default
-    expect(getModelContextWindow('GPT-4')).toBe(128_000)
-    expect(getModelContextWindow('Claude-3-opus')).toBe(128_000)
-  })
-
-  it('handles Mistral models', () => {
-    expect(getModelContextWindow('mistral-large-latest')).toBe(128_000)
-    expect(getModelContextWindow('mistral-small-latest')).toBe(128_000)
-    expect(getModelContextWindow('open-mistral-nemo-2407')).toBe(128_000)
-    expect(getModelContextWindow('pixtral-large-latest')).toBe(128_000)
-  })
-
-  it('handles DeepSeek models', () => {
-    expect(getModelContextWindow('deepseek-chat')).toBe(64_000)
-    expect(getModelContextWindow('deepseek-reasoner')).toBe(64_000)
-    expect(getModelContextWindow('deepseek-coder-v2')).toBe(128_000)
-  })
-
-  it('handles Cohere models', () => {
-    expect(getModelContextWindow('command-r-plus')).toBe(128_000)
-    expect(getModelContextWindow('command-r')).toBe(128_000)
-    expect(getModelContextWindow('command-a-03-2025')).toBe(256_000)
+      // A model the cache hasn't seen falls back to the static default.
+      expect(getModelContextWindow('claude-future-model-2030')).toBe(200_000)
+    })
   })
 })

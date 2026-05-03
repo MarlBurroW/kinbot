@@ -7,6 +7,10 @@ interface AnthropicModel {
   id: string
   display_name: string
   type: string
+  /** Max input/context tokens — exposed by the /v1/models endpoint. */
+  max_input_tokens?: number
+  /** Max output tokens. */
+  max_tokens?: number
 }
 
 interface AnthropicModelsResponse {
@@ -55,6 +59,8 @@ export const anthropicProvider: ProviderDefinition = {
           id: m.id,
           name: m.display_name,
           capability: 'llm',
+          ...(m.max_input_tokens != null ? { contextWindow: m.max_input_tokens } : {}),
+          ...(m.max_tokens != null ? { maxOutput: m.max_tokens } : {}),
         }))
       log.debug({ count: models.length }, 'Models listed')
       return models

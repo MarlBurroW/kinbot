@@ -114,6 +114,12 @@ new Cron('0 3 * * *', async () => {
   if (count > 0) log.info({ count }, 'Notification cleanup completed')
 })
 
+// Model-info cache: pre-warm at startup, then refresh on a schedule. Catches
+// provider-side spec changes (e.g. Anthropic raising a model's context window)
+// and new models without needing a server restart.
+import { startModelInfoRefreshCron } from '@/server/services/model-info-cache'
+startModelInfoRefreshCron()
+
 // Serve uploaded files
 app.use('/api/uploads/*', serveStatic({ root: config.upload.dir, rewriteRequestPath: (path) => path.replace('/api/uploads', '') }))
 

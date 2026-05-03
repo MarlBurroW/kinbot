@@ -65,6 +65,7 @@ export const cohereProvider: ProviderDefinition = {
             id: m.name,
             name: m.name,
             capability,
+            ...(m.context_length != null ? { contextWindow: m.context_length } : {}),
           }
         })
         .filter((m): m is ProviderModel => m !== null)

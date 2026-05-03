@@ -1,93 +1,76 @@
 /**
- * Known model context window sizes (in tokens).
- * Uses prefix matching — "claude-sonnet-4-" matches "claude-sonnet-4-20250514".
- * Maintained manually; context windows rarely change.
+ * Resolve the context window (max input tokens) for a model ID.
+ *
+ * Strategy:
+ *   1. Check the dynamic in-memory cache populated by provider `listModels()`
+ *      calls. This is the source of truth — context windows come straight
+ *      from each provider's API (Anthropic exposes `max_input_tokens`, Gemini
+ *      `inputTokenLimit`, Cohere `context_length`, OpenRouter `context_length`,
+ *      etc.).
+ *   2. Fall back to a tiny static safety net for models that the cache hasn't
+ *      seen yet (e.g. on first request before any /api/providers/models call).
+ *      This is intentionally minimal — the cache should cover everything in
+ *      practice, the static map is just to avoid silly defaults during cold
+ *      start.
+ *   3. If nothing matches, return `DEFAULT_CONTEXT_WINDOW`.
+ *
+ * The cache is server-side only (lives in `@/server/services/model-info-cache`).
+ * This module is in `shared/` because the function is invoked from both server
+ * and (via shared types) client; the cache import is dynamic-by-side-effect to
+ * keep the shared code free of server dependencies at import time.
  */
-const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
-  // ── Anthropic ──
-  'claude-sonnet-4-': 200_000,
-  'claude-opus-4-': 200_000,
-  'claude-3-7-sonnet': 200_000,
-  'claude-3-5-sonnet': 200_000,
-  'claude-3-5-haiku': 200_000,
-  'claude-3-opus': 200_000,
-  'claude-3-sonnet': 200_000,
-  'claude-3-haiku': 200_000,
-
-  // ── OpenAI ──
-  'gpt-4.1': 1_047_576,
-  'gpt-4o': 128_000,
-  'gpt-4-turbo': 128_000,
-  'gpt-4-0125': 128_000,
-  'gpt-4-1106': 128_000,
-  'gpt-4': 8_192,
-  'gpt-4-': 8_192,
-  'gpt-3.5-turbo': 16_385,
-  'chatgpt-4o': 128_000,
-  'o1': 200_000,
-  'o3': 200_000,
-  'o4-mini': 200_000,
-
-  // ── OpenAI Codex ──
-  'gpt-5.3-codex': 200_000,
-  'gpt-5.2-codex': 200_000,
-  'gpt-5.1-codex': 200_000,
-  'gpt-5-codex': 200_000,
-
-  // ── Google ──
-  'gemini-2.5': 1_000_000,
-  'gemini-2.0': 1_000_000,
-  'gemini-1.5-pro': 2_000_000,
-  'gemini-1.5-flash': 1_000_000,
-  'gemini-1.0': 32_000,
-
-  // ── Mistral ──
-  'mistral-large': 128_000,
-  'mistral-medium': 32_000,
-  'mistral-small': 128_000,
-  'codestral': 256_000,
-  'pixtral': 128_000,
-  'open-mistral-nemo': 128_000,
-
-  // ── DeepSeek ──
-  'deepseek-chat': 64_000,
-  'deepseek-reasoner': 64_000,
-  'deepseek-coder': 128_000,
-
-  // ── xAI ──
-  'grok-': 131_072,
-
-  // ── Cohere ──
-  'command-r-plus': 128_000,
-  'command-r': 128_000,
-  'command-a': 256_000,
-
-  // ── Meta (via Groq, Together, OpenRouter, etc.) ──
-  'llama-3.3': 128_000,
-  'llama-3.1': 128_000,
-  'llama-3-': 8_192,
-  'llama3': 8_192,
-
-  // ── Perplexity ──
-  'sonar': 128_000,
-}
 
 const DEFAULT_CONTEXT_WINDOW = 128_000
 
 /**
+ * Tiny static fallback. Not authoritative — provider APIs are. Keep this list
+ * minimal: just enough for cold-start scenarios. Whenever the cache has the
+ * model, it wins.
+ */
+const STATIC_FALLBACK: Record<string, number> = {
+  // Embedding models — never reach the LLM context-window machinery via the
+  // provider API listing flow, so seed them statically.
+  'text-embedding-': 8_191,
+  'voyage-': 32_000,
+  'embed-english': 512,
+  'embed-multilingual': 512,
+  'cohere-embed-v4.0': 128_000,
+  // Common LLM defaults for safety during cold start. Will be overwritten by
+  // cache as soon as listModels() runs.
+  'claude-': 200_000,
+  'gemini-': 1_000_000,
+  'gpt-': 128_000,
+}
+
+let _getCachedModelInfo: ((modelId: string) => { contextWindow?: number } | undefined) | null = null
+
+/**
+ * Wire the dynamic cache lookup function. Called once at server startup from
+ * the model-info-cache module to avoid a static import (which would pull
+ * server-only code into shared/).
+ */
+export function setModelInfoLookup(
+  lookup: (modelId: string) => { contextWindow?: number } | undefined,
+): void {
+  _getCachedModelInfo = lookup
+}
+
+/**
  * Look up the context window for a model ID.
- * Uses longest-prefix matching against known models.
- * Returns DEFAULT_CONTEXT_WINDOW (128k) for unknown models.
+ * Cache → static fallback → default.
  */
 export function getModelContextWindow(modelId: string): number {
-  // Exact match first
-  if (MODEL_CONTEXT_WINDOWS[modelId] !== undefined) {
-    return MODEL_CONTEXT_WINDOWS[modelId]
+  // 1. Dynamic cache (populated by providers' listModels)
+  const cached = _getCachedModelInfo?.(modelId)
+  if (cached?.contextWindow != null) return cached.contextWindow
+
+  // 2. Static fallback — longest prefix wins
+  if (STATIC_FALLBACK[modelId] !== undefined) {
+    return STATIC_FALLBACK[modelId]
   }
-  // Longest prefix match
   let bestLen = 0
   let bestValue = DEFAULT_CONTEXT_WINDOW
-  for (const [prefix, value] of Object.entries(MODEL_CONTEXT_WINDOWS)) {
+  for (const [prefix, value] of Object.entries(STATIC_FALLBACK)) {
     if (modelId.startsWith(prefix) && prefix.length > bestLen) {
       bestLen = prefix.length
       bestValue = value

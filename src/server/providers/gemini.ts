@@ -7,6 +7,10 @@ interface GeminiModel {
   name: string
   displayName: string
   supportedGenerationMethods: string[]
+  /** Max input tokens — exposed by Gemini's /v1beta/models endpoint. */
+  inputTokenLimit?: number
+  /** Max output tokens. */
+  outputTokenLimit?: number
 }
 
 interface GeminiModelsResponse {
@@ -65,6 +69,8 @@ export const geminiProvider: ProviderDefinition = {
             name: m.displayName,
             capability: classification.capability,
             supportsImageInput: classification.supportsImageInput,
+            ...(m.inputTokenLimit != null ? { contextWindow: m.inputTokenLimit } : {}),
+            ...(m.outputTokenLimit != null ? { maxOutput: m.outputTokenLimit } : {}),
           }
         })
         .filter((m): m is ProviderModel => m !== null)

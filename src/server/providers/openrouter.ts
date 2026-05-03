@@ -11,6 +11,12 @@ interface OpenRouterModel {
     input_modalities?: string[]
     output_modalities?: string[]
   }
+  /** Max input tokens — exposed by OpenRouter's /models endpoint. */
+  context_length?: number
+  top_provider?: {
+    context_length?: number
+    max_completion_tokens?: number
+  }
 }
 
 interface OpenRouterModelsResponse {
@@ -80,11 +86,17 @@ export const openrouterProvider: ProviderDefinition = {
         .map((m): ProviderModel | null => {
           const capability = classifyModel(m)
           if (!capability) return null
+          // Prefer top_provider.context_length when available (more accurate
+          // for the active route); fall back to the top-level field.
+          const ctx = m.top_provider?.context_length ?? m.context_length
+          const maxOut = m.top_provider?.max_completion_tokens
           return {
             id: m.id,
             name: m.name ?? m.id,
             capability,
             supportsImageInput: capability === 'image' ? resolveSupportsImageInput(m) : undefined,
+            ...(ctx != null ? { contextWindow: ctx } : {}),
+            ...(maxOut != null ? { maxOutput: maxOut } : {}),
           }
         })
         .filter((m): m is ProviderModel => m !== null)
