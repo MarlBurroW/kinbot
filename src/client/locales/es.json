@@ -1167,6 +1167,7 @@
       "noteAdded": "Nota añadida",
       "noteSaved": "Nota actualizada",
       "noteDeleted": "Nota eliminada",
+      "noteComboExists": "Ya existe una nota para este kin y ámbito. Edita la nota existente.",
       "added": "Contacto añadido",
       "saved": "Contacto actualizado",
       "deleted": "Contacto eliminado",
