@@ -31,7 +31,7 @@ function storedFileName(id: string, originalName: string): string {
 }
 
 export function buildShareUrl(accessToken: string): string {
-  return `${config.publicUrl}/s/${accessToken}`
+  return `${config.publicUrl.replace(/\/+$/, '')}/s/${accessToken}`
 }
 
 function serializeFileMetadata(f: FileStorageRow) {
