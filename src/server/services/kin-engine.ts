@@ -456,22 +456,26 @@ function estimateContextTokens(
           const dataLen = 'data' in part && typeof part.data === 'string' ? part.data.length * 0.75 : 0
           messagesTokens += Math.max(500, Math.ceil(dataLen / 3000) * 500)
         } else if ('type' in part && part.type === 'tool-call') {
-          // Tool call args JSON — serialized back to the API as part of the
-          // assistant's tool_use block, so it must be counted.
-          const args = (part as { args?: unknown }).args
-          const argsStr = args !== undefined ? JSON.stringify(args) : ''
-          messagesTokens += estimateTokens(argsStr)
+          // Vercel AI SDK's tool-call part uses `input` (not `args`) for the
+          // serialized tool arguments. Counted because they reach the API as
+          // part of the assistant's tool_use block.
+          const input = (part as { input?: unknown }).input
+          const inputStr = input !== undefined ? JSON.stringify(input) : ''
+          messagesTokens += estimateTokens(inputStr)
         } else if ('type' in part && part.type === 'tool-result') {
-          // Tool result content — typically the LARGEST unbilled hidden cost.
-          // kubectl outputs, file reads, page_state YAMLs, etc. all live here
-          // and were previously silently dropped from the estimate, leading
-          // to dashboards under-counting context size by 10-20× on
-          // tool-heavy Kins.
-          const result = (part as { result?: unknown }).result
-          const resultStr = typeof result === 'string'
-            ? result
-            : result !== undefined ? JSON.stringify(result) : ''
-          messagesTokens += estimateTokens(resultStr)
+          // tool-result part shape: `output: { type: 'json' | 'text', value: ... }`.
+          // The `value` is the actual tool result content — kubectl outputs,
+          // file reads, page_state YAMLs, etc. — and is typically the LARGEST
+          // unbilled hidden cost in tool-heavy Kins. Previous versions of this
+          // code looked for a non-existent `result` field and silently
+          // counted 0 tokens, leading to displayed context sizes that were
+          // 10-20× lower than reality.
+          const output = (part as { output?: { type?: string; value?: unknown } }).output
+          const value = output?.value
+          const valueStr = typeof value === 'string'
+            ? value
+            : value !== undefined ? JSON.stringify(value) : ''
+          messagesTokens += estimateTokens(valueStr)
         }
       }
     }
