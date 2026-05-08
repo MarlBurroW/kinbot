@@ -2045,7 +2045,12 @@
       "failedToListDirectory": "Impossible de lister le dossier",
       "linesWritten": "{{count}} lignes",
       "bytesKB": "{{size}} Ko",
-      "bytesB": "{{size}} o"
+      "bytesB": "{{size}} o",
+      "openLightbox": "Ouvrir en grand",
+      "refs": "refs",
+      "headings": "{{count}} titre",
+      "headings_plural": "{{count}} titres",
+      "accessibilitySnapshot": "Instantané d'accessibilité"
     }
   },
   "invite": {

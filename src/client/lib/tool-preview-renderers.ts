@@ -125,6 +125,81 @@ registerPreviewRenderer('screenshot_url', ({ args }) => {
   }
 })
 
+// --- Browser sessions (stateful) ---
+
+registerPreviewRenderer('browser_open_session', ({ args }) => {
+  const url = args.start_url as string | undefined
+  if (!url) return 'open session'
+  try {
+    const parsed = new URL(url)
+    return `open → ${parsed.hostname}${parsed.pathname}`
+  } catch {
+    return `open → ${truncate(url, 50)}`
+  }
+})
+
+registerPreviewRenderer('browser_close_session', () => 'close session')
+
+registerPreviewRenderer('browser_navigate', ({ args }) => {
+  const url = args.url as string
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    return `→ ${parsed.hostname}${parsed.pathname}`
+  } catch {
+    return truncate(url, 50)
+  }
+})
+
+registerPreviewRenderer('browser_click', ({ args }) => {
+  return args.ref ? `click ${args.ref}` : null
+})
+
+registerPreviewRenderer('browser_type', ({ args }) => {
+  const ref = args.ref as string | undefined
+  const text = args.text as string | undefined
+  if (!ref) return null
+  return `type ${ref}${text ? ` "${truncate(text, 30)}"` : ''}${args.submit ? ' ⏎' : ''}`
+})
+
+registerPreviewRenderer('browser_select', ({ args }) => {
+  return args.ref ? `select ${args.ref} = ${truncate(String(args.value ?? ''), 25)}` : null
+})
+
+registerPreviewRenderer('browser_press_key', ({ args }) => {
+  return args.key ? `press ${args.key}${args.ref ? ` on ${args.ref}` : ''}` : null
+})
+
+registerPreviewRenderer('browser_scroll', ({ args }) => {
+  const dir = args.direction as string | undefined
+  return dir ? `scroll ${dir}${args.amount_px ? ` ${args.amount_px}px` : ''}` : null
+})
+
+registerPreviewRenderer('browser_wait_for', ({ args }) => {
+  return args.condition ? truncate(String(args.condition), 50) : null
+})
+
+registerPreviewRenderer('browser_screenshot', ({ args }) => {
+  return args.full_page ? 'full page' : 'viewport'
+})
+
+registerPreviewRenderer('browser_set_cookies', ({ args }) => {
+  const cookies = args.cookies
+  const count = Array.isArray(cookies) ? cookies.length : (typeof cookies === 'string' ? cookies.split(';').length : null)
+  return count ? `${count} cookie${count > 1 ? 's' : ''}` : null
+})
+
+registerPreviewRenderer('browser_get_cookies', ({ args }) => {
+  const urls = args.urls
+  return Array.isArray(urls) && urls.length > 0 ? `${urls.length} url${urls.length > 1 ? 's' : ''}` : 'all cookies'
+})
+
+registerPreviewRenderer('browser_clear_cookies', () => 'clear all')
+
+registerPreviewRenderer('browser_request_human', ({ args }) => {
+  return args.reason ? truncate(String(args.reason), 60) : null
+})
+
 // --- Knowledge ---
 
 registerPreviewRenderer('search_knowledge', ({ args }) => {

@@ -2045,7 +2045,12 @@
       "failedToListDirectory": "Failed to list directory",
       "linesWritten": "{{count}} lines",
       "bytesKB": "{{size}} KB",
-      "bytesB": "{{size}} B"
+      "bytesB": "{{size}} B",
+      "openLightbox": "Open full size",
+      "refs": "refs",
+      "headings": "{{count}} heading",
+      "headings_plural": "{{count}} headings",
+      "accessibilitySnapshot": "Accessibility snapshot"
     }
   },
   "invite": {
