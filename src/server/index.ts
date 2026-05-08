@@ -11,7 +11,7 @@ import { recoverPendingWakeups } from '@/server/services/wakeup-scheduler'
 import { Cron } from 'croner'
 import { cleanExpiredFiles } from '@/server/services/file-storage'
 import { startQuickSessionCleanup } from '@/server/services/quick-session-cleanup'
-import { browserPool } from '@/server/services/browser-pool'
+import { playwrightManager } from '@/server/services/playwright-manager'
 import { channelAdapters } from '@/server/channels/index'
 import { TelegramAdapter } from '@/server/channels/telegram'
 import { DiscordAdapter } from '@/server/channels/discord'
@@ -139,7 +139,7 @@ Bun.serve({
 // Graceful shutdown — cleanup browser pool
 const shutdown = async () => {
   log.info('Shutting down...')
-  await browserPool.shutdown()
+  await playwrightManager.shutdown()
   process.exit(0)
 }
 process.on('SIGTERM', shutdown)

@@ -349,6 +349,11 @@ export async function deleteKin(kinId: string): Promise<boolean> {
     rmSync(existing.workspacePath, { recursive: true, force: true })
   }
 
+  // Close any browser sessions owned by this Kin (best-effort, non-blocking)
+  import('@/server/services/playwright-manager')
+    .then(({ playwrightManager }) => playwrightManager.closeSessionsForKin(kinId, 'kin_deleted'))
+    .catch((err) => log.warn({ kinId, err }, 'Failed to close browser sessions for deleted kin'))
+
   log.info({ kinId, name: existing.name, slug: existing.slug }, 'Kin deleted')
 
   // Notify all clients about cascade-deleted children first, then the kin itself

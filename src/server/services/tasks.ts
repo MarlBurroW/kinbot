@@ -983,6 +983,11 @@ export async function resolveTask(
 
   log.info({ taskId, status, mode: task.mode }, 'Task resolved')
 
+  // Close any browser sessions opened by this task (best-effort, non-blocking)
+  import('@/server/services/playwright-manager')
+    .then(({ playwrightManager }) => playwrightManager.closeSessionsForTask(taskId))
+    .catch((err) => log.warn({ taskId, err }, 'Failed to close browser sessions for task'))
+
   await db
     .update(tasks)
     .set({

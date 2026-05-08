@@ -172,8 +172,16 @@ describe('config', () => {
       expect(config.webBrowsing.maxContentLength).toBe(100000)
       expect(config.webBrowsing.maxConcurrentFetches).toBe(5)
       expect(config.webBrowsing.userAgent).toContain('Mozilla')
-      expect(config.webBrowsing.headless.enabled).toBe(false)
+      // Default-on; users opt out via WEB_BROWSING_HEADLESS_ENABLED=false.
+      expect(config.webBrowsing.headless.enabled).toBe(true)
       expect(config.webBrowsing.headless.maxBrowsers).toBe(2)
+    })
+
+    it('browserSessions defaults', () => {
+      // Default-on; per-Kin opt-in via tool_config.enabledOptInTools still required.
+      expect(config.browserSessions.enabled).toBe(true)
+      expect(config.browserSessions.maxPerKin).toBe(1)
+      expect(config.browserSessions.maxTotal).toBe(5)
     })
 
     it('invitations defaults', () => {

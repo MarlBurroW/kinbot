@@ -22,8 +22,8 @@ const mockScreenshotPage = mock(() =>
   }),
 )
 
-mock.module('@/server/services/browser-pool', () => ({
-  browserPool: {
+mock.module('@/server/services/playwright-manager', () => ({
+  playwrightManager: {
     browseWithBrowser: mockBrowseWithBrowser,
     screenshotPage: mockScreenshotPage,
   },

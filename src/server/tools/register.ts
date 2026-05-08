@@ -7,6 +7,22 @@ import {
   screenshotUrlTool,
 } from '@/server/tools/browse-tools'
 import {
+  browserOpenSessionTool,
+  browserCloseSessionTool,
+  browserListSessionsTool,
+  browserNavigateTool,
+  browserClickTool,
+  browserTypeTool,
+  browserSelectTool,
+  browserPressKeyTool,
+  browserScrollTool,
+  browserWaitForTool,
+  browserScreenshotTool,
+  browserSetCookiesTool,
+  browserGetCookiesTool,
+  browserClearCookiesTool,
+} from '@/server/tools/browser-session-tools'
+import {
   getContactTool,
   searchContactsTool,
   createContactTool,
@@ -192,10 +208,26 @@ export function registerAllTools(): void {
   // Phase 10.5: Web search
   toolRegistry.register('web_search', webSearchTool)
 
-  // Web browsing
+  // Web browsing — read-only one-shot tools
   toolRegistry.register('browse_url', browseUrlTool)
   toolRegistry.register('extract_links', extractLinksTool)
   toolRegistry.register('screenshot_url', screenshotUrlTool)
+
+  // Web browsing — stateful sessions (opt-in: enable via tool_config.enabledOptInTools)
+  toolRegistry.register('browser_open_session', browserOpenSessionTool)
+  toolRegistry.register('browser_close_session', browserCloseSessionTool)
+  toolRegistry.register('browser_list_sessions', browserListSessionsTool)
+  toolRegistry.register('browser_navigate', browserNavigateTool)
+  toolRegistry.register('browser_click', browserClickTool)
+  toolRegistry.register('browser_type', browserTypeTool)
+  toolRegistry.register('browser_select', browserSelectTool)
+  toolRegistry.register('browser_press_key', browserPressKeyTool)
+  toolRegistry.register('browser_scroll', browserScrollTool)
+  toolRegistry.register('browser_wait_for', browserWaitForTool)
+  toolRegistry.register('browser_screenshot', browserScreenshotTool)
+  toolRegistry.register('browser_set_cookies', browserSetCookiesTool)
+  toolRegistry.register('browser_get_cookies', browserGetCookiesTool)
+  toolRegistry.register('browser_clear_cookies', browserClearCookiesTool)
 
   // Phase 11: Contact tools
   toolRegistry.register('get_contact', getContactTool)

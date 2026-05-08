@@ -6,7 +6,7 @@ import {
   extractContent,
   isBlockedUrl,
 } from '@/server/services/web-browse'
-import { browserPool } from '@/server/services/browser-pool'
+import { playwrightManager } from '@/server/services/playwright-manager'
 import { createFileFromContent } from '@/server/services/file-storage'
 import { createLogger } from '@/server/logger'
 import { config } from '@/server/config'
@@ -48,7 +48,7 @@ export const browseUrlTool: ToolRegistration = {
             }
 
             const start = Date.now()
-            const browserResult = await browserPool.browseWithBrowser(url, mode)
+            const browserResult = await playwrightManager.browseWithBrowser(url, mode)
             const extracted = extractContent(browserResult.html, browserResult.url, mode)
 
             const content = extracted.content.slice(0, config.webBrowsing.maxContentLength)
@@ -150,7 +150,7 @@ export const screenshotUrlTool: ToolRegistration = {
             return { error: `URL blocked: ${blocked.reason}` }
           }
 
-          const result = await browserPool.screenshotPage(url, {
+          const result = await playwrightManager.screenshotPage(url, {
             width: viewport_width,
             height: viewport_height,
             fullPage: full_page,

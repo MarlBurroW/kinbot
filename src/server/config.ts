@@ -366,12 +366,35 @@ export const config = {
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     blockedDomains: (process.env.WEB_BROWSING_BLOCKED_DOMAINS ?? '').split(',').filter(Boolean),
     proxy: process.env.WEB_BROWSING_PROXY ?? undefined,
-    // Tier 2 (headless browser)
+    // Tier 2 (headless browser, one-shot pages for browse_url / screenshot_url)
+    // Default: enabled. Set WEB_BROWSING_HEADLESS_ENABLED=false to disable
+    // (e.g. on systems without Chromium system libs installed).
     headless: {
-      enabled: process.env.WEB_BROWSING_HEADLESS_ENABLED === 'true',
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH ?? undefined,
+      enabled: process.env.WEB_BROWSING_HEADLESS_ENABLED !== 'false',
+      // PUPPETEER_EXECUTABLE_PATH kept for backwards-compat after Playwright migration.
+      executablePath: process.env.BROWSER_EXECUTABLE_PATH ?? process.env.PUPPETEER_EXECUTABLE_PATH ?? undefined,
       maxBrowsers: Number(process.env.WEB_BROWSING_MAX_BROWSERS ?? 2),
       idleTimeoutMs: Number(process.env.WEB_BROWSING_BROWSER_IDLE_TIMEOUT ?? 60000),
+    },
+  },
+
+  // Tier 3: stateful, multi-turn browser sessions (browser_open_session etc.)
+  // Default: enabled. The browser_* tools are still per-Kin opt-in via
+  // tool_config.enabledOptInTools, so sessions cannot be used by accident.
+  // Set BROWSER_SESSIONS_ENABLED=false to disable globally.
+  browserSessions: {
+    enabled: process.env.BROWSER_SESSIONS_ENABLED !== 'false',
+    /** Hard TTL for any session, regardless of activity. */
+    ttlMs: Number(process.env.BROWSER_SESSION_TTL_MS ?? 3_600_000),
+    /** Auto-close after N ms without any tool call on the session. */
+    idleTimeoutMs: Number(process.env.BROWSER_SESSION_IDLE_TIMEOUT_MS ?? 600_000),
+    /** Global cap on concurrent sessions across all Kins. */
+    maxTotal: Number(process.env.BROWSER_MAX_TOTAL_SESSIONS ?? 5),
+    /** Cap on concurrent sessions per Kin. */
+    maxPerKin: Number(process.env.BROWSER_MAX_SESSIONS_PER_KIN ?? 1),
+    defaultViewport: {
+      width: Number(process.env.BROWSER_DEFAULT_VIEWPORT_WIDTH ?? 1280),
+      height: Number(process.env.BROWSER_DEFAULT_VIEWPORT_HEIGHT ?? 720),
     },
   },
 
