@@ -783,7 +783,7 @@ async function extractMemories(
 
   const extractionPrompt =
     `You are an assistant specialized in information extraction.\n` +
-    `Analyze the exchanges below and extract information worth remembering long-term.\n\n` +
+    `Analyze the exchanges below and extract information that would help a future conversation feel like the model genuinely remembers the user — both stable identity AND active context (current projects, open threads, recent decisions, ongoing situations).\n\n` +
     `For each piece of information, decide what action to take:\n` +
     `- **"add"**: New information not present in existing memories\n` +
     `- **"update"**: Information that contradicts, supersedes, or enriches an existing memory (e.g., a preference changed, a fact was corrected, new details about something already known)\n` +
@@ -798,31 +798,33 @@ async function extractMemories(
     `- "sourceContext": a brief 1-2 sentence summary of the conversational context in which this fact was mentioned (e.g. "While discussing weekend plans, user mentioned...")\n` +
     `- "updateIndex": (only for "update" action) the index number [N] of the existing memory to update\n\n` +
     `Rules:\n` +
-    `- Only extract **durable** information (not ephemeral details)\n` +
     `- Use "update" when new info CONTRADICTS or SUPERSEDES an existing memory (e.g., "likes Python" → "switched to Rust")\n` +
     `- Use "update" to ENRICH an existing memory with significant new details\n` +
     `- Do NOT update if the existing memory is already accurate and complete\n` +
-    `- Be honest with importance scores — most memories should be 3-7\n\n` +
-    `**Durability test — before adding ANY memory, ask yourself:**\n` +
-    `Will this still be true/relevant in 3 months? If not, skip it.\n\n` +
+    `- Be honest with importance scores — most memories should be 3-7\n` +
+    `- Lean toward extracting more rather than fewer — under-extraction makes the model feel impersonal. Outdated memories will decay naturally over time.\n\n` +
+    `**Usefulness test — before adding ANY memory, ask yourself:**\n` +
+    `Would knowing this in a future conversation help the model respond more relevantly? Useful means anything from "still true in 3 months" (identity, lasting preferences) down to "still relevant in the next few weeks" (current project, open thread, recent commitment).\n\n` +
     `**DO NOT extract:**\n` +
-    `- One-time events or situations (car broke down, had a party, weather today)\n` +
-    `- Temporary states (will be ready by Friday, feeling sick today)\n` +
-    `- Reasons/explanations for decisions (extract the decision, not the reasoning)\n` +
-    `- Specific orders, meals, or purchases (unless it reveals a lasting preference)\n` +
-    `- Trivial details about objects (toy names, specific gift items)\n` +
-    `- General knowledge or widely known facts\n\n` +
+    `- Pure one-shot events with no follow-up implication (had a party last night, weather today)\n` +
+    `- Strictly transient states (feeling sick today, traffic was bad this morning)\n` +
+    `- Trivial throwaway details (specific gift items, exact menu order on one occasion — UNLESS it reveals a preference)\n` +
+    `- General knowledge or widely known facts the model already has\n\n` +
     `**DO extract:**\n` +
     `- Identity facts (name, age, family, job, location)\n` +
-    `- Lasting preferences (tools, foods, styles)\n` +
+    `- Lasting preferences (tools, foods, styles, communication style)\n` +
     `- Life changes (moving, new job, relationship changes)\n` +
-    `- Possessions that define the person (car model, pets)\n` +
-    `- Recurring habits (weekly restaurant, morning routine)\n` +
+    `- Possessions that define the person (car model, pets, key tools)\n` +
+    `- Recurring habits and routines (weekly restaurant, morning routine, work schedule)\n` +
     `- Skills and interests being actively pursued\n` +
-    `- Important relationships (family members, close contacts)\n\n` +
+    `- Important relationships (family members, close contacts, colleagues mentioned recurrently)\n` +
+    `- **Active projects and current focus** (what they're working on, the goal, the stack/approach)\n` +
+    `- **Open threads and commitments** (things they said they'd do, questions left unanswered, decisions pending)\n` +
+    `- **Recent significant decisions** with their reasoning (so the model can reason about them later, not just acknowledge them)\n` +
+    `- **Recent meaningful experiences** worth knowing about (trips, events, milestones — not the weather)\n\n` +
     `## Existing memories (indexed)\n\n${existingMemoriesSummary}\n\n` +
     `## Exchanges to analyze\n\n${formattedMessages}\n\n` +
-    `Return a JSON array. If nothing new to remember or update, return [].`
+    `Return a JSON array. If genuinely nothing useful to remember or update, return [].`
 
   try {
     const result = await safeGenerateText({
