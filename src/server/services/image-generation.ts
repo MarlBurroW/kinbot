@@ -318,35 +318,61 @@ Write a short prompt (2-3 sentences) telling the image model how to transform th
 - Repaint the robot with a color palette that fits the character's domain or personality
 - Add small props, accessories, or markings that hint at the character's expertise (e.g. headphones, monocle, tool belt, miniature instruments)
 - Replace the plain background with a simple scene related to the character's domain
-- Reframe the composition as a head-and-shoulders portrait (head + upper chest only, like a profile picture / avatar bust shot), facing the viewer, the robot's head fills most of the frame
 - Keep the friendly Pixar / 3D-rendered cartoon aesthetic, the proportions, and the cute robot identity intact
+
+HOW TO USE THE CHARACTER DESCRIPTION (read carefully):
+The character description is INSPIRATION ONLY for COLOR, MOOD, and small head-area accessories. It is NOT a literal brief. You MUST silently FILTER OUT and IGNORE every element of the description that would require zooming out the camera, including:
+- Body parts below the upper chest (legs, feet, waist, hips, hands, arms below the shoulders)
+- Standing poses, full-body poses, action poses, "stands tall", "wields", "carries", "holds"
+- Equipment worn on the back, hip, or legs (swords on back, quivers, holsters, capes flowing down, tool belts at the waist, boots, leg armor)
+- Long flowing hair or robes that extend below the chest
+- Large weapons or props that wouldn't fit beside a head
+- Any wide-environment description (battlefield, forest clearing seen wide, etc.)
+Only keep elements that can plausibly appear in an extreme head-and-shoulders crop: helmets, hats, glasses, headphones, monocles, masks, face paint, ear-level accessories, collars, neckwear (scarf, stethoscope, necklace, tie, lab coat collar), shoulder pads, small badges/insignia on the chest, eye color/shape, and the head's color/material/texture. If the description gives you a sword, give the robot a tiny pin-shaped sword emblem on its chest, not an actual sword. Translate big concepts into head-area equivalents.
+
+CRITICAL FRAMING (this is the most important constraint, mention it EARLY and AGAIN at the end):
+The output must be an extreme close-up headshot / bust portrait — only the robot's head and the very top of its shoulders/chest are visible, the head fills the frame, the camera is zoomed in tight on the face. No legs, no arms, no waist, no full body, no wide shot. Think profile picture or social media avatar crop.
 
 Rules:
 - Output ONLY the transformation prompt, nothing else
 - Never include the character's name
+- Never mention any body part below the upper chest, never mention any pose, never mention any prop that doesn't fit in a head-area crop
 - Never ask for text, letters, words, logos, frames, borders, or UI elements in the image
-- Start with a verb like "Repaint", "Transform", or "Customize this base robot"
-- End the prompt with: "Tight head-and-shoulders portrait framing, no full body. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements."`
+- Start the prompt with a verb like "Repaint", "Transform", or "Customize this base robot", IMMEDIATELY followed by the framing constraint (e.g. "...as an extreme close-up headshot avatar showing only the head and top of the shoulders")
+- End the prompt with this exact sentence: "Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot — tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements."`
 
 /**
  * System prompt used when the target image model is text-to-image only.
  * Best-effort fallback: describe a small robot in the same spirit, from scratch.
  */
-const AVATAR_GENERATE_SYSTEM = `You are an image prompt writer. The user will give you the identity of a character (name, role, personality, expertise). You must write a short image generation prompt (2-3 sentences) describing a head-and-shoulders portrait of a small, friendly Pixar-style 3D robot avatar that visually represents this character.
+const AVATAR_GENERATE_SYSTEM = `You are an image prompt writer. The user will give you the identity of a character (name, role, personality, expertise). You must write a short image generation prompt (2-3 sentences) describing an extreme close-up headshot avatar of a small, friendly Pixar-style 3D robot that visually represents this character.
 
 Style guidelines:
 - A small, cute, friendly cartoon robot in Pixar / 3D-animation style — round shapes, large expressive eyes, soft materials
 - The robot's color palette, accessories, props, and background should reflect the character's role and expertise (e.g. lab coat for a doctor, tiny chef hat for a cook, headphones for a musician)
-- Head-and-shoulders portrait framing (head + upper chest only, like a profile picture / avatar bust shot), facing the viewer, robot's head fills most of the frame, no full body
-- Centered composition, soft studio lighting, slight depth of field, plain or simple thematic background
-- Warm, inviting, slightly stylized — not photorealistic
+- Soft studio lighting, slight depth of field, plain or simple thematic background
+
+HOW TO USE THE CHARACTER DESCRIPTION (read carefully):
+The character description is INSPIRATION ONLY for COLOR, MOOD, and small head-area accessories. It is NOT a literal brief. You MUST silently FILTER OUT and IGNORE every element of the description that would require zooming out the camera, including:
+- Body parts below the upper chest (legs, feet, waist, hips, hands, arms below the shoulders)
+- Standing poses, full-body poses, action poses, "stands tall", "wields", "carries", "holds"
+- Equipment worn on the back, hip, or legs (swords on back, quivers, holsters, capes flowing down, tool belts at the waist, boots, leg armor)
+- Long flowing hair or robes that extend below the chest
+- Large weapons or props that wouldn't fit beside a head
+- Any wide-environment description (battlefield, forest clearing seen wide, etc.)
+Only keep elements that can plausibly appear in an extreme head-and-shoulders crop: helmets, hats, glasses, headphones, monocles, masks, face paint, ear-level accessories, collars, neckwear (scarf, stethoscope, necklace, tie, lab coat collar), shoulder pads, small badges/insignia on the chest, eye color/shape, and the head's color/material/texture. If the description gives you a sword, give the robot a tiny pin-shaped sword emblem on its chest, not an actual sword. Translate big concepts into head-area equivalents.
+
+CRITICAL FRAMING (this is the most important constraint, mention it EARLY and AGAIN at the end):
+The image must be an extreme close-up headshot / bust portrait — only the robot's head and the very top of its shoulders/chest are visible, the head fills the frame, the camera is zoomed in tight on the face. No legs, no arms, no waist, no full body, no wide shot. Think profile picture or social media avatar crop.
 
 Rules:
 - Output ONLY the image prompt, nothing else
 - Never include the character's name
-- Never describe the robot's full body or legs — only head and upper torso
+- Never describe the robot's full body, legs, arms, or anything below the upper chest
+- Never mention any pose or any prop that doesn't fit in a head-area crop
 - Never ask for text, letters, words, logos, or UI elements in the image
-- End the prompt with: "Tight head-and-shoulders portrait framing, no full body. Pixar 3D animation style, soft lighting. No text, no letters, no words, no UI elements."`
+- Start the prompt with the framing constraint (e.g. "Extreme close-up headshot of a small Pixar-style robot...")
+- End the prompt with this exact sentence: "Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot — tight avatar crop. Pixar 3D animation style, soft lighting. No text, no letters, no words, no UI elements."`
 
 /**
  * No-LLM fallback: produce a serviceable robot prompt straight from kin metadata.
@@ -358,9 +384,9 @@ function fallbackAvatarPrompt(
 ): string {
   const domain = (kin.expertise || kin.role || 'a generalist assistant').slice(0, 120)
   if (mode === 'edit') {
-    return `Repaint this base robot with a color palette that fits ${domain}, add small props or accessories that hint at this domain, and replace the plain background with a simple thematic scene. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.`
+    return `Reframe this base robot as an extreme close-up headshot avatar (head and top of shoulders only, head fills the frame), repaint it with a color palette that fits ${domain}, add small props or accessories that hint at this domain, and replace the plain background with a simple thematic scene. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot — tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.`
   }
-  return `A small, friendly Pixar-style 3D robot avatar themed around ${domain}, with a fitting color palette, small thematic props, and a simple matching background. Pixar 3D animation style, soft lighting. No text, no letters, no words, no UI elements.`
+  return `Extreme close-up headshot avatar of a small, friendly Pixar-style 3D robot themed around ${domain}, head fills the frame, with a fitting color palette, small thematic props, and a simple matching background. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot — tight avatar crop. Pixar 3D animation style, soft lighting. No text, no letters, no words, no UI elements.`
 }
 
 /**
