@@ -10,7 +10,7 @@ import {
   buildSegmentedMessages,
   markLastToolCacheable,
 } from '@/server/services/llm-cache-hints'
-import { resolveLLMModel, buildThinkingProviderOptions } from '@/server/services/kin-engine'
+import { resolveLLMModel, buildThinkingProviderOptions, isContextTooLargeError } from '@/server/services/kin-engine'
 import { toolRegistry } from '@/server/tools/index'
 import { resolveMCPTools } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
@@ -963,7 +963,14 @@ async function executeSubKin(taskId: string, isNudge = false) {
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Unknown error'
     log.error({ taskId, error: errorMsg }, 'Sub-Kin execution failed')
-    await resolveTask(taskId, 'failed', undefined, errorMsg)
+    // Sub-Kins / tasks have their own ephemeral message stream and don't
+    // share the parent's compacting summaries — there's no automatic
+    // recovery path here, so override the generic "compaction triggered"
+    // friendly message (which would lie) with task-specific guidance.
+    const displayError = isContextTooLargeError(errorMsg)
+      ? `This task got too long for the model's context window. Retry with a tighter scope or split into smaller sub-tasks.`
+      : errorMsg
+    await resolveTask(taskId, 'failed', undefined, displayError)
   }
 }
 
