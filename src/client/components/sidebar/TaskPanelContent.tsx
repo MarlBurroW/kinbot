@@ -114,12 +114,21 @@ export function TaskPanelContent({
   const [contextData, setContextData] = useState<{
     tokenEstimate: ContextTokenBreakdown
     contextWindow: number
+    apiContextTokens?: number
   } | null>(null)
   useEffect(() => {
     if (!task?.parentKinId || !task?.id) { setContextData(null); return }
     fetch(`/api/kins/${task.parentKinId}/context-preview?taskId=${task.id}`)
       .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (data?.tokenEstimate) setContextData({ tokenEstimate: data.tokenEstimate, contextWindow: data.contextWindow ?? 0 }) })
+      .then((data) => {
+        if (data?.tokenEstimate) {
+          setContextData({
+            tokenEstimate: data.tokenEstimate,
+            contextWindow: data.contextWindow ?? 0,
+            apiContextTokens: data.apiContextTokens ?? undefined,
+          })
+        }
+      })
       .catch(() => {})
   }, [task?.parentKinId, task?.id])
   const [isPromptOpen, setIsPromptOpen] = useState(false)
@@ -300,6 +309,7 @@ export function TaskPanelContent({
                     taskId={task.id}
                     estimatedTokens={contextData.tokenEstimate.total}
                     maxTokens={contextData.contextWindow}
+                    apiContextTokens={contextData.apiContextTokens}
                     contextBreakdown={contextData.tokenEstimate}
                     compact
                   />
