@@ -69,11 +69,20 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
   const [contextData, setContextData] = useState<{
     tokenEstimate: ContextTokenBreakdown
     contextWindow: number
+    apiContextTokens?: number
   } | null>(null)
   useEffect(() => {
     fetch(`/api/kins/${kinId}/context-preview?sessionId=${sessionId}`)
       .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (data?.tokenEstimate) setContextData({ tokenEstimate: data.tokenEstimate, contextWindow: data.contextWindow ?? 0 }) })
+      .then((data) => {
+        if (data?.tokenEstimate) {
+          setContextData({
+            tokenEstimate: data.tokenEstimate,
+            contextWindow: data.contextWindow ?? 0,
+            apiContextTokens: data.apiContextTokens ?? undefined,
+          })
+        }
+      })
       .catch(() => {})
   }, [kinId, sessionId])
 
@@ -157,6 +166,7 @@ export function QuickChatPanel({ kinId, kinName, kinAvatarUrl, sessionId, expire
               sessionId={sessionId}
               estimatedTokens={contextData.tokenEstimate.total}
               maxTokens={contextData.contextWindow}
+              apiContextTokens={contextData.apiContextTokens}
               contextBreakdown={contextData.tokenEstimate}
               compact
             />
