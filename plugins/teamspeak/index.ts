@@ -1,0 +1,681 @@
+/**
+ * KinBot plugin: teamspeak
+ *
+ * Bridges KinBot to a TeamSpeak server via the local ts-bot WebSocket API
+ * (see /tmp/ts-bot/docs/websocket-api-reference.md for protocol reference).
+ *
+ * Exports:
+ *   - channels.teamspeak  — ChannelAdapter that ingests chat & transcriptions,
+ *     and routes outbound replies to chat / TTS following Nicolas's rules:
+ *       * private message  → chat only (no TTS)
+ *       * public channel   → TTS + chat copy
+ *       * reply > ttsMaxChars → TTS short notice + full text in chat
+ *   - tools.{get_status, speak, send_chat, move_channel, stop_speaking}
+ *
+ * The adapter uses metadata (KinBot ≥ 0.39.0) so the LLM gets full structured
+ * context (modality, presence, channel info) without polluting `content`.
+ */
+
+import { tool } from 'ai'
+import { z } from 'zod'
+import { randomUUID } from 'node:crypto'
+import {
+  getOrCreateClient,
+  disposeClient,
+  normalizeUid,
+  type TsBotWsClient,
+  type TsBotServerState,
+  type TsBotChannel,
+  type TsBotClient,
+  type MessageReceivedEvent,
+  type TranscriptionEvent,
+  type ClientConnectedEvent,
+  type ClientDisconnectedEvent,
+  type ClientMovedEvent,
+  type WelcomeEvent,
+} from './wsClient'
+
+// ─── Plugin context (loose typing to avoid coupling to internal SDK paths) ──
+
+interface PluginCtxLog {
+  debug(msg: string): void
+  debug(obj: Record<string, unknown>, msg: string): void
+  info(msg: string): void
+  info(obj: Record<string, unknown>, msg: string): void
+  warn(msg: string): void
+  warn(obj: Record<string, unknown>, msg: string): void
+  error(msg: string): void
+  error(obj: Record<string, unknown>, msg: string): void
+}
+
+interface PluginCtxStorage {
+  get<T = unknown>(key: string): Promise<T | null>
+  set<T = unknown>(key: string, value: T): Promise<void>
+  delete(key: string): Promise<void>
+  list(prefix?: string): Promise<string[]>
+  clear(): Promise<void>
+}
+
+interface PluginCtx {
+  config: Record<string, unknown>
+  log: PluginCtxLog
+  storage: PluginCtxStorage
+  manifest: { name: string; version: string }
+}
+
+// ─── Config helpers ─────────────────────────────────────────────────────────
+
+interface ResolvedConfig {
+  wsUrl: string
+  defaultVoice?: string
+  ttsMaxChars: number
+  enableTtsOnPublic: boolean
+  ttsTooLongNotice: string
+  reconnectMaxBackoffMs: number
+}
+
+function resolveConfig(raw: Record<string, unknown>): ResolvedConfig {
+  return {
+    wsUrl: (raw.wsUrl as string) || 'ws://127.0.0.1:8080/ws',
+    defaultVoice: (raw.defaultVoice as string) || undefined,
+    ttsMaxChars: typeof raw.ttsMaxChars === 'number' ? raw.ttsMaxChars : 300,
+    enableTtsOnPublic: typeof raw.enableTtsOnPublic === 'boolean' ? raw.enableTtsOnPublic : true,
+    ttsTooLongNotice:
+      (raw.ttsTooLongNotice as string) ||
+      "J'ai répondu en chat, c'était trop long pour le vocal.",
+    reconnectMaxBackoffMs:
+      typeof raw.reconnectMaxBackoffMs === 'number' ? raw.reconnectMaxBackoffMs : 30000,
+  }
+}
+
+// ─── Local state cache (channels, clients, own_client_id) ───────────────────
+
+interface CachedState {
+  ownClientId: number | null
+  channels: Map<number, TsBotChannel>
+  clients: Map<number, TsBotClient>
+  /** Last known client UIDs we logged as "new" (in-memory only, dedup logs) */
+  knownSenderUids: Set<string>
+  /** Last welcome */
+  welcome: WelcomeEvent | null
+}
+
+function emptyState(): CachedState {
+  return {
+    ownClientId: null,
+    channels: new Map(),
+    clients: new Map(),
+    knownSenderUids: new Set(),
+    welcome: null,
+  }
+}
+
+function applyServerState(state: CachedState, payload: TsBotServerState): void {
+  state.ownClientId = payload.own_client_id
+  state.channels.clear()
+  for (const ch of payload.channels) state.channels.set(ch.id, ch)
+  state.clients.clear()
+  for (const cl of payload.clients) state.clients.set(cl.id, cl)
+}
+
+function botLocation(state: CachedState): { channel_id: number | null; channel_name: string | null } {
+  if (state.ownClientId == null) return { channel_id: null, channel_name: null }
+  const me = state.clients.get(state.ownClientId)
+  if (!me) return { channel_id: null, channel_name: null }
+  const ch = state.channels.get(me.channel_id)
+  return { channel_id: me.channel_id, channel_name: ch?.name ?? null }
+}
+
+function presentInChannel(state: CachedState, channelId: number, excludeBot = true): Array<{ id: number; name: string }> {
+  const out: Array<{ id: number; name: string }> = []
+  for (const cl of state.clients.values()) {
+    if (cl.channel_id !== channelId) continue
+    if (excludeBot && state.ownClientId != null && cl.id === state.ownClientId) continue
+    out.push({ id: cl.id, name: cl.name })
+  }
+  return out
+}
+
+// ─── Chat ID encoding ───────────────────────────────────────────────────────
+// We encode the platformChatId as `channel:<id>` for public channels and
+// `private:<sender_id>` for private messages. The adapter parses this back
+// when sending replies. Keeping the sender_id (numeric session ID) in the
+// chatId lets us send private replies via `send_message { target:'user', recipient:N }`.
+
+function encodeChannelChatId(channelId: number): string {
+  return `channel:${channelId}`
+}
+function encodePrivateChatId(senderId: number): string {
+  return `private:${senderId}`
+}
+function parseChatId(chatId: string): { kind: 'channel' | 'private'; id: number } | null {
+  const m = /^(channel|private):(\d+)$/.exec(chatId)
+  if (!m) return null
+  return { kind: m[1] as 'channel' | 'private', id: Number(m[2]) }
+}
+
+// ─── Plugin entry point ─────────────────────────────────────────────────────
+
+export default function (ctx: PluginCtx) {
+  const cfg = resolveConfig(ctx.config)
+  const state = emptyState()
+  let client: TsBotWsClient | null = null
+
+  // Channel adapter — only one TS server per KinBot install for the POC, so we
+  // bind the singleton to whatever channel KinBot starts.
+  let activeChannelId: string | null = null
+  let onMessage: ((m: import('@/server/channels/adapter').IncomingMessage) => Promise<void>) | null = null
+
+  // Restore last own_client_id from storage (purely informational, refresh on connect)
+  const restoreOwnId = async (): Promise<void> => {
+    try {
+      const v = await ctx.storage.get<number>('lastOwnClientId')
+      if (typeof v === 'number') {
+        ctx.log.debug({ lastOwnClientId: v }, 'Restored last own_client_id from storage')
+      }
+    } catch { /* ignore */ }
+  }
+
+  const persistOwnId = async (): Promise<void> => {
+    if (state.ownClientId != null) {
+      try { await ctx.storage.set('lastOwnClientId', state.ownClientId) } catch { /* ignore */ }
+    }
+  }
+
+  // Refresh local state via get_status
+  const refreshState = async (): Promise<void> => {
+    if (!client) return
+    try {
+      const resp = await client.sendCommand<TsBotServerState>(
+        { type: 'get_status' },
+        { expectIntermediate: true },
+      )
+      if (resp.success && resp.data && typeof resp.data === 'object') {
+        applyServerState(state, resp.data as TsBotServerState)
+        await persistOwnId()
+        ctx.log.info(
+          {
+            own_client_id: state.ownClientId,
+            channels: state.channels.size,
+            clients: state.clients.size,
+          },
+          'ts-bot state refreshed',
+        )
+      } else {
+        ctx.log.warn({ resp }, 'get_status returned no data')
+      }
+    } catch (err) {
+      ctx.log.warn({ err: String(err) }, 'Failed to refresh ts-bot state')
+    }
+  }
+
+  // ─── Incoming events → IncomingMessage ───────────────────────────────────
+
+  const buildContextForMessage = (
+    senderId: number,
+    senderName: string,
+    senderUidB64: string,
+    isPrivate: boolean,
+    channelId: number | null,
+    channelName: string | null,
+    modality: 'text' | 'voice',
+  ): Record<string, unknown> => {
+    const present = !isPrivate && channelId != null ? presentInChannel(state, channelId, true) : null
+    return {
+      modality,
+      chatType: isPrivate ? 'private' : 'public_channel',
+      channel: isPrivate ? null : { id: channelId, name: channelName },
+      sender: { uid: senderUidB64, name: senderName, session_id: senderId },
+      present,
+      bot: botLocation(state),
+    }
+  }
+
+  const handleMessageReceived = async (ev: MessageReceivedEvent): Promise<void> => {
+    if (!onMessage || !activeChannelId) return
+    const senderUidB64 = normalizeUid(ev.sender_uid)
+    if (!senderUidB64) {
+      ctx.log.warn({ ev: { sender_id: ev.sender_id, sender_name: ev.sender_name } }, 'message_received without resolvable sender_uid; skipping')
+      return
+    }
+    if (!state.knownSenderUids.has(senderUidB64)) {
+      state.knownSenderUids.add(senderUidB64)
+      ctx.log.info({ uid: senderUidB64, name: ev.sender_name }, 'new sender detected')
+    }
+
+    const isPrivate = ev.message_type === 'private'
+    const chatId = isPrivate ? encodePrivateChatId(ev.sender_id) : encodeChannelChatId(ev.channel_id ?? 0)
+    const metadata = buildContextForMessage(
+      ev.sender_id,
+      ev.sender_name,
+      senderUidB64,
+      isPrivate,
+      ev.channel_id,
+      ev.channel_name,
+      'text',
+    )
+
+    try {
+      await onMessage({
+        platformUserId: senderUidB64,
+        platformDisplayName: ev.sender_name,
+        platformMessageId: randomUUID(),
+        platformChatId: chatId,
+        content: ev.content,
+        metadata,
+      })
+    } catch (err) {
+      ctx.log.error({ err: String(err) }, 'onMessage handler threw')
+    }
+  }
+
+  const handleTranscription = async (ev: TranscriptionEvent): Promise<void> => {
+    if (!onMessage || !activeChannelId) return
+    const speakerUidB64 = normalizeUid(ev.speaker_uid)
+    if (!speakerUidB64) return
+    if (!state.knownSenderUids.has(speakerUidB64)) {
+      state.knownSenderUids.add(speakerUidB64)
+      ctx.log.info({ uid: speakerUidB64, name: ev.speaker_name }, 'new sender detected (voice)')
+    }
+
+    // Voice always lives in the bot's current channel.
+    const loc = botLocation(state)
+    const channelId = loc.channel_id ?? 0
+    const chatId = encodeChannelChatId(channelId)
+    const metadata = buildContextForMessage(
+      ev.speaker_id,
+      ev.speaker_name,
+      speakerUidB64,
+      false,
+      channelId,
+      loc.channel_name,
+      'voice',
+    )
+    // Add transcription-specific extras
+    ;(metadata as Record<string, unknown>).transcription = {
+      confidence: ev.confidence,
+      language: ev.language,
+      duration_ms: ev.duration_ms,
+    }
+
+    try {
+      await onMessage({
+        platformUserId: speakerUidB64,
+        platformDisplayName: ev.speaker_name,
+        platformMessageId: randomUUID(),
+        platformChatId: chatId,
+        content: ev.text,
+        metadata,
+      })
+    } catch (err) {
+      ctx.log.error({ err: String(err) }, 'onMessage handler threw (voice)')
+    }
+  }
+
+  // Local cache mutations for client lifecycle events
+  const handleClientConnected = (ev: ClientConnectedEvent): void => {
+    state.clients.set(ev.client_id, {
+      id: ev.client_id,
+      name: ev.client_name,
+      channel_id: ev.channel_id,
+      uid: ev.uid,
+    })
+  }
+  const handleClientDisconnected = (ev: ClientDisconnectedEvent): void => {
+    state.clients.delete(ev.client_id)
+  }
+  const handleClientMoved = (ev: ClientMovedEvent): void => {
+    const existing = state.clients.get(ev.client_id)
+    if (existing) {
+      existing.channel_id = ev.new_channel_id
+    } else {
+      state.clients.set(ev.client_id, {
+        id: ev.client_id,
+        name: ev.client_name,
+        channel_id: ev.new_channel_id,
+        uid: ev.uid,
+      })
+    }
+    if (state.ownClientId != null && ev.client_id === state.ownClientId) {
+      void persistOwnId()
+    }
+  }
+
+  // ─── ChannelAdapter implementation ───────────────────────────────────────
+
+  const adapter = {
+    platform: 'teamspeak',
+    meta: {
+      displayName: 'TeamSpeak',
+      brandColor: '#2580C3',
+    },
+
+    async start(
+      channelId: string,
+      channelConfig: Record<string, unknown>,
+      msgHandler: (m: import('@/server/channels/adapter').IncomingMessage) => Promise<void>,
+    ): Promise<void> {
+      // The plugin is configured at plugin level, not per-channel. We use the
+      // plugin config but also let the channel override wsUrl if it wants.
+      const url = (channelConfig?.wsUrl as string) || cfg.wsUrl
+      activeChannelId = channelId
+      onMessage = msgHandler
+
+      client = getOrCreateClient({
+        url,
+        log: ctx.log,
+        reconnectMaxBackoffMs: cfg.reconnectMaxBackoffMs,
+      })
+
+      // Wire listeners
+      client.on('message_received', (ev) => { void handleMessageReceived(ev as MessageReceivedEvent) })
+      client.on('transcription', (ev) => { void handleTranscription(ev as TranscriptionEvent) })
+      client.on('client_connected', (ev) => handleClientConnected(ev as ClientConnectedEvent))
+      client.on('client_disconnected', (ev) => handleClientDisconnected(ev as ClientDisconnectedEvent))
+      client.on('client_moved', (ev) => handleClientMoved(ev as ClientMovedEvent))
+      client.on('welcome', (ev) => {
+        state.welcome = ev as WelcomeEvent
+        // Fresh connection → refresh state
+        void refreshState()
+      })
+
+      await restoreOwnId()
+      // Fire & forget: open WS and refresh state once connected
+      try {
+        await client.start(false, 5000)
+        await refreshState()
+      } catch (err) {
+        ctx.log.warn({ err: String(err), url }, 'Initial ts-bot connection failed; will keep retrying')
+      }
+
+      ctx.log.info({ channelId, url }, 'teamspeak channel started')
+    },
+
+    async stop(channelId: string): Promise<void> {
+      if (channelId !== activeChannelId) {
+        ctx.log.warn({ channelId, activeChannelId }, 'stop() called for unknown teamspeak channelId')
+      }
+      activeChannelId = null
+      onMessage = null
+      // Keep the WS client alive if other consumers (tools) might still want it.
+      // For the POC we tear it down to keep semantics clean.
+      if (client) {
+        disposeClient(cfg.wsUrl)
+        client = null
+      }
+      ctx.log.info({ channelId }, 'teamspeak channel stopped')
+    },
+
+    async sendMessage(
+      _channelId: string,
+      _channelConfig: Record<string, unknown>,
+      params: { chatId: string; content: string; replyToMessageId?: string },
+    ): Promise<{ platformMessageId: string }> {
+      const parsed = parseChatId(params.chatId)
+      if (!parsed) throw new Error(`Invalid teamspeak chatId: ${params.chatId}`)
+
+      if (!client) throw new Error('teamspeak adapter not started (no WS client)')
+
+      const text = (params.content ?? '').trim()
+      if (!text) {
+        // Nothing to send — return a synthetic ID so the caller doesn't choke.
+        return { platformMessageId: randomUUID() }
+      }
+
+      const isPrivate = parsed.kind === 'private'
+
+      // Always send chat copy. For private MPs target the user, otherwise the
+      // current channel of the bot.
+      const sendChat = async (content: string): Promise<void> => {
+        const cmd: Record<string, unknown> = isPrivate
+          ? { type: 'send_message', target: 'user', recipient: parsed.id, content }
+          : { type: 'send_message', target: 'channel', content }
+        await client!.sendCommand(cmd, { expectIntermediate: true })
+      }
+
+      const sendTts = async (content: string): Promise<void> => {
+        const cmd: Record<string, unknown> = { type: 'speak', text: content }
+        if (cfg.defaultVoice) cmd.voice = cfg.defaultVoice
+        await client!.sendCommand(cmd, { expectIntermediate: false })
+      }
+
+      try {
+        if (isPrivate) {
+          // Private → chat only
+          await sendChat(text)
+        } else {
+          // Public channel → ts-bot already echoes TTS to channel chat
+          // automatically (see ts-bot main.rs: "Echo TTS text to TS3 channel
+          // chat so muted users can read it"). So we don't duplicate the
+          // chat copy ourselves on the TTS path.
+          if (cfg.enableTtsOnPublic) {
+            const tooLong = cfg.ttsMaxChars > 0 && text.length > cfg.ttsMaxChars
+            if (tooLong) {
+              // Full text via explicit chat (since the TTS notice differs)
+              // + short voice notice (which ts-bot will also echo to chat).
+              await sendChat(text).catch((e) => {
+                ctx.log.warn({ err: String(e) }, 'chat send failed (long-reply path)')
+              })
+              await sendTts(cfg.ttsTooLongNotice).catch((e) => {
+                ctx.log.warn({ err: String(e) }, 'TTS short-notice failed')
+              })
+            } else {
+              // Speak full text — ts-bot echoes it to channel chat itself.
+              await sendTts(text).catch((e) => {
+                ctx.log.warn({ err: String(e) }, 'TTS send failed')
+              })
+            }
+          } else {
+            // TTS disabled by config → explicit chat only
+            await sendChat(text)
+          }
+        }
+      } catch (err) {
+        ctx.log.error({ err: String(err), chatId: params.chatId }, 'sendMessage failed')
+        throw err
+      }
+
+      // We don't have a real platform message ID — synthesize one.
+      return { platformMessageId: randomUUID() }
+    },
+
+    async validateConfig(channelConfig: Record<string, unknown>): Promise<{ valid: boolean; error?: string }> {
+      const url = (channelConfig?.wsUrl as string) || cfg.wsUrl
+      try {
+        const { TsBotWsClient } = await import('./wsClient')
+        const transient = new TsBotWsClient({ url, log: ctx.log })
+        const welcome = await transient.start(true, 5000)
+        transient.stop()
+        if (welcome && welcome.type === 'welcome') return { valid: true }
+        return { valid: false, error: 'No welcome event received' }
+      } catch (err) {
+        return { valid: false, error: err instanceof Error ? err.message : String(err) }
+      }
+    },
+
+    async getBotInfo(channelConfig: Record<string, unknown>): Promise<{ name: string; username?: string } | null> {
+      const url = (channelConfig?.wsUrl as string) || cfg.wsUrl
+      try {
+        const transient = new (await import('./wsClient')).TsBotWsClient({ url, log: ctx.log })
+        const welcome = await transient.start(true, 5000)
+        transient.stop()
+        const name = welcome.nickname ?? welcome.bot_nickname ?? 'TeamSpeak Bot'
+        return { name }
+      } catch (err) {
+        ctx.log.warn({ err: String(err), url }, 'getBotInfo failed')
+        return null
+      }
+    },
+  }
+
+  // ─── Tools ───────────────────────────────────────────────────────────────
+  // These are namespaced as `plugin_teamspeak_*` automatically by KinBot.
+
+  const ensureClient = (): TsBotWsClient => {
+    if (!client) {
+      // Lazy-init a client purely for tool use, even if no channel is bound.
+      client = getOrCreateClient({
+        url: cfg.wsUrl,
+        log: ctx.log,
+        reconnectMaxBackoffMs: cfg.reconnectMaxBackoffMs,
+      })
+      // Best-effort start; tools will fail if WS isn't up.
+      void client.start(false, 5000).catch((err) => {
+        ctx.log.warn({ err: String(err) }, 'lazy ts-bot client start failed')
+      })
+    }
+    return client
+  }
+
+  const tools = {
+    get_status: {
+      availability: ['main', 'sub-kin'] as const,
+      create: () =>
+        tool({
+          description:
+            'Get the current TeamSpeak server state via the ts-bot bridge: list of channels, list of connected clients, and the bot\'s current location.',
+          inputSchema: z.object({}),
+          execute: async () => {
+            const c = ensureClient()
+            const resp = await c.sendCommand<TsBotServerState>(
+              { type: 'get_status' },
+              { expectIntermediate: true },
+            )
+            if (!resp.success || !resp.data) {
+              return { error: resp.message ?? 'get_status failed' }
+            }
+            applyServerState(state, resp.data as TsBotServerState)
+            await persistOwnId()
+            const loc = botLocation(state)
+            return {
+              own_client_id: state.ownClientId,
+              bot: loc,
+              channels: Array.from(state.channels.values()).map((ch) => ({
+                id: ch.id,
+                name: ch.name,
+                parent_id: ch.parent_id,
+              })),
+              clients: Array.from(state.clients.values()).map((cl) => ({
+                id: cl.id,
+                name: cl.name,
+                channel_id: cl.channel_id,
+                uid: cl.uid,
+              })),
+            }
+          },
+        }),
+    },
+
+    speak: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Force TTS playback in the bot\'s current TeamSpeak channel. The text is queued and replaces any ongoing playback.',
+          inputSchema: z.object({
+            text: z.string().min(1).max(2000).describe('Text to synthesize (≤ 2000 chars).'),
+            voice: z.string().optional().describe('Optional voice identifier. Falls back to plugin defaultVoice or server default.'),
+          }),
+          execute: async ({ text, voice }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'speak', text }
+            const v = voice ?? cfg.defaultVoice
+            if (v) cmd.voice = v
+            const resp = await c.sendCommand(cmd, { expectIntermediate: false })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    send_chat: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Send a text chat message to TeamSpeak. By default sends to the bot\'s current channel. Set target="user" with recipient=<client_id> to send a private message.',
+          inputSchema: z.object({
+            text: z.string().min(1).max(8192).describe('Message body (≤ 8192 chars).'),
+            target: z.enum(['channel', 'user']).default('channel').describe('"channel" (current channel chat) or "user" (private message).'),
+            recipient: z
+              .number()
+              .int()
+              .positive()
+              .optional()
+              .describe('Required when target="user": session client ID of the recipient (use get_status to find it).'),
+          }),
+          execute: async ({ text, target, recipient }) => {
+            const c = ensureClient()
+            if (target === 'user' && (recipient == null || recipient <= 0)) {
+              return { error: 'recipient (positive client id) is required when target="user"' }
+            }
+            const cmd: Record<string, unknown> =
+              target === 'user'
+                ? { type: 'send_message', target: 'user', recipient, content: text }
+                : { type: 'send_message', target: 'channel', content: text }
+            const resp = await c.sendCommand(cmd, { expectIntermediate: true })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    move_channel: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description: 'Move the TeamSpeak bot to a different channel. Use get_status to discover channel IDs.',
+          inputSchema: z.object({
+            channel_id: z.number().int().positive().describe('Target channel ID (> 0).'),
+            password: z.string().optional().describe('Channel password if required.'),
+          }),
+          execute: async ({ channel_id, password }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'move_channel', channel_id }
+            if (password) cmd.password = password
+            const resp = await c.sendCommand(cmd, { expectIntermediate: true })
+            // After a move, refresh state in the background
+            void refreshState()
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    stop_speaking: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description: 'Immediately stop any ongoing TTS playback in the TeamSpeak channel. No-op if nothing is playing.',
+          inputSchema: z.object({}),
+          execute: async () => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'stop_speaking' }, { expectIntermediate: false })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+  }
+
+  return {
+    channels: { teamspeak: adapter },
+    tools,
+
+    async activate(): Promise<void> {
+      ctx.log.info(
+        {
+          wsUrl: cfg.wsUrl,
+          enableTtsOnPublic: cfg.enableTtsOnPublic,
+          ttsMaxChars: cfg.ttsMaxChars,
+          defaultVoice: cfg.defaultVoice ?? null,
+        },
+        'teamspeak plugin activated',
+      )
+    },
+
+    async deactivate(): Promise<void> {
+      try { disposeClient(cfg.wsUrl) } catch { /* ignore */ }
+      client = null
+      activeChannelId = null
+      onMessage = null
+      ctx.log.info('teamspeak plugin deactivated')
+    },
+  }
+}

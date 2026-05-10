@@ -1,0 +1,60 @@
+{
+  "name": "teamspeak",
+  "version": "0.1.0",
+  "description": "Bridge KinBot with a TeamSpeak server via the local ts-bot WebSocket API. Adds a 'teamspeak' channel adapter (chat + TTS) and tools to control the bot (move, speak, send chat, status).",
+  "author": "MarlBurroW",
+  "license": "MIT",
+  "main": "index.ts",
+  "icon": "🎙️",
+  "kinbot": ">=0.39.0",
+  "tags": ["teamspeak", "voice", "chat", "tts", "channel"],
+  "permissions": [
+    "storage"
+  ],
+  "config": {
+    "wsUrl": {
+      "type": "string",
+      "label": "ts-bot WebSocket URL",
+      "description": "URL of the local ts-bot WebSocket endpoint. Default: ws://127.0.0.1:8080/ws",
+      "default": "ws://127.0.0.1:8080/ws",
+      "placeholder": "ws://127.0.0.1:8080/ws",
+      "required": true
+    },
+    "defaultVoice": {
+      "type": "string",
+      "label": "Default TTS voice (optional)",
+      "description": "Voice identifier passed to the TTS pipeline (e.g. ff_siwis). Leave empty to use the ts-bot server default.",
+      "placeholder": "ff_siwis"
+    },
+    "ttsMaxChars": {
+      "type": "number",
+      "label": "TTS soft limit (chars)",
+      "description": "Replies longer than this are truncated to a short voice notice; the full text is sent to chat. Set to 0 to disable the limit.",
+      "default": 300,
+      "min": 0,
+      "max": 2000,
+      "step": 10
+    },
+    "enableTtsOnPublic": {
+      "type": "boolean",
+      "label": "Speak replies in public channels",
+      "description": "When ON, public channel replies are spoken AND copied to chat. When OFF, public channel replies are chat-only. Private messages are always chat-only.",
+      "default": true
+    },
+    "ttsTooLongNotice": {
+      "type": "string",
+      "label": "TTS truncation notice",
+      "description": "Short sentence spoken when the reply is too long for TTS. The full text is sent to chat as well.",
+      "default": "J'ai répondu en chat, c'était trop long pour le vocal."
+    },
+    "reconnectMaxBackoffMs": {
+      "type": "number",
+      "label": "Max reconnect backoff (ms)",
+      "description": "Upper bound for exponential reconnect backoff to the ts-bot WebSocket.",
+      "default": 30000,
+      "min": 1000,
+      "max": 300000,
+      "step": 1000
+    }
+  }
+}
