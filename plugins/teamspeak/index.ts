@@ -652,6 +652,240 @@ export default function (ctx: PluginCtx) {
           },
         }),
     },
+
+    // ─── Client moderation ────────────────────────────────────────────────
+
+    poke_client: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Send a poke notification (popup) to a specific TS3 client. The recipient sees a modal popup with the message. Use get_status to find client session IDs.',
+          inputSchema: z.object({
+            client_id: z.number().int().positive().describe('Target client session ID (use get_status to discover).'),
+            message: z.string().max(100).optional().describe('Optional poke message (≤ 100 chars; TS3 limit).'),
+          }),
+          execute: async ({ client_id, message }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'poke_client', client_id }
+            if (message) cmd.message = message
+            const resp = await c.sendCommand(cmd, { expectIntermediate: false })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    kick_client: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Kick a client from the current channel or the entire server. Destructive — applied immediately, no confirmation prompt. Use get_status to find client IDs.',
+          inputSchema: z.object({
+            client_id: z.number().int().positive().describe('Target client session ID.'),
+            reason: z.string().max(255).optional().describe('Reason shown to the kicked client.'),
+            kick_type: z
+              .enum(['channel', 'server'])
+              .optional()
+              .describe('"channel" boots them back to the default channel; "server" disconnects them. Default: "server".'),
+          }),
+          execute: async ({ client_id, reason, kick_type }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'kick_client', client_id }
+            if (reason) cmd.reason = reason
+            if (kick_type) cmd.kick_type = kick_type
+            const resp = await c.sendCommand(cmd, { expectIntermediate: false })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    move_client: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Move another client to a specific channel. (To move the bot itself, use move_channel.) Use get_status to discover client and channel IDs.',
+          inputSchema: z.object({
+            client_id: z.number().int().positive().describe('Client session ID to move.'),
+            channel_id: z.number().int().positive().describe('Destination channel ID (> 0).'),
+            password: z.string().optional().describe('Channel password if required.'),
+          }),
+          execute: async ({ client_id, channel_id, password }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'move_client', client_id, channel_id }
+            if (password) cmd.password = password
+            const resp = await c.sendCommand(cmd, { expectIntermediate: true })
+            void refreshState()
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    // ─── Bot self-management ──────────────────────────────────────────────
+
+    set_nickname: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description: "Change the bot's own display nickname on TeamSpeak. The new name is visible to everyone immediately.",
+          inputSchema: z.object({
+            nickname: z.string().min(1).max(30).describe('New nickname (1-30 chars; TS3 limit).'),
+          }),
+          execute: async ({ nickname }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'set_nickname', nickname }, { expectIntermediate: false })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    // ─── Server info ──────────────────────────────────────────────────────
+
+    get_server_info: {
+      availability: ['main', 'sub-kin'] as const,
+      create: () =>
+        tool({
+          description: 'Get TS3 virtual server metadata (name, welcome message, version, max clients, etc.).',
+          inputSchema: z.object({}),
+          execute: async () => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'get_server_info' }, { expectIntermediate: true })
+            if (!resp.success) return { error: resp.message ?? 'get_server_info failed' }
+            return { success: true, message: resp.message ?? null, data: resp.data ?? null }
+          },
+        }),
+    },
+
+    // ─── Channel admin ────────────────────────────────────────────────────
+
+    create_channel: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Create a new TS3 channel. Optionally make it temporary (auto-deletes when empty), nest it under a parent, or set topic / description / password.',
+          inputSchema: z.object({
+            name: z.string().min(1).max(40).describe('Channel name (1-40 chars; TS3 limit).'),
+            parent_id: z.number().int().nonnegative().optional().describe('Parent channel ID (0 or omit = root).'),
+            temporary: z.boolean().optional().describe('If true, the channel auto-deletes when the last client leaves.'),
+            topic: z.string().max(255).optional().describe('Channel topic (short tagline).'),
+            description: z.string().max(8192).optional().describe('Channel description (long text, ≤ 8192 chars).'),
+            password: z.string().optional().describe('Optional password to restrict access.'),
+          }),
+          execute: async ({ name, parent_id, temporary, topic, description, password }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'create_channel', name }
+            if (parent_id != null) cmd.parent_id = parent_id
+            if (temporary != null) cmd.temporary = temporary
+            if (topic) cmd.topic = topic
+            if (description) cmd.description = description
+            if (password) cmd.password = password
+            const resp = await c.sendCommand(cmd, { expectIntermediate: true })
+            void refreshState()
+            return { success: resp.success, message: resp.message ?? null, data: resp.data ?? null }
+          },
+        }),
+    },
+
+    set_channel_description: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description: "Update an existing channel's description (long text shown in TS3 channel info).",
+          inputSchema: z.object({
+            channel_id: z.number().int().positive().describe('Target channel ID.'),
+            description: z.string().max(8192).describe('New description (≤ 8192 chars). Pass an empty string to clear.'),
+          }),
+          execute: async ({ channel_id, description }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand(
+              { type: 'set_channel_description', channel_id, description },
+              { expectIntermediate: false },
+            )
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    delete_channel: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Delete a TS3 channel. Destructive — applied immediately, no confirmation prompt. Set force=true to delete even if clients are inside (they will be moved to the default channel).',
+          inputSchema: z.object({
+            channel_id: z.number().int().positive().describe('Channel ID to delete.'),
+            force: z.boolean().optional().describe('If true, delete even when clients are present (they get moved to the default channel). Default: false.'),
+          }),
+          execute: async ({ channel_id, force }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'delete_channel', channel_id }
+            if (force != null) cmd.force = force
+            const resp = await c.sendCommand(cmd, { expectIntermediate: false })
+            void refreshState()
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    // ─── Voice listening (Whisper STT) ────────────────────────────────────
+
+    activate_listener: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description: 'Start transcribing voice from a specific TS3 client (Whisper STT). Audio from that client will start producing transcription events.',
+          inputSchema: z.object({
+            client_id: z.number().int().positive().describe('Client session ID to start listening to.'),
+          }),
+          execute: async ({ client_id }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'activate_listener', client_id }, { expectIntermediate: false })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    deactivate_listener: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description: 'Stop transcribing voice from a specific TS3 client. Transcription events for that client will cease.',
+          inputSchema: z.object({
+            client_id: z.number().int().positive().describe('Client session ID to stop listening to.'),
+          }),
+          execute: async ({ client_id }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'deactivate_listener', client_id }, { expectIntermediate: false })
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    set_language: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Override the language used for STT (Whisper) for a specific client. Pass an ISO 639-1 two-letter code (e.g. "fr", "en", "de") or "auto" to reset to automatic detection.',
+          inputSchema: z.object({
+            client_id: z.number().int().positive().describe('Client session ID.'),
+            language: z
+              .string()
+              .regex(/^([a-z]{2}|auto)$/, 'Must be a lowercase ISO 639-1 two-letter code (e.g. "fr") or "auto".')
+              .describe('ISO 639-1 code (e.g. "fr", "en", "de", "es", "ja") or "auto".'),
+          }),
+          execute: async ({ client_id, language }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand(
+              { type: 'set_language', client_id, language },
+              { expectIntermediate: false },
+            )
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
   }
 
   return {

@@ -41,7 +41,29 @@ describe('teamspeak plugin export shape', () => {
     const plugin = createPlugin(makeCtx() as any)
     const names = Object.keys(plugin.tools)
     expect(names.sort()).toEqual(
-      ['get_status', 'move_channel', 'send_chat', 'speak', 'stop_speaking'].sort(),
+      [
+        'get_status',
+        'move_channel',
+        'send_chat',
+        'speak',
+        'stop_speaking',
+        // Client moderation
+        'poke_client',
+        'kick_client',
+        'move_client',
+        // Bot self-management
+        'set_nickname',
+        // Server info
+        'get_server_info',
+        // Channel admin
+        'create_channel',
+        'set_channel_description',
+        'delete_channel',
+        // Voice listening
+        'activate_listener',
+        'deactivate_listener',
+        'set_language',
+      ].sort(),
     )
   })
 

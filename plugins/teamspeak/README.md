@@ -8,19 +8,36 @@ It contributes:
   when wake-word transcription is enabled in ts-bot, voice transcriptions) and
   routes outgoing replies to **chat + TTS** following these rules:
   - Private message → chat only (no TTS).
-  - Public channel → TTS only. **ts-bot already echoes the spoken text to the
-    channel chat automatically** (so muted users can read it), so the plugin
-    does NOT send a duplicate chat copy on this path.
-  - Reply longer than `ttsMaxChars` → full text sent explicitly to chat +
-    short TTS notice ("J'ai répondu en chat..."); ts-bot will additionally
-    echo that short notice to chat.
-  - When `enableTtsOnPublic = false`, public replies fall back to chat only.
-- **Tools** (auto-namespaced as `plugin_teamspeak_*` by KinBot):
-  - `get_status` — list channels & clients, show the bot's current location.
+  - Public channel → TTS **and** chat copy (TTS is sometimes glitchy, scrollback is useful).
+  - Reply longer than `ttsMaxChars` → short TTS notice + full text in chat.
+- **16 tools** (auto-namespaced as `plugin_teamspeak_*` by KinBot) covering
+  the full ts-bot WebSocket admin surface:
+
+  Bot voice & chat:
   - `speak` — force TTS playback in the bot's current channel.
+  - `stop_speaking` — interrupt ongoing TTS.
   - `send_chat` — send a chat message to the channel or a private user.
   - `move_channel` — move the bot to another channel.
-  - `stop_speaking` — interrupt ongoing TTS.
+  - `set_nickname` — change the bot's own display nickname.
+
+  Discovery:
+  - `get_status` — list channels & clients, show the bot's current location.
+  - `get_server_info` — TS3 virtual server metadata (name, welcome message, version, …).
+
+  Client moderation:
+  - `poke_client` — send a popup notification to a client.
+  - `kick_client` — kick a client from the channel or the server.
+  - `move_client` — move another client to a specific channel.
+
+  Channel admin:
+  - `create_channel` — create a (optionally temporary) channel with topic / description / password.
+  - `set_channel_description` — update an existing channel's description.
+  - `delete_channel` — delete a channel (`force=true` to evict clients first).
+
+  Voice listening (Whisper STT):
+  - `activate_listener` — start transcribing voice from a specific client.
+  - `deactivate_listener` — stop transcribing voice from that client.
+  - `set_language` — override the STT language per client (ISO 639-1 code or `"auto"`).
 
 ## Requirements
 
@@ -85,19 +102,11 @@ Voice messages additionally include `transcription = { confidence, language, dur
   the voice side; chat filtering will be refined later.
 - **No native message IDs.** TeamSpeak chat has no per-message identifier, so
   the plugin synthesizes UUIDs for `platformMessageId`.
-- The `sender_uid` from ts-bot arrives as a byte array (not a base64 string
-  as the doc once claimed). The plugin's `normalizeUid` helper accepts both
-  shapes and emits a stable base64 identifier.
-- The `welcome` event is emitted with `nickname` (not `bot_nickname`); the
-  client accepts either for forward compatibility.
-- For `send_message` with `target = "private"`, ts-bot expects `recipient` as
-  a **string** (e.g. `"11033"`). The plugin already serializes accordingly.
-- The bot's `wsUrl` is unauthenticated and meant for localhost only. Don't
-  expose it to the public network.
-- **No KinBot `ws:*` permission scheme.** KinBot only enforces `http:<host>`
-  in plugin manifests today, so this plugin only declares `storage`. A future
-  KinBot release may introduce `ws:<host>:<port>` and the manifest will be
-  updated then.
+- The `sender_uid` from ts-bot may arrive as a byte array (observed) rather
+  than the documented base64 string. The plugin normalizes both to a stable
+  base64 identifier.
+- Plugin and ts-bot run on the same host; the WS endpoint is unauthenticated.
+  Don't expose it to the public network.
 
 ## Internals
 
@@ -118,10 +127,4 @@ Voice messages additionally include `transcription = { confidence, language, dur
 - [ ] Forward `connection_status` events as KinBot system notifications.
 - [ ] Optionally relay `client_connected` / `client_disconnected` to the Kin
       as system messages for greetings.
-- [ ] Populate `metadata.present` reliably (currently empty until the local
-      cache is seeded by the second `get_status` response — minor bug to fix
-      in `wsClient.ts` two-phase response handling for the *initial* state
-      query).
-- [ ] Cover the additional ts-bot commands as plugin tools when relevant
-      (`poke_client`, `set_nickname`, `create_channel`, etc.).
 - [ ] Live integration tests against a running ts-bot.
