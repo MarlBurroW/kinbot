@@ -936,23 +936,14 @@ export default function (ctx: PluginCtx) {
       create: () =>
         tool({
           description:
-            'Set the default TTS voice used by ts-bot. Voices are OpenAI TTS voice IDs. Persisted by ts-bot until changed again.',
+            'Set the default TTS voice used by ts-bot. Accepts any voice registered server-side: OpenAI voices (alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse) and any ElevenLabs voice or cloned voice that ts-bot has loaded at startup (e.g. kartal, jade, edouard...). Validation is performed by ts-bot against its live voice registry; invalid voices return an error message listing the valid ones. Persisted by ts-bot until changed again.',
           inputSchema: z.object({
             voice: z
-              .enum([
-                'alloy',
-                'ash',
-                'ballad',
-                'coral',
-                'echo',
-                'fable',
-                'nova',
-                'onyx',
-                'sage',
-                'shimmer',
-                'verse',
-              ])
-              .describe('Voice name. One of: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse.'),
+              .string()
+              .min(1)
+              .describe(
+                'Voice name. OpenAI voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse. ElevenLabs/cloned voices depend on what ts-bot has loaded (use get_status or ask ts-bot to discover the current list).',
+              ),
           }),
           execute: async ({ voice }) => {
             const c = ensureClient()

@@ -42,6 +42,7 @@ import { getHubKinId, setHubKinId } from '@/server/services/app-settings'
 import { createLogger } from '@/server/logger'
 import { deleteChannel } from '@/server/services/channels'
 import { stopJob } from '@/server/services/crons'
+import { resolveThinkingConfig } from '@/server/services/kin-engine'
 import type { KinToolConfig, KinCompactingConfig, KinThinkingConfig } from '@/shared/types'
 
 const log = createLogger('services:kins')
@@ -243,10 +244,20 @@ export async function updateKin(
   log.debug({ kinId, updatedFields: Object.keys(updates).filter((k) => k !== 'updatedAt') }, 'Kin updated')
 
   // Notify all clients
+  const resolvedThinking = resolveThinkingConfig(details.thinkingConfig)
   sseManager.broadcast({
     type: 'kin:updated',
     kinId,
-    data: { kinId, slug: details.slug, name: details.name, role: details.role, avatarUrl: details.avatarUrl, providerId: details.providerId },
+    data: {
+      kinId,
+      slug: details.slug,
+      name: details.name,
+      role: details.role,
+      avatarUrl: details.avatarUrl,
+      providerId: details.providerId,
+      thinkingEnabled: resolvedThinking.enabled === true,
+      thinkingEffort: resolvedThinking.effort ?? null,
+    },
   })
 
   return { kin: details }

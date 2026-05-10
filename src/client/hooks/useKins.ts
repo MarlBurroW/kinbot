@@ -171,6 +171,8 @@ export function useKins() {
                 ...(data.model !== undefined && { model: data.model as string }),
                 ...(data.providerId !== undefined && { providerId: data.providerId as string | null }),
                 ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl as string | null }),
+                ...(data.thinkingEnabled !== undefined && { thinkingEnabled: data.thinkingEnabled as boolean }),
+                ...(data.thinkingEffort !== undefined && { thinkingEffort: data.thinkingEffort as KinThinkingEffort | null }),
               }
             : k,
         ),
@@ -306,6 +308,10 @@ export function useKins() {
               ...(data.role !== undefined && { role: data.role }),
               ...(data.model !== undefined && { model: data.model }),
               ...(data.providerId !== undefined && { providerId: data.providerId }),
+              ...(data.thinkingConfig !== undefined && {
+                thinkingEnabled: data.thinkingConfig?.enabled === true,
+                thinkingEffort: data.thinkingConfig?.effort ?? null,
+              }),
               avatarUrl: result.kin.avatarUrl,
             }
           : k,
