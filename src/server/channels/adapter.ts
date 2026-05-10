@@ -8,6 +8,52 @@ export interface ChannelAdapterMeta {
   iconUrl?: string
 }
 
+// ─── Adapter configuration schema ───────────────────────────────────────────
+
+/**
+ * A single field declared by a {@link ChannelAdapter} so that the UI can render
+ * a dynamic configuration form and the server can validate the incoming
+ * payload before persisting it into `channels.platformConfig`.
+ *
+ * Built-ins and plugin adapters share the exact same shape. Frontend keeps
+ * UX validation; the server runs an authoritative Zod parse derived from the
+ * same declaration (see `POST /api/channels`).
+ */
+export interface ChannelConfigField {
+  /** Identifier used as the key in `platformConfig` JSON. */
+  name: string
+  /** Human-readable label shown next to the input. */
+  label: string
+  /** Widget type rendered by the dynamic form. */
+  type: 'text' | 'password' | 'number' | 'select' | 'switch'
+  /** Default value applied when the form opens / when missing on input. */
+  default?: unknown
+  /** When true, the field must be provided and non-empty. */
+  required?: boolean
+  /** Placeholder text for inputs. */
+  placeholder?: string
+  /** Help text displayed under the field. */
+  description?: string
+  /** Allowed values for `select` (either bare strings or value/label pairs). */
+  options?: string[] | { value: string; label: string }[]
+  /** Lower bound for `number`. */
+  min?: number
+  /** Upper bound for `number`. */
+  max?: number
+}
+
+/**
+ * Configuration schema declared by a {@link ChannelAdapter}. The fields drive
+ * the dynamic form in `ChannelFormDialog` and the server-side Zod validator
+ * on `POST /api/channels`.
+ *
+ * Optional today: adapters that don't declare a schema fall back to the
+ * legacy `botToken`-only behavior. Migration is opt-in per adapter.
+ */
+export interface ChannelConfigSchema {
+  fields: ChannelConfigField[]
+}
+
 // ─── Incoming attachments from an external platform ─────────────────────────
 
 export interface IncomingAttachment {
@@ -83,6 +129,15 @@ export interface ChannelAdapter {
 
   /** Optional metadata for display purposes (name, color, icon) */
   readonly meta?: ChannelAdapterMeta
+
+  /**
+   * Optional declarative configuration schema. When provided, the UI renders
+   * a dynamic form from `fields` and the server validates `platformConfig`
+   * against a Zod schema derived from it. Adapters that don't declare one
+   * keep the legacy behavior (bot-token-only form) for now — migration will
+   * happen adapter by adapter.
+   */
+  readonly configSchema?: ChannelConfigSchema
 
   /**
    * Start receiving messages. Called when a channel becomes active.

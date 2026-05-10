@@ -17,6 +17,38 @@ export interface PluginConfigField {
   rows?: number            // text
 }
 
+/**
+ * Field declaration for a channel adapter's configuration schema, as
+ * surfaced in the plugin manifest (`channels.<platform>.configSchema.fields`).
+ *
+ * Mirrors `ChannelConfigField` from `src/server/channels/adapter.ts`. Kept
+ * permissive here on purpose: the manifest is parsed before the channel
+ * adapter is instantiated, so we tolerate unknown fields and rely on the
+ * adapter contract for stricter checks downstream.
+ */
+export interface PluginChannelConfigField {
+  name: string
+  label: string
+  type: 'text' | 'password' | 'number' | 'select' | 'switch'
+  default?: unknown
+  required?: boolean
+  placeholder?: string
+  description?: string
+  options?: string[] | { value: string; label: string }[]
+  min?: number
+  max?: number
+}
+
+export interface PluginChannelConfigSchema {
+  fields: PluginChannelConfigField[]
+}
+
+export interface PluginChannelManifestEntry {
+  configSchema?: PluginChannelConfigSchema
+  /** Forward-compatible: plugin manifests may grow other per-channel keys. */
+  [key: string]: unknown
+}
+
 export interface PluginManifest {
   name: string
   version: string
@@ -30,6 +62,13 @@ export interface PluginManifest {
   permissions?: string[]
   dependencies?: Record<string, string>  // plugin-name → semver range (e.g. ">=1.0.0")
   config?: Record<string, PluginConfigField>
+  /**
+   * Optional declarative metadata for the channel adapters this plugin
+   * exposes. Currently used to declare a `configSchema` that the UI / server
+   * pick up via the standard `ChannelAdapter.configSchema` getter. Accepted
+   * permissively at manifest level — see `validateManifest` for details.
+   */
+  channels?: Record<string, PluginChannelManifestEntry>
 }
 
 export interface PluginProviderMeta {

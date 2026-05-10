@@ -1,4 +1,4 @@
-import type { ChannelAdapter } from '@/server/channels/adapter'
+import type { ChannelAdapter, ChannelConfigSchema } from '@/server/channels/adapter'
 
 export interface ChannelPlatformInfo {
   platform: string
@@ -6,6 +6,8 @@ export interface ChannelPlatformInfo {
   brandColor?: string
   iconUrl?: string
   isPlugin: boolean
+  /** Declared configuration schema, when the adapter provides one. */
+  configSchema?: ChannelConfigSchema
 }
 
 class ChannelAdapterRegistry {
@@ -43,6 +45,7 @@ class ChannelAdapterRegistry {
       brandColor: a.meta?.brandColor,
       iconUrl: a.meta?.iconUrl,
       isPlugin: this.pluginAdapters.has(p),
+      ...(a.configSchema ? { configSchema: a.configSchema } : {}),
     }))
   }
 

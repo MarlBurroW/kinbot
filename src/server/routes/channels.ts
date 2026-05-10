@@ -18,6 +18,10 @@ import {
 } from '@/server/services/channels'
 import type { AppVariables } from '@/server/app'
 import { channelAdapters } from '@/server/channels/index'
+import {
+  buildZodSchemaFromConfigSchema,
+  formatZodIssues,
+} from '@/server/channels/configSchemaValidator'
 import { createLogger } from '@/server/logger'
 
 const log = createLogger('routes:channels')
@@ -96,6 +100,13 @@ channelRoutes.post('/', async (c) => {
     botToken: string
     allowedChatIds?: string[]
     autoCreateContacts?: boolean
+    /**
+     * Forward-compatible field for the dynamic channel config schema.
+     * Only validated when the resolved adapter declares a `configSchema`.
+     * In this transitional commit, none of the built-ins or the teamspeak
+     * plugin declare one, so this field is ignored end-to-end.
+     */
+    platformConfig?: Record<string, unknown>
   }>()
 
   if (!body.kinId || !body.name || !body.platform || !body.botToken) {
@@ -105,12 +116,32 @@ channelRoutes.post('/', async (c) => {
     )
   }
 
-  if (!channelAdapters.get(body.platform)) {
+  const adapter = channelAdapters.get(body.platform)
+  if (!adapter) {
     const available = channelAdapters.list().join(', ')
     return c.json(
       { error: { code: 'VALIDATION_ERROR', message: `Invalid platform. Registered: ${available}` } },
       400,
     )
+  }
+
+  // Dynamic configSchema validation (opt-in per adapter).
+  // Adapters that don't declare a `configSchema` keep the legacy behavior
+  // (the 6 built-ins + the teamspeak plugin on day 1).
+  if (adapter.configSchema) {
+    const zodSchema = buildZodSchemaFromConfigSchema(adapter.configSchema)
+    const parsed = zodSchema.safeParse(body.platformConfig ?? {})
+    if (!parsed.success) {
+      return c.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: `Invalid platformConfig: ${formatZodIssues(parsed.error)}`,
+          },
+        },
+        400,
+      )
+    }
   }
 
   // Verify Kin exists
