@@ -21,11 +21,14 @@ const MarkdownContent = lazy(() =>
   import('@/client/components/chat/MarkdownContent').then((m) => ({ default: m.MarkdownContent })),
 )
 
+type ToolSource = 'native' | 'mcp' | 'custom'
+
 interface ToolDefinition {
   name: string
   description: string
   parameters: Record<string, unknown> | null
   tokenEstimate?: number
+  source?: ToolSource
 }
 
 interface MessagePreview {
@@ -739,37 +742,78 @@ export function ContextViewerDialog({ open, onOpenChange, kinId, taskId, session
                     (a, b) => (b.tokenEstimate ?? 0) - (a.tokenEstimate ?? 0),
                   )
                   const maxToolTokens = Math.max(1, ...sortedTools.map((t) => t.tokenEstimate ?? 0))
+                  const subtotals: Record<ToolSource, { count: number; tokens: number }> = {
+                    native: { count: 0, tokens: 0 },
+                    mcp: { count: 0, tokens: 0 },
+                    custom: { count: 0, tokens: 0 },
+                  }
+                  for (const tool of sortedTools) {
+                    const src = tool.source ?? 'native'
+                    subtotals[src].count++
+                    subtotals[src].tokens += tool.tokenEstimate ?? 0
+                  }
+                  const sourceColor: Record<ToolSource, string> = {
+                    native: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+                    mcp: 'bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400',
+                    custom: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+                  }
                   return (
-                    <div className="space-y-1">
-                      {sortedTools.map((tool) => {
-                        const tokens = tool.tokenEstimate ?? 0
-                        const heavy = tokens / maxToolTokens >= 0.6 && tokens >= 200
-                        return (
-                          <div key={tool.name} className="flex items-start gap-2 text-xs">
-                            <span className="font-medium text-foreground shrink-0">{tool.name}</span>
-                            {tool.description && (
-                              <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                                — {tool.description.length > 100 ? tool.description.slice(0, 100) + '…' : tool.description}
+                    <>
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {(['native', 'mcp', 'custom'] as ToolSource[]).map((src) => {
+                          const s = subtotals[src]
+                          if (s.count === 0) return null
+                          return (
+                            <span
+                              key={src}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${sourceColor[src]}`}
+                              title={t('chat.contextViewer.toolSourceSubtotalHint', {
+                                defaultValue: '{{source}} tools subtotal',
+                                source: src,
+                              })}
+                            >
+                              <span className="uppercase tracking-wide">{src}</span>
+                              <span className="opacity-70">{s.count}</span>
+                              <span className="font-mono opacity-70">{formatTokenCount(s.tokens)}t</span>
+                            </span>
+                          )
+                        })}
+                      </div>
+                      <div className="space-y-1">
+                        {sortedTools.map((tool) => {
+                          const tokens = tool.tokenEstimate ?? 0
+                          const heavy = tokens / maxToolTokens >= 0.6 && tokens >= 200
+                          const src: ToolSource = tool.source ?? 'native'
+                          return (
+                            <div key={tool.name} className="flex items-start gap-2 text-xs">
+                              <span className={`shrink-0 rounded px-1 py-px text-[9px] font-medium uppercase tabular-nums ${sourceColor[src]}`}>
+                                {src === 'native' ? 'N' : src === 'mcp' ? 'M' : 'C'}
                               </span>
-                            )}
-                            {tokens > 0 && (
-                              <span
-                                className={`shrink-0 rounded px-1 py-px font-mono text-[10px] tabular-nums ${
-                                  heavy
-                                    ? 'bg-warning/15 text-warning'
-                                    : 'bg-muted text-muted-foreground/70'
-                                }`}
-                                title={t('chat.contextViewer.toolTokensHint', {
-                                  defaultValue: 'Estimated tokens for this tool definition (name + description + parameters JSON)',
-                                })}
-                              >
-                                {formatTokenCount(tokens)}
-                              </span>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
+                              <span className="font-medium text-foreground shrink-0">{tool.name}</span>
+                              {tool.description && (
+                                <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                                  — {tool.description.length > 100 ? tool.description.slice(0, 100) + '…' : tool.description}
+                                </span>
+                              )}
+                              {tokens > 0 && (
+                                <span
+                                  className={`shrink-0 rounded px-1 py-px font-mono text-[10px] tabular-nums ${
+                                    heavy
+                                      ? 'bg-warning/15 text-warning'
+                                      : 'bg-muted text-muted-foreground/70'
+                                  }`}
+                                  title={t('chat.contextViewer.toolTokensHint', {
+                                    defaultValue: 'Estimated tokens for this tool definition (name + description + parameters JSON)',
+                                  })}
+                                >
+                                  {formatTokenCount(tokens)}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </>
                   )
                 })()}
               </FadingSection>

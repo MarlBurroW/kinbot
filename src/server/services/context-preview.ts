@@ -101,6 +101,8 @@ function buildLastTurnCache(
   return undefined
 }
 
+type ToolSource = 'native' | 'mcp' | 'custom'
+
 interface ToolDefinition {
   name: string
   description: string
@@ -109,6 +111,10 @@ interface ToolDefinition {
    *  (name + description + parameters). Lets the viewer rank the heaviest
    *  tools and surface candidates for description trimming. */
   tokenEstimate?: number
+  /** Provenance — native registry, MCP server, or user-defined custom tool.
+   *  Surfaced as a colored badge in the viewer so the user can attribute
+   *  cost to the right layer (e.g. "MCP overhead is 8k of the 24k tools"). */
+  source?: ToolSource
 }
 
 interface MessagePreview {
@@ -513,9 +519,13 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
 
   const mcpTools = await resolveMCPTools(kinId, toolConfig)
   const customToolDefs = await resolveCustomTools(kinId)
+  const sourceMap = new Map<string, ToolSource>()
+  for (const name of Object.keys(nativeTools)) sourceMap.set(name, 'native')
+  for (const name of Object.keys(mcpTools)) sourceMap.set(name, 'mcp')
+  for (const name of Object.keys(customToolDefs)) sourceMap.set(name, 'custom')
   const allTools = { ...nativeTools, ...mcpTools, ...customToolDefs }
 
-  const toolDefinitions = buildToolDefs(allTools)
+  const toolDefinitions = buildToolDefs(allTools, sourceMap)
 
   const combinedSummary = compactingSummariesData
     ? compactingSummariesData.map((s) => s.summary).join('\n\n---\n\n')
@@ -543,7 +553,10 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
 }
 
 /** Extract JSON Schema tool definitions from a tools map */
-function buildToolDefs(tools: Record<string, unknown>): ToolDefinition[] {
+function buildToolDefs(
+  tools: Record<string, unknown>,
+  sourceMap?: Map<string, ToolSource>,
+): ToolDefinition[] {
   return Object.entries(tools).map(([name, t]) => {
     const toolObj = t as { description?: string; inputSchema?: unknown }
     const description = toolObj.description ?? ''
@@ -554,6 +567,7 @@ function buildToolDefs(tools: Record<string, unknown>): ToolDefinition[] {
       description,
       parameters,
       tokenEstimate: estimateTokens(serialized),
+      source: sourceMap?.get(name),
     }
   })
 }
@@ -789,6 +803,11 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
   const subKinTools = toolRegistry.resolve({ kinId: task.parentKinId, taskId, taskDepth: task.depth, isSubKin: true })
   const mcpTools = await resolveMCPTools(kinIdentity.id, kinToolConfig)
   const customToolDefs = await resolveCustomTools(kinIdentity.id)
+  const taskSourceMap = new Map<string, ToolSource>()
+  for (const name of Object.keys(nativeTools)) taskSourceMap.set(name, 'native')
+  for (const name of Object.keys(subKinTools)) taskSourceMap.set(name, 'native')
+  for (const name of Object.keys(mcpTools)) taskSourceMap.set(name, 'mcp')
+  for (const name of Object.keys(customToolDefs)) taskSourceMap.set(name, 'custom')
   const allTools = { ...nativeTools, ...subKinTools, ...mcpTools, ...customToolDefs }
 
   // Build cron run previews
@@ -816,7 +835,7 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
   // Tasks share the parent Kin's calibration factor — same model, same content
   // profile (tools, files, structured outputs).
   const calibrationFactor = await getKinCalibrationFactor(parentKin.id)
-  return formatResult(systemPrompt, buildToolDefs(allTools), messagesPreviews, taskMessages.length, getModelContextWindow(modelId), null, [], null, cronRunPreviews, cronLearningPreviews, calibrationFactor)
+  return formatResult(systemPrompt, buildToolDefs(allTools, taskSourceMap), messagesPreviews, taskMessages.length, getModelContextWindow(modelId), null, [], null, cronRunPreviews, cronLearningPreviews, calibrationFactor)
 }
 
 // ---------------------------------------------------------------------------
@@ -950,9 +969,13 @@ export async function buildQuickSessionContextPreview(kinId: string, sessionId: 
 
   const mcpTools = await resolveMCPTools(kinId, kinToolConfig)
   const customToolDefs = await resolveCustomTools(kinId)
+  const qsSourceMap = new Map<string, ToolSource>()
+  for (const name of Object.keys(nativeTools)) qsSourceMap.set(name, 'native')
+  for (const name of Object.keys(mcpTools)) qsSourceMap.set(name, 'mcp')
+  for (const name of Object.keys(customToolDefs)) qsSourceMap.set(name, 'custom')
   const allTools = { ...nativeTools, ...mcpTools, ...customToolDefs }
 
   // Quick session shares the Kin's calibration factor — same model, same tools.
   const calibrationFactor = await getKinCalibrationFactor(kinId)
-  return formatResult(systemPrompt, buildToolDefs(allTools), messagesPreviews, sessionMessages.length, getModelContextWindow(kin.model), null, [], null, [], [], calibrationFactor)
+  return formatResult(systemPrompt, buildToolDefs(allTools, qsSourceMap), messagesPreviews, sessionMessages.length, getModelContextWindow(kin.model), null, [], null, [], [], calibrationFactor)
 }
