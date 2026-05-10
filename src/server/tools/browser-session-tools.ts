@@ -35,7 +35,7 @@ export const browserOpenSessionTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Open a stateful browser session that persists across multiple tool calls (page state, cookies, login, scroll position). Returns a session_id that you MUST pass to all subsequent browser_* calls. Optionally inject cookies, pre-load a previously saved state (cookies + localStorage), and navigate to a starting URL. One active session per Kin maximum.',
+        'Open a stateful browser session (page state, cookies, login persist across calls). Returns a session_id required by all other browser_* calls. Optionally pre-load a saved state and navigate to a start URL. Max one active session per Kin.',
       inputSchema: z.object({
         start_url: z.string().url().optional().describe('If provided, navigate to this URL after opening.'),
         load_state: z
@@ -194,7 +194,7 @@ export const browserClickTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Click an element identified by its `ref` from the latest page_state (e.g. "e3"). Refs from older page_states are stale — always use refs from the most recent page_state.',
+        'Click an element by its `ref` from the LATEST page_state. Older refs are stale.',
       inputSchema: z.object({
         session_id: z.string(),
         ref: z.string(),
@@ -275,7 +275,7 @@ export const browserPressKeyTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Press a keyboard key. Useful for Tab navigation, Escape, Arrow keys, etc. If `ref` is provided, the key is sent to that element; otherwise to the page. Examples: "Enter", "Tab", "Escape", "ArrowDown", "Control+a".',
+        'Press a keyboard key (e.g. "Enter", "Tab", "Escape", "ArrowDown", "Control+a"). Sent to `ref` element if provided, else to the page.',
       inputSchema: z.object({
         session_id: z.string(),
         key: z.string(),
@@ -335,7 +335,7 @@ export const browserWaitForTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Wait for a condition before returning. Use after a click/navigation that triggers async loading. Conditions: url=<pattern>, ref=<refId>, text=<substring>, ms=<milliseconds>.',
+        'Wait for a condition: url=<pattern>, ref=<refId>, text=<substring>, or ms=<milliseconds>. Use after async-triggering actions.',
       inputSchema: z.object({
         session_id: z.string(),
         condition: z.string().describe('e.g. "url=https://example.com/dashboard", "ref=e5", "text=Welcome back", "ms=2000"'),
@@ -423,7 +423,7 @@ export const browserSetCookiesTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Inject cookies into the session (typically used for authenticated access without going through the login flow). Accepts either a JSON array of cookie objects ({name, value, domain?, path?, ...}) or a Cookie header string ("name1=v1; name2=v2"). For header strings or cookies missing domain, set default_cookie_domain (e.g. ".github.com"). Cookies persist for the lifetime of the session.',
+        'Inject cookies (skip a login flow). Accepts JSON array of cookie objects OR a Cookie header string ("a=1; b=2"); set default_cookie_domain when domain is missing. Persists for the session lifetime.',
       inputSchema: z.object({
         session_id: z.string(),
         cookies: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]),
@@ -491,7 +491,7 @@ export const browserSaveStateTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Persist the current session\'s state (cookies + localStorage + sessionStorage) under a name, so you can resume an authenticated session later via browser_open_session({ load_state: name }). Use this after a successful login to avoid going through the login flow again, or before closing a session you may want to come back to. State is stored encrypted-at-rest is NOT yet supported — the file lives outside the Kin\'s workspace and is only accessible via browser_*_state tools.',
+        'Save the current session state (cookies + localStorage + sessionStorage) under a name so you can resume later via browser_open_session({ load_state: name }). Use after login to skip subsequent auth.',
       inputSchema: z.object({
         session_id: z.string(),
         name: z
@@ -521,7 +521,7 @@ export const browserListStatesTool: ToolRegistration = {
   readOnly: true,
   create: (ctx) =>
     tool({
-      description: 'List all saved browser states for this Kin (name, when saved, source URL, description, file size). Does NOT return the actual state contents — load via browser_open_session({ load_state: name }).',
+      description: 'List saved browser states for this Kin (name, saved-at, source URL, description, size). Load one via browser_open_session({ load_state: name }).',
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -539,7 +539,7 @@ export const browserDeleteStateTool: ToolRegistration = {
   defaultDisabled: true,
   create: (ctx) =>
     tool({
-      description: 'Delete a previously saved browser state by name. The cookies and localStorage in the saved state are gone for good — if you might still want them, save under a different name first.',
+      description: 'Delete a saved browser state by name. Irreversible — back up under another name first if unsure.',
       inputSchema: z.object({
         name: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/i),
       }),
@@ -563,7 +563,7 @@ export const browserRequestHumanTool: ToolRegistration = {
     let calledThisTurn = false
     return tool({
       description:
-        'Pause and ask the user to intervene on the current browser session — typically used when blocked by a captcha, an unexpected modal, a 2FA challenge, or any visual situation you cannot resolve programmatically. Captures a screenshot of the current page and presents it to the user with a Continue / Cancel choice. Your task pauses until the user responds. When the user clicks Continue, retry your previous action or call browser_screenshot again to see the new page state.',
+        'Ask the user to intervene on the browser session (captcha, 2FA, unexpected modal). Captures a screenshot, pauses your task until Continue/Cancel. After Continue, retry the action or call browser_screenshot to see the new state.',
       inputSchema: z.object({
         session_id: z.string(),
         reason: z
