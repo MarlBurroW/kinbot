@@ -63,6 +63,18 @@ describe('teamspeak plugin export shape', () => {
         'activate_listener',
         'deactivate_listener',
         'set_language',
+        // TTS parameters
+        'set_volume',
+        'get_volume',
+        'set_voice',
+        'get_voice',
+        'set_speed',
+        'get_speed',
+        // STT timeout
+        'set_timeout',
+        'get_timeout',
+        // History
+        'get_history',
       ].sort(),
     )
   })

@@ -886,6 +886,210 @@ export default function (ctx: PluginCtx) {
           },
         }),
     },
+
+    // ─── TTS parameters: volume ───────────────────────────────────────────
+
+    set_volume: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Set the TTS playback volume on the ts-bot side. 0 = mute, 100 = normal, 200 = 2x gain. Persisted by ts-bot until changed again.',
+          inputSchema: z.object({
+            volume: z
+              .number()
+              .int()
+              .min(0)
+              .max(200)
+              .describe('Volume level 0-200 (100 = normal, 0 = mute, 200 = 2x gain).'),
+          }),
+          execute: async ({ volume }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand(
+              { type: 'set_volume', volume },
+              { expectIntermediate: false },
+            )
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    get_volume: {
+      availability: ['main', 'sub-kin'] as const,
+      create: () =>
+        tool({
+          description: 'Get the current TTS playback volume (0-200, where 100 = normal).',
+          inputSchema: z.object({}),
+          execute: async () => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'get_volume' }, { expectIntermediate: false })
+            if (!resp.success) return { error: resp.message ?? 'get_volume failed' }
+            return { success: true, message: resp.message ?? null, data: resp.data ?? null }
+          },
+        }),
+    },
+
+    // ─── TTS parameters: voice ────────────────────────────────────────────
+
+    set_voice: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Set the default TTS voice used by ts-bot. Voices are OpenAI TTS voice IDs. Persisted by ts-bot until changed again.',
+          inputSchema: z.object({
+            voice: z
+              .enum([
+                'alloy',
+                'ash',
+                'ballad',
+                'coral',
+                'echo',
+                'fable',
+                'nova',
+                'onyx',
+                'sage',
+                'shimmer',
+                'verse',
+              ])
+              .describe('Voice name. One of: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse.'),
+          }),
+          execute: async ({ voice }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand(
+              { type: 'set_voice', voice },
+              { expectIntermediate: false },
+            )
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    get_voice: {
+      availability: ['main', 'sub-kin'] as const,
+      create: () =>
+        tool({
+          description: 'Get the current default TTS voice used by ts-bot.',
+          inputSchema: z.object({}),
+          execute: async () => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'get_voice' }, { expectIntermediate: false })
+            if (!resp.success) return { error: resp.message ?? 'get_voice failed' }
+            return { success: true, message: resp.message ?? null, data: resp.data ?? null }
+          },
+        }),
+    },
+
+    // ─── TTS parameters: speed ────────────────────────────────────────────
+
+    set_speed: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Set the TTS speech speed. Range 0.25 (very slow) to 4.0 (very fast); ts-bot default is 1.15. Persisted until changed again.',
+          inputSchema: z.object({
+            speed: z
+              .number()
+              .min(0.25)
+              .max(4.0)
+              .describe('TTS speed (0.25-4.0, default 1.15).'),
+          }),
+          execute: async ({ speed }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand(
+              { type: 'set_speed', speed },
+              { expectIntermediate: false },
+            )
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    get_speed: {
+      availability: ['main', 'sub-kin'] as const,
+      create: () =>
+        tool({
+          description: 'Get the current TTS speech speed (0.25-4.0).',
+          inputSchema: z.object({}),
+          execute: async () => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'get_speed' }, { expectIntermediate: false })
+            if (!resp.success) return { error: resp.message ?? 'get_speed failed' }
+            return { success: true, message: resp.message ?? null, data: resp.data ?? null }
+          },
+        }),
+    },
+
+    // ─── STT silence-detection timeout ────────────────────────────────────
+
+    set_timeout: {
+      availability: ['main'] as const,
+      create: () =>
+        tool({
+          description:
+            'Set the silence-detection timeout (in milliseconds) used by the STT/listener pipeline to decide when a speaker has stopped talking. Range 500-10000 ms.',
+          inputSchema: z.object({
+            timeout_ms: z
+              .number()
+              .int()
+              .min(500)
+              .max(10000)
+              .describe('Silence detection timeout in milliseconds (500-10000).'),
+          }),
+          execute: async ({ timeout_ms }) => {
+            const c = ensureClient()
+            const resp = await c.sendCommand(
+              { type: 'set_timeout', timeout_ms },
+              { expectIntermediate: false },
+            )
+            return { success: resp.success, message: resp.message }
+          },
+        }),
+    },
+
+    get_timeout: {
+      availability: ['main', 'sub-kin'] as const,
+      create: () =>
+        tool({
+          description: 'Get the current STT silence-detection timeout in milliseconds.',
+          inputSchema: z.object({}),
+          execute: async () => {
+            const c = ensureClient()
+            const resp = await c.sendCommand({ type: 'get_timeout' }, { expectIntermediate: false })
+            if (!resp.success) return { error: resp.message ?? 'get_timeout failed' }
+            return { success: true, message: resp.message ?? null, data: resp.data ?? null }
+          },
+        }),
+    },
+
+    // ─── Conversation history ─────────────────────────────────────────────
+
+    get_history: {
+      availability: ['main', 'sub-kin'] as const,
+      create: () =>
+        tool({
+          description:
+            'Fetch the most recent conversation history entries (chat + voice transcriptions) tracked by ts-bot. Optional `count` controls how many entries are returned (default 20, max 50).',
+          inputSchema: z.object({
+            count: z
+              .number()
+              .int()
+              .min(1)
+              .max(50)
+              .optional()
+              .describe('Number of entries to return (default 20, max 50).'),
+          }),
+          execute: async ({ count }) => {
+            const c = ensureClient()
+            const cmd: Record<string, unknown> = { type: 'get_history' }
+            if (count != null) cmd.count = count
+            const resp = await c.sendCommand(cmd, { expectIntermediate: false })
+            if (!resp.success) return { error: resp.message ?? 'get_history failed' }
+            return { success: true, message: resp.message ?? null, data: resp.data ?? null }
+          },
+        }),
+    },
   }
 
   return {

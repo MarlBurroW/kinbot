@@ -10,7 +10,7 @@ It contributes:
   - Private message → chat only (no TTS).
   - Public channel → TTS **and** chat copy (TTS is sometimes glitchy, scrollback is useful).
   - Reply longer than `ttsMaxChars` → short TTS notice + full text in chat.
-- **16 tools** (auto-namespaced as `plugin_teamspeak_*` by KinBot) covering
+- **25 tools** (auto-namespaced as `plugin_teamspeak_*` by KinBot) covering
   the full ts-bot WebSocket admin surface:
 
   Bot voice & chat:
@@ -38,6 +38,15 @@ It contributes:
   - `activate_listener` — start transcribing voice from a specific client.
   - `deactivate_listener` — stop transcribing voice from that client.
   - `set_language` — override the STT language per client (ISO 639-1 code or `"auto"`).
+  - `set_timeout` / `get_timeout` — silence-detection timeout in milliseconds (500-10000).
+
+  Voice / TTS parameters:
+  - `set_volume` / `get_volume` — TTS playback volume (0-200, 100 = normal, 200 = 2× gain).
+  - `set_voice` / `get_voice` — default TTS voice (one of `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `nova`, `onyx`, `sage`, `shimmer`, `verse`).
+  - `set_speed` / `get_speed` — TTS speech speed (0.25-4.0, default 1.15).
+
+  History:
+  - `get_history` — recent conversation entries (chat + transcriptions) tracked by ts-bot. Optional `count` (default 20, max 50).
 
 ## Requirements
 
