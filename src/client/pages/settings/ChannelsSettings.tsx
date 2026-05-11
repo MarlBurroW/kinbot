@@ -70,7 +70,7 @@ export function ChannelsSettings() {
     kinId: string
     name: string
     platform: string
-    botToken: string
+    platformConfig: Record<string, unknown>
   }) => {
     await api.post('/channels', data)
     await fetchChannels()

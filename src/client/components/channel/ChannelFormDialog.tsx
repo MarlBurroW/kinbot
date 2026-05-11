@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Input } from '@/client/components/ui/input'
-import { PasswordInput } from '@/client/components/ui/password-input'
 import { Label } from '@/client/components/ui/label'
 import {
   Dialog,
@@ -20,11 +19,12 @@ import {
 import { KinSelector } from '@/client/components/common/KinSelector'
 import type { KinOption } from '@/client/components/common/KinSelectItem'
 import { PlatformSelector } from '@/client/components/common/PlatformSelector'
+import { DynamicField } from '@/client/components/common/DynamicField'
 import { ChevronRight, HelpCircle, Lightbulb, Loader2 } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { cn } from '@/client/lib/utils'
 import { usePlatforms } from '@/client/hooks/usePlatforms'
-import type { ChannelSummary } from '@/shared/types'
+import type { ChannelConfigSchema, ChannelSummary } from '@/shared/types'
 
 function PlatformSetupGuide({ platform }: { platform: string }) {
   const { t } = useTranslation()
@@ -79,7 +79,7 @@ interface ChannelFormDialogProps {
     kinId: string
     name: string
     platform: string
-    botToken: string
+    platformConfig: Record<string, unknown>
   }) => Promise<void>
   onUpdate?: (channelId: string, data: {
     name?: string
@@ -89,6 +89,26 @@ interface ChannelFormDialogProps {
   kins: KinOption[]
   /** Hub Kin ID — pre-selected for new channels */
   hubKinId?: string | null
+}
+
+/**
+ * Build the initial values record for an adapter's configSchema, applying
+ * declared `default` values for fields the user hasn't touched yet.
+ */
+function buildInitialFormValues(schema: ChannelConfigSchema | undefined): Record<string, unknown> {
+  if (!schema) return {}
+  const values: Record<string, unknown> = {}
+  for (const field of schema.fields) {
+    if (field.default !== undefined) values[field.name] = field.default
+  }
+  return values
+}
+
+function isRequiredFieldMissing(value: unknown, type: string): boolean {
+  if (value === undefined || value === null) return true
+  if (type === 'switch') return false // booleans are always defined once initialized
+  if (type === 'number') return typeof value === 'number' ? false : value === ''
+  return typeof value === 'string' ? value.trim() === '' : false
 }
 
 export function ChannelFormDialog({
@@ -107,29 +127,42 @@ export function ChannelFormDialog({
   const [selectedKinId, setSelectedKinId] = useState('')
   const [name, setName] = useState('')
   const [platform, setPlatform] = useState('')
-  const [botToken, setBotToken] = useState('')
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({})
   const [isLoading, setIsLoading] = useState(false)
+
+  const activePlatform = useMemo(
+    () => platforms.find((p) => p.platform === platform) ?? null,
+    [platforms, platform],
+  )
+  const activeSchema = activePlatform?.configSchema
 
   // Set default platform when platforms load
   useEffect(() => {
     if (!platform && platforms.length > 0) {
       setPlatform(platforms[0]!.platform)
     }
-  }, [platforms])
+  }, [platforms]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (channel) {
       setName(channel.name)
       setPlatform(channel.platform)
       setSelectedKinId(channel.kinId)
-      setBotToken('')
+      setFormValues({})
     } else {
       setName('')
       setPlatform(platforms[0]?.platform ?? '')
       setSelectedKinId(hubKinId ?? '')
-      setBotToken('')
+      setFormValues({})
     }
-  }, [channel, open, hubKinId])
+  }, [channel, open, hubKinId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset form values to the active platform's schema defaults whenever
+  // the platform changes (creation flow only).
+  useEffect(() => {
+    if (isEdit) return
+    setFormValues(buildInitialFormValues(activeSchema))
+  }, [platform, activeSchema, isEdit])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,12 +175,12 @@ export function ChannelFormDialog({
           kinId: selectedKinId !== channel.kinId ? selectedKinId : undefined,
         })
       } else {
-        if (!selectedKinId || !botToken.trim()) return
+        if (!selectedKinId) return
         await onSave({
           kinId: selectedKinId,
           name,
           platform,
-          botToken: botToken.trim(),
+          platformConfig: formValues,
         })
       }
       onOpenChange(false)
@@ -156,7 +189,13 @@ export function ChannelFormDialog({
     }
   }
 
-  const canSubmit = name.trim() && (isEdit || (selectedKinId && botToken.trim() && platform))
+  const requiredFieldsMissing = (activeSchema?.fields ?? [])
+    .filter((f) => f.required)
+    .some((f) => isRequiredFieldMissing(formValues[f.name], f.type))
+
+  const canSubmit = isEdit
+    ? !!name.trim()
+    : !!name.trim() && !!selectedKinId && !!platform && !requiredFieldsMissing
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,21 +247,19 @@ export function ChannelFormDialog({
             </div>
           )}
 
-          {/* Bot token (only for create) */}
-          {!isEdit && (
-            <div className="space-y-2">
-              <Label>{t('settings.channels.botToken')}</Label>
-              <PasswordInput
-                value={botToken}
-                onChange={(e) => setBotToken(e.target.value)}
-                placeholder={t('settings.channels.botTokenPlaceholder')}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('settings.channels.botTokenHint')}
-              </p>
-
-              {/* Platform-specific setup guide */}
+          {/* Dynamic per-adapter config fields (only for create) */}
+          {!isEdit && activeSchema && activeSchema.fields.length > 0 && (
+            <div className="space-y-4">
+              {activeSchema.fields.map((field) => (
+                <DynamicField
+                  key={field.name}
+                  field={field}
+                  value={formValues[field.name]}
+                  onChange={(v) =>
+                    setFormValues((prev) => ({ ...prev, [field.name]: v }))
+                  }
+                />
+              ))}
               <PlatformSetupGuide platform={platform} />
             </div>
           )}

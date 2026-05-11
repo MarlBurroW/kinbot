@@ -97,21 +97,14 @@ channelRoutes.post('/', async (c) => {
     kinId: string
     name: string
     platform: string
-    botToken: string
+    platformConfig?: Record<string, unknown>
     allowedChatIds?: string[]
     autoCreateContacts?: boolean
-    /**
-     * Forward-compatible field for the dynamic channel config schema.
-     * Only validated when the resolved adapter declares a `configSchema`.
-     * In this transitional commit, none of the built-ins or the teamspeak
-     * plugin declare one, so this field is ignored end-to-end.
-     */
-    platformConfig?: Record<string, unknown>
   }>()
 
-  if (!body.kinId || !body.name || !body.platform || !body.botToken) {
+  if (!body.kinId || !body.name || !body.platform) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'kinId, name, platform, and botToken are required' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'kinId, name, and platform are required' } },
       400,
     )
   }
@@ -125,16 +118,10 @@ channelRoutes.post('/', async (c) => {
     )
   }
 
-  // LEGACY: remap top-level `botToken` → `platformConfig.botToken` so the
-  // current single-field UI passes Zod validation against adapter schemas.
-  // Removed once the dynamic frontend lands (see issue #381 commit 5).
-  const platformConfig: Record<string, unknown> = { ...(body.platformConfig ?? {}) }
-  if (body.botToken && platformConfig.botToken === undefined) {
-    platformConfig.botToken = body.botToken
-  }
-
-  // Dynamic configSchema validation (opt-in per adapter).
-  // Adapters that don't declare a `configSchema` keep the legacy behavior.
+  // Validate platformConfig against the adapter's declarative schema. Adapters
+  // without a configSchema accept any platformConfig (none of the built-ins
+  // are in that state post-#381 but plugins may temporarily ship without one).
+  const platformConfig: Record<string, unknown> = body.platformConfig ?? {}
   if (adapter.configSchema) {
     const zodSchema = buildZodSchemaFromConfigSchema(adapter.configSchema)
     const parsed = zodSchema.safeParse(platformConfig)
@@ -162,7 +149,7 @@ channelRoutes.post('/', async (c) => {
       kinId: body.kinId,
       name: body.name,
       platform: body.platform,
-      botToken: body.botToken,
+      platformConfig,
       allowedChatIds: body.allowedChatIds,
       autoCreateContacts: body.autoCreateContacts,
       createdBy: 'user',

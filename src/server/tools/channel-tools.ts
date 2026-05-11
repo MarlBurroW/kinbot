@@ -156,11 +156,16 @@ export const createChannelTool: ToolRegistration = {
         }
 
         try {
+          // The Kin-facing tool exposes a single `bot_token` for ergonomics;
+          // map it to the unified `platformConfig.botToken` field the service
+          // expects. Multi-secret adapters (Slack signing-secret, WhatsApp
+          // verify-token, …) aren't reachable from this tool — Kins still
+          // have to use the UI / API for those.
           const channel = await createChannel({
             kinId: ctx.kinId,
             name,
             platform: platform as ChannelPlatform,
-            botToken: bot_token,
+            platformConfig: { botToken: bot_token },
             allowedChatIds: allowed_chat_ids,
             autoCreateContacts: auto_create_contacts,
             createdBy: 'kin',

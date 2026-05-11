@@ -74,7 +74,13 @@ interface CreateChannelParams {
   kinId: string
   name: string
   platform: ChannelPlatform
-  botToken: string
+  /**
+   * Raw configuration values keyed by the field names declared in the
+   * adapter's configSchema (e.g. `{ botToken: 'xxx', allowedChatIds: [...] }`).
+   * Password fields are auto-vaulted before persistence and replaced with
+   * `<name>VaultKey` references in the stored `platformConfig` JSON.
+   */
+  platformConfig?: Record<string, unknown>
   allowedChatIds?: string[]
   autoCreateContacts?: boolean
   createdBy?: 'user' | 'kin'
@@ -92,19 +98,41 @@ export async function createChannel(params: CreateChannelParams) {
     throw new Error(`Max channels per Kin (${config.channels.maxPerKin}) reached`)
   }
 
+  const adapter = channelAdapters.get(params.platform)
+
   const id = uuid()
   const now = new Date()
+  const input = params.platformConfig ?? {}
 
-  // Store bot token in vault
-  const vaultKey = `channel_${params.platform}_${id}`
-  await createSecret(vaultKey, params.botToken, undefined, `Bot token for ${params.platform} channel "${params.name}"`)
-
-  // Build platform config
-  const platformConfig: Record<string, unknown> = {
-    botTokenVaultKey: vaultKey,
+  // Build stored platformConfig from the adapter's schema. Password fields
+  // are vaulted and replaced with `<name>VaultKey`; other declared fields
+  // are stored as-is. Undeclared keys in `input` are dropped silently
+  // (the route already Zod-validates against the schema before calling).
+  // Naming convention for new vault keys: `channel_<platform>_<id>_<field>`.
+  // Pre-existing channels created before issue #381 used the older single-key
+  // format `channel_<platform>_<id>` (for botToken only); those entries
+  // remain valid because their `botTokenVaultKey` value in DB still points
+  // to that exact secret — the adapter just reads whatever VaultKey is in
+  // the stored config.
+  const stored: Record<string, unknown> = {}
+  for (const field of adapter?.configSchema?.fields ?? []) {
+    const value = input[field.name]
+    if (value === undefined || value === null || value === '') continue
+    if (field.type === 'password') {
+      const vaultKey = `channel_${params.platform}_${id}_${field.name}`
+      await createSecret(
+        vaultKey,
+        String(value),
+        undefined,
+        `${field.label} for ${params.platform} channel "${params.name}"`,
+      )
+      stored[`${field.name}VaultKey`] = vaultKey
+    } else {
+      stored[field.name] = value
+    }
   }
   if (params.allowedChatIds?.length) {
-    platformConfig.allowedChatIds = params.allowedChatIds
+    stored.allowedChatIds = params.allowedChatIds
   }
 
   await db.insert(channels).values({
@@ -112,7 +140,7 @@ export async function createChannel(params: CreateChannelParams) {
     kinId: params.kinId,
     name: params.name,
     platform: params.platform,
-    platformConfig: JSON.stringify(platformConfig),
+    platformConfig: JSON.stringify(stored),
     status: 'inactive',
     autoCreateContacts: params.autoCreateContacts ?? true,
     messagesReceived: 0,
@@ -206,11 +234,20 @@ export async function deleteChannel(channelId: string) {
     }
   }
 
-  // Delete vault secret
-  const cfg = JSON.parse(existing.platformConfig) as { botTokenVaultKey?: string }
-  if (cfg.botTokenVaultKey) {
-    const secret = await getSecretByKey(cfg.botTokenVaultKey)
-    if (secret) await deleteSecret(secret.id)
+  // Delete every vault secret referenced by the stored platformConfig.
+  // Any key ending in `VaultKey` is treated as a vault reference (the
+  // generalized vault dance writes `<name>VaultKey` for each password
+  // field in the adapter's configSchema). Pre-#381 channels stored only
+  // `botTokenVaultKey`; this still cleans them up.
+  const storedConfig = JSON.parse(existing.platformConfig) as Record<string, unknown>
+  for (const [key, value] of Object.entries(storedConfig)) {
+    if (typeof value !== 'string' || !key.endsWith('VaultKey')) continue
+    try {
+      const secret = await getSecretByKey(value)
+      if (secret) await deleteSecret(secret.id)
+    } catch (err) {
+      log.warn({ channelId, key, err }, 'Failed to delete vault secret during channel delete')
+    }
   }
 
   await db.delete(channels).where(eq(channels.id, channelId))

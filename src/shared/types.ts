@@ -325,6 +325,31 @@ export type ChannelStatus = 'active' | 'inactive' | 'error'
 
 export type ChannelUserMappingStatus = 'pending'
 
+/**
+ * A single field declared by a channel adapter so the UI can render a dynamic
+ * configuration form and the server can validate the payload before storing it
+ * in `channels.platformConfig`.
+ *
+ * Mirrored to plugin manifests via `PluginChannelConfigField` in
+ * `src/shared/types/plugin.ts`.
+ */
+export interface ChannelConfigField {
+  name: string
+  label: string
+  type: 'text' | 'password' | 'number' | 'select' | 'switch'
+  default?: unknown
+  required?: boolean
+  placeholder?: string
+  description?: string
+  options?: string[] | { value: string; label: string }[]
+  min?: number
+  max?: number
+}
+
+export interface ChannelConfigSchema {
+  fields: ChannelConfigField[]
+}
+
 /** Channel summary as returned by GET /api/channels */
 export interface ChannelSummary {
   id: string

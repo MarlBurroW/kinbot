@@ -259,6 +259,48 @@ return {
 }
 ```
 
+#### Channel config schema
+
+Each adapter — built-in or plugin — declares the configuration fields the user
+fills in when creating a channel. The schema drives both the dynamic form
+rendered in the UI and a Zod validator that runs server-side on
+`POST /api/channels`. Stored data lives in the `channels.platformConfig` JSON
+column.
+
+Declare the schema at manifest level under `channels.<platform>.configSchema`:
+
+```json
+{
+  "channels": {
+    "my-platform": {
+      "configSchema": {
+        "fields": [
+          { "name": "apiKey", "label": "API key", "type": "password", "required": true },
+          { "name": "baseUrl", "label": "Base URL", "type": "text", "default": "https://api.example.com" },
+          { "name": "rateLimitPerMin", "label": "Rate limit (per minute)", "type": "number", "default": 60, "min": 1, "max": 600 },
+          { "name": "useTls", "label": "Use TLS", "type": "switch", "default": true }
+        ]
+      }
+    }
+  }
+}
+```
+
+Supported `type` values: `text`, `password`, `number`, `select`, `switch`.
+A field is optional unless `required: true`. `select` accepts either a list
+of strings or an array of `{ value, label }` pairs.
+
+The canonical example lives in [`plugins/teamspeak/plugin.json`](plugins/teamspeak/plugin.json).
+
+##### Secrets are auto-vaulted
+
+Any field declared with `type: "password"` is intercepted by `createChannel()`:
+the raw value is written to the secret vault and the stored `platformConfig`
+gets a `<fieldName>VaultKey` reference instead of the plain value. Adapters
+should read `<fieldName>VaultKey` from their `config` argument at runtime and
+resolve it via `getSecretValue()`. No password value ever lands in the JSON
+column or appears in logs.
+
 ### Lifecycle
 
 ```javascript

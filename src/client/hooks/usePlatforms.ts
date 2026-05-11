@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '@/client/lib/api'
+import type { ChannelConfigSchema } from '@/shared/types'
 
 export interface PlatformInfo {
   platform: string
@@ -7,6 +8,7 @@ export interface PlatformInfo {
   brandColor?: string
   iconUrl?: string
   isPlugin: boolean
+  configSchema?: ChannelConfigSchema
 }
 
 /** Cached platforms — shared across all hook consumers within the same session */
