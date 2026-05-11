@@ -102,6 +102,7 @@ interface PromptParams {
     contactId?: string        // Linked contact ID (for set_contact_note)
     contactNotes?: string[]   // Global notes (visible to all Kins)
     kinNotes?: string[]       // Private notes (this Kin only)
+    userNotes?: string[]      // Notes written by the platform user(s) — read-only context
   }
   /** Absolute path to the Kin's workspace directory */
   workspacePath?: string
@@ -792,6 +793,7 @@ export function buildSystemPrompt(params: PromptParams): BuiltSystemPrompt {
       `- Use set_contact_note(contact_id, scope, content) to record observations:\n` +
       `  - "private" notes are only visible to you.\n` +
       `  - "global" notes are visible to all Kins.\n` +
+      `- The platform user may also write their own notes on contacts (shown to you as "Notes from the platform user"). These are read-only: you cannot modify or delete them, and there is no tool to do so. Treat them as authoritative context from the user.\n` +
       `- Use delete_contact() only when explicitly asked by the user.\n\n` +
       `### Channel contact resolution\n` +
       `- Messages from channels (Telegram, Discord, etc.) are prefixed with [platform:senderName].\n` +
@@ -912,7 +914,7 @@ export function buildSystemPrompt(params: PromptParams): BuiltSystemPrompt {
 
   // [6.75] Current speaker profile — volatile (per turn)
   if (params.currentSpeaker) {
-    const { firstName, lastName, pseudonym, role, contactId, contactNotes, kinNotes } = params.currentSpeaker
+    const { firstName, lastName, pseudonym, role, contactId, contactNotes, kinNotes, userNotes } = params.currentSpeaker
     const nameParts = [firstName, lastName].filter(Boolean).join(' ')
     const displayName = nameParts ? `${nameParts} (${pseudonym})` : pseudonym
     let speakerBlock =
@@ -922,10 +924,15 @@ export function buildSystemPrompt(params: PromptParams): BuiltSystemPrompt {
 
     const hasGlobalNotes = contactNotes && contactNotes.length > 0
     const hasKinNotes = kinNotes && kinNotes.length > 0
+    const hasUserNotes = userNotes && userNotes.length > 0
 
     if (hasGlobalNotes) {
       speakerBlock += `\n\nShared notes (visible to all Kins):\n` +
         contactNotes.map((n) => `- ${n}`).join('\n')
+    }
+    if (hasUserNotes) {
+      speakerBlock += `\n\nNotes from the platform user (read-only — you cannot modify these):\n` +
+        userNotes.map((n) => `- ${n}`).join('\n')
     }
     if (hasKinNotes) {
       speakerBlock += `\n\nYour personal notes:\n` +

@@ -234,15 +234,17 @@ export const contactPlatformIds = sqliteTable('contact_platform_ids', {
 export const contactNotes = sqliteTable('contact_notes', {
   id: text('id').primaryKey(),
   contactId: text('contact_id').notNull().references(() => contacts.id, { onDelete: 'cascade' }),
-  kinId: text('kin_id').notNull().references(() => kins.id),
-  scope: text('scope').notNull(), // 'private' | 'global'
+  kinId: text('kin_id').references(() => kins.id),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+  scope: text('scope').notNull(), // 'private' | 'global' | 'user'
   content: text('content').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
-  uniqueIndex('idx_contact_notes_unique').on(table.contactId, table.kinId, table.scope),
+  uniqueIndex('idx_contact_notes_unique').on(table.contactId, table.kinId, table.userId, table.scope),
   index('idx_contact_notes_contact_id').on(table.contactId),
   index('idx_contact_notes_kin_id').on(table.kinId),
+  index('idx_contact_notes_user_id').on(table.userId),
 ])
 
 export const customTools = sqliteTable('custom_tools', {

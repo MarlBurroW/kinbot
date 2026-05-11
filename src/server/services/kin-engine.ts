@@ -14,6 +14,7 @@ import {
   compactingSummaries,
   userProfiles,
   queueItems,
+  channels,
 } from '@/server/db/schema'
 import { guessProviderType } from '@/shared/model-ref'
 import { getContactDisplayName } from '@/shared/contact-display'
@@ -1025,6 +1026,44 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       const fileList = queueItem.fileIds && queueItem.fileIds.length > 0
         ? await getFilesForMessage(userMessageId)
         : []
+
+      // Channel inbound enrichment: surface the adapter-provided contextLine
+      // and the platform brand metadata so the UI can render the brand accent
+      // immediately, without waiting for the next fetchMessages refresh.
+      let channelContextLine: string | null = null
+      let channelMeta: { platform: string; displayName: string; brandColor: string | null } | null = null
+      if (queueItem.sourceType === 'channel' && queueItem.sourceId) {
+        // Read what we just persisted (covers both fresh insert and recovery paths).
+        try {
+          const row = db
+            .select({ metadata: messages.metadata })
+            .from(messages)
+            .where(eq(messages.id, userMessageId))
+            .get()
+          if (row?.metadata) {
+            try {
+              const m = JSON.parse(row.metadata as string) as Record<string, unknown>
+              if (typeof m.channelContextLine === 'string') channelContextLine = m.channelContextLine
+            } catch { /* corrupted metadata, ignore */ }
+          }
+        } catch { /* ignore */ }
+        try {
+          const row = db
+            .select({ platform: channels.platform })
+            .from(channels)
+            .where(eq(channels.id, queueItem.sourceId))
+            .get()
+          if (row?.platform) {
+            const adapter = channelAdapters.get(row.platform)
+            channelMeta = {
+              platform: row.platform,
+              displayName: adapter?.meta?.displayName ?? row.platform,
+              brandColor: adapter?.meta?.brandColor ?? null,
+            }
+          }
+        } catch { /* best-effort enrichment, ignore failures */ }
+      }
+
       sseManager.sendToKin(kinId, {
         type: 'chat:message',
         kinId,
@@ -1038,6 +1077,8 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           sourceAvatarUrl: null,
           files: fileList,
           resolvedTaskId: queueItem.sourceType === 'task' && queueItem.taskId ? queueItem.taskId : null,
+          channelContextLine,
+          channelMeta,
           createdAt: Date.now(),
         },
       })
@@ -1053,9 +1094,10 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       contactId?: string
       contactNotes?: string[]   // Global notes (visible to all Kins)
       kinNotes?: string[]       // Private notes (this Kin only)
+      userNotes?: string[]      // Notes from the platform user(s) — read-only
     } | undefined
 
-    // Helper: enrich speaker data with contact notes (global + per-Kin)
+    // Helper: enrich speaker data with contact notes (global + per-Kin + user-authored)
     const enrichSpeakerFromContact = (speakerData: NonNullable<typeof currentSpeaker>, contactId: string) => {
       speakerData.contactId = contactId
       const allNotes = db
@@ -1065,8 +1107,10 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         .all()
       const globalNotes = allNotes.filter((n) => n.scope === 'global').map((n) => n.content)
       const kinNotes = allNotes.filter((n) => n.scope === 'private' && n.kinId === kinId).map((n) => n.content)
+      const userNotes = allNotes.filter((n) => n.scope === 'user').map((n) => n.content)
       if (globalNotes.length > 0) speakerData.contactNotes = globalNotes
       if (kinNotes.length > 0) speakerData.kinNotes = kinNotes
+      if (userNotes.length > 0) speakerData.userNotes = userNotes
     }
 
     if (queueItem.sourceType === 'user' && queueItem.sourceId) {

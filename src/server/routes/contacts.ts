@@ -17,6 +17,9 @@ import {
   setContactNote,
   updateContactNote,
   deleteContactNote,
+  setUserContactNote,
+  deleteUserContactNote,
+  getContactNoteById,
 } from '@/server/services/contacts'
 import {
   listContactPlatformIds,
@@ -24,9 +27,10 @@ import {
   addContactPlatformId,
 } from '@/server/services/channels'
 import { createLogger } from '@/server/logger'
+import type { AppVariables } from '@/server/app'
 
 const log = createLogger('routes:contacts')
-const contactRoutes = new Hono()
+const contactRoutes = new Hono<{ Variables: AppVariables }>()
 
 // GET /api/contacts — list all contacts with identifiers and notes (admin view)
 contactRoutes.get('/', async (c) => {
@@ -494,7 +498,7 @@ contactRoutes.post('/:id/notes', async (c) => {
   return c.json({ note }, 201)
 })
 
-// PATCH /api/contacts/:id/notes/:noteId — update a note's content
+// PATCH /api/contacts/:id/notes/:noteId — update a note's content (Kin notes only)
 contactRoutes.patch('/:id/notes/:noteId', async (c) => {
   const contactId = c.req.param('id')
   const noteId = c.req.param('noteId')
@@ -515,6 +519,17 @@ contactRoutes.patch('/:id/notes/:noteId', async (c) => {
     )
   }
 
+  const existing = getContactNoteById(noteId)
+  if (!existing || existing.contactId !== contactId) {
+    return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
+  }
+  if (existing.userId !== null) {
+    return c.json(
+      { error: { code: 'FORBIDDEN_NOTE_OWNER', message: 'User notes must be modified via /user-note' } },
+      403,
+    )
+  }
+
   const updated = updateContactNote(noteId, trimmedContent, contactId)
   if (!updated) {
     return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
@@ -523,12 +538,66 @@ contactRoutes.patch('/:id/notes/:noteId', async (c) => {
   return c.json({ note: updated })
 })
 
-// DELETE /api/contacts/:id/notes/:noteId — delete a note
+// DELETE /api/contacts/:id/notes/:noteId — delete a note (Kin notes only)
 contactRoutes.delete('/:id/notes/:noteId', async (c) => {
   const contactId = c.req.param('id')
   const noteId = c.req.param('noteId')
 
+  const existing = getContactNoteById(noteId)
+  if (!existing || existing.contactId !== contactId) {
+    return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
+  }
+  if (existing.userId !== null) {
+    return c.json(
+      { error: { code: 'FORBIDDEN_NOTE_OWNER', message: 'User notes must be deleted via /user-note' } },
+      403,
+    )
+  }
+
   const deleted = deleteContactNote(noteId, contactId)
+  if (!deleted) {
+    return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
+  }
+
+  return c.json({ success: true })
+})
+
+// PUT /api/contacts/:id/user-note — upsert the current user's note on a contact
+contactRoutes.put('/:id/user-note', async (c) => {
+  const contactId = c.req.param('id')
+  const userId = c.get('user').id
+  const { content } = (await c.req.json()) as { content: string }
+
+  if (!content?.trim()) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'Content is required' } },
+      400,
+    )
+  }
+
+  const trimmedContent = content.trim()
+  if (trimmedContent.length > 10000) {
+    return c.json(
+      { error: { code: 'INVALID_INPUT', message: 'Note content must be 10,000 characters or less' } },
+      400,
+    )
+  }
+
+  const contact = getContact(contactId)
+  if (!contact) {
+    return c.json({ error: { code: 'CONTACT_NOT_FOUND', message: 'Contact not found' } }, 404)
+  }
+
+  const note = setUserContactNote(contactId, userId, trimmedContent)
+  return c.json({ note })
+})
+
+// DELETE /api/contacts/:id/user-note — delete the current user's note
+contactRoutes.delete('/:id/user-note', async (c) => {
+  const contactId = c.req.param('id')
+  const userId = c.get('user').id
+
+  const deleted = deleteUserContactNote(contactId, userId)
   if (!deleted) {
     return c.json({ error: { code: 'NOTE_NOT_FOUND', message: 'Note not found' } }, 404)
   }

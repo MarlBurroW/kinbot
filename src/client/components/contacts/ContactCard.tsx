@@ -20,7 +20,8 @@ export interface ContactNicknameData {
 
 export interface ContactNoteData {
   id: string
-  kinId: string
+  kinId: string | null
+  userId: string | null
   scope: string
   content: string
   createdAt: string | number

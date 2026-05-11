@@ -43,7 +43,9 @@ export const getContactTool: ToolRegistration = {
           nicknames: contact.nicknames.map((n) => n.nickname),
           identifiers: contact.identifiers,
           notes: contact.notes.map((n) => ({
+            source: n.userId ? 'user' : 'kin',
             kinId: n.kinId,
+            userId: n.userId,
             scope: n.scope,
             content: n.content,
           })),
@@ -79,7 +81,9 @@ export const searchContactsTool: ToolRegistration = {
             nicknames: c.nicknames.map((n) => n.nickname),
             identifiers: c.identifiers,
             notes: c.notes.map((n) => ({
+              source: n.userId ? 'user' : 'kin',
               kinId: n.kinId,
+              userId: n.userId,
               scope: n.scope,
               content: n.content,
             })),

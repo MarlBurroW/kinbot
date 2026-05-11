@@ -16,6 +16,7 @@ import { getContactDisplayName } from '@/shared/contact-display'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type NoteScope = 'private' | 'global'
+type AnyNoteScope = 'private' | 'global' | 'user'
 
 interface CreateContactInput {
   firstName?: string | null
@@ -42,7 +43,7 @@ interface ContactWithDetails {
   updatedAt: Date
   nicknames: Array<{ id: string; nickname: string }>
   identifiers: Array<{ id: string; label: string; value: string }>
-  notes: Array<{ id: string; kinId: string; scope: string; content: string; createdAt: Date; updatedAt: Date }>
+  notes: Array<{ id: string; kinId: string | null; userId: string | null; scope: string; content: string; createdAt: Date; updatedAt: Date }>
   platformIds: Array<{ id: string; contactId: string; platform: string; platformId: string; createdAt: number }>
 }
 
@@ -87,14 +88,18 @@ export async function getContactWithDetails(
 
   let notes
   if (kinId) {
-    // Global notes from all Kins + private notes from requesting Kin only
+    // Global notes from all Kins + private notes from requesting Kin + user notes (read-only context)
     notes = db
       .select()
       .from(contactNotes)
       .where(
         and(
           eq(contactNotes.contactId, contactId),
-          or(eq(contactNotes.scope, 'global'), eq(contactNotes.kinId, kinId)),
+          or(
+            eq(contactNotes.scope, 'global'),
+            eq(contactNotes.kinId, kinId),
+            eq(contactNotes.scope, 'user'),
+          ),
         ),
       )
       .all()
@@ -141,6 +146,7 @@ export async function getContactWithDetails(
     notes: notes.map((n) => ({
       id: n.id,
       kinId: n.kinId,
+      userId: n.userId,
       scope: n.scope,
       content: n.content,
       createdAt: n.createdAt,
@@ -226,7 +232,7 @@ export async function listContactsWithDetails(): Promise<ContactWithDetails[]> {
       nicknames,
       identifiers: (identifiersByContact.get(contact.id) ?? []).map((i) => ({ id: i.id, label: i.label, value: i.value })),
       notes: (notesByContact.get(contact.id) ?? []).map((n) => ({
-        id: n.id, kinId: n.kinId, scope: n.scope, content: n.content, createdAt: n.createdAt, updatedAt: n.updatedAt,
+        id: n.id, kinId: n.kinId, userId: n.userId, scope: n.scope, content: n.content, createdAt: n.createdAt, updatedAt: n.updatedAt,
       })),
       platformIds: (pidsByContact.get(contact.id) ?? []).map((p) => ({
         id: p.id, contactId: p.contactId, platform: p.platform, platformId: p.platformId,
@@ -391,7 +397,11 @@ export async function searchContacts(
       .where(
         and(
           like(contactNotes.content, pattern),
-          or(eq(contactNotes.scope, 'global'), eq(contactNotes.kinId, kinId)),
+          or(
+            eq(contactNotes.scope, 'global'),
+            eq(contactNotes.kinId, kinId),
+            eq(contactNotes.scope, 'user'),
+          ),
         ),
       )
       .all()
@@ -675,6 +685,7 @@ export function setContactNote(contactId: string, kinId: string, scope: NoteScop
     id,
     contactId,
     kinId,
+    userId: null,
     scope,
     content,
     createdAt: now,
@@ -686,7 +697,83 @@ export function setContactNote(contactId: string, kinId: string, scope: NoteScop
     data: { contactId },
   })
 
-  return { id, contactId, kinId, scope, content, createdAt: now, updatedAt: now }
+  return { id, contactId, kinId, userId: null, scope, content, createdAt: now, updatedAt: now }
+}
+
+export function setUserContactNote(contactId: string, userId: string, content: string) {
+  const now = new Date()
+  const existing = db
+    .select()
+    .from(contactNotes)
+    .where(
+      and(
+        eq(contactNotes.contactId, contactId),
+        eq(contactNotes.userId, userId),
+        eq(contactNotes.scope, 'user'),
+      ),
+    )
+    .get()
+
+  if (existing) {
+    db.update(contactNotes)
+      .set({ content, updatedAt: now })
+      .where(eq(contactNotes.id, existing.id))
+      .run()
+
+    sseManager.broadcast({
+      type: 'contact:updated',
+      data: { contactId },
+    })
+
+    return { ...existing, content, updatedAt: now }
+  }
+
+  const id = uuid()
+  db.insert(contactNotes).values({
+    id,
+    contactId,
+    kinId: null,
+    userId,
+    scope: 'user',
+    content,
+    createdAt: now,
+    updatedAt: now,
+  }).run()
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId },
+  })
+
+  return { id, contactId, kinId: null, userId, scope: 'user' as const, content, createdAt: now, updatedAt: now }
+}
+
+export function deleteUserContactNote(contactId: string, userId: string): boolean {
+  const existing = db
+    .select()
+    .from(contactNotes)
+    .where(
+      and(
+        eq(contactNotes.contactId, contactId),
+        eq(contactNotes.userId, userId),
+        eq(contactNotes.scope, 'user'),
+      ),
+    )
+    .get()
+  if (!existing) return false
+
+  db.delete(contactNotes).where(eq(contactNotes.id, existing.id)).run()
+
+  sseManager.broadcast({
+    type: 'contact:updated',
+    data: { contactId },
+  })
+
+  return true
+}
+
+export function getContactNoteById(noteId: string) {
+  return db.select().from(contactNotes).where(eq(contactNotes.id, noteId)).get()
 }
 
 export function updateContactNote(noteId: string, content: string, contactId?: string) {
@@ -725,7 +812,11 @@ export function getVisibleNotes(contactId: string, kinId: string) {
     .where(
       and(
         eq(contactNotes.contactId, contactId),
-        or(eq(contactNotes.scope, 'global'), eq(contactNotes.kinId, kinId)),
+        or(
+          eq(contactNotes.scope, 'global'),
+          eq(contactNotes.kinId, kinId),
+          eq(contactNotes.scope, 'user'),
+        ),
       ),
     )
     .all()
