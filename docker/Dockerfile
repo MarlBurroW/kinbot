@@ -46,6 +46,8 @@ COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=build /app/registry ./registry
 COPY --from=build /app/store ./store
+# .env.example is the config catalog surfaced via list_platform_config_options
+COPY --from=build /app/.env.example ./.env.example
 
 # Create non-root user for security
 RUN groupadd --gid 1001 kinbot && \

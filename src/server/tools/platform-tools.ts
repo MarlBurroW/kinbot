@@ -23,6 +23,7 @@ const UPDATABLE_KEYS = new Set([
   'HOST',
   'LOG_LEVEL',
   'KINBOT_DATA_DIR',
+  'KINBOT_TIMEZONE',
   'COMPACTING_MODEL',
   'COMPACTING_MAX_SUMMARIES',
   'HISTORY_TOKEN_BUDGET',
@@ -136,7 +137,7 @@ export const getPlatformConfigTool: ToolRegistration = {
         const envVars: Record<string, string> = {}
         const envPrefixes = [
           'PORT', 'HOST', 'PUBLIC_URL', 'TRUSTED_ORIGINS', 'LOG_LEVEL',
-          'KINBOT_DATA_DIR', 'DB_PATH',
+          'KINBOT_', 'DB_PATH',
           'COMPACTING_', 'HISTORY_TOKEN_BUDGET',
           'MEMORY_', 'QUEUE_', 'TASKS_', 'CRONS_', 'TOOLS_',
           'HUMAN_PROMPTS_', 'INTER_KIN_', 'MCP_',
@@ -180,6 +181,164 @@ export const getPlatformConfigTool: ToolRegistration = {
               : config.environment.serviceFilePath
                 ? 'systemd service file'
                 : 'process environment / defaults',
+        }
+      },
+    }),
+}
+
+/**
+ * Catalog of configurable env vars parsed from .env.example.
+ * One entry per documented option, with section header, default value,
+ * description text (joined from preceding comment lines), and an optional
+ * inline unit/note (e.g., "# MB").
+ */
+interface ConfigOption {
+  section: string
+  key: string
+  defaultValue: string | null
+  description: string
+  unit: string | null
+  /** true if the var is uncommented in .env.example (effectively required / actively set as default). */
+  uncommentedDefault: boolean
+}
+
+let _envExampleCache: { path: string; options: ConfigOption[] } | null = null
+
+function locateEnvExample(): string | null {
+  const candidates = [
+    typeof import.meta.dir === 'string'
+      ? resolve(import.meta.dir, '..', '..', '..', '.env.example')
+      : null,
+    resolve(process.cwd(), '.env.example'),
+    config.environment.workingDir
+      ? resolve(config.environment.workingDir, '.env.example')
+      : null,
+    '/app/.env.example',
+  ].filter(Boolean) as string[]
+  for (const p of candidates) {
+    if (existsSync(p)) return p
+  }
+  return null
+}
+
+/** Parse the .env.example catalog. Cached after the first successful parse. */
+function loadConfigOptions(): { path: string | null; options: ConfigOption[] } {
+  if (_envExampleCache) return _envExampleCache
+
+  const path = locateEnvExample()
+  if (!path) return { path: null, options: [] }
+
+  const content = readFileSync(path, 'utf-8')
+  const options: ConfigOption[] = []
+  let section = 'General'
+  let pendingDescription: string[] = []
+
+  const sectionRegex = /^#\s*─+\s*(.+?)\s*─+\s*$/
+  const varRegex = /^(#\s*)?([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)(?:\s+#\s*(.+?))?\s*$/
+
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim()
+
+    const sectionMatch = line.match(sectionRegex)
+    if (sectionMatch) {
+      section = sectionMatch[1]!.trim()
+      pendingDescription = []
+      continue
+    }
+
+    if (!line) {
+      pendingDescription = []
+      continue
+    }
+
+    const varMatch = line.match(varRegex)
+    if (varMatch) {
+      const [, commentPrefix, key, rawValue, inlineNote] = varMatch
+      // Skip sensitive keys entirely from the catalog (they're documented but
+      // belong to manual setup paths).
+      if (!SENSITIVE_KEYS.has(key!)) {
+        options.push({
+          section,
+          key: key!,
+          defaultValue: rawValue ? rawValue.trim() : null,
+          description: pendingDescription.join(' ').trim(),
+          unit: inlineNote ? inlineNote.trim() : null,
+          uncommentedDefault: !commentPrefix,
+        })
+      }
+      pendingDescription = []
+      continue
+    }
+
+    if (line.startsWith('#')) {
+      const text = line.replace(/^#\s?/, '').trim()
+      if (text) pendingDescription.push(text)
+    }
+  }
+
+  _envExampleCache = { path, options }
+  return _envExampleCache
+}
+
+export const listPlatformConfigOptionsTool: ToolRegistration = {
+  availability: ['main'],
+  readOnly: true,
+  create: (ctx) =>
+    tool({
+      description:
+        'List all platform configuration options documented in .env.example, with section, default value, description, and current runtime value. Use before update_platform_config to discover what variables are available.',
+      inputSchema: z.object({
+        section: z
+          .string()
+          .optional()
+          .describe('Filter by section name (case-insensitive substring match, e.g. "Crons").'),
+        key: z
+          .string()
+          .optional()
+          .describe('Filter by exact key name (e.g. "KINBOT_TIMEZONE").'),
+      }),
+      execute: async ({ section, key }) => {
+        log.debug({ kinId: ctx.kinId, section, key }, 'Platform config options listed')
+        const { path, options } = loadConfigOptions()
+
+        if (!path) {
+          return {
+            error: 'Could not locate .env.example in the deployment. The platform may be missing reference documentation.',
+            options: [],
+          }
+        }
+
+        let filtered = options
+        if (section) {
+          const needle = section.toLowerCase()
+          filtered = filtered.filter((o) => o.section.toLowerCase().includes(needle))
+        }
+        if (key) {
+          filtered = filtered.filter((o) => o.key === key)
+        }
+
+        const enriched = filtered.map((o) => {
+          const currentValue = process.env[o.key]
+          const isSet = currentValue !== undefined && currentValue !== ''
+          const isUpdatable = UPDATABLE_KEYS.has(o.key)
+          return {
+            section: o.section,
+            key: o.key,
+            description: o.description || null,
+            defaultValue: o.defaultValue,
+            unit: o.unit,
+            currentValue: isSet ? currentValue : null,
+            isSet,
+            usingDefault: !isSet,
+            updatable: isUpdatable,
+          }
+        })
+
+        return {
+          source: path,
+          totalOptions: options.length,
+          returned: enriched.length,
+          options: enriched,
         }
       },
     }),

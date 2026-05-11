@@ -42,6 +42,7 @@ mock.module('@/server/logger', () => ({
 const {
   getPlatformLogsTool,
   getPlatformConfigTool,
+  listPlatformConfigOptionsTool,
   updatePlatformConfigTool,
   restartPlatformTool,
 } = await import('./platform-tools')
@@ -328,7 +329,7 @@ describe('updatePlatformConfigTool', () => {
   describe('all updatable keys are accepted', () => {
     const UPDATABLE_KEYS = [
       'PUBLIC_URL', 'TRUSTED_ORIGINS', 'PORT', 'HOST', 'LOG_LEVEL',
-      'KINBOT_DATA_DIR', 'COMPACTING_MODEL',
+      'KINBOT_DATA_DIR', 'KINBOT_TIMEZONE', 'COMPACTING_MODEL',
       'COMPACTING_MAX_SUMMARIES', 'HISTORY_TOKEN_BUDGET',
       'MEMORY_MAX_RELEVANT', 'MEMORY_SIMILARITY_THRESHOLD',
       'MEMORY_EMBEDDING_MODEL', 'MEMORY_TOKEN_BUDGET',
@@ -355,6 +356,54 @@ describe('updatePlatformConfigTool', () => {
         expect(result.success).toBe(true)
       })
     }
+  })
+})
+
+describe('listPlatformConfigOptionsTool', () => {
+  it('has correct availability and readOnly flag', () => {
+    expect((listPlatformConfigOptionsTool as ToolRegistration).availability).toEqual(['main'])
+    expect((listPlatformConfigOptionsTool as ToolRegistration).readOnly).toBe(true)
+  })
+
+  it('parses .env.example and surfaces documented options with sections', async () => {
+    const result: any = await execute(listPlatformConfigOptionsTool as ToolRegistration, {})
+    // The actual .env.example shipped with the repo must be reachable from cwd.
+    expect(result.source).toMatch(/\.env\.example$/)
+    expect(result.totalOptions).toBeGreaterThan(0)
+    const tz = result.options.find((o: any) => o.key === 'KINBOT_TIMEZONE')
+    expect(tz).toBeDefined()
+    expect(tz.section).toBe('General')
+    expect(tz.description).toMatch(/IANA timezone/i)
+    expect(tz.updatable).toBe(true)
+  })
+
+  it('filters by section (case-insensitive substring)', async () => {
+    const result: any = await execute(listPlatformConfigOptionsTool as ToolRegistration, { section: 'crons' })
+    expect(result.returned).toBeGreaterThan(0)
+    for (const opt of result.options) {
+      expect(opt.section.toLowerCase()).toContain('crons')
+    }
+  })
+
+  it('filters by exact key', async () => {
+    const result: any = await execute(listPlatformConfigOptionsTool as ToolRegistration, { key: 'KINBOT_TIMEZONE' })
+    expect(result.returned).toBe(1)
+    expect(result.options[0].key).toBe('KINBOT_TIMEZONE')
+  })
+
+  it('marks options as updatable based on UPDATABLE_KEYS', async () => {
+    const result: any = await execute(listPlatformConfigOptionsTool as ToolRegistration, {})
+    const updatable = result.options.filter((o: any) => o.updatable).map((o: any) => o.key)
+    expect(updatable).toContain('PORT')
+    expect(updatable).toContain('KINBOT_TIMEZONE')
+    expect(updatable).toContain('LOG_LEVEL')
+  })
+
+  it('excludes sensitive keys from the catalog', async () => {
+    const result: any = await execute(listPlatformConfigOptionsTool as ToolRegistration, {})
+    const keys = result.options.map((o: any) => o.key)
+    expect(keys).not.toContain('ENCRYPTION_KEY')
+    expect(keys).not.toContain('BETTER_AUTH_SECRET')
   })
 })
 
