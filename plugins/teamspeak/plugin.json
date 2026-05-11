@@ -56,5 +56,61 @@
       "max": 300000,
       "step": 1000
     }
+  },
+  "channels": {
+    "teamspeak": {
+      "configSchema": {
+        "fields": [
+          {
+            "name": "wsUrl",
+            "label": "ts-bot WebSocket URL",
+            "type": "text",
+            "default": "ws://127.0.0.1:8080/ws",
+            "required": true,
+            "placeholder": "ws://127.0.0.1:8080/ws",
+            "description": "URL of the local ts-bot WebSocket endpoint."
+          },
+          {
+            "name": "defaultVoice",
+            "label": "Default TTS voice",
+            "type": "text",
+            "placeholder": "ff_siwis",
+            "description": "Voice identifier passed to the TTS pipeline. Leave empty to use the ts-bot server default."
+          },
+          {
+            "name": "ttsMaxChars",
+            "label": "TTS soft limit (chars)",
+            "type": "number",
+            "default": 300,
+            "min": 0,
+            "max": 2000,
+            "description": "Replies longer than this are truncated to a short voice notice; full text is also sent to chat. Set to 0 to disable."
+          },
+          {
+            "name": "enableTtsOnPublic",
+            "label": "Speak replies in public channels",
+            "type": "switch",
+            "default": true,
+            "description": "When enabled, public channel replies are spoken AND copied to chat. Private messages are always chat-only."
+          },
+          {
+            "name": "ttsTooLongNotice",
+            "label": "TTS truncation notice",
+            "type": "text",
+            "default": "J'ai répondu en chat, c'était trop long pour le vocal.",
+            "description": "Short sentence spoken when a reply is too long for TTS."
+          },
+          {
+            "name": "reconnectMaxBackoffMs",
+            "label": "Max reconnect backoff (ms)",
+            "type": "number",
+            "default": 30000,
+            "min": 1000,
+            "max": 300000,
+            "description": "Upper bound for exponential reconnect backoff to the ts-bot WebSocket."
+          }
+        ]
+      }
+    }
   }
 }

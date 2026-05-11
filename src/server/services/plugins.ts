@@ -794,10 +794,19 @@ class PluginManager {
         }
       }
 
-      // Register channels
+      // Register channels. If the manifest declares
+      // `channels.<platform>.configSchema` for this adapter and the adapter
+      // doesn't already expose one, attach the manifest schema so that
+      // `channelAdapters.listWithMeta()` and the route-level Zod validator
+      // pick it up. Manifest-level declarations are encouraged for plugins
+      // because they remain discoverable without executing plugin code.
       if (exports.channels) {
         for (const [channelName, adapter] of Object.entries(exports.channels)) {
           try {
+            const manifestEntry = plugin.manifest.channels?.[adapter.platform]
+            if (manifestEntry?.configSchema && !adapter.configSchema) {
+              ;(adapter as { configSchema?: typeof manifestEntry.configSchema }).configSchema = manifestEntry.configSchema
+            }
             channelAdapters.registerPlugin(adapter)
             plugin.registeredChannels.push({
               platform: adapter.platform,
