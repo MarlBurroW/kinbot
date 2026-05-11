@@ -57,6 +57,26 @@ export function isTaskStreaming(taskId: string): boolean {
   return activeTaskAbortControllers.has(taskId)
 }
 
+// Live in-memory snapshot of the currently-streaming assistant message per task.
+// The DB is only checkpointed every 500ms of text + at each tool-batch boundary,
+// so a client reconnecting mid-stream would otherwise miss any text emitted
+// between the last checkpoint and connect time, breaking tool-call offset
+// alignment in the UI. Reading this map gives the route handler the live values.
+export interface ActiveTaskStreamSnapshot {
+  messageId: string
+  content: string
+  toolCalls: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }>
+  reasoning: Array<{ offset: number; text: string }>
+}
+
+const activeTaskStreams = new Map<string, ActiveTaskStreamSnapshot>()
+
+/** Read-only access to an in-flight task's accumulated content/tool-calls/reasoning.
+ *  The returned arrays are live references held by `executeSubKin` — callers must not mutate them. */
+export function getActiveTaskSnapshot(taskId: string): ActiveTaskStreamSnapshot | undefined {
+  return activeTaskStreams.get(taskId)
+}
+
 /** Build a public avatar URL from a Kin's stored avatar path */
 function kinAvatarUrl(kinId: string, avatarPath: string | null, updatedAt?: Date | null): string | null {
   if (!avatarPath) return null
@@ -595,6 +615,16 @@ async function executeSubKin(taskId: string, isNudge = false) {
     let streamError: Error | null = null
     let lastCheckpointAt = Date.now()
 
+    // In-memory snapshot for clients that connect mid-stream — see activeTaskStreams above.
+    // Arrays are shared by reference so server-side mutations are visible immediately.
+    const streamSnapshot: ActiveTaskStreamSnapshot = {
+      messageId: assistantMessageId,
+      content: '',
+      toolCalls: toolCallsLog,
+      reasoning: reasoningSegments,
+    }
+    activeTaskStreams.set(taskId, streamSnapshot)
+
     // Pre-insert assistant message so it's visible in fetchDetail() during streaming.
     // Content and tool calls will be updated when the stream completes.
     const assistantMsgCreatedAt = new Date()
@@ -701,10 +731,11 @@ async function executeSubKin(taskId: string, isNudge = false) {
           switch (part.type) {
             case 'text-delta': {
               fullContent += part.text
+              streamSnapshot.content = fullContent
               sseManager.sendToKin(task.parentKinId, {
                 type: 'chat:token',
                 kinId: task.parentKinId,
-                data: { messageId: assistantMessageId, token: part.text, taskId },
+                data: { messageId: assistantMessageId, token: part.text, taskId, contentLength: fullContent.length },
               })
 
               // Periodic checkpoint: persist partial content every 500ms so a page
@@ -810,6 +841,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     }
 
     activeTaskAbortControllers.delete(taskId)
+    activeTaskStreams.delete(taskId)
 
     // Aggregate token usage (awaited so we can persist in metadata + SSE)
     const taskModelId = task.model ?? kinIdentity.model
@@ -960,6 +992,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
       }
     }
   } catch (err) {
+    activeTaskStreams.delete(taskId)
     const errorMsg = err instanceof Error ? err.message : 'Unknown error'
     log.error({ taskId, error: errorMsg }, 'Sub-Kin execution failed')
     // Sub-Kins / tasks have their own ephemeral message stream and don't
