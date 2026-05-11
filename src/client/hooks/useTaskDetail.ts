@@ -46,6 +46,7 @@ interface LearningEntry {
 interface TaskDetailResponse {
   task: TaskDetail
   messages: TaskMessage[]
+  streamingMessageId: string | null
   learningsSaved: LearningEntry[]
 }
 
@@ -166,6 +167,20 @@ export function useTaskDetail(taskId: string | null) {
         streamingReasoningRef.current = ''
         streamingToolCallsRef.current = []
         setStreamingToolCalls([])
+      } else if (data.streamingMessageId) {
+        // The server reports an in-flight assistant message and has overlaid
+        // its live in-memory content into the messages list. Pre-seed the
+        // streaming state from it so buffered chat:token events whose
+        // `contentLength` is already covered by the snapshot are skipped
+        // (see handleToken) — avoids double-counting tokens that were
+        // emitted between the SSE connection and fetchDetail resolution.
+        const inflight = merged.find((m) => m.id === data.streamingMessageId)
+        if (inflight && inflight.role === 'assistant') {
+          streamingMessageIdRef.current = inflight.id
+          streamingContentRef.current = inflight.content
+          setIsStreaming(true)
+          setStreamingMessage(inflight)
+        }
       }
       // Allow SSE handlers to process events now that messagesRef is populated,
       // then replay any events that arrived while we were fetching.
@@ -225,10 +240,19 @@ export function useTaskDetail(taskId: string | null) {
   function handleToken(data: Record<string, unknown>) {
     const token = data.token as string
     const messageId = data.messageId as string
+    const contentLength = typeof data.contentLength === 'number' ? data.contentLength : undefined
 
     if (!streamingMessageIdRef.current) {
       seedStreaming(messageId, token)
     } else {
+      // Skip events already incorporated into streamingContentRef. The server
+      // tags each chat:token with the fullContent length AFTER appending — and
+      // the live snapshot returned by fetchDetail is always at a token boundary
+      // (see executeSubKin) — so this comparison is exact and rejects only
+      // tokens the snapshot already covered.
+      if (contentLength !== undefined && contentLength <= streamingContentRef.current.length) {
+        return
+      }
       streamingContentRef.current += token
       if (!batchTimerRef.current) {
         batchTimerRef.current = setTimeout(() => {
@@ -254,12 +278,7 @@ export function useTaskDetail(taskId: string | null) {
       result: undefined,
       status: 'pending',
       timestamp: new Date().toISOString(),
-      // Intentionally omit offset during streaming: the frontend's accumulated
-      // content may not match the backend's fullContent (missed tokens on
-      // reconnect), so offsets would split text at wrong positions.  Without
-      // offsets, MessageBubble uses fallback mode (text block + tools below).
-      // On stream end, fetchDetail returns correct offsets for proper interleaving.
-      offset: undefined,
+      offset: typeof data.contentOffset === 'number' ? data.contentOffset : undefined,
     }
     streamingToolCallsRef.current = [...streamingToolCallsRef.current, item]
     setStreamingToolCalls(streamingToolCallsRef.current)

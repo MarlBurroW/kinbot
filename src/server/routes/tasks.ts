@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { eq, and, asc } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { tasks, messages, kins } from '@/server/db/schema'
-import { getTask, listTasksPaginated, cancelTask, forcePromoteTask, pauseTask, resumeTask, injectIntoTask } from '@/server/services/tasks'
+import { getTask, listTasksPaginated, cancelTask, forcePromoteTask, pauseTask, resumeTask, injectIntoTask, getActiveTaskSnapshot } from '@/server/services/tasks'
 import { fetchCronLearningsByTask } from '@/server/services/cron-learnings'
 import type { AppVariables } from '@/server/app'
 import type { TaskStatus } from '@/shared/types'
@@ -106,6 +106,12 @@ taskRoutes.get('/:id', async (c) => {
       }))
     : []
 
+  // If a stream is currently in-flight, the DB row for the streaming assistant
+  // message lags by up to 500ms of text. Overlay the live snapshot so a client
+  // that opens the modal mid-stream sees content/tool-calls/reasoning aligned
+  // with the offsets emitted via SSE.
+  const snapshot = getActiveTaskSnapshot(taskId)
+
   return c.json({
     task: {
       id: task.id,
@@ -131,19 +137,26 @@ taskRoutes.get('/:id', async (c) => {
       try { toolCalls = m.toolCalls ? JSON.parse(m.toolCalls) : null } catch { /* corrupted */ }
       try { meta = m.metadata ? JSON.parse(m.metadata as string) : null } catch { /* corrupted */ }
       try { reasoning = m.reasoning ? JSON.parse(m.reasoning as string) : null } catch { /* corrupted */ }
+
+      const isStreaming = snapshot && m.id === snapshot.messageId
       return {
         id: m.id,
         role: m.role,
-        content: m.content,
+        content: isStreaming ? snapshot.content : m.content,
         sourceType: m.sourceType,
         sourceId: m.sourceId,
         isRedacted: m.isRedacted,
-        toolCalls,
+        toolCalls: isStreaming
+          ? (snapshot.toolCalls.length > 0 ? snapshot.toolCalls : null)
+          : toolCalls,
         tokenUsage: meta?.tokenUsage ?? null,
-        reasoning,
+        reasoning: isStreaming
+          ? (snapshot.reasoning.length > 0 ? snapshot.reasoning : null)
+          : reasoning,
         createdAt: m.createdAt,
       }
     }),
+    streamingMessageId: snapshot?.messageId ?? null,
     learningsSaved,
   })
 })
