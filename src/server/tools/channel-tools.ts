@@ -140,32 +140,29 @@ export const createChannelTool: ToolRegistration = {
   create: (ctx) =>
     tool({
       description:
-        'Create a new messaging channel. Retrieve bot tokens from Vault (get_secret) — never hardcode them.',
+        'Create a new messaging channel. The `config` keys must match the platform\'s declared configuration fields (e.g. Telegram needs `botToken`; Slack needs `botToken` + `signingSecret`; WhatsApp needs `accessToken` + `phoneNumberId` + `verifyToken`; Matrix needs `homeserverUrl` + `accessToken`). Password-type fields are auto-vaulted by the server — fetch secret values from Vault via get_secret() rather than hardcoding them. If you don\'t know the expected fields for a platform, attempt the call: the validation error lists what\'s missing.',
       inputSchema: z.object({
         name: z.string(),
-        platform: z.string().describe('e.g. "telegram", "discord"'),
-        bot_token: z.string(),
+        platform: z.string().describe('e.g. "telegram", "discord", "slack", "whatsapp", "signal", "matrix", or a plugin platform'),
+        config: z
+          .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+          .describe('Configuration values keyed by adapter field name (e.g. { botToken: "..." } for Telegram, { botToken: "...", signingSecret: "..." } for Slack).'),
         allowed_chat_ids: z.array(z.string()).optional().describe('Restrict to specific chat/group IDs'),
         auto_create_contacts: z.boolean().optional().describe('Default: true'),
       }),
-      execute: async ({ name, platform, bot_token, allowed_chat_ids, auto_create_contacts }) => {
-        log.debug({ kinId: ctx.kinId, platform, name }, 'Channel creation requested')
+      execute: async ({ name, platform, config, allowed_chat_ids, auto_create_contacts }) => {
+        log.debug({ kinId: ctx.kinId, platform, name, configKeys: Object.keys(config) }, 'Channel creation requested')
 
         if (!channelAdapters.get(platform)) {
           return { error: `Unknown platform "${platform}". Available: ${channelAdapters.list().join(', ')}` }
         }
 
         try {
-          // The Kin-facing tool exposes a single `bot_token` for ergonomics;
-          // map it to the unified `platformConfig.botToken` field the service
-          // expects. Multi-secret adapters (Slack signing-secret, WhatsApp
-          // verify-token, …) aren't reachable from this tool — Kins still
-          // have to use the UI / API for those.
           const channel = await createChannel({
             kinId: ctx.kinId,
             name,
             platform: platform as ChannelPlatform,
-            platformConfig: { botToken: bot_token },
+            platformConfig: config,
             allowedChatIds: allowed_chat_ids,
             autoCreateContacts: auto_create_contacts,
             createdBy: 'kin',
