@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, ChannelConfigSchema, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelAdapterMeta } from '@/server/channels/adapter'
 import { getSecretValue } from '@/server/services/vault'
@@ -217,9 +217,33 @@ export async function handleSlackWebhook(
   return { status: 200, body: { ok: true } }
 }
 
+// Dynamic config schema (issue #381). Field names are user-facing; the
+// runtime adapter reads `<name>VaultKey` from `platformConfig`. The vault
+// dance is performed by `createChannel()` in services/channels.ts.
+const slackConfigSchema: ChannelConfigSchema = {
+  fields: [
+    {
+      name: 'botToken',
+      label: 'Bot token',
+      type: 'password',
+      required: true,
+      placeholder: 'xoxb-…',
+      description: 'Slack bot OAuth token (xoxb-…) from the app config.',
+    },
+    {
+      name: 'signingSecret',
+      label: 'Signing secret',
+      type: 'password',
+      required: true,
+      description: 'Slack signing secret used to verify request authenticity.',
+    },
+  ],
+}
+
 export class SlackAdapter implements ChannelAdapter {
   readonly platform = 'slack'
   readonly meta: ChannelAdapterMeta = { displayName: 'Slack', brandColor: '#4A154B' }
+  readonly configSchema = slackConfigSchema
 
   async start(channelId: string, cfg: Record<string, unknown>, onMessage: IncomingMessageHandler): Promise<void> {
     const token = await resolveToken(cfg)

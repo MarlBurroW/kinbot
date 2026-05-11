@@ -125,12 +125,19 @@ channelRoutes.post('/', async (c) => {
     )
   }
 
+  // LEGACY: remap top-level `botToken` → `platformConfig.botToken` so the
+  // current single-field UI passes Zod validation against adapter schemas.
+  // Removed once the dynamic frontend lands (see issue #381 commit 5).
+  const platformConfig: Record<string, unknown> = { ...(body.platformConfig ?? {}) }
+  if (body.botToken && platformConfig.botToken === undefined) {
+    platformConfig.botToken = body.botToken
+  }
+
   // Dynamic configSchema validation (opt-in per adapter).
-  // Adapters that don't declare a `configSchema` keep the legacy behavior
-  // (the 6 built-ins + the teamspeak plugin on day 1).
+  // Adapters that don't declare a `configSchema` keep the legacy behavior.
   if (adapter.configSchema) {
     const zodSchema = buildZodSchemaFromConfigSchema(adapter.configSchema)
-    const parsed = zodSchema.safeParse(body.platformConfig ?? {})
+    const parsed = zodSchema.safeParse(platformConfig)
     if (!parsed.success) {
       return c.json(
         {

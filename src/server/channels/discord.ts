@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, ChannelConfigSchema, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelAdapterMeta } from '@/server/channels/adapter'
 import { getSecretValue } from '@/server/services/vault'
@@ -337,9 +337,26 @@ function reconnect(state: GatewayState): void {
   createGateway(state)
 }
 
+// Dynamic config schema (issue #381). Field names are user-facing; the
+// runtime adapter reads `<name>VaultKey` from `platformConfig`. The vault
+// dance is performed by `createChannel()` in services/channels.ts.
+const discordConfigSchema: ChannelConfigSchema = {
+  fields: [
+    {
+      name: 'botToken',
+      label: 'Bot token',
+      type: 'password',
+      required: true,
+      placeholder: 'MTAxxxxxxxxxxxxxxxxxxxx.xxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+      description: 'Discord bot token from the Developer Portal.',
+    },
+  ],
+}
+
 export class DiscordAdapter implements ChannelAdapter {
   readonly platform = 'discord'
   readonly meta: ChannelAdapterMeta = { displayName: 'Discord', brandColor: '#5865F2' }
+  readonly configSchema = discordConfigSchema
   private gateways = new Map<string, GatewayState>()
 
   async start(channelId: string, cfg: Record<string, unknown>, onMessage: IncomingMessageHandler): Promise<void> {

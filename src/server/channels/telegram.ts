@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingMessageHandler, OutboundMessageParams, OutboundAttachment } from '@/server/channels/adapter'
+import type { ChannelAdapter, ChannelConfigSchema, IncomingMessageHandler, OutboundMessageParams, OutboundAttachment } from '@/server/channels/adapter'
 import { readAttachmentBlob, attachmentFileName, isImageAttachment } from '@/server/channels/adapter'
 import type { ChannelAdapterMeta } from '@/server/channels/adapter'
 import { getSecretValue } from '@/server/services/vault'
@@ -80,9 +80,28 @@ interface TelegramPollingState {
   allowedChatIds: Set<string> | null
 }
 
+// Dynamic config schema (issue #381).
+// Schema field names are USER-FACING form input names. At runtime this adapter
+// reads `<name>VaultKey` from `platformConfig` (e.g. `botTokenVaultKey`),
+// populated by `createChannel()` in services/channels.ts which performs the
+// vault dance based on this schema. The drift is an internal storage detail.
+const telegramConfigSchema: ChannelConfigSchema = {
+  fields: [
+    {
+      name: 'botToken',
+      label: 'Bot token',
+      type: 'password',
+      required: true,
+      placeholder: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+      description: 'Telegram bot token obtained from @BotFather.',
+    },
+  ],
+}
+
 export class TelegramAdapter implements ChannelAdapter {
   readonly platform = 'telegram'
   readonly meta: ChannelAdapterMeta = { displayName: 'Telegram', brandColor: '#26A5E4' }
+  readonly configSchema = telegramConfigSchema
   private pollers = new Map<string, TelegramPollingState>()
 
   async start(channelId: string, cfg: Record<string, unknown>, onMessage?: IncomingMessageHandler): Promise<void> {
