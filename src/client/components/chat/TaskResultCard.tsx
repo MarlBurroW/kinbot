@@ -181,13 +181,6 @@ function getStatusConfig(status: DisplayTaskStatus, t: (key: string) => string) 
         label: t('sidebar.tasks.status.pending'),
         animate: true,
       }
-    case 'paused':
-      return {
-        icon: Pause,
-        colorClass: 'text-amber-500',
-        label: t('sidebar.tasks.status.paused'),
-        animate: false,
-      }
   }
 }
 
