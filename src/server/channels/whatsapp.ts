@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams, OutboundAttachment } from '@/server/channels/adapter'
+import type { ChannelAdapter, ChannelConfigSchema, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams, OutboundAttachment } from '@/server/channels/adapter'
 import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelAdapterMeta } from '@/server/channels/adapter'
 import { getSecretValue } from '@/server/services/vault'
@@ -70,9 +70,41 @@ async function whatsappApi(
   return data
 }
 
+// Dynamic config schema (issue #381). Password fields are vaulted by
+// `createChannel()` (stored as `<name>VaultKey` in `platformConfig`).
+// Non-password fields are stored as-is. The adapter reads accessTokenVaultKey,
+// verifyTokenVaultKey, and phoneNumberId from platformConfig at runtime.
+const whatsappConfigSchema: ChannelConfigSchema = {
+  fields: [
+    {
+      name: 'accessToken',
+      label: 'Access token',
+      type: 'password',
+      required: true,
+      description: 'Meta WhatsApp Cloud API permanent access token.',
+    },
+    {
+      name: 'phoneNumberId',
+      label: 'Phone number ID',
+      type: 'text',
+      required: true,
+      placeholder: '123456789012345',
+      description: 'Meta phone number identifier (numeric, not the phone number itself).',
+    },
+    {
+      name: 'verifyToken',
+      label: 'Webhook verify token',
+      type: 'password',
+      required: true,
+      description: 'Token Meta sends back on webhook subscription challenges.',
+    },
+  ],
+}
+
 export class WhatsAppAdapter implements ChannelAdapter {
   readonly platform = 'whatsapp'
   readonly meta: ChannelAdapterMeta = { displayName: 'WhatsApp', brandColor: '#25D366' }
+  readonly configSchema = whatsappConfigSchema
 
   async start(channelId: string, cfg: Record<string, unknown>): Promise<void> {
     // WhatsApp Cloud API uses a webhook configured in Meta Developer Console.

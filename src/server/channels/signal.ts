@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, ChannelConfigSchema, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import { readAttachmentBlob, attachmentFileName } from '@/server/channels/adapter'
 import type { ChannelAdapterMeta } from '@/server/channels/adapter'
 import { getSecretValue } from '@/server/services/vault'
@@ -89,9 +89,34 @@ async function signalApi(
  * Incoming messages are received via webhook callbacks from signal-cli.
  * The webhook URL is registered when the channel starts.
  */
+// Dynamic config schema (issue #381). `apiUrl` is treated as a password
+// to avoid leaking internal topology in logs/UI listings. phoneNumber is
+// stored plain. The vault dance is performed by `createChannel()`.
+const signalConfigSchema: ChannelConfigSchema = {
+  fields: [
+    {
+      name: 'apiUrl',
+      label: 'signal-cli REST API URL',
+      type: 'password',
+      required: true,
+      placeholder: 'http://signal-cli:8080',
+      description: 'Base URL of the signal-cli REST API instance.',
+    },
+    {
+      name: 'phoneNumber',
+      label: 'Phone number',
+      type: 'text',
+      required: true,
+      placeholder: '+33612345678',
+      description: 'E.164 number registered with signal-cli.',
+    },
+  ],
+}
+
 export class SignalAdapter implements ChannelAdapter {
   readonly platform = 'signal'
   readonly meta: ChannelAdapterMeta = { displayName: 'Signal', brandColor: '#3A76F0' }
+  readonly configSchema = signalConfigSchema
 
   /** Store message handlers for webhook processing */
   private handlers = new Map<string, { onMessage: IncomingMessageHandler; cfg: SignalChannelConfig }>()

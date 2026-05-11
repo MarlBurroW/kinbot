@@ -1,4 +1,4 @@
-import type { ChannelAdapter, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
+import type { ChannelAdapter, ChannelConfigSchema, IncomingAttachment, IncomingMessageHandler, OutboundMessageParams } from '@/server/channels/adapter'
 import { readAttachmentBlob, attachmentFileName, isImageAttachment } from '@/server/channels/adapter'
 import type { ChannelAdapterMeta } from '@/server/channels/adapter'
 import { getSecretValue } from '@/server/services/vault'
@@ -91,9 +91,33 @@ async function matrixApi(
  *
  * Matrix spec: https://spec.matrix.org/latest/client-server-api/
  */
+// Dynamic config schema (issue #381). The runtime adapter reads
+// accessTokenVaultKey and homeserverUrl from platformConfig; createChannel()
+// stores accessToken as a vault entry and copies homeserverUrl as-is.
+const matrixConfigSchema: ChannelConfigSchema = {
+  fields: [
+    {
+      name: 'homeserverUrl',
+      label: 'Homeserver URL',
+      type: 'text',
+      required: true,
+      placeholder: 'https://matrix.example.org',
+      description: 'Base URL of the Matrix homeserver (no trailing slash).',
+    },
+    {
+      name: 'accessToken',
+      label: 'Access token',
+      type: 'password',
+      required: true,
+      description: 'Bot account access token (issued via /login or admin API).',
+    },
+  ],
+}
+
 export class MatrixAdapter implements ChannelAdapter {
   readonly platform = 'matrix'
   readonly meta: ChannelAdapterMeta = { displayName: 'Matrix', brandColor: '#0DBD8B' }
+  readonly configSchema = matrixConfigSchema
 
   private syncAbortControllers = new Map<string, AbortController>()
   private handlers = new Map<string, { onMessage: IncomingMessageHandler; cfg: MatrixChannelConfig }>()
