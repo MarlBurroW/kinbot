@@ -57,6 +57,7 @@ export function ChannelsSettings() {
     },
     'channel:user-pending': () => { fetchChannels() },
     'channel:user-approved': () => { fetchChannels() },
+    'channel:transferred': () => { fetchChannels() },
   })
 
   // Auto-expand channels with pending approval requests
@@ -77,13 +78,35 @@ export function ChannelsSettings() {
     toast.success(t('settings.channels.created'))
   }
 
-  const handleUpdate = async (channelId: string, data: {
-    name?: string
-    kinId?: string
-  }) => {
+  const handleUpdate = async (channelId: string, data: { name?: string }) => {
     await api.patch(`/channels/${channelId}`, data)
     await fetchChannels()
     toast.success(t('settings.channels.saved'))
+  }
+
+  const handleTransfer = async (
+    channelId: string,
+    data: { targetKinId: string; reason?: string },
+  ) => {
+    const result = await api.post<{
+      ok: boolean
+      noop?: boolean
+      toKinName?: string
+      newKinSlug?: string
+    }>(`/channels/${channelId}/transfer`, data)
+    // SSE 'channel:transferred' will refetch the list independently, but
+    // call fetchChannels() too for the rare case where the SSE is delayed
+    // (e.g. tab in background). Both paths are idempotent.
+    await fetchChannels()
+    if (result.noop) {
+      toast.info(t('settings.channels.transferNoop', 'Channel is already bound to this Kin.'))
+    } else {
+      toast.success(
+        t('settings.channels.transferred', 'Channel transferred to {{kinName}}.', {
+          kinName: result.toKinName ?? result.newKinSlug ?? '',
+        }),
+      )
+    }
   }
 
   const handleDelete = async (channelId: string) => {
@@ -225,6 +248,7 @@ export function ChannelsSettings() {
         onOpenChange={setModalOpen}
         onSave={handleCreate}
         onUpdate={handleUpdate}
+        onTransfer={handleTransfer}
         channel={editingChannel}
         kins={kins}
         hubKinId={hubKinId}

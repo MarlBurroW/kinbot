@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/client/components/ui/button'
 import { Input } from '@/client/components/ui/input'
+import { Textarea } from '@/client/components/ui/textarea'
 import { Label } from '@/client/components/ui/label'
 import {
   Dialog,
@@ -20,7 +21,7 @@ import { KinSelector } from '@/client/components/common/KinSelector'
 import type { KinOption } from '@/client/components/common/KinSelectItem'
 import { PlatformSelector } from '@/client/components/common/PlatformSelector'
 import { DynamicField } from '@/client/components/common/DynamicField'
-import { ChevronRight, HelpCircle, Lightbulb, Loader2 } from 'lucide-react'
+import { AlertTriangle, ChevronRight, HelpCircle, Lightbulb, Loader2 } from 'lucide-react'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { cn } from '@/client/lib/utils'
 import { usePlatforms } from '@/client/hooks/usePlatforms'
@@ -81,10 +82,20 @@ interface ChannelFormDialogProps {
     platform: string
     platformConfig: Record<string, unknown>
   }) => Promise<void>
-  onUpdate?: (channelId: string, data: {
-    name?: string
-    kinId?: string
-  }) => Promise<void>
+  /**
+   * Patch handler for the in-place edits (name, allowedChatIds, etc).
+   * Must NOT receive a kinId: the server now rejects PATCH /channels/:id
+   * when kinId differs from the current binding; the dialog routes the
+   * kin change through `onTransfer` instead.
+   */
+  onUpdate?: (channelId: string, data: { name?: string }) => Promise<void>
+  /**
+   * Transfer handler invoked when the user picks a different Kin in the
+   * selector and saves. Fires POST /api/channels/:id/transfer through the
+   * shared transferChannel service (system events, sideband hint, SSE,
+   * adapter.onIdentityChange).
+   */
+  onTransfer?: (channelId: string, data: { targetKinId: string; reason?: string }) => Promise<void>
   channel?: ChannelSummary | null
   kins: KinOption[]
   /** Hub Kin ID — pre-selected for new channels */
@@ -116,6 +127,7 @@ export function ChannelFormDialog({
   onOpenChange,
   onSave,
   onUpdate,
+  onTransfer,
   channel,
   kins,
   hubKinId,
@@ -129,6 +141,11 @@ export function ChannelFormDialog({
   const [platform, setPlatform] = useState('')
   const [formValues, setFormValues] = useState<Record<string, unknown>>({})
   const [isLoading, setIsLoading] = useState(false)
+  // Transfer reason (only used when the user changes the Kin on edit).
+  const [transferReason, setTransferReason] = useState('')
+
+  // Kin change detection in edit mode: anything bound to onTransfer below.
+  const kinChanged = isEdit && !!channel && selectedKinId !== '' && selectedKinId !== channel.kinId
 
   const activePlatform = useMemo(
     () => platforms.find((p) => p.platform === platform) ?? null,
@@ -155,6 +172,10 @@ export function ChannelFormDialog({
       setSelectedKinId(hubKinId ?? '')
       setFormValues({})
     }
+    // Always reset the transfer reason when the dialog re-opens or the
+    // edited channel changes; stale text from a previous edit must not
+    // leak into a new transfer.
+    setTransferReason('')
   }, [channel, open, hubKinId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset form values to the active platform's schema defaults whenever
@@ -169,11 +190,22 @@ export function ChannelFormDialog({
     setIsLoading(true)
 
     try {
-      if (isEdit && onUpdate && channel) {
-        await onUpdate(channel.id, {
-          name,
-          kinId: selectedKinId !== channel.kinId ? selectedKinId : undefined,
-        })
+      if (isEdit && channel) {
+        // Edit flow: name (and other patchable fields) go through PATCH;
+        // the Kin change goes through the transfer endpoint so the system
+        // events, sideband hint, SSE broadcast, and adapter identity
+        // switch all fire. If both changed, PATCH first then transfer so
+        // the audit-trail rows reference the final channel name.
+        const nameChanged = name !== channel.name
+        if (nameChanged && onUpdate) {
+          await onUpdate(channel.id, { name })
+        }
+        if (kinChanged && onTransfer) {
+          await onTransfer(channel.id, {
+            targetKinId: selectedKinId,
+            reason: transferReason.trim() ? transferReason.trim() : undefined,
+          })
+        }
       } else {
         if (!selectedKinId) return
         await onSave({
@@ -234,7 +266,32 @@ export function ChannelFormDialog({
                 {t('hub.channelHint')}
               </p>
             )}
+            {kinChanged && (
+              <p className="flex items-start gap-1.5 text-xs text-warning">
+                <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                <span>{t('settings.channels.transferWarning', 'Selecting a different Kin will transfer this channel. The previous Kin loses the binding and both Kins get an audit-trail row in their conversation.')}</span>
+              </p>
+            )}
           </div>
+
+          {/* Optional reason: only shown when the user picked a different Kin */}
+          {kinChanged && (
+            <div className="space-y-2">
+              <Label className="inline-flex items-center gap-1.5">
+                {t('settings.channels.transferReasonLabel', 'Transfer reason (optional)')}
+              </Label>
+              <Textarea
+                value={transferReason}
+                onChange={(e) => setTransferReason(e.target.value.slice(0, 200))}
+                placeholder={t('settings.channels.transferReasonPlaceholder', "Optional note about why you're transferring this channel (200 chars max).")}
+                rows={2}
+                maxLength={200}
+              />
+              <p className="text-[10px] text-muted-foreground/70 text-right tabular-nums">
+                {transferReason.length} / 200
+              </p>
+            </div>
+          )}
 
           {/* Platform selector (only for create) */}
           {!isEdit && platforms.length > 0 && (

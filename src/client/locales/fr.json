@@ -1570,6 +1570,11 @@
       "kinPlaceholder": "Sélectionner un Kin...",
       "nameTip": "Un nom pour cette connexion. Aide à distinguer plusieurs canaux de la même plateforme.",
       "kinTip": "Le Kin qui répondra aux messages sur ce canal. Chaque canal est géré par un seul Kin.",
+      "transferWarning": "Choisir un autre Kin va transférer ce canal. Le Kin précédent perd le binding et les deux Kins reçoivent une ligne d'audit dans leur conversation.",
+      "transferReasonLabel": "Raison du transfert (optionnelle)",
+      "transferReasonPlaceholder": "Note optionnelle pour expliquer pourquoi tu transfères ce canal (200 caractères max).",
+      "transferred": "Canal transféré vers {{kinName}}.",
+      "transferNoop": "Le canal est déjà rattaché à ce Kin.",
       "help": {
         "content": "Les canaux connectent vos Kins aux plateformes de messagerie externes comme Telegram, Discord, Slack et d'autres. Chaque canal achemine les messages d'une plateforme vers un Kin spécifique.",
         "bullet1": "Chaque canal est lié à un Kin qui gère tous les messages entrants",

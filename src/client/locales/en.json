@@ -1570,6 +1570,11 @@
       "kinPlaceholder": "Select a Kin...",
       "nameTip": "A friendly name for this channel connection. Helps distinguish multiple channels of the same platform.",
       "kinTip": "The Kin that will respond to messages on this channel. Each channel is handled by exactly one Kin.",
+      "transferWarning": "Selecting a different Kin will transfer this channel. The previous Kin loses the binding and both Kins get an audit-trail row in their conversation.",
+      "transferReasonLabel": "Transfer reason (optional)",
+      "transferReasonPlaceholder": "Optional note about why you're transferring this channel (200 chars max).",
+      "transferred": "Channel transferred to {{kinName}}.",
+      "transferNoop": "Channel is already bound to this Kin.",
       "help": {
         "content": "Channels connect your Kins to external messaging platforms like Telegram, Discord, Slack, and more. Each channel routes messages from one platform to a specific Kin.",
         "bullet1": "Each channel is linked to one Kin that handles all incoming messages",
