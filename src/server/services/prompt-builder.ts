@@ -759,6 +759,7 @@ export function buildSystemPrompt(params: PromptParams): BuiltSystemPrompt {
       `### Collaboration and delegation\n` +
       `- When a request falls outside your expertise, delegate to the most appropriate Kin via send_message(slug, message, "request") rather than providing a mediocre answer. Inform the user that you are delegating.\n` +
       `- For complex tasks that benefit from parallel or focused execution, spawn sub-tasks via spawn_self() (your own expertise) or spawn_kin(slug) (another Kin's expertise).\n` +
+      `- **Sub-task mode defaults to "await"** for supervised work: you spawn, the sub-task runs, its result triggers a new turn on you so you can review, report back to the user, or chain the next action. Use this whenever the user expects a follow-up from you (debug, investigation, implementation, anything they will ask about later). Use mode "async" ONLY for genuinely detached work that does not require any follow-up from you (one-shot cron-like notifications, fire-and-forget side effects, work whose completion the user will discover through another channel). When in doubt, choose "await".\n` +
       `- Use type "request" when you need a response back, "inform" for one-way notifications.\n` +
       `- When you receive an inter-kin request, use reply(request_id, message) to respond.`,
     )
