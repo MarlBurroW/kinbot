@@ -47,6 +47,10 @@ export interface RunOptions {
   resumeSessionId?: string
   /** When set, the runner exports ANTHROPIC_API_KEY into the child env. */
   apiKey?: string
+  /** Absolute path to the claude CLI binary. When omitted, the SDK falls
+   *  back to resolving via the system PATH. Needed when KinBot runs as a
+   *  systemd user service whose PATH does not include ~/.local/bin. */
+  binaryPath?: string
   onStatusUpdate: (update: RunStatusUpdate) => void
   abortController: AbortController
 }
@@ -146,6 +150,7 @@ export async function runClaudeCodeSession(opts: RunOptions): Promise<RunComplet
         permissionMode: opts.permissionMode,
         resume: opts.resumeSessionId,
         abortController: opts.abortController,
+        ...(opts.binaryPath ? { pathToClaudeCodeExecutable: opts.binaryPath } : {}),
       },
     })
 

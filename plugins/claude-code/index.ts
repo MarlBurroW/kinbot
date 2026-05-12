@@ -46,6 +46,11 @@ interface ClaudeCodeConfig {
   defaultWorkingDir?: string
   defaultMaxTurns?: number
   permissionMode?: 'bypassPermissions' | 'acceptEdits' | 'plan'
+  /** Absolute path to the claude CLI binary. When set, the runner passes
+   *  it to the SDK as pathToClaudeCodeExecutable instead of relying on
+   *  PATH resolution. Useful for systemd user services whose PATH does
+   *  not include ~/.local/bin. */
+  binaryPath?: string
 }
 
 interface PluginCtx {
@@ -209,6 +214,7 @@ export default function claudeCodePlugin(ctx: PluginCtx) {
       permissionMode: params.permissionMode,
       resumeSessionId: params.resumeSessionId,
       apiKey,
+      binaryPath: config.binaryPath?.trim() || undefined,
       abortController,
       onStatusUpdate: (u) => {
         if (u.sessionId) run.sessionId = u.sessionId

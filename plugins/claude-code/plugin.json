@@ -45,6 +45,14 @@
       "default": "bypassPermissions",
       "required": true,
       "description": "bypassPermissions skips all prompts (full autonomy). acceptEdits auto-accepts file edits only. plan creates a plan without executing."
+    },
+    "binaryPath": {
+      "type": "text",
+      "label": "Claude binary path",
+      "default": "",
+      "required": false,
+      "placeholder": "/home/you/.local/bin/claude",
+      "description": "Absolute path to the claude CLI binary. Leave empty to let the SDK resolve it via the system PATH. Useful when claude is installed in a directory not exposed to the KinBot service (e.g. ~/.local/bin on systemd user services)."
     }
   }
 }
