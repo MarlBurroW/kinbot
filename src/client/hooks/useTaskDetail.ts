@@ -266,23 +266,6 @@ export function useTaskDetail(taskId: string | null) {
     }
   }
 
-  function handleTextStrip(data: Record<string, unknown>) {
-    const messageId = data.messageId as string
-    const length = data.length as number
-    if (!streamingMessageIdRef.current || streamingMessageIdRef.current !== messageId) return
-    if (!Number.isFinite(length) || length <= 0) return
-
-    const current = streamingContentRef.current
-    const truncated = current.length > length ? current.slice(0, current.length - length) : ''
-    streamingContentRef.current = truncated
-
-    if (batchTimerRef.current) {
-      clearTimeout(batchTimerRef.current)
-      batchTimerRef.current = null
-    }
-    setStreamingMessage((prev) => (prev ? { ...prev, content: truncated } : prev))
-  }
-
   function handleToolCall(data: Record<string, unknown>) {
     const messageId = data.messageId as string
     if (!streamingMessageIdRef.current) seedStreaming(messageId)
@@ -375,7 +358,6 @@ export function useTaskDetail(taskId: string | null) {
         case 'chat:tool-call-start': handleToolCallStart(data); break
         case 'chat:token': handleToken(data); break
         case 'chat:reasoning-token': handleReasoningToken(data); break
-        case 'chat:text-strip': handleTextStrip(data); break
         case 'chat:tool-call': handleToolCall(data); break
         case 'chat:tool-result': handleToolResult(data); break
         case 'chat:done': handleDone(data); break
@@ -497,12 +479,6 @@ export function useTaskDetail(taskId: string | null) {
       if (data.taskId !== taskId) return
       if (!readyRef.current) { pendingEventsRef.current.push({ type: 'chat:reasoning-token', data }); return }
       handleReasoningToken(data)
-    },
-
-    'chat:text-strip': (data) => {
-      if (data.taskId !== taskId) return
-      if (!readyRef.current) { pendingEventsRef.current.push({ type: 'chat:text-strip', data }); return }
-      handleTextStrip(data)
     },
 
     'chat:tool-call': (data) => {

@@ -15,7 +15,7 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
 
   const {
     streamingMessage, isStreaming,
-    handleToken, handleTextStrip, handleDone, resetStreaming, cleanup,
+    handleToken, handleDone, resetStreaming, cleanup,
   } = useChatStreaming()
 
   // Fetch messages for this session
@@ -52,16 +52,6 @@ export function useQuickChat(sessionId: string | null, kinId: string | null) {
       handleToken({
         messageId: data.messageId as string,
         token: data.token as string,
-      })
-    },
-
-    'chat:text-strip': (data) => {
-      if (data.kinId !== kinId) return
-      if (data.sessionId !== sessionId) return
-
-      handleTextStrip({
-        messageId: data.messageId as string,
-        length: data.length as number,
       })
     },
 

@@ -168,36 +168,6 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
   }, [trackTokenStall])
 
   /**
-   * Handle a `chat:text-strip` SSE event.
-   *
-   * The server emits this after a streaming step that contained text AND a
-   * tool call: the streamed text was a pre-narration of the tool's (not yet
-   * received) result and is dropped from the persisted message. We truncate
-   * the same number of characters from the end of the streaming content so
-   * the user does not keep reading a fabricated line until the message is
-   * refetched from the DB.
-   */
-  const handleTextStrip = useCallback((data: { messageId: string; length: number }) => {
-    if (!streamingMessageIdRef.current || streamingMessageIdRef.current !== data.messageId) {
-      console.warn('[useChatStreaming] chat:text-strip for unknown message', data.messageId)
-      return
-    }
-    if (data.length <= 0) return
-
-    const current = streamingContentRef.current
-    const truncated = current.length > data.length
-      ? current.slice(0, current.length - data.length)
-      : ''
-    streamingContentRef.current = truncated
-
-    if (batchTimerRef.current) {
-      clearTimeout(batchTimerRef.current)
-      batchTimerRef.current = null
-    }
-    setStreamingMessage((prev) => (prev ? { ...prev, content: truncated } : prev))
-  }, [])
-
-  /**
    * Handle a `chat:done` SSE event.
    * Flushes pending timers, builds the promoted ChatMessage (or null if no
    * streaming was active), and resets internal state.
@@ -301,7 +271,6 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
     streamingReasoning,
     handleToken,
     handleReasoningToken,
-    handleTextStrip,
     handleDone,
     resetStreaming,
     cleanup,

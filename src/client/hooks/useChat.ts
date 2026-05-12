@@ -126,7 +126,7 @@ export function useChat(kinId: string | null) {
 
   const {
     streamingMessage, isStreaming, tokenStalled, streamingReasoning,
-    handleToken, handleReasoningToken, handleTextStrip, handleDone, resetStreaming, cleanup,
+    handleToken, handleReasoningToken, handleDone, resetStreaming, cleanup,
   } = useChatStreaming({ trackTokenStall: true })
 
   // Map task title → taskId, populated from SSE events so we can enrich
@@ -324,17 +324,6 @@ export function useChat(kinId: string | null) {
       handleReasoningToken({
         messageId: data.messageId as string,
         token: data.token as string,
-      })
-    },
-
-    'chat:text-strip': (data) => {
-      if (data.kinId !== kinId) return
-      if (data.taskId) return
-      if (data.sessionId) return
-
-      handleTextStrip({
-        messageId: data.messageId as string,
-        length: data.length as number,
       })
     },
 
