@@ -148,8 +148,12 @@ function archiveRun(
 // ─── Card layout ────────────────────────────────────────────────────────────
 // Strings in {{key}} form are replaced by the renderer with the value held
 // in state at draw time. A full-string placeholder preserves the underlying
-// type (array, object) so we can interpolate `stats`, `logs`, `actions`
+// type (array, object) so we can interpolate `infoItems`, `logs`, `actions`
 // straight through the layout.
+//
+// The layout is intentionally static. All phase-specific theming (variants,
+// icons, animation) is driven by state keys so a single card layout supports
+// every phase from starting through aborted without re-emitting.
 
 function buildCardLayout(): PluginCardPrimitive[] {
   // String placeholders stand in for values resolved from state at render
@@ -157,12 +161,24 @@ function buildCardLayout(): PluginCardPrimitive[] {
   // shape; the typed PluginCardPrimitive contract is for what the renderer
   // ultimately sees, not for the placeholder-bearing layout authored here.
   const raw: unknown[] = [
-    { type: 'header', title: 'Claude Code session', icon: 'Sparkles', accent: '{{accent}}' },
-    { type: 'stat-row', items: '{{stats}}' },
-    { type: 'progress', indeterminate: true, label: '{{currentStep}}' },
+    {
+      type: 'header',
+      title: 'Claude Code',
+      icon: 'bs/BsClaude',
+      accent: '{{accent}}',
+    },
+    {
+      type: 'status-banner',
+      label: '{{phaseLabel}}',
+      sublabel: '{{phaseSublabel}}',
+      variant: '{{phaseVariant}}',
+      icon: '{{phaseIcon}}',
+      animated: '{{phaseAnimation}}',
+    },
+    { type: 'info-grid', columns: 2, items: '{{infoItems}}' },
     {
       type: 'collapsible',
-      label: 'Logs ({{logCount}} lines)',
+      label: 'Logs',
       defaultOpen: false,
       content: { type: 'log-stream', lines: '{{logs}}', autoscroll: true, maxHeight: 280 },
     },
@@ -187,9 +203,38 @@ function phaseLabel(phase: RunPhase): string {
     case 'starting': return 'Starting'
     case 'running': return 'Running'
     case 'completed': return 'Completed'
-    case 'error': return 'Error'
+    case 'error': return 'Failed'
     case 'aborted': return 'Aborted'
     default: return phase
+  }
+}
+
+// Icon shown in the prominent status banner. We use the BsClaude brand
+// icon while the session is live so the card visibly belongs to Claude
+// Code, then switch to Lucide CheckCircle2 / XCircle for terminal states
+// so success and failure read at a glance.
+function phaseBannerIcon(phase: RunPhase): string {
+  switch (phase) {
+    case 'starting':
+    case 'running':
+      return 'bs/BsClaude'
+    case 'completed':
+      return 'CheckCircle2'
+    case 'error':
+    case 'aborted':
+      return 'XCircle'
+    default:
+      return 'bs/BsClaude'
+  }
+}
+
+function phaseBannerAnimation(phase: RunPhase): 'pulse' | 'none' {
+  switch (phase) {
+    case 'starting':
+    case 'running':
+      return 'pulse'
+    default:
+      return 'none'
   }
 }
 
@@ -205,15 +250,99 @@ function completedActions() {
   ]
 }
 
-function buildStats(phase: RunPhase, workingDir: string, sessionId: string | null) {
-  const items: Array<{ label: string; value: string; variant?: string }> = [
-    { label: 'Status', value: phaseLabel(phase), variant: phaseAccent(phase) },
-    { label: 'Working dir', value: workingDir || '(default)' },
+/** Short fingerprint of a session id, used in the info-grid so the full
+ *  uuid rarely overflows. Falls back to a dash when no id yet. */
+function shortSessionId(sessionId: string | null): string {
+  if (!sessionId) return '—'
+  if (sessionId.length <= 12) return sessionId
+  return `${sessionId.slice(0, 8)}…`
+}
+
+function turnsLabel(phase: RunPhase, numTurns: number): string {
+  if (phase === 'starting') return 'starting…'
+  if (numTurns <= 0) return phase === 'running' ? 'in progress' : '—'
+  return numTurns === 1 ? '1 turn' : `${numTurns} turns`
+}
+
+function costLabel(totalCostUsd: number): string {
+  if (!totalCostUsd || totalCostUsd <= 0) return '—'
+  // Two decimals at the dollar level so small runs do not collapse to $0.00
+  if (totalCostUsd < 0.01) return `$${totalCostUsd.toFixed(4)}`
+  return `$${totalCostUsd.toFixed(2)}`
+}
+
+function buildInfoItems(
+  phase: RunPhase,
+  workingDir: string,
+  sessionId: string | null,
+  numTurns: number,
+  totalCostUsd: number,
+) {
+  return [
+    {
+      label: 'Working dir',
+      value: workingDir || '(default)',
+      truncate: true,
+      icon: 'FolderOpen',
+    },
+    {
+      label: 'Session',
+      value: shortSessionId(sessionId),
+      truncate: true,
+      icon: 'Hash',
+    },
+    {
+      label: 'Turns',
+      value: turnsLabel(phase, numTurns),
+      icon: 'Repeat',
+    },
+    {
+      label: 'Cost',
+      value: costLabel(totalCostUsd),
+      icon: 'DollarSign',
+    },
   ]
-  if (sessionId) {
-    items.push({ label: 'Session', value: sessionId.slice(0, 8) })
+}
+
+/**
+ * Build a complete state snapshot for the card. Every key the layout
+ * references is always populated so the renderer never sees unresolved
+ * `{{...}}` placeholders.
+ */
+function buildCardState(args: {
+  phase: RunPhase
+  workingDir: string
+  sessionId: string | null
+  numTurns: number
+  totalCostUsd: number
+  currentStep: string | null
+  errorMessage?: string | null
+  logs: string[]
+  isRunning: boolean
+}): Record<string, unknown> {
+  const variant = phaseAccent(args.phase)
+  const sublabel =
+    args.phase === 'error' || args.phase === 'aborted'
+      ? (args.errorMessage ?? args.currentStep ?? '')
+      : (args.currentStep ?? '')
+  return {
+    accent: variant,
+    phaseLabel: phaseLabel(args.phase),
+    phaseSublabel: sublabel,
+    phaseVariant: variant,
+    phaseIcon: phaseBannerIcon(args.phase),
+    phaseAnimation: phaseBannerAnimation(args.phase),
+    infoItems: buildInfoItems(
+      args.phase,
+      args.workingDir,
+      args.sessionId,
+      args.numTurns,
+      args.totalCostUsd,
+    ),
+    logs: args.logs.slice(-MAX_LOG_BUFFER),
+    logCount: args.logs.length,
+    actions: args.isRunning ? runningActions() : completedActions(),
   }
-  return items
 }
 
 // ─── Plugin entry point ─────────────────────────────────────────────────────
@@ -252,20 +381,22 @@ export default function claudeCodePlugin(ctx: PluginCtx) {
     }
     activeRuns.set(params.cardInstanceId, run)
 
-    const flush = async (extra?: Record<string, unknown>) => {
-      const phase: RunPhase = extra?.phase as RunPhase ?? 'running'
+    const flush = async (overrides?: { phase?: RunPhase; currentStep?: string }) => {
+      const phase = overrides?.phase ?? run.phase
+      const currentStep = overrides?.currentStep ?? run.currentStep
       await ctx.cards.update({
         cardInstanceId: params.cardInstanceId,
-        state: {
-          phase: phaseLabel(phase),
-          accent: phaseAccent(phase),
-          currentStep: typeof extra?.currentStep === 'string' ? extra.currentStep : 'Working...',
-          stats: buildStats(phase, params.workingDir, run.sessionId),
-          logs: run.logs.slice(-MAX_LOG_BUFFER),
-          logCount: run.logs.length,
-          actions: runningActions(),
-          ...extra,
-        },
+        state: buildCardState({
+          phase,
+          workingDir: run.workingDir,
+          sessionId: run.sessionId,
+          numTurns: run.numTurns,
+          totalCostUsd: run.totalCostUsd,
+          currentStep,
+          errorMessage: run.error,
+          logs: run.logs,
+          isRunning: phase === 'starting' || phase === 'running',
+        }),
       })
     }
 
@@ -294,20 +425,25 @@ export default function claudeCodePlugin(ctx: PluginCtx) {
         }
         if (u.phase) run.phase = u.phase
         if (u.currentStep) run.currentStep = u.currentStep
-        const phase = u.phase
-        const stepUpdate = u.currentStep ? { currentStep: u.currentStep } : {}
         // Fire-and-forget update; we never await per-token to keep the SDK
         // stream moving. The DB write inside cards.update is fast and
-        // sequenced via the same kinId on the SSE side.
+        // sequenced via the same kinId on the SSE side. We rebuild the
+        // full state on each tick so renderer-facing keys stay coherent
+        // (a partial patch could leave a stale icon or animation behind
+        // after a phase change).
         void ctx.cards.update({
           cardInstanceId: params.cardInstanceId,
-          state: {
-            ...(phase ? { phase: phaseLabel(phase), accent: phaseAccent(phase) } : {}),
-            ...stepUpdate,
-            stats: buildStats(phase ?? 'running', params.workingDir, run.sessionId),
-            logs: run.logs.slice(-MAX_LOG_BUFFER),
-            logCount: run.logs.length,
-          },
+          state: buildCardState({
+            phase: run.phase,
+            workingDir: run.workingDir,
+            sessionId: run.sessionId,
+            numTurns: run.numTurns,
+            totalCostUsd: run.totalCostUsd,
+            currentStep: run.currentStep,
+            errorMessage: run.error,
+            logs: run.logs,
+            isRunning: run.phase === 'starting' || run.phase === 'running',
+          }),
         })
       },
     })
@@ -332,15 +468,17 @@ export default function claudeCodePlugin(ctx: PluginCtx) {
 
     await ctx.cards.update({
       cardInstanceId: params.cardInstanceId,
-      state: {
-        phase: phaseLabel(finalPhase),
-        accent: phaseAccent(finalPhase),
+      state: buildCardState({
+        phase: finalPhase,
+        workingDir: run.workingDir,
+        sessionId: run.sessionId,
+        numTurns: run.numTurns,
+        totalCostUsd: run.totalCostUsd,
         currentStep: finalStep,
-        stats: buildStats(finalPhase, params.workingDir, run.sessionId),
-        logs: run.logs.slice(-MAX_LOG_BUFFER),
-        logCount: run.logs.length,
-        actions: completedActions(),
-      },
+        errorMessage: run.error,
+        logs: run.logs,
+        isRunning: false,
+      }),
     })
 
     archiveRun(run, {
@@ -635,15 +773,17 @@ export default function claudeCodePlugin(ctx: PluginCtx) {
         }
 
         const layout = buildCardLayout()
-        const initialState: Record<string, unknown> = {
-          phase: phaseLabel('starting'),
-          accent: phaseAccent('starting'),
+        const initialState: Record<string, unknown> = buildCardState({
+          phase: 'starting',
+          workingDir: resolvedWorkingDir,
+          sessionId: resumeSessionId ?? null,
+          numTurns: 0,
+          totalCostUsd: 0,
           currentStep: 'Queued',
-          stats: buildStats('starting', resolvedWorkingDir, resumeSessionId ?? null),
+          errorMessage: null,
           logs: [],
-          logCount: 0,
-          actions: runningActions(),
-        }
+          isRunning: true,
+        })
 
         const { cardInstanceId } = await ctx.cards.emit({
           kinId: toolCtx.kinId,
