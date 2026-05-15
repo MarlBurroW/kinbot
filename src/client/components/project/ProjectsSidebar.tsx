@@ -43,6 +43,14 @@ export function ProjectsSidebar({ projects, selectedId, onSelect, onCreate, onEd
             const active = project.id === selectedId
             return (
               <li key={project.id} className="group relative">
+                {/* Left accent stripe — makes the selected project unmistakable
+                    at a glance even when the background tint is subtle. */}
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-primary"
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => onSelect(project.id)}
@@ -53,7 +61,14 @@ export function ProjectsSidebar({ projects, selectedId, onSelect, onCreate, onEd
                       : 'hover:bg-muted text-foreground/80 hover:text-foreground',
                   )}
                 >
-                  <span className="truncate text-sm font-medium">{project.title}</span>
+                  <span
+                    className={cn(
+                      'truncate text-sm',
+                      active ? 'font-semibold' : 'font-medium',
+                    )}
+                  >
+                    {project.title}
+                  </span>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-muted-foreground">
                       {project.openTicketCount} / {project.ticketCount}
