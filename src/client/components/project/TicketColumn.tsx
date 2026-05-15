@@ -84,8 +84,21 @@ export function TicketColumn({ status, label, tickets, onTicketClick, highlightQ
 
   return (
     <div className="flex h-full w-72 shrink-0 flex-col">
-      <header className="mb-2 flex items-center justify-between px-1">
-        <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {/* The whole header tracks `isOver` during drag so users get a strong,
+          column-wide cue (not just the dropzone border) when a ticket is about
+          to be dropped here — title brightens, badge pulses subtly. */}
+      <header
+        className={cn(
+          'mb-2 flex items-center justify-between rounded-md px-1 py-0.5 transition-colors',
+          isOver && 'bg-primary/10',
+        )}
+      >
+        <h2
+          className={cn(
+            'flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors',
+            isOver ? 'text-foreground' : 'text-muted-foreground',
+          )}
+        >
           <span className={cn('size-2 rounded-full', accent.dot)} aria-hidden />
           {label}
         </h2>
@@ -99,7 +112,14 @@ export function TicketColumn({ status, label, tickets, onTicketClick, highlightQ
               {runningCount}
             </span>
           )}
-          <span className={cn('text-xs tabular-nums', accent.badge)}>{tickets.length}</span>
+          <span
+            className={cn(
+              'text-xs tabular-nums transition-colors',
+              isOver ? 'font-semibold text-primary' : accent.badge,
+            )}
+          >
+            {tickets.length}
+          </span>
         </div>
       </header>
       <div
