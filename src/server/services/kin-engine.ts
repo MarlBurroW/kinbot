@@ -226,6 +226,33 @@ const activeAbortControllers = new Map<string, AbortController>()
 // AbortController registry for quick sessions — keyed by sessionId
 const quickAbortControllers = new Map<string, AbortController>()
 
+// Live in-memory snapshot of the currently-streaming assistant message on
+// a Kin's main thread. Mirrors the `activeTaskStreams` pattern in tasks.ts:
+// the DB row is only inserted at the END of the turn (unlike sub-task
+// streams which pre-insert), so a client that mounts mid-stream (after
+// navigating away and back) would otherwise see only the typing indicator
+// until `chat:done` lands. Reading this map lets `GET /api/kins/:id/messages`
+// expose the in-flight content so the client can seed the streaming bubble.
+export interface ActiveKinStreamSnapshot {
+  kinId: string
+  messageId: string
+  content: string
+  reasoning: Array<{ offset: number; text: string }>
+  toolCalls: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }>
+  sourceName: string | null
+  sourceAvatarUrl: string | null
+  startedAt: number
+}
+
+const activeKinStreams = new Map<string, ActiveKinStreamSnapshot>()
+
+/** Read-only access to an in-flight main-thread stream snapshot. The returned
+ *  arrays are live references owned by `processNextMessage` — callers MUST NOT
+ *  mutate them. */
+export function getActiveKinStreamSnapshot(kinId: string): ActiveKinStreamSnapshot | undefined {
+  return activeKinStreams.get(kinId)
+}
+
 // Cache of last computed context usage per Kin. Two values are kept side by
 // side instead of one + a source flag — that earlier design caused subtle
 // sync issues between the SSE-fed navbar and the REST-fed visualizer when
@@ -1352,13 +1379,33 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       const mockResponse = 'Great question! Fresh basil, oregano, rosemary, and thyme are the cornerstones of Italian cooking. Parsley and sage are also essential — together they bring depth to sauces, soups, and roasted dishes.'
       const mockAssistantId = uuid()
       const tokens = mockResponse.split(' ')
+      // Register a snapshot so a client that mounts mid-stream can rehydrate
+      // the bubble — same path real LLM streams use.
+      const mockSnapshot: ActiveKinStreamSnapshot = {
+        kinId,
+        messageId: mockAssistantId,
+        content: '',
+        reasoning: [],
+        toolCalls: [],
+        sourceName: kin.name,
+        sourceAvatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${kin.avatarPath.split('.').pop()}` : null,
+        startedAt: Date.now(),
+      }
+      activeKinStreams.set(kinId, mockSnapshot)
+      let mockAccum = ''
+      // Slow the stream down a bit in E2E so the test has time to navigate
+      // away and come back while tokens are still flowing.
+      const mockDelay = Number(process.env.E2E_MOCK_LLM_TOKEN_DELAY_MS ?? 50)
       for (const token of tokens) {
+        const piece = token + ' '
+        mockAccum += piece
+        mockSnapshot.content = mockAccum
         sseManager.sendToKin(kinId, {
           type: 'chat:token',
           kinId,
-          data: { kinId, messageId: mockAssistantId, token: token + ' ' },
+          data: { kinId, messageId: mockAssistantId, token: piece },
         })
-        await new Promise((r) => setTimeout(r, 50))
+        await new Promise((r) => setTimeout(r, mockDelay))
       }
       await db.insert(messages).values({
         id: mockAssistantId,
@@ -1368,6 +1415,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
         sourceType: 'kin',
         createdAt: new Date(),
       })
+      activeKinStreams.delete(kinId)
       sseManager.sendToKin(kinId, {
         type: 'chat:done',
         kinId,
@@ -1528,6 +1576,21 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     let currentReasoning = ''
     const toolCallsLog: Array<{ id: string; name: string; args: unknown; result?: unknown; offset: number }> = []
 
+    // In-memory snapshot for clients that mount mid-stream (see activeKinStreams
+    // declaration above). Arrays are shared by reference so server-side mutations
+    // are visible immediately to the route handler that reads them.
+    const kinStreamSnapshot: ActiveKinStreamSnapshot = {
+      kinId,
+      messageId: assistantMessageId,
+      content: '',
+      reasoning: reasoningSegments,
+      toolCalls: toolCallsLog,
+      sourceName: kin.name,
+      sourceAvatarUrl: kin.avatarPath ? `/api/uploads/kins/${kin.id}/avatar.${kin.avatarPath.split('.').pop()}` : null,
+      startedAt: Date.now(),
+    }
+    activeKinStreams.set(kinId, kinStreamSnapshot)
+
     // Strip execute functions from tools so the SDK only collects intents
     // (we execute tools ourselves between steps), then mark the last tool as
     // cache-eligible for Anthropic prompt caching.
@@ -1614,6 +1677,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
               const isFirstToken = fullContent.length === 0
               fullContent += part.text
               stepText += part.text
+              kinStreamSnapshot.content = fullContent
               sseManager.sendToKin(kinId, {
                 type: 'chat:token',
                 kinId,
@@ -1724,6 +1788,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
 
     activeAbortControllers.delete(kinId)
+    activeKinStreams.delete(kinId)
 
     // Aggregate token usage (awaited so we can persist in metadata + SSE)
     const tokenUsage = await aggregateStepUsage(stepResults)
@@ -1969,6 +2034,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     return true
   } catch (error) {
     activeAbortControllers.delete(kinId)
+    activeKinStreams.delete(kinId)
 
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
     const displayError = friendlyErrorMessage(errorMsg)

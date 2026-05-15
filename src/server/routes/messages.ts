@@ -3,7 +3,7 @@ import { eq, and, isNull, lt, desc, inArray } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { messages, kins, channels, channelMessageLinks, compactingSnapshots, compactingSummaries, memories as kinMemories, files, humanPrompts, messageReactions } from '@/server/db/schema'
 import { enqueueMessage, getPendingQueueItems, removeQueueItem } from '@/server/services/queue'
-import { abortKinStream } from '@/server/services/kin-engine'
+import { abortKinStream, getActiveKinStreamSnapshot } from '@/server/services/kin-engine'
 import { sseManager } from '@/server/sse/index'
 import { getFilesForMessages, serializeFile } from '@/server/services/files'
 import { resolveKinId } from '@/server/services/kin-resolver'
@@ -250,7 +250,30 @@ messageRoutes.get('/', async (c) => {
     for (const r of rows) transferChannelPlatformMap.set(r.id, r.platform)
   }
 
+  // If a stream is currently in-flight on this Kin's main thread, expose the
+  // live snapshot so a client mounting mid-stream can seed its streaming
+  // bubble immediately instead of staring at a typing indicator until
+  // `chat:done` fires. Same pattern as `getActiveTaskSnapshot()` for tasks.
+  // Note: unlike sub-task streams, the main-thread row is only inserted at
+  // the END of the turn, so the streaming messageId is NEVER in `messageList`
+  // and never needs to be overlay-merged with a persisted row.
+  // Skipped on paginated (?before=) queries — they fetch older history and
+  // the in-flight bubble (if any) belongs to the initial-fetch caller.
+  const streamSnapshot = !before ? getActiveKinStreamSnapshot(kinId) : undefined
+  const streamingMessage = streamSnapshot
+    ? {
+        messageId: streamSnapshot.messageId,
+        content: streamSnapshot.content,
+        reasoning: streamSnapshot.reasoning.length > 0 ? streamSnapshot.reasoning : null,
+        toolCalls: streamSnapshot.toolCalls.length > 0 ? streamSnapshot.toolCalls : null,
+        sourceName: streamSnapshot.sourceName,
+        sourceAvatarUrl: streamSnapshot.sourceAvatarUrl,
+        startedAt: streamSnapshot.startedAt,
+      }
+    : null
+
   return c.json({
+    streamingMessage,
     messages: messageList.map((m) => {
       const kinInfo = (m.sourceType === 'kin' || m.sourceType === 'task') && m.sourceId ? kinInfoMap.get(m.sourceId) : null
       let meta: Record<string, unknown> | null = null

@@ -110,9 +110,26 @@ export interface LiveCompacting {
   error?: string
 }
 
+/** Snapshot of an in-flight assistant message returned by GET /api/kins/:id/messages
+ *  when the kin is still streaming. Used to rehydrate the streaming bubble on
+ *  remount (navigate-away then back, or full page reload). The shape mirrors
+ *  `streamingMessageId` / overlay in the tasks route, but here the streaming row
+ *  is NOT yet in `messages` because the DB row is only inserted at the end of
+ *  the turn, so it is returned as a sibling field. */
+interface MessagesStreamingSnapshot {
+  messageId: string
+  content: string
+  reasoning: Array<{ offset: number; text: string }> | null
+  toolCalls: ToolCallEntry[] | null
+  sourceName: string | null
+  sourceAvatarUrl: string | null
+  startedAt: number
+}
+
 interface MessagesResponse {
   messages: ChatMessage[]
   hasMore: boolean
+  streamingMessage: MessagesStreamingSnapshot | null
 }
 
 export function useChat(kinId: string | null) {
@@ -126,7 +143,7 @@ export function useChat(kinId: string | null) {
 
   const {
     streamingMessage, isStreaming, tokenStalled, streamingReasoning,
-    handleToken, handleReasoningToken, handleDone, resetStreaming, cleanup,
+    handleToken, handleReasoningToken, handleDone, seedStreaming, resetStreaming, cleanup,
   } = useChatStreaming({ trackTokenStall: true })
 
   // Map task title → taskId, populated from SSE events so we can enrich
@@ -198,12 +215,32 @@ export function useChat(kinId: string | null) {
           prev.filter((t) => !resolvedTaskIds.has(t.taskId)),
         )
       }
+
+      // Rehydrate the streaming bubble if the server reports an in-flight
+      // assistant message. This covers the case where the user navigated
+      // away mid-stream and is now coming back (or did a full reload).
+      // We only seed when the streamed messageId is NOT already in the
+      // persisted message list — once `chat:done` fires, the row is in
+      // `data.messages` and the snapshot is stale.
+      if (data.streamingMessage) {
+        const snapshotId = data.streamingMessage.messageId
+        const alreadyPersisted = data.messages.some((m) => m.id === snapshotId)
+        if (!alreadyPersisted) {
+          seedStreaming({
+            messageId: snapshotId,
+            content: data.streamingMessage.content,
+            reasoning: data.streamingMessage.reasoning,
+            sourceName: data.streamingMessage.sourceName,
+            sourceAvatarUrl: data.streamingMessage.sourceAvatarUrl,
+          })
+        }
+      }
     } catch {
       toast.error(t('errors.loadMessagesFailed'))
     } finally {
       setIsLoading(false)
     }
-  }, [kinId])
+  }, [kinId, seedStreaming])
 
   // Fetch active tasks for this kin to restore live task cards after navigation
   const fetchActiveTasks = useCallback(async () => {
@@ -242,13 +279,16 @@ export function useChat(kinId: string | null) {
   }, [kinId])
 
   useEffect(() => {
-    fetchMessages()
+    // Reset first (synchronous), then fetch. fetchMessages() may call
+    // seedStreaming() once the response comes back if the Kin is still
+    // streaming — that seed must NOT be wiped by this reset.
     resetStreaming()
     setLiveTasks([])
     setLiveCompacting(null)
     setHasMore(false)
     setIsLoadingMore(false)
     taskIdByTitleRef.current.clear()
+    fetchMessages()
     // Restore live task cards for active tasks after clearing
     fetchActiveTasks()
     // Restore compacting state if a compaction is in progress

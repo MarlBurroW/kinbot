@@ -27,6 +27,19 @@ export interface StreamingDoneData {
   tokenUsage?: ChatMessage['tokenUsage']
 }
 
+/**
+ * Server-side snapshot of an in-flight assistant message, used to rehydrate
+ * the streaming bubble when a client mounts mid-stream (e.g. navigated away
+ * and back, or full page reload while the model was still emitting tokens).
+ */
+export interface StreamingSnapshot {
+  messageId: string
+  content: string
+  reasoning?: Array<{ offset: number; text: string }> | null
+  sourceName?: string | null
+  sourceAvatarUrl?: string | null
+}
+
 interface UseChatStreamingOptions {
   /** Track token stalls — useful in main chat to show tool-call indicator. Default: false */
   trackTokenStall?: boolean
@@ -231,6 +244,74 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
   }, [])
 
   /**
+   * Seed the streaming state from a server-provided snapshot. Used to rehydrate
+   * the in-flight bubble when the chat hook mounts mid-stream (navigate-away
+   * then back, or full page reload while the model is still emitting tokens).
+   *
+   * Safe to call after `resetStreaming()`; the next `chat:token` event will
+   * accumulate on top of the seeded content because the messageId ref is set.
+   * If the local stream is already tracking the same messageId, the snapshot
+   * is reconciled (we keep whichever content is longer) so a race between the
+   * REST fetch and the live SSE stream cannot truncate the bubble.
+   */
+  const seedStreaming = useCallback((snapshot: StreamingSnapshot) => {
+    if (!snapshot.messageId) return
+
+    const sameMessage = streamingMessageIdRef.current === snapshot.messageId
+    const localContent = streamingContentRef.current
+    const seededContent = snapshot.content ?? ''
+    const content = sameMessage && localContent.length > seededContent.length
+      ? localContent
+      : seededContent
+
+    streamingMessageIdRef.current = snapshot.messageId
+    streamingContentRef.current = content
+
+    const reasoningText = snapshot.reasoning && snapshot.reasoning.length > 0
+      ? snapshot.reasoning.map((r) => r.text).join('')
+      : ''
+    if (reasoningText && streamingReasoningRef.current.length < reasoningText.length) {
+      streamingReasoningRef.current = reasoningText
+      setStreamingReasoning(reasoningText)
+    }
+
+    setIsStreaming(true)
+    setTokenStalled(false)
+
+    // Re-arm the stall timer so the typing indicator does not flash off and
+    // back on while waiting for the next live token after rehydration.
+    if (trackTokenStall) {
+      if (tokenStallTimerRef.current) clearTimeout(tokenStallTimerRef.current)
+      tokenStallTimerRef.current = setTimeout(() => setTokenStalled(true), TOKEN_STALL_MS)
+    }
+
+    setStreamingMessage({
+      id: snapshot.messageId,
+      role: 'assistant',
+      content,
+      sourceType: 'kin',
+      sourceId: null,
+      sourceName: snapshot.sourceName ?? null,
+      sourceAvatarUrl: snapshot.sourceAvatarUrl ?? null,
+      isRedacted: false,
+      toolCalls: null,
+      resolvedTaskId: null,
+      injectedMemories: null,
+      memoriesExtracted: null,
+      compactingError: null,
+      files: [],
+      reactions: [],
+      stepLimitReached: false,
+      tokenUsage: null,
+      reasoning: snapshot.reasoning ?? null,
+      channelContextLine: null,
+      channelMeta: null,
+      systemEvent: null,
+      createdAt: new Date().toISOString(),
+    })
+  }, [trackTokenStall])
+
+  /**
    * Reset all streaming state. Call when the context changes (e.g. kinId switch).
    */
   const resetStreaming = useCallback(() => {
@@ -272,6 +353,7 @@ export function useChatStreaming(options?: UseChatStreamingOptions) {
     handleToken,
     handleReasoningToken,
     handleDone,
+    seedStreaming,
     resetStreaming,
     cleanup,
   }

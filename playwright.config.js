@@ -29,6 +29,12 @@ export default defineConfig({
       PORT: '3334',
       DB_PATH: process.env.E2E_DB_PATH || './data/kinbot-e2e.db',
       E2E_SKIP_PROVIDER_TEST: 'true',
+      // Stream a deterministic fake assistant response in tests that need it
+      // (e.g. 28-stream-rehydration). Other specs ignore the response.
+      E2E_MOCK_LLM: 'true',
+      // Slow the mock stream down so the rehydration spec has time to
+      // navigate away mid-stream. Other specs don't assert on it.
+      E2E_MOCK_LLM_TOKEN_DELAY_MS: '120',
       LOG_LEVEL: 'warn',
       TRUSTED_ORIGINS: 'http://localhost:3334',
       BETTER_AUTH_BASE_URL: 'http://localhost:3334',
