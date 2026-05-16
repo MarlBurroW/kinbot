@@ -2,9 +2,11 @@ import { useState, useRef, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTicket, useTickets } from '@/client/hooks/useTickets'
 import { useProject } from '@/client/hooks/useProjects'
+import { useTicketComments } from '@/client/hooks/useTicketComments'
+import { useAuth } from '@/client/hooks/useAuth'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
-import { Play, ListChecks, Loader2, X, ChevronLeft, Pencil, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { Play, ListChecks, Loader2, MessageSquare, X, ChevronLeft, Pencil, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
@@ -15,6 +17,8 @@ import { StartTaskDialog } from '@/client/components/project/StartTaskDialog'
 import { EnrichTicketDialog } from '@/client/components/project/EnrichTicketDialog'
 import { EditTicketModal } from '@/client/components/project/EditTicketModal'
 import { TicketReporterBadge } from '@/client/components/project/TicketReporterBadge'
+import { TicketCommentsList } from '@/client/components/project/TicketCommentsList'
+import { TicketCommentForm } from '@/client/components/project/TicketCommentForm'
 import { getErrorMessage } from '@/client/lib/api'
 import { toast } from 'sonner'
 import type { TicketTaskSummary } from '@/shared/types'
@@ -37,6 +41,9 @@ export function TicketPanelContent({ ticketId }: TicketPanelContentProps) {
   const { project } = useProject(ticket?.projectId ?? null)
   const { updateTicket, deleteTicket } = useTickets(ticket?.projectId ?? null)
   const { closeTicket, activeTicket, openTask } = useSidePanel()
+  const { user } = useAuth()
+  const { comments, isLoading: commentsLoading, createComment, updateComment, deleteComment } =
+    useTicketComments(ticketId)
   const [startTaskOpen, setStartTaskOpen] = useState(false)
   const [enrichOpen, setEnrichOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -195,6 +202,37 @@ export function TicketPanelContent({ ticketId }: TicketPanelContentProps) {
             <p className="text-sm italic text-muted-foreground">
               {t('projects.ticket.panel.noDescription')}
             </p>
+          )}
+        </section>
+
+        {/*
+          Comments — placed right under the description, Jira-like.
+          Newest first, only the 3 most recent are visible by default with
+          an "expand" toggle to keep the tasks history reachable without
+          excessive scrolling.
+        */}
+        <section className="mb-4">
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <MessageSquare className="size-3.5" />
+            {t('projects.ticket.comments.title')}
+            {comments.length > 0 && (
+              <span className="text-[10px] font-normal text-muted-foreground/70">
+                ({comments.length})
+              </span>
+            )}
+          </h3>
+          <TicketCommentsList
+            comments={comments}
+            isLoading={commentsLoading}
+            currentUserId={user?.id ?? null}
+            onUpdate={(commentId, content) => updateComment(commentId, content)}
+            onDelete={(commentId) => deleteComment(commentId)}
+            maxVisible={3}
+          />
+          {user && (
+            <div className="mt-3">
+              <TicketCommentForm onSubmit={(content) => createComment(content)} />
+            </div>
           )}
         </section>
 

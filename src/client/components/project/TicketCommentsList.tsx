@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bot, Pencil, Trash2, X, Check } from 'lucide-react'
+import { Bot, ChevronDown, ChevronUp, Pencil, Trash2, X, Check } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/client/components/ui/avatar'
 import { Button } from '@/client/components/ui/button'
 import { Textarea } from '@/client/components/ui/textarea'
@@ -26,6 +26,11 @@ interface TicketCommentsListProps {
   currentUserId: string | null
   onUpdate: (commentId: string, content: string) => Promise<unknown>
   onDelete: (commentId: string) => Promise<unknown>
+  /**
+   * Maximum number of comments to render before showing a "show all" toggle.
+   * When undefined, all comments are rendered. Most recent first (Jira-like).
+   */
+  maxVisible?: number
 }
 
 function authorInitials(name: string): string {
@@ -48,6 +53,7 @@ export function TicketCommentsList({
   currentUserId,
   onUpdate,
   onDelete,
+  maxVisible,
 }: TicketCommentsListProps) {
   const { t } = useTranslation()
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -55,6 +61,18 @@ export function TicketCommentsList({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  // Sort newest first (Jira-like) without mutating the prop.
+  const sortedComments = useMemo(
+    () => [...comments].sort((a, b) => b.createdAt - a.createdAt),
+    [comments],
+  )
+
+  const needsCollapse = typeof maxVisible === 'number' && sortedComments.length > maxVisible
+  const visibleComments =
+    needsCollapse && !expanded ? sortedComments.slice(0, maxVisible) : sortedComments
+  const hiddenCount = sortedComments.length - visibleComments.length
 
   if (isLoading) {
     return (
@@ -112,7 +130,7 @@ export function TicketCommentsList({
   return (
     <>
       <ul className="space-y-4">
-        {comments.map((comment) => {
+        {visibleComments.map((comment) => {
           const isKin = comment.author.type === 'kin'
           const canMutate = currentUserId !== null // any user can edit/delete per platform conventions
           const isEditing = editingId === comment.id
@@ -233,6 +251,29 @@ export function TicketCommentsList({
           )
         })}
       </ul>
+
+      {needsCollapse && (
+        <div className="mt-2 flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="size-3" />
+                {t('projects.ticket.comments.showLess')}
+              </>
+            ) : (
+              <>
+                <ChevronDown className="size-3" />
+                {t('projects.ticket.comments.showMore', { count: hiddenCount })}
+              </>
+            )}
+          </Button>
+        </div>
+      )}
 
       <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
         <AlertDialogContent>
