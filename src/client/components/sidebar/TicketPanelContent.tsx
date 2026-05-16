@@ -1,10 +1,12 @@
-import { useState, useRef, useLayoutEffect } from 'react'
+import { useState, useRef, useLayoutEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTicket, useTickets } from '@/client/hooks/useTickets'
 import { useProject } from '@/client/hooks/useProjects'
+import { useTicketComments } from '@/client/hooks/useTicketComments'
+import { useAuth } from '@/client/hooks/useAuth'
 import { Button } from '@/client/components/ui/button'
 import { Badge } from '@/client/components/ui/badge'
-import { Play, ListChecks, Loader2, X, ChevronLeft, Pencil, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { MessageSquare, Play, ListChecks, Loader2, X, ChevronLeft, Pencil, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
@@ -15,9 +17,13 @@ import { StartTaskDialog } from '@/client/components/project/StartTaskDialog'
 import { EnrichTicketDialog } from '@/client/components/project/EnrichTicketDialog'
 import { EditTicketModal } from '@/client/components/project/EditTicketModal'
 import { TicketReporterBadge } from '@/client/components/project/TicketReporterBadge'
+import { TicketCommentsList } from '@/client/components/project/TicketCommentsList'
+import { TicketCommentForm } from '@/client/components/project/TicketCommentForm'
 import { getErrorMessage } from '@/client/lib/api'
 import { toast } from 'sonner'
 import type { TicketTaskSummary } from '@/shared/types'
+
+const COMMENTS_COLLAPSED_COUNT = 3
 
 interface TicketPanelContentProps {
   ticketId: string
@@ -33,13 +39,33 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
 
 export function TicketPanelContent({ ticketId }: TicketPanelContentProps) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const { ticket, isLoading } = useTicket(ticketId)
   const { project } = useProject(ticket?.projectId ?? null)
   const { updateTicket, deleteTicket } = useTickets(ticket?.projectId ?? null)
   const { closeTicket, activeTicket, openTask } = useSidePanel()
+  const {
+    comments,
+    isLoading: commentsLoading,
+    createComment,
+    updateComment,
+    deleteComment,
+  } = useTicketComments(ticketId)
   const [startTaskOpen, setStartTaskOpen] = useState(false)
   const [enrichOpen, setEnrichOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [showAllComments, setShowAllComments] = useState(false)
+
+  // Server returns comments oldest-first; flip for a Jira-style "newest at top"
+  // feed so the panel surfaces what just happened without scrolling.
+  const orderedComments = useMemo(
+    () => [...comments].sort((a, b) => b.createdAt - a.createdAt),
+    [comments],
+  )
+  const visibleComments = showAllComments
+    ? orderedComments
+    : orderedComments.slice(0, COMMENTS_COLLAPSED_COUNT)
+  const hiddenCount = orderedComments.length - visibleComments.length
 
   const parent = activeTicket?.parent
 
@@ -195,6 +221,52 @@ export function TicketPanelContent({ ticketId }: TicketPanelContentProps) {
             <p className="text-sm italic text-muted-foreground">
               {t('projects.ticket.panel.noDescription')}
             </p>
+          )}
+        </section>
+
+        {/* Comments — newest first, top 3 collapsed */}
+        <section className="mb-4">
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <MessageSquare className="size-3.5" />
+            {t('projects.ticket.comments.title')}
+            {orderedComments.length > 0 && (
+              <span className="text-muted-foreground/70">({orderedComments.length})</span>
+            )}
+          </h3>
+
+          {user && (
+            <div className="mb-3">
+              <TicketCommentForm onSubmit={(content) => createComment(content)} />
+            </div>
+          )}
+
+          <TicketCommentsList
+            comments={visibleComments}
+            isLoading={commentsLoading}
+            currentUserId={user?.id ?? null}
+            onUpdate={(commentId, content) => updateComment(commentId, content)}
+            onDelete={(commentId) => deleteComment(commentId)}
+          />
+
+          {orderedComments.length > COMMENTS_COLLAPSED_COUNT && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 h-6 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+              onClick={() => setShowAllComments((v) => !v)}
+            >
+              {showAllComments ? (
+                <>
+                  <ChevronUp className="size-3" />
+                  {t('projects.ticket.comments.showLess')}
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="size-3" />
+                  {t('projects.ticket.comments.showAll', { count: hiddenCount })}
+                </>
+              )}
+            </Button>
           )}
         </section>
 

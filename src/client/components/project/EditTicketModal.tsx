@@ -35,10 +35,6 @@ import { Trash2 } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import { TICKET_STATUSES } from '@/shared/constants'
 import type { ProjectTag, Ticket, TicketStatus } from '@/shared/types'
-import { useTicketComments } from '@/client/hooks/useTicketComments'
-import { useAuth } from '@/client/hooks/useAuth'
-import { TicketCommentsList } from '@/client/components/project/TicketCommentsList'
-import { TicketCommentForm } from '@/client/components/project/TicketCommentForm'
 
 interface EditTicketModalProps {
   open: boolean
@@ -56,7 +52,6 @@ interface EditTicketModalProps {
 
 export function EditTicketModal({ open, onOpenChange, ticket, availableTags, onSave, onDelete }: EditTicketModalProps) {
   const { t } = useTranslation()
-  const { user } = useAuth()
   const [title, setTitle] = useState(ticket.title)
   const [description, setDescription] = useState(ticket.description)
   const [status, setStatus] = useState<TicketStatus>(ticket.status)
@@ -64,11 +59,6 @@ export function EditTicketModal({ open, onOpenChange, ticket, availableTags, onS
   const [submitting, setSubmitting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-
-  // Only subscribe / fetch comments while the modal is open to avoid a network
-  // hit on every list render where a ticket card mounts the modal lazily.
-  const { comments, isLoading: commentsLoading, createComment, updateComment, deleteComment } =
-    useTicketComments(open ? ticket.id : null)
 
   // Reset fields whenever the modal (re)opens or the ticket changes
   useEffect(() => {
@@ -215,21 +205,6 @@ export function EditTicketModal({ open, onOpenChange, ticket, availableTags, onS
               </div>
             )}
 
-            <div className="space-y-3 pt-2 border-t border-border/60">
-              <Label>{t('projects.ticket.comments.title')}</Label>
-              <TicketCommentsList
-                comments={comments}
-                isLoading={commentsLoading}
-                currentUserId={user?.id ?? null}
-                onUpdate={(commentId, content) => updateComment(commentId, content)}
-                onDelete={(commentId) => deleteComment(commentId)}
-              />
-              {user && (
-                <TicketCommentForm
-                  onSubmit={(content) => createComment(content)}
-                />
-              )}
-            </div>
           </div>
 
           <DialogFooter className="flex flex-row justify-between sm:justify-between gap-2">

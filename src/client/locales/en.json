@@ -2529,6 +2529,8 @@
         "kinTag": "Kin",
         "edited": "edited",
         "loading": "Loading comments...",
+        "showAll": "Show {{count}} more",
+        "showLess": "Show fewer",
         "deleteConfirm": {
           "title": "Delete this comment?",
           "description": "The comment will be permanently removed. This cannot be undone.",

@@ -2530,6 +2530,8 @@
         "kinTag": "Kin",
         "edited": "modifié",
         "loading": "Chargement des commentaires...",
+        "showAll": "Voir {{count}} de plus",
+        "showLess": "Voir moins",
         "deleteConfirm": {
           "title": "Supprimer ce commentaire ?",
           "description": "Le commentaire sera supprimé définitivement. Cette action est irréversible.",
