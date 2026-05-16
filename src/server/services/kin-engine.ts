@@ -52,7 +52,7 @@ import { getGlobalPrompt, getHubKinId, getSetting, setSetting } from '@/server/s
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { executeToolBatch } from '@/server/services/tool-executor'
 import { recordUsage, aggregateStepUsage } from '@/server/services/token-usage'
-import { runStreamStep } from '@/server/services/stream-runner'
+import { runStreamStep, normalizeToolUseInput } from '@/server/services/stream-runner'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -565,20 +565,16 @@ function sanitizePersistedToolCalls<T extends { id: unknown; name: unknown; args
       dropped++
       continue
     }
-    // `undefined` is not a valid JSON value — the Vercel AI SDK ModelMessage
-    // schema rejects `input: undefined`. Normalize to `{}` so the history
-    // replay stays structurally valid. Any other value (null, object, array,
-    // primitive) passes through untouched.
-    let args: unknown = tc.args
-    if (args === undefined) {
-      args = {}
-      normalized++
-    }
+    const before = tc.args
+    const args = normalizeToolUseInput(before, { toolName: tc.name, toolCallId: tc.id })
+    // Track only when the value actually changed — pre-existing valid object
+    // entries are the common case and we don't want to spam the log.
+    if (args !== before) normalized++
     out.push({ ...tc, id: tc.id, name: tc.name, args })
   }
   if (dropped > 0 || normalized > 0) {
     log.warn(
-      { kinId, droppedMalformed: dropped, normalizedUndefinedArgs: normalized, total: toolCalls.length },
+      { kinId, droppedMalformed: dropped, normalizedArgs: normalized, total: toolCalls.length },
       'Sanitized malformed persisted tool calls before LLM replay (#355 recovery)',
     )
   }

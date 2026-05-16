@@ -23,13 +23,63 @@
  * current stack.
  */
 import { sseManager } from '@/server/sse/index'
+import { createLogger } from '@/server/logger'
 import { extractApiErrorMessage } from '@/server/services/kin-engine'
+
+const log = createLogger('stream-runner')
 
 export interface StreamStepToolCall {
   id: string
   name: string
   args: unknown
   offset: number
+}
+
+/**
+ * Coerce a tool_use `input` value into a plain object. The Anthropic API and
+ * the Vercel AI SDK both require `input` to be a JSON object — anything else
+ * makes the next turn fail with `messages.<N>.content.<K>.tool_use.input:
+ * Input should be an object` and permanently bricks the task (the bad entry
+ * survives in the persisted history).
+ *
+ * Real-world failure mode that motivated this guard (prod task on ticket #25,
+ * read_file call #49): Opus 4.7 occasionally emits invalid JSON in tool_use
+ * inputs — e.g. `{"path": "...", "offset": 1, 100, "limit": 80}` where it
+ * meant to express a range. The AI SDK can't parse that and surfaces the raw
+ * string in the `input` field. Without normalization, the string round-trips
+ * through history and trips the API on the next step.
+ *
+ * Normalization rules:
+ *   - plain object → passes through unchanged
+ *   - string → attempt JSON.parse; if it yields a plain object, use it;
+ *     otherwise fall back to `{}` (the tool will then fail zod validation
+ *     cleanly and the model can re-emit a corrected call)
+ *   - null / undefined / array / primitive → `{}`
+ */
+export function normalizeToolUseInput(value: unknown, context?: { toolName?: string; toolCallId?: string }): Record<string, unknown> {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>
+      }
+    } catch {
+      // fall through to default
+    }
+  }
+  log.warn(
+    {
+      toolName: context?.toolName,
+      toolCallId: context?.toolCallId,
+      receivedType: value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value,
+      preview: typeof value === 'string' ? value.slice(0, 200) : undefined,
+    },
+    'Coerced malformed tool_use input to {} — the model will see a validation error from the tool and can re-emit',
+  )
+  return {}
 }
 
 export interface StreamStepOutcome {
@@ -202,17 +252,18 @@ export async function runStreamStep(
         case 'tool-call': {
           sawCommittedSignal = true
           const p = partUnknown as { toolCallId: string; toolName: string; input: unknown }
+          const normalizedInput = normalizeToolUseInput(p.input, { toolName: p.toolName, toolCallId: p.toolCallId })
           stepToolCalls.push({
             id: p.toolCallId,
             name: p.toolName,
-            args: p.input,
+            args: normalizedInput,
             offset: prevContentLen,
           })
           send('chat:tool-call', {
             messageId: ctx.assistantMessageId,
             toolCallId: p.toolCallId,
             toolName: p.toolName,
-            args: p.input,
+            args: normalizedInput,
             contentOffset: prevContentLen,
           })
           break

@@ -38,7 +38,7 @@ mock.module('@/server/services/kin-engine', () => ({
   },
 }))
 
-const { runStreamStep } = await import('@/server/services/stream-runner')
+const { runStreamStep, normalizeToolUseInput } = await import('@/server/services/stream-runner')
 
 /** Build a fake `result.fullStream`-compatible async iterable from a list
  *  of stream chunks. Chunks are yielded in order, with a microtask gap
@@ -382,5 +382,64 @@ describe('runStreamStep — content snapshot updates', () => {
       0,
     )
     expect(snapshot.content).toBe('previous answer')
+  })
+})
+
+describe('normalizeToolUseInput — guard against malformed tool_use inputs', () => {
+  it('passes a plain object through unchanged', () => {
+    const input = { path: 'foo.ts', limit: 10 }
+    expect(normalizeToolUseInput(input)).toBe(input)
+  })
+
+  it('parses a string when it contains valid JSON describing an object', () => {
+    const out = normalizeToolUseInput('{"path":"foo.ts","limit":10}')
+    expect(out).toEqual({ path: 'foo.ts', limit: 10 })
+  })
+
+  it('falls back to {} when the string is malformed JSON (the prod task #25 case)', () => {
+    // Opus 4.7 emitted this exact shape on ticket #25 and the AI SDK couldn't parse it.
+    const malformed = '{"path":"foo.ts","offset":1, 100,"limit":80}'
+    expect(normalizeToolUseInput(malformed)).toEqual({})
+  })
+
+  it('falls back to {} when the parsed string is a JSON array', () => {
+    expect(normalizeToolUseInput('[1,2,3]')).toEqual({})
+  })
+
+  it('falls back to {} for null', () => {
+    expect(normalizeToolUseInput(null)).toEqual({})
+  })
+
+  it('falls back to {} for undefined (matches the legacy #355 path)', () => {
+    expect(normalizeToolUseInput(undefined)).toEqual({})
+  })
+
+  it('falls back to {} for an array', () => {
+    expect(normalizeToolUseInput([1, 2, 3])).toEqual({})
+  })
+
+  it('falls back to {} for a primitive', () => {
+    expect(normalizeToolUseInput(42)).toEqual({})
+    expect(normalizeToolUseInput(true)).toEqual({})
+  })
+})
+
+describe('runStreamStep — malformed tool_use input is normalized at capture', () => {
+  it('coerces a string-typed input into {} before persisting / forwarding', async () => {
+    const outcome = await runStreamStep(
+      fakeStream([
+        // Reproduces the prod task #25 shape: SDK couldn't parse the JSON
+        // and surfaced the raw string in the input field.
+        { type: 'tool-call', toolCallId: 'tc-bad', toolName: 'read_file', input: '{"path":"foo.ts","offset":1, 100}' },
+        { type: 'finish', finishReason: 'tool-calls' },
+      ]),
+      makeCtx(),
+      0,
+    )
+    expect(outcome.stepToolCalls).toHaveLength(1)
+    expect(outcome.stepToolCalls[0]!.args).toEqual({})
+    const toolCallSse = sseEvents.find((e) => e.type === 'chat:tool-call')
+    expect(toolCallSse).toBeDefined()
+    expect(toolCallSse!.data.args).toEqual({})
   })
 })
