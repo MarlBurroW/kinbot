@@ -29,6 +29,11 @@ import {
   startTicketEnrichment,
   resolveTicketRef,
 } from '@/server/services/tickets'
+import {
+  listTicketComments,
+  createTicketComment,
+  deleteTicketComment,
+} from '@/server/services/ticket-comments'
 import { db } from '@/server/db/index'
 import { kins } from '@/server/db/schema'
 import { eq } from 'drizzle-orm'
@@ -566,6 +571,98 @@ export const enrichTicketTool: ToolRegistration = {
               error: 'ENRICHMENT_ALREADY_RUNNING',
               message: 'An enrichment task is already running on this ticket. Wait for it to finish before launching another.',
             }
+          }
+          return { error: msg }
+        }
+      },
+    }),
+}
+
+// ─── Ticket comments (main + ticket-bound sub-Kin) ────────────────────────────
+
+export const addTicketCommentTool: ToolRegistration = {
+  availability: ['main'],
+  condition: mainOrTicketBoundCondition,
+  create: (ctx) =>
+    tool({
+      description:
+        'Post a comment on a ticket signed as the calling Kin. Use mid-task to flag something separate ' +
+        'from the final report (the final report is already posted automatically as a comment when the ' +
+        'sub-Kin finishes). Accepts a UUID, a qualified id like "kinbot#42", or a bare "#42".',
+      inputSchema: z.object({
+        ticket_id: z.string(),
+        content: z.string().describe('Markdown supported. Avoid em-dashes per repo conventions; use commas or parentheses instead.'),
+      }),
+      execute: async ({ ticket_id, content }) => {
+        const resolved = await resolveTicketRef(ticket_id, {
+          activeProjectId: getActiveProjectIdFor(ctx.kinId),
+        })
+        if (!resolved.ok) return { error: resolved.code, message: resolved.message }
+        try {
+          const comment = await createTicketComment({
+            ticketId: resolved.ticketId,
+            author: { type: 'kin', id: ctx.kinId },
+            content,
+            metadata: ctx.taskId ? { fromTaskId: ctx.taskId } : null,
+          })
+          return { comment }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Unknown error'
+          return { error: msg }
+        }
+      },
+    }),
+}
+
+export const listTicketCommentsTool: ToolRegistration = {
+  availability: ['main'],
+  readOnly: true,
+  concurrencySafe: true,
+  condition: mainOrTicketBoundCondition,
+  create: (ctx) =>
+    tool({
+      description:
+        'List comments posted on a ticket in chronological order. ' +
+        'Accepts a UUID, a qualified id like "kinbot#42", or a bare "#42".',
+      inputSchema: z.object({
+        ticket_id: z.string(),
+        limit: z.number().int().min(1).max(200).optional().describe('Default: 100'),
+        offset: z.number().int().min(0).optional().describe('Default: 0'),
+      }),
+      execute: async ({ ticket_id, limit, offset }) => {
+        const resolved = await resolveTicketRef(ticket_id, {
+          activeProjectId: getActiveProjectIdFor(ctx.kinId),
+        })
+        if (!resolved.ok) return { error: resolved.code, message: resolved.message }
+        const result = await listTicketComments(resolved.ticketId, {
+          limit: limit ?? 100,
+          offset: offset ?? 0,
+        })
+        return result
+      },
+    }),
+}
+
+export const deleteTicketCommentTool: ToolRegistration = {
+  availability: ['main'],
+  destructive: true,
+  condition: mainOrTicketBoundCondition,
+  create: (ctx) =>
+    tool({
+      description:
+        'Delete a comment by its UUID. A Kin can only delete its own comments. Hard delete, no recovery.',
+      inputSchema: z.object({
+        comment_id: z.string(),
+      }),
+      execute: async ({ comment_id }) => {
+        try {
+          const ok = await deleteTicketComment(comment_id, { type: 'kin', id: ctx.kinId })
+          if (!ok) return { error: 'COMMENT_NOT_FOUND' }
+          return { success: true, commentId: comment_id }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Unknown error'
+          if (msg === 'FORBIDDEN') {
+            return { error: 'FORBIDDEN', message: 'You can only delete your own comments.' }
           }
           return { error: msg }
         }

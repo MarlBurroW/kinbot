@@ -253,6 +253,7 @@ export const fullMockSchema = {
   projectTags: {},
   tickets: {},
   ticketTags: {},
+  ticketComments: {},
 }
 
 /**

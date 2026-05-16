@@ -2513,6 +2513,27 @@
       "edit": {
         "title": "Edit ticket",
         "description": "Update the title, description, status, or tags. The kanban will refresh in real time."
+      },
+      "comments": {
+        "title": "Comments",
+        "empty": "No comments yet. Be the first to add one.",
+        "placeholder": "Write a comment. Markdown supported.",
+        "submit": "Post comment",
+        "submitting": "Posting...",
+        "edit": "Edit",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "auto": "auto",
+        "autoTooltip": "Posted automatically from a task result.",
+        "kinTag": "Kin",
+        "edited": "edited",
+        "loading": "Loading comments...",
+        "deleteConfirm": {
+          "title": "Delete this comment?",
+          "description": "The comment will be permanently removed. This cannot be undone.",
+          "confirm": "Delete comment"
+        }
       }
     },
     "startTask": {

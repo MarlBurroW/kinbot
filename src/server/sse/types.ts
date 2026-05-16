@@ -85,6 +85,9 @@ export type SSEEventType =
   | 'ticket:created'
   | 'ticket:updated'
   | 'ticket:deleted'
+  | 'ticket:comment-added'
+  | 'ticket:comment-updated'
+  | 'ticket:comment-deleted'
   | 'connected'
 
 export interface SSEEvent {

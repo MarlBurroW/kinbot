@@ -1084,6 +1084,12 @@ export async function buildTicketAssignmentInfo(ticketId: string): Promise<Ticke
     .all()
     .map((r) => r.label)
 
+  // Dynamic import to avoid a static cycle: ticket-comments → tickets is fine,
+  // but tickets → ticket-comments would pull the comments module into the
+  // tickets module graph unnecessarily for many callers.
+  const { listRecentCommentsForPrompt } = await import('@/server/services/ticket-comments')
+  const comments = await listRecentCommentsForPrompt(ticketId, 50)
+
   return {
     ticketId: ticket.id,
     ticketNumber: ticket.number ?? null,
@@ -1096,6 +1102,7 @@ export async function buildTicketAssignmentInfo(ticketId: string): Promise<Ticke
     projectTitle: project.title,
     projectDescription: project.description,
     projectGithubUrl: project.githubUrl,
+    comments,
   }
 }
 

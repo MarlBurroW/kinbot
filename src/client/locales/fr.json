@@ -2514,6 +2514,27 @@
       "edit": {
         "title": "Modifier le ticket",
         "description": "Mets à jour le titre, la description, le statut ou les tags. Le kanban se rafraîchit en temps réel."
+      },
+      "comments": {
+        "title": "Commentaires",
+        "empty": "Aucun commentaire pour l'instant. Sois le premier à en ajouter un.",
+        "placeholder": "Écris un commentaire. Markdown supporté.",
+        "submit": "Publier",
+        "submitting": "Publication...",
+        "edit": "Modifier",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "auto": "auto",
+        "autoTooltip": "Posté automatiquement depuis le résultat d'une tâche.",
+        "kinTag": "Kin",
+        "edited": "modifié",
+        "loading": "Chargement des commentaires...",
+        "deleteConfirm": {
+          "title": "Supprimer ce commentaire ?",
+          "description": "Le commentaire sera supprimé définitivement. Cette action est irréversible.",
+          "confirm": "Supprimer le commentaire"
+        }
       }
     },
     "startTask": {
