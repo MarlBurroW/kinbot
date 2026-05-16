@@ -59,6 +59,10 @@ export const CORE_TOOLS: readonly string[] = [
   // available to every sub-Kin regardless of preset so it can be leaned on
   // for planning before committing to concrete tool calls.
   'think',
+
+  // Structured planning (TodoWrite-equivalent). Sub-Kins use it to lay out
+  // a plan up-front on multi-step work and surface progress to the user.
+  'task_todos',
 ]
 
 const PRESETS: Record<Exclude<SubKinPreset, 'all'>, PresetConfig> = {

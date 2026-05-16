@@ -11,6 +11,7 @@ export type SSEEventType =
   | 'task:status'
   | 'task:done'
   | 'task:deleted'
+  | 'task:todos'
   | 'cron:triggered'
   | 'cron:created'
   | 'cron:updated'

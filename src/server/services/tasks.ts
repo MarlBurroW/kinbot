@@ -1073,6 +1073,10 @@ export async function resolveTask(
   const { forgetTask } = await import('@/server/services/tool-call-tracker')
   forgetTask(taskId)
 
+  // Drop per-task structured todo list (TodoWrite-equivalent).
+  const { forgetTaskTodos } = await import('@/server/services/task-todos')
+  forgetTaskTodos(taskId)
+
   // Close any browser sessions opened by this task (best-effort, non-blocking)
   import('@/server/services/playwright-manager')
     .then(({ playwrightManager }) => playwrightManager.closeSessionsForTask(taskId))
@@ -1258,6 +1262,10 @@ export async function cancelTask(taskId: string, kinId: string) {
   // Drop per-task tool-call tracker state.
   const { forgetTask: forgetTaskCancel } = await import('@/server/services/tool-call-tracker')
   forgetTaskCancel(taskId)
+
+  // Drop per-task todo list.
+  const { forgetTaskTodos: forgetTodosCancel } = await import('@/server/services/task-todos')
+  forgetTodosCancel(taskId)
 
   // Clear any pending inter-Kin timeout timer
   const interKinTimer = interKinTimeouts.get(taskId)

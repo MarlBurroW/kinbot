@@ -213,6 +213,7 @@ import {
 import { grepTool } from '@/server/tools/grep-tools'
 import { multiEditTool } from '@/server/tools/multi-edit-tools'
 import { thinkTool } from '@/server/tools/think-tool'
+import { taskTodosTool } from '@/server/tools/task-todos-tool'
 import {
   listInstalledPluginsTool,
   browsePluginStoreTool,
@@ -483,6 +484,9 @@ export function registerAllTools(): void {
 
   // Reasoning aid: free-form thought logger, no side effects.
   toolRegistry.register('think', thinkTool)
+
+  // Sub-Kin structured planning (TodoWrite-equivalent).
+  toolRegistry.register('task_todos', taskTodosTool)
 
   // Knowledge base tools (main only)
   toolRegistry.register('search_knowledge', searchKnowledgeTool)

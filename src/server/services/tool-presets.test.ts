@@ -13,7 +13,7 @@ function buildSampleToolMap(): Record<string, string> {
     // Core
     'read_file', 'write_file', 'edit_file', 'multi_edit', 'list_directory', 'grep',
     'run_shell', 'update_task_status', 'request_input', 'report_to_parent',
-    'prompt_human', 'notify', 'attach_file', 'think',
+    'prompt_human', 'notify', 'attach_file', 'think', 'task_todos',
     // Code preset extras
     'get_project', 'list_tickets', 'get_ticket', 'update_ticket', 'web_search', 'browse_url',
     'recall', 'list_memories',
