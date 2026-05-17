@@ -24,14 +24,7 @@ const metaEntries = Object.entries(PROVIDER_META) as MetaEntries
 export const PROVIDER_TYPES = metaEntries.map(([t]) => t)
 
 /** AI providers (llm, embedding, image capabilities) */
-export const AI_PROVIDER_TYPES = metaEntries
-  .filter(([, m]) => (m.capabilities as readonly string[]).some(c => c !== 'search'))
-  .map(([t]) => t)
-
-/** Search providers (search capability) */
-export const SEARCH_PROVIDER_TYPES = metaEntries
-  .filter(([, m]) => (m.capabilities as readonly string[]).includes('search'))
-  .map(([t]) => t)
+export const AI_PROVIDER_TYPES = metaEntries.map(([t]) => t)
 
 export const PROVIDER_CAPABILITIES: Record<string, readonly string[]> = Object.fromEntries(
   metaEntries.map(([t, m]) => [t, m.capabilities]),

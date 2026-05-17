@@ -69,9 +69,9 @@ export interface ContactForNotification {
   platformId: string
 }
 
-export type ProviderType = 'anthropic' | 'anthropic-oauth' | 'openai' | 'gemini' | 'voyage' | 'brave-search' | 'mistral' | 'groq' | 'together' | 'fireworks' | 'deepseek' | 'ollama' | 'openrouter' | 'cohere' | 'xai' | 'tavily' | 'jina' | 'nomic' | 'replicate' | 'stability' | 'fal' | 'serper' | 'perplexity'
+export type ProviderType = 'anthropic' | 'anthropic-oauth' | 'openai' | 'openai-codex'
 
-export type ProviderCapability = 'llm' | 'embedding' | 'image' | 'search' | 'rerank'
+export type ProviderCapability = 'llm' | 'embedding' | 'image'
 
 export type MessageSource = 'user' | 'kin' | 'task' | 'cron' | 'system' | 'webhook' | 'channel'
 
@@ -145,8 +145,6 @@ export interface KinToolConfig {
   mcpAccess: Record<string, string[]>
   /** Native tool names that are explicitly ENABLED despite being defaultDisabled (allow-list) */
   enabledOptInTools?: string[]
-  /** Provider ID to use for web_search — overrides the global default */
-  searchProviderId?: string
 }
 
 /** Per-Kin compacting configuration (stored as JSON in kins.compacting_config) */

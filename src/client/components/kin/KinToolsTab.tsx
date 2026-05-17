@@ -4,14 +4,12 @@ import { Switch } from '@/client/components/ui/switch'
 import { Label } from '@/client/components/ui/label'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/components/ui/collapsible'
 import { ToolDomainIcon } from '@/client/components/common/ToolDomainIcon'
-import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { Badge } from '@/client/components/ui/badge'
 import { useKinTools, type NativeToolGroup, type McpToolGroup, type PluginToolGroup } from '@/client/hooks/useKinTools'
-import { TOOL_DOMAIN_META, SEARCH_PROVIDER_TYPES } from '@/shared/constants'
+import { TOOL_DOMAIN_META } from '@/shared/constants'
 import { ChevronRight, Loader2, Plug, Puzzle } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import type { KinToolConfig, ToolDomain } from '@/shared/types'
-import { useProviders } from '@/client/hooks/useProviders'
 
 interface KinToolsTabProps {
   kinId: string | null
@@ -27,7 +25,6 @@ function getEffectiveConfig(config: KinToolConfig | null): KinToolConfig {
 export function KinToolsTab({ kinId, toolConfig, onToolConfigChange, isHub }: KinToolsTabProps) {
   const { t } = useTranslation()
   const { nativeTools, pluginTools, mcpTools, isLoading } = useKinTools(kinId)
-  const { providers: searchProviders } = useProviders({ filterTypes: SEARCH_PROVIDER_TYPES, validOnly: true })
 
   const config = getEffectiveConfig(toolConfig)
 
@@ -261,29 +258,6 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange, isHub }: Ki
               </PluginGroup>
             )
           })}
-        </div>
-      )}
-
-      {/* Search provider override */}
-      {searchProviders.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">{t('kin.tools.searchProvider')}</h3>
-          <div className="rounded-lg border bg-card/50 p-3 space-y-2">
-            <Label className="text-xs text-muted-foreground">{t('kin.tools.searchProviderDescription')}</Label>
-            <ProviderSelector
-              value={config.searchProviderId ?? '__default__'}
-              onValueChange={(value) => {
-                onToolConfigChange({
-                  ...config,
-                  searchProviderId: value === '__default__' ? undefined : value,
-                })
-              }}
-              providers={searchProviders.map((p) => ({ id: p.id, type: p.type, name: p.name }))}
-              noneLabel={t('kin.tools.searchProviderDefault')}
-              noneValue="__default__"
-              triggerClassName="w-full"
-            />
-          </div>
         </div>
       )}
 

@@ -15,13 +15,15 @@ const BATCH_SIZE = 20
  * Returns the number of memories updated.
  */
 export async function backfillImportance(kinId?: string): Promise<{ updated: number; skipped: number }> {
-  const { resolveLLMModel } = await import('@/server/services/kin-engine')
-  const model = await resolveLLMModel(
-    config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
-    config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
-  )
-  if (!model) {
-    log.warn('No LLM model available for importance backfill')
+  const { resolveLLM } = await import('@/server/llm/core/resolve')
+  let resolved
+  try {
+    resolved = await resolveLLM({
+      modelId: config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
+      providerId: config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
+    })
+  } catch (err) {
+    log.warn({ err }, 'No LLM model available for importance backfill')
     return { updated: 0, skipped: 0 }
   }
 
@@ -68,11 +70,9 @@ export async function backfillImportance(kinId?: string): Promise<{ updated: num
 
     try {
       const result = await safeGenerateText({
-        model,
-        providerId: config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
+        resolved,
         prompt,
         callSite: 'importance-backfill',
-        modelId: config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
         kinId,
       })
 

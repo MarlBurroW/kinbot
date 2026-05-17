@@ -1,15 +1,12 @@
 import { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Brain, Image, Sparkles, Globe, Layers } from 'lucide-react'
+import { Brain, Image, Sparkles, Layers } from 'lucide-react'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
-import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { api } from '@/client/lib/api'
 import { useModels, type ProviderModel } from '@/client/hooks/useModels'
-import { useProviders } from '@/client/hooks/useProviders'
-import { SEARCH_PROVIDER_TYPES } from '@/shared/constants'
 
 export interface StepDefaultModelsRef {
   save: () => Promise<void>
@@ -24,7 +21,6 @@ export const StepDefaultModels = forwardRef<StepDefaultModelsRef, StepDefaultMod
   function StepDefaultModels({ onComplete, onBack }, ref) {
     const { t } = useTranslation()
     const { models: allModels } = useModels()
-    const { providers: searchProviders } = useProviders({ filterTypes: SEARCH_PROVIDER_TYPES, validOnly: true })
     const [saving, setSaving] = useState(false)
 
     const llmModels = useMemo(() => allModels.filter((m: ProviderModel) => m.capability === 'llm'), [allModels])
@@ -42,7 +38,6 @@ export const StepDefaultModels = forwardRef<StepDefaultModelsRef, StepDefaultMod
     const [imageProviderId, setImageProviderId] = useState('')
     const [compactingModel, setCompactingModel] = useState('')
     const [compactingProviderId, setCompactingProviderId] = useState('')
-    const [searchProviderId, setSearchProviderId] = useState<string>('__automatic__')
 
     // Auto-select first available model if only one option
     useEffect(() => {
@@ -76,10 +71,6 @@ export const StepDefaultModels = forwardRef<StepDefaultModelsRef, StepDefaultMod
       }
       if (compactingModel) {
         promises.push(api.put('/settings/default-compacting', { model: compactingModel, providerId: compactingProviderId || null }))
-      }
-      const searchId = searchProviderId === '__automatic__' ? null : searchProviderId
-      if (searchId) {
-        promises.push(api.put('/settings/search-provider', { searchProviderId: searchId }))
       }
 
       await Promise.all(promises)
@@ -200,26 +191,6 @@ export const StepDefaultModels = forwardRef<StepDefaultModelsRef, StepDefaultMod
           />
           <p className="text-xs text-muted-foreground">{t('onboarding.models.compactingModelHint')}</p>
         </div>
-
-        {/* Default Search Provider (optional, shown only if search providers exist) */}
-        {searchProviders.length > 0 && (
-          <div className="space-y-2">
-            <Label className="inline-flex items-center gap-1.5">
-              <Globe className="size-3.5 text-muted-foreground" />
-              {t('onboarding.models.searchProvider')}
-              <InfoTip content={t('onboarding.models.searchProviderTip')} />
-            </Label>
-            <ProviderSelector
-              value={searchProviderId}
-              onValueChange={setSearchProviderId}
-              providers={searchProviders}
-              noneLabel={t('onboarding.models.searchProviderAutomatic')}
-              noneValue="__automatic__"
-              triggerClassName="w-full"
-            />
-            <p className="text-xs text-muted-foreground">{t('onboarding.models.searchProviderHint')}</p>
-          </div>
-        )}
 
         <div className="pt-2">
           <div className="flex gap-3">

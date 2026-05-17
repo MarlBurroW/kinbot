@@ -1,7 +1,5 @@
-import { generateImage as aiGenerateImage, generateText } from 'ai'
-import { createAnthropic } from '@ai-sdk/anthropic'
+import { generateImage as aiGenerateImage } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { eq } from 'drizzle-orm'
 import { join } from 'path'
 import { db } from '@/server/db/index'
@@ -29,21 +27,13 @@ async function loadBaseAvatar(): Promise<Uint8Array> {
 
 /**
  * Whether a given (providerType, modelId) pair accepts an image as input.
- * Mirrors the per-provider classifyModel logic so we can answer this without
- * re-fetching the provider's model list on every avatar generation.
  */
 export function modelSupportsImageInput(providerType: string, modelId?: string | null): boolean {
   if (!modelId) return false
   if (providerType === 'openai') return modelId.startsWith('gpt-image')
-  if (providerType === 'gemini') return modelId.includes('-image') && !modelId.startsWith('imagen')
   return false
 }
 
-/** Provider types that use the OpenAI-compatible SDK (createOpenAI) */
-const OPENAI_COMPATIBLE_PROVIDERS = new Set([
-  'openrouter', 'deepseek', 'fireworks', 'together', 'groq',
-  'mistral', 'perplexity', 'xai', 'ollama', 'cohere', 'openai-compatible',
-])
 import { config } from '@/server/config'
 import { recordUsage } from '@/server/services/token-usage'
 
@@ -70,7 +60,7 @@ interface GenerateImageOptions {
  */
 export async function resolveImageTarget(
   options?: { providerId?: string; modelId?: string },
-): Promise<{ providerId: string; providerType: string; modelId?: string }> {
+): Promise<{ providerId: string; providerType: string; modelId: string }> {
   let provider
   let effectiveModelId = options?.modelId
   if (options?.providerId) {
@@ -97,6 +87,27 @@ export async function resolveImageTarget(
 
   if (!provider) {
     throw new ImageGenerationError('NO_IMAGE_PROVIDER', 'No image provider configured')
+  }
+
+  if (!effectiveModelId) {
+    const providerConfig = JSON.parse(await decrypt(provider.configEncrypted)) as {
+      apiKey: string
+      baseUrl?: string
+    }
+    try {
+      const models = await listModelsForProvider(provider.type, providerConfig)
+      const first = models.find((m) => m.capability === 'image')
+      if (first) effectiveModelId = first.id
+    } catch {
+      // Fall through to error below
+    }
+  }
+
+  if (!effectiveModelId) {
+    throw new ImageGenerationError(
+      'NO_IMAGE_MODEL',
+      'No image model available — specify a modelId or configure a default',
+    )
   }
 
   return { providerId: provider.id, providerType: provider.type, modelId: effectiveModelId }
@@ -155,17 +166,7 @@ export async function generateImage(
       callType: 'generate-image',
       providerType: 'openai',
       providerId: provider.id,
-      modelId: effectiveModelId ?? 'dall-e-3',
-    })
-    return result
-  } else if (provider.type === 'gemini') {
-    const result = await generateWithGoogle(providerConfig, prompt, effectiveModelId, imageData)
-    recordUsage({
-      callSite: 'image-gen',
-      callType: 'generate-image',
-      providerType: 'gemini',
-      providerId: provider.id,
-      modelId: effectiveModelId ?? 'imagen-3.0-generate-002',
+      modelId: effectiveModelId,
     })
     return result
   }
@@ -231,32 +232,14 @@ function buildPrompt(textPrompt: string, imageData?: Uint8Array): ImagePrompt {
 async function generateWithOpenAI(
   config: { apiKey: string; baseUrl?: string },
   prompt: string,
-  modelId?: string,
+  modelId: string,
   imageData?: Uint8Array,
 ): Promise<GenerateImageResult> {
   const openai = createOpenAI({ apiKey: config.apiKey, baseURL: config.baseUrl })
   const { image } = await aiGenerateImage({
-    model: openai.image(modelId ?? 'dall-e-3'),
+    model: openai.image(modelId),
     prompt: buildPrompt(prompt, imageData),
     size: '1024x1024' as `${number}x${number}`,
-  })
-  return {
-    base64: image.base64,
-    mediaType: image.mediaType ?? 'image/png',
-  }
-}
-
-async function generateWithGoogle(
-  config: { apiKey: string; baseUrl?: string },
-  prompt: string,
-  modelId?: string,
-  imageData?: Uint8Array,
-): Promise<GenerateImageResult> {
-  const google = createGoogleGenerativeAI({ apiKey: config.apiKey, baseURL: config.baseUrl })
-  const { image } = await aiGenerateImage({
-    model: google.image(modelId ?? 'imagen-3.0-generate-002'),
-    prompt: buildPrompt(prompt, imageData),
-    aspectRatio: '1:1' as `${number}:${number}`,
   })
   return {
     base64: image.base64,
@@ -404,67 +387,38 @@ export async function buildAvatarPrompt(
   },
   mode: 'edit' | 'generate' = 'generate',
 ): Promise<string> {
-  const llmProvider = await findLLMProvider()
-  if (!llmProvider) {
-    return fallbackAvatarPrompt(kin, mode)
-  }
-
-  const providerConfig = JSON.parse(await decrypt(llmProvider.configEncrypted)) as {
-    apiKey: string
-    baseUrl?: string
-  }
-
-  // Helper: pick the first available LLM model ID for a provider, with a fallback default
-  async function pickFirstLlmModelId(fallback: string): Promise<string> {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const providerModels = await listModelsForProvider(llmProvider!.type, providerConfig)
-      const first = providerModels.find((m) => m.capability === 'llm')
-      return first?.id ?? fallback
-    } catch {
-      return fallback
-    }
-  }
-
-  let model
-  if (llmProvider.type === 'anthropic') {
-    const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('claude-haiku-4-5-20251001')
-    model = anthropic(modelId)
-  } else if (llmProvider.type === 'openai') {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
-    model = openai.chat(modelId)
-  } else if (OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
-    model = openai.chat(modelId)
-  } else if (llmProvider.type === 'gemini') {
-    const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = google('gemini-2.0-flash')
-  } else {
-    return fallbackAvatarPrompt(kin, mode)
-  }
+  const { pickAnyLLMModel } = await import('@/server/llm/core/resolve')
+  const { runOneShot } = await import('@/server/llm/core/run-oneshot')
+  const resolved = await pickAnyLLMModel()
+  if (!resolved) return fallbackAvatarPrompt(kin, mode)
 
   const charSnippet = kin.character.slice(0, 300)
   const expertSnippet = kin.expertise.slice(0, 300)
 
-  const avatarResult = await generateText({
-    model,
-    system: mode === 'edit' ? AVATAR_EDIT_SYSTEM : AVATAR_GENERATE_SYSTEM,
-    prompt: `Name: ${kin.name}\nRole: ${kin.role}\nPersonality: ${charSnippet}\nExpertise: ${expertSnippet}`,
+  const avatarResult = await runOneShot(resolved, {
+    system: [{ type: 'text', text: mode === 'edit' ? AVATAR_EDIT_SYSTEM : AVATAR_GENERATE_SYSTEM }],
+    messages: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: `Name: ${kin.name}\nRole: ${kin.role}\nPersonality: ${charSnippet}\nExpertise: ${expertSnippet}`,
+      }],
+    }],
     maxOutputTokens: 200,
   })
 
-  const avatarModelId = llmProvider.type === 'anthropic' ? 'claude-haiku-4-5-20251001'
-    : llmProvider.type === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'
   recordUsage({
     callSite: 'avatar-prompt',
     callType: 'generate-text',
-    providerType: llmProvider.type,
-    providerId: llmProvider.id,
-    modelId: avatarModelId,
-    usage: avatarResult.usage,
+    providerType: resolved.providerRow.type,
+    providerId: resolved.providerRow.id,
+    modelId: resolved.model.id,
+    usage: {
+      inputTokens: avatarResult.usage.inputTokens,
+      outputTokens: avatarResult.usage.outputTokens,
+      inputTokenDetails: { cacheReadTokens: avatarResult.usage.cacheReadTokens, cacheWriteTokens: avatarResult.usage.cacheWriteTokens },
+      outputTokenDetails: { reasoningTokens: avatarResult.usage.reasoningTokens },
+    },
   })
 
   return avatarResult.text.trim()
@@ -495,67 +449,40 @@ export async function buildMiniAppIconPrompt(app: {
   description: string | null
   icon: string | null
 }): Promise<string> {
-  const llmProvider = await findLLMProvider()
-  if (!llmProvider) {
-    return `Flat design app icon for "${app.name}". Clean, minimal, single centered symbol. Soft gradient background. No text, no letters, no words, no UI elements. Flat design app icon, square with rounded corners.`
-  }
+  const staticFallback = `Flat design app icon for "${app.name}". Clean, minimal, single centered symbol. Soft gradient background. No text, no letters, no words, no UI elements. Flat design app icon, square with rounded corners.`
 
-  const providerConfig = JSON.parse(await decrypt(llmProvider.configEncrypted)) as {
-    apiKey: string
-    baseUrl?: string
-  }
-
-  // Helper: pick the first available LLM model ID for a provider, with a fallback default
-  async function pickFirstLlmModelId(fallback: string): Promise<string> {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const providerModels = await listModelsForProvider(llmProvider!.type, providerConfig)
-      const first = providerModels.find((m) => m.capability === 'llm')
-      return first?.id ?? fallback
-    } catch {
-      return fallback
-    }
-  }
-
-  let model
-  if (llmProvider.type === 'anthropic') {
-    const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('claude-haiku-4-5-20251001')
-    model = anthropic(modelId)
-  } else if (llmProvider.type === 'openai') {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
-    model = openai.chat(modelId)
-  } else if (OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
-    model = openai.chat(modelId)
-  } else if (llmProvider.type === 'gemini') {
-    const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = google('gemini-2.0-flash')
-  } else {
-    return `Flat design app icon for "${app.name}". Clean, minimal, single centered symbol. Soft gradient background. No text, no letters, no words, no UI elements. Flat design app icon, square with rounded corners.`
-  }
+  const { pickAnyLLMModel } = await import('@/server/llm/core/resolve')
+  const { runOneShot } = await import('@/server/llm/core/run-oneshot')
+  const resolved = await pickAnyLLMModel()
+  if (!resolved) return staticFallback
 
   const desc = app.description?.slice(0, 300) ?? ''
   const emoji = app.icon ?? ''
 
-  const iconResult = await generateText({
-    model,
-    system: MINI_APP_ICON_STYLE_SYSTEM,
-    prompt: `App name: ${app.name}\nDescription: ${desc}\nEmoji hint: ${emoji}`,
+  const iconResult = await runOneShot(resolved, {
+    system: [{ type: 'text', text: MINI_APP_ICON_STYLE_SYSTEM }],
+    messages: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: `App name: ${app.name}\nDescription: ${desc}\nEmoji hint: ${emoji}`,
+      }],
+    }],
     maxOutputTokens: 200,
   })
 
-  const iconModelId = llmProvider.type === 'anthropic' ? 'claude-haiku-4-5-20251001'
-    : llmProvider.type === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'
   recordUsage({
     callSite: 'icon-prompt',
     callType: 'generate-text',
-    providerType: llmProvider.type,
-    providerId: llmProvider.id,
-    modelId: iconModelId,
-    usage: iconResult.usage,
+    providerType: resolved.providerRow.type,
+    providerId: resolved.providerRow.id,
+    modelId: resolved.model.id,
+    usage: {
+      inputTokens: iconResult.usage.inputTokens,
+      outputTokens: iconResult.usage.outputTokens,
+      inputTokenDetails: { cacheReadTokens: iconResult.usage.cacheReadTokens, cacheWriteTokens: iconResult.usage.cacheWriteTokens },
+      outputTokenDetails: { reasoningTokens: iconResult.usage.reasoningTokens },
+    },
   })
 
   return iconResult.text.trim()

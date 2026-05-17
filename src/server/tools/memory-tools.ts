@@ -1,5 +1,4 @@
 import { tool } from 'ai'
-import { generateText } from 'ai'
 import { z } from 'zod'
 import { eq, inArray } from 'drizzle-orm'
 import {
@@ -15,7 +14,6 @@ import { createLogger } from '@/server/logger'
 import { config } from '@/server/config'
 import { getExtractionModel, getExtractionProviderId } from '@/server/services/app-settings'
 import { recordUsage } from '@/server/services/token-usage'
-import { guessProviderType } from '@/shared/model-ref'
 import type { ToolRegistration } from '@/server/tools/types'
 import type { MemoryCategory, MemoryScope } from '@/shared/types'
 
@@ -323,32 +321,40 @@ export const reviewMemoriesTool: ToolRegistration = {
           `- Be conservative: when in doubt, don't flag it.\n\n` +
           `## Memories to review (${memoriesToReview.length} total)\n\n${memoriesList}`
 
-        // Resolve model (prefer extraction model, fall back to Kin's model)
-        const { resolveLLMModel } = await import('@/server/services/kin-engine')
+        // Resolve provider+model (prefer extraction model, fall back to Kin's model)
+        const { resolveLLM } = await import('@/server/llm/core/resolve')
+        const { runOneShot } = await import('@/server/llm/core/run-oneshot')
         const settingsExtractionModel = await getExtractionModel()
         const effectiveModel = settingsExtractionModel ?? config.memory.extractionModel
         const settingsProviderId = await getExtractionProviderId()
-        const model = await resolveLLMModel(effectiveModel ?? 'gpt-4.1-mini', settingsProviderId ?? config.memory.extractionProviderId ?? null)
-
-        if (!model) {
+        let resolved
+        try {
+          resolved = await resolveLLM({
+            modelId: effectiveModel ?? 'gpt-4.1-mini',
+            providerId: settingsProviderId ?? config.memory.extractionProviderId ?? null,
+          })
+        } catch {
           return { issues: [], summary: 'No LLM model available for review.' }
         }
 
         try {
-          const result = await generateText({
-            model,
-            messages: [{ role: 'user', content: reviewPrompt }],
+          const result = await runOneShot(resolved, {
+            messages: [{ role: 'user', content: [{ type: 'text', text: reviewPrompt }] }],
           })
 
-          const reviewModelId = effectiveModel ?? 'gpt-4.1-mini'
           recordUsage({
             callSite: 'memory-review',
             callType: 'generate-text',
-            providerType: guessProviderType(reviewModelId),
-            providerId: settingsProviderId ?? config.memory.extractionProviderId ?? null,
-            modelId: reviewModelId,
+            providerType: resolved.providerRow.type,
+            providerId: resolved.providerRow.id,
+            modelId: resolved.model.id,
             kinId: ctx.kinId,
-            usage: result.usage,
+            usage: {
+              inputTokens: result.usage.inputTokens,
+              outputTokens: result.usage.outputTokens,
+              inputTokenDetails: { cacheReadTokens: result.usage.cacheReadTokens, cacheWriteTokens: result.usage.cacheWriteTokens },
+              outputTokenDetails: { reasoningTokens: result.usage.reasoningTokens },
+            },
           })
 
           const jsonMatch = result.text.match(/\{[\s\S]*\}/)

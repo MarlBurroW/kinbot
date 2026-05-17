@@ -1,7 +1,6 @@
 import { streamText, type ModelMessage, type UserContent, type Tool } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { eq, and, isNull, ne, asc, desc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db, sqlite } from '@/server/db/index'
@@ -53,6 +52,7 @@ import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { executeToolBatch } from '@/server/services/tool-executor'
 import { recordUsage, aggregateStepUsage } from '@/server/services/token-usage'
 import { runStreamStep, normalizeToolUseInput } from '@/server/services/stream-runner'
+import { vercelStreamToChatChunks } from '@/server/services/_vercel-stream-bridge'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -99,23 +99,17 @@ function isProtectedToolName(name: string): boolean {
  * LLM call.
  *
  * - OpenAI / openai-codex: hard limit of 128 tools (rejected above that).
- * - Anthropic: no documented hard limit — supports hundreds of tools in
- *   practice. We use a high soft cap (512) purely as a safety net, not as
- *   a real provider restriction.
- * - Gemini: no documented hard limit — we use the same high soft cap (512).
- * - DeepSeek: exposes an OpenAI-compatible API, so 128 is the safe bound.
+ * - Anthropic / anthropic-oauth: no documented hard limit — supports hundreds of
+ *   tools in practice. We use a high soft cap (512) purely as a safety net.
  * - Unknown / null: fall back to the OpenAI-compatible 128 limit.
  */
 function getMaxToolsForProvider(providerType: string | null): number {
   switch (providerType) {
     case 'openai':
     case 'openai-codex':
-    case 'deepseek':
       return 128
     case 'anthropic':
-      // No documented hard limit; high soft cap only as a safety net.
-      return 512
-    case 'gemini':
+    case 'anthropic-oauth':
       return 512
     default:
       return DEFAULT_MAX_LLM_TOOLS
@@ -1617,7 +1611,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       // Buffer text per step until finishReason is known — see stream-runner.ts.
       // Intermediate steps (with tool_use) drop their text; final pure-text
       // steps flush it. Tool-call / reasoning events are forwarded immediately.
-      const outcome = await runStreamStep(result, {
+      const outcome = await runStreamStep(vercelStreamToChatChunks(result), {
         kinId,
         assistantMessageId,
         abortController,
@@ -2265,7 +2259,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       // Quick session has no mid-stream rehydration snapshot (no client-side
       // remount support) and no first-token attribution payload — those are
       // the only differences from the main Kin path.
-      const outcome = await runStreamStep(result, {
+      const outcome = await runStreamStep(vercelStreamToChatChunks(result), {
         kinId,
         assistantMessageId,
         abortController,
@@ -3039,7 +3033,7 @@ export function resolveThinkingConfig(rawJson: string | null | undefined): KinTh
 
 /**
  * Effort → budget mapping per provider family.
- * Anthropic/Gemini accept a token budget. OpenAI reasoning models use a string enum.
+ * Anthropic accepts a token budget. OpenAI reasoning models use a string enum.
  * Opus 4.7 ignores the `thinking` param silently (handles thinking internally).
  */
 const ANTHROPIC_EFFORT_BUDGETS: Record<KinThinkingEffort, number> = {
@@ -3047,12 +3041,6 @@ const ANTHROPIC_EFFORT_BUDGETS: Record<KinThinkingEffort, number> = {
   medium: 8192,
   high: 24576,
   max: 32000,
-}
-const GEMINI_EFFORT_BUDGETS: Record<KinThinkingEffort, number> = {
-  low: 2048,
-  medium: 8192,
-  high: 24576,
-  max: -1, // unlimited per Google convention
 }
 const OPENAI_EFFORT_LEVELS: Record<KinThinkingEffort, 'low' | 'medium' | 'high'> = {
   low: 'low',
@@ -3066,13 +3054,6 @@ function resolveAnthropicBudget(config: KinThinkingConfig): number {
   if (config.effort) return ANTHROPIC_EFFORT_BUDGETS[config.effort]
   if (config.budgetTokens != null) return config.budgetTokens
   return ANTHROPIC_EFFORT_BUDGETS.medium
-}
-
-/** Resolve a config to a concrete budget for Gemini. */
-function resolveGeminiBudget(config: KinThinkingConfig): number {
-  if (config.effort) return GEMINI_EFFORT_BUDGETS[config.effort]
-  if (config.budgetTokens != null) return config.budgetTokens
-  return GEMINI_EFFORT_BUDGETS.medium
 }
 
 /**
@@ -3092,24 +3073,12 @@ export function buildThinkingProviderOptions(
       },
     }
   }
-  if (providerType === 'gemini') {
-    const budget = resolveGeminiBudget(config)
-    return {
-      google: {
-        thinkingConfig: {
-          includeThoughts: true,
-          ...(budget != null ? { thinkingBudget: budget } : {}),
-        },
-      },
-    }
-  }
   if (providerType === 'openai' || providerType === 'openai-codex') {
     const effort = config.effort ?? 'medium'
     return {
       openai: { reasoningEffort: OPENAI_EFFORT_LEVELS[effort] },
     }
   }
-  // Other providers: thinking not supported, silently ignored
   return undefined
 }
 
@@ -3131,8 +3100,7 @@ async function tryCreateModel(
     const providerFamily = provider.type === 'anthropic-oauth' ? 'anthropic'
       : provider.type === 'openai-codex' ? 'openai'
       : provider.type
-    // OpenRouter can proxy any model, so skip the type check for it
-    if (expectedType && providerFamily !== expectedType && providerFamily !== 'openrouter') return null
+    if (expectedType && providerFamily !== expectedType) return null
 
     const providerConfig = JSON.parse(await decrypt(provider.configEncrypted)) as {
       apiKey: string
@@ -3337,42 +3305,6 @@ async function tryCreateModel(
       })
       return openai.responses(modelId)
     } else if (provider.type === 'openai') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-      return openai.chat(modelId)
-    } else if (provider.type === 'gemini') {
-      const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-      return google(modelId)
-    } else if (provider.type === 'openrouter') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://openrouter.ai/api/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'deepseek') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.deepseek.com/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'groq') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.groq.com/openai/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'together') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.together.xyz/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'fireworks') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.fireworks.ai/inference/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'mistral') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.mistral.ai/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'xai') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.x.ai/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'perplexity') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.perplexity.ai' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'cohere') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl ?? 'https://api.cohere.com/v2' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'ollama') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey || 'ollama', baseURL: providerConfig.baseUrl ?? 'http://localhost:11434/v1' })
-      return openai.chat(modelId)
-    } else if (provider.type === 'openai-compatible') {
       const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
       return openai.chat(modelId)
     }

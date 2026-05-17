@@ -23,16 +23,14 @@ const SHORT_LABEL: Record<NonNullable<KinThinkingEffort>, string> = {
 interface Props {
   enabled: boolean
   effort: KinThinkingEffort | null
-  modelId?: string
   onChange: (next: { enabled: boolean; effort: KinThinkingEffort | null }) => void
   /** Compact icon-only trigger (for chat header). Otherwise renders a labeled button. */
   compact?: boolean
   className?: string
 }
 
-export function ThinkingEffortPicker({ enabled, effort, modelId, onChange, compact = false, className }: Props) {
+export function ThinkingEffortPicker({ enabled, effort, onChange, compact = false, className }: Props) {
   const { t } = useTranslation()
-  const isOpus47 = modelId === 'claude-opus-4-7' || modelId === 'claude-opus-4-7[1m]'
   const active = enabled && !!effort
   const currentLabel = active ? t(`chat.thinkingPicker.effort.${effort}`) : t('chat.thinkingPicker.effort.off')
 
@@ -92,11 +90,6 @@ export function ThinkingEffortPicker({ enabled, effort, modelId, onChange, compa
             )
           })}
         </div>
-        {isOpus47 && active && (
-          <p className="mt-2 border-t pt-2 px-1 text-[10px] leading-snug text-muted-foreground">
-            {t('chat.thinkingPicker.opus47Note')}
-          </p>
-        )}
       </PopoverContent>
     </Popover>
   )

@@ -44,23 +44,12 @@ describe('guessProviderType', () => {
     expect(guessProviderType('o4-mini')).toBe('openai')
   })
 
-  it('detects gemini models', () => {
-    expect(guessProviderType('gemini-pro')).toBe('gemini')
-    expect(guessProviderType('gemini-1.5-flash')).toBe('gemini')
-  })
-
-  it('detects deepseek models', () => {
-    expect(guessProviderType('deepseek-chat')).toBe('deepseek')
-  })
-
-  it('returns null for slash-containing models (cannot distinguish openrouter from openai-compatible)', () => {
-    expect(guessProviderType('openai/gpt-4o')).toBeNull()
-    expect(guessProviderType('moonshotai/Kimi-K2.5')).toBeNull()
-  })
-
   it('returns null for unknown models', () => {
     expect(guessProviderType('llama-3')).toBeNull()
     expect(guessProviderType('mistral-large')).toBeNull()
+    expect(guessProviderType('gemini-pro')).toBeNull()
+    expect(guessProviderType('deepseek-chat')).toBeNull()
+    expect(guessProviderType('openai/gpt-4o')).toBeNull()
     expect(guessProviderType('')).toBeNull()
   })
 })

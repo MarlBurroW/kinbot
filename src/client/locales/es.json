@@ -93,7 +93,6 @@
       "cap_llm": "LLM",
       "cap_embedding": "Embedding",
       "cap_image": "Imagen",
-      "cap_search": "Búsqueda web",
       "type": "Tipo de proveedor",
       "name": "Nombre para mostrar",
       "namePlaceholder": "Mi cuenta {{type}}",
@@ -122,15 +121,12 @@
       "baseUrlTip": "Sobrescribe el endpoint API por defecto. Útil para instancias auto-alojadas, proxies o APIs de terceros compatibles.",
       "getApiKey": "Obtén tu clave API de {{provider}}",
       "guidanceIntro": "¿No sabes por dónde empezar? Aquí están las opciones más populares:",
-      "localBadge": "Local",
       "getKey": "Obtener clave",
       "noKeyNeeded": "No se necesita clave API",
       "guidanceFooter": "Puedes añadir más proveedores después en Ajustes. ¡Elige uno para empezar!",
       "advancedSetup": "Personalizar memoria y búsqueda",
       "quickFinish": "Finalización rápida con valores por defecto",
-      "quickFinishHint": "La memoria y la búsqueda se pueden configurar después en Ajustes",
-      "aiTab": "Proveedores de IA",
-      "searchTab": "Búsqueda"
+      "quickFinishHint": "La memoria y la búsqueda se pueden configurar después en Ajustes"
     },
     "memory": {
       "title": "Memoria",
@@ -142,13 +138,6 @@
       "embeddingModelHint": "Convierte las memorias en datos buscables para que tus Kins puedan encontrar información relevante después. Un modelo pequeño y económico es perfecto para esto.",
       "embeddingModelTip": "Este modelo convierte texto en números (vectores) que permiten a tus Kins buscar en sus memorias por significado, no solo por palabras clave. Por ejemplo, una memoria sobre \"amar la pasta\" coincidiría con una pregunta sobre \"comidas favoritas\". Un modelo más pequeño funciona bien aquí.",
       "embeddingModelPlaceholder": "Selecciona un modelo de embedding"
-    },
-    "searchProviders": {
-      "title": "Proveedores de búsqueda",
-      "subtitle": "Habilita la búsqueda web para tus Kins (opcional)",
-      "addProvider": "Añadir un proveedor de búsqueda",
-      "skip": "Omitir por ahora",
-      "finish": "Finalizar configuración"
     },
     "models": {
       "compactingModel": "Modelo de compactación",
@@ -172,10 +161,6 @@
       "imageModelHint": "Opcional — detección automática si está vacío.",
       "imageModelPlaceholder": "Opcional — detección automática",
       "imageModelTip": "Modelo predeterminado para generación de imágenes cuando no se solicita uno específico.",
-      "searchProvider": "Proveedor de búsqueda",
-      "searchProviderAutomatic": "Automático (primer válido)",
-      "searchProviderHint": "Opcional — selecciona automáticamente el primer proveedor válido.",
-      "searchProviderTip": "Proveedor de búsqueda web predeterminado para tus Kins.",
       "subtitle": "Elige los modelos predeterminados para tus Kins",
       "title": "Modelos predeterminados"
     }
@@ -372,10 +357,7 @@
       "connectionFailed": "Conexión fallida - no se pueden descubrir herramientas de este servidor.",
       "enableAll": "Habilitar todas",
       "disableAll": "Deshabilitar todas",
-      "optIn": "Opt-in",
-      "searchProvider": "Proveedor de búsqueda",
-      "searchProviderDescription": "Sobrescribe el proveedor de búsqueda por defecto para este Kin.",
-      "searchProviderDefault": "Por defecto (ajuste global)"
+      "optIn": "Opt-in"
     },
     "defaults": {
       "character": "Eres un asistente amigable, reflexivo y versátil. Te comunicas con claridad y adaptas tu tono al contexto - casual cuando es apropiado, preciso cuando es necesario.\n\nEres paciente, curioso y disfrutas genuinamente ayudar. Cuando no sabes algo, lo dices honestamente. Haces preguntas aclaratorias cuando la solicitud es ambigua.\n\nMantienes tus respuestas concisas a menos que el usuario pida explícitamente más detalle.",
@@ -885,25 +867,6 @@
         "bullet3": "Los proveedores compatibles con OpenAI (Groq, Together, etc.) funcionan con el mismo patrón de configuración",
         "bullet4": "Prueba la conexión después de añadir para verificar que la clave API es válida"
       }
-    },
-    "searchProviders": {
-      "title": "Búsqueda",
-      "description": "Gestiona las conexiones de proveedores de búsqueda web",
-      "empty": "No hay proveedores de búsqueda configurados",
-      "add": "Añadir proveedor de búsqueda",
-      "emptyDescription": "Conecta un proveedor de búsqueda para que tus Kins puedan buscar en la web.",
-      "defaultProvider": "Proveedor por defecto",
-      "defaultProviderDescription": "Usado por todos los Kins a menos que lo sobrescriban individualmente.",
-      "defaultProviderAutomatic": "Automático (primero válido)",
-      "defaultProviderSaved": "Proveedor de búsqueda por defecto actualizado",
-      "help": {
-        "content": "Los proveedores de búsqueda dan a tus Kins la capacidad de buscar en la web durante las conversaciones. Cuando un Kin necesita información actual, usa el proveedor de búsqueda configurado para encontrar respuestas.",
-        "bullet1": "Añade proveedores como Brave Search, Tavily, Serper o Perplexity para capacidades de búsqueda web",
-        "bullet2": "Establece un proveedor por defecto o deja que KinBot elija automáticamente el primero válido",
-        "bullet3": "Los Kins individuales pueden sobrescribir el proveedor de búsqueda por defecto en sus ajustes",
-        "bullet4": "La mayoría de los proveedores de búsqueda requieren una clave API del sitio web del proveedor"
-      },
-      "defaultProviderRedirect": "El proveedor de búsqueda predeterminado se configura en Modelos y Servicios."
     },
     "mcp": {
       "title": "Servidores MCP",
@@ -1592,9 +1555,6 @@
       "defaultLlmHint": "Los nuevos Kins usarán este modelo por defecto, salvo que se indique otro.",
       "defaultLlmPlaceholder": "Seleccionar LLM predeterminado",
       "defaultLlmTip": "El modelo de lenguaje predeterminado para nuevos Kins. Cada Kin puede cambiarlo por uno propio.",
-      "defaultSearchProvider": "Proveedor de búsqueda predeterminado",
-      "defaultSearchProviderHint": "Usado por todos los Kins a menos que lo cambien individualmente.",
-      "defaultSearchProviderTip": "El proveedor de búsqueda web de los Kins. Cada Kin puede cambiarlo en sus ajustes.",
       "description": "Configura los modelos y servicios predeterminados de toda la plataforma.",
       "embeddingModel": "Modelo de embedding",
       "embeddingModelHint": "Convierte recuerdos en datos buscables para que tus Kins encuentren información relevante por significado.",
@@ -1611,7 +1571,6 @@
         "content": "Los modelos predeterminados se usan como respaldo al crear nuevos Kins o cuando no hay un modelo específico configurado a nivel de Kin."
       },
       "saved": "Ajuste guardado",
-      "searchProviderAutomatic": "Automático (primer válido)",
       "title": "Modelos y Servicios"
     }
   },

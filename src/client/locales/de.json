@@ -93,7 +93,6 @@
       "cap_llm": "LLM",
       "cap_embedding": "Einbetten",
       "cap_image": "Bild",
-      "cap_search": "Internetsuche",
       "type": "Anbietertyp",
       "name": "Anzeigename",
       "namePlaceholder": "Mein {{type}}-Konto",
@@ -122,15 +121,12 @@
       "baseUrlTip": "Überschreibt die Standard-API-URL. Nützlich für selbst gehostete Instanzen, Proxys oder kompatible Drittanbieter-APIs.",
       "getApiKey": "Hol dir deinen {{provider}}-API-Key",
       "guidanceIntro": "Du bist nicht sicher, womit du anfangen sollst? Hier sind ein paar beliebte Optionen:",
-      "localBadge": "Lokal",
       "getKey": "Key holen",
       "noKeyNeeded": "Kein API-Key erforderlich",
       "guidanceFooter": "Du kannst später in den Einstellungen weitere Provider hinzufügen. Wähle einfach einen aus, um loszulegen.",
       "advancedSetup": "Erinnerungen und Suche anpassen",
       "quickFinish": "Schneller Abschluss mit den Standardeinstellungen",
-      "quickFinishHint": "Erinnerungen und Suche können später in den Einstellungen konfiguriert werden",
-      "aiTab": "KI-Anbieter",
-      "searchTab": "Suche"
+      "quickFinishHint": "Erinnerungen und Suche können später in den Einstellungen konfiguriert werden"
     },
     "memory": {
       "title": "Erinnerung",
@@ -142,13 +138,6 @@
       "embeddingModelHint": "Verwandelt Erinnerungen in durchsuchbare Daten, damit deine Kins später relevante Informationen wiederfinden können. Ein kleines, günstiges Modell reicht dafür völlig aus.",
       "embeddingModelTip": "Dieses Modell wandelt Text in Zahlenvektoren um, damit deine Kins Erinnerungen nach Bedeutung statt nur nach Schlüsselwörtern durchsuchen können. Eine Erinnerung an „Ich liebe Pasta“ passt dann zum Beispiel auch zu einer Frage nach „Lieblingsessen“. Ein kleineres Modell funktioniert hier problemlos.",
       "embeddingModelPlaceholder": "Wähle ein Einbettungsmodell aus"
-    },
-    "searchProviders": {
-      "title": "Websuche",
-      "subtitle": "Aktiviere Websuche für deine Kins (optional)",
-      "addProvider": "Suche hinzufügen",
-      "skip": "Vorerst überspringen",
-      "finish": "Abschließen"
     },
     "models": {
       "compactingModel": "Kompaktierungsmodell",
@@ -172,10 +161,6 @@
       "imageModelHint": "Optional — automatische Erkennung wenn leer.",
       "imageModelPlaceholder": "Optional — automatische Erkennung",
       "imageModelTip": "Standardmodell für Bilderzeugung, wenn kein bestimmtes Modell angefordert wird.",
-      "searchProvider": "Suchanbieter",
-      "searchProviderAutomatic": "Automatisch (erster gültiger)",
-      "searchProviderHint": "Optional — wählt automatisch den ersten gültigen Anbieter.",
-      "searchProviderTip": "Standard-Suchanbieter für Ihre Kins.",
       "subtitle": "Wählen Sie die Standardmodelle für Ihre Kins",
       "title": "Standardmodelle"
     }
@@ -372,10 +357,7 @@
       "connectionFailed": "Verbindung fehlgeschlagen – Tools konnten von diesem Server nicht erkannt werden.",
       "enableAll": "Alle aktivieren",
       "disableAll": "Alle deaktivieren",
-      "optIn": "Opt-in",
-      "searchProvider": "Suche Provider",
-      "searchProviderDescription": "Überschreibt den Standard-Such-Provider für diesen Kin.",
-      "searchProviderDefault": "Standard (globale Einstellung)"
+      "optIn": "Opt-in"
     },
     "defaults": {
       "character": "Du bist ein freundlicher, aufmerksamer und vielseitiger Assistent. Du kommunizierst klar und passt deinen Ton an den Kontext an: locker, wenn es passt, präzise, wenn es nötig ist.\n\nDu bist geduldig, neugierig und hilfst wirklich gern. Wenn du etwas nicht weißt, sagst du das ehrlich. Wenn eine Anfrage unklar ist, fragst du nach.\n\nHalte deine Antworten knapp, außer die Person bittet ausdrücklich um mehr Details.",
@@ -885,25 +867,6 @@
         "bullet3": "OpenAI-kompatible Provider wie Groq oder Together nutzen dasselbe Konfigurationsmuster",
         "bullet4": "Teste die Verbindung nach dem Hinzufügen, um sicherzugehen, dass der API-Key gültig ist"
       }
-    },
-    "searchProviders": {
-      "title": "Websuche",
-      "description": "Websuche verwalten",
-      "empty": "Keine Such-Provider konfiguriert",
-      "add": "Provider hinzufügen",
-      "emptyDescription": "Verbinde einen Such-Provider, damit deine Kins im Internet recherchieren können.",
-      "defaultProvider": "Standard-Provider",
-      "defaultProviderDescription": "Wird von allen Kins verwendet, sofern sie ihn nicht individuell überschreiben.",
-      "defaultProviderAutomatic": "Automatisch (erster gültiger)",
-      "defaultProviderSaved": "Standardsuch-Provider aktualisiert",
-      "help": {
-        "content": "Mit Such-Providern können deine Kins während Gesprächen im Internet nachschlagen. Wenn ein Kin aktuelle Informationen braucht, nutzt er den konfigurierten Such-Provider dafür.",
-        "bullet1": "Füge Provider wie Brave Search, Tavily, Serper oder Perplexity für die Websuche hinzu",
-        "bullet2": "Lege einen Standard-Provider fest oder lasse KinBot automatisch den ersten gültigen auswählen",
-        "bullet3": "Einzelne Kins können den Standard-Such-Provider in ihren Einstellungen überschreiben",
-        "bullet4": "Für die meisten Suchanfragen nach Provider ist ein API-Key von der Website des Providers erforderlich"
-      },
-      "defaultProviderRedirect": "Der Standard-Suchanbieter kann unter Modelle & Dienste konfiguriert werden."
     },
     "mcp": {
       "title": "MCP-Server",
@@ -1592,9 +1555,6 @@
       "defaultLlmHint": "Neue Kins verwenden dieses Modell standardmäßig, sofern nicht anders angegeben.",
       "defaultLlmPlaceholder": "Standard-LLM auswählen",
       "defaultLlmTip": "Das Standard-Sprachmodell für neue Kins. Jeder Kin kann dies mit einem eigenen Modell überschreiben.",
-      "defaultSearchProvider": "Standard-Suchanbieter",
-      "defaultSearchProviderHint": "Wird von allen Kins verwendet, sofern sie ihn nicht individuell überschreiben.",
-      "defaultSearchProviderTip": "Der Suchanbieter für Websuchen der Kins. Einzelne Kins können dies in ihren Einstellungen überschreiben.",
       "description": "Konfigurieren Sie die Standardmodelle und -dienste für die gesamte Plattform.",
       "embeddingModel": "Embedding-Modell",
       "embeddingModelHint": "Wandelt Erinnerungen in durchsuchbare Daten um, sodass Ihre Kins relevante Informationen nach Bedeutung finden können.",
@@ -1611,7 +1571,6 @@
         "content": "Standardmodelle werden als Fallback verwendet, wenn neue Kins erstellt werden oder kein spezifisches Modell auf Kin-Ebene konfiguriert ist."
       },
       "saved": "Einstellung gespeichert",
-      "searchProviderAutomatic": "Automatisch (erster gültiger)",
       "title": "Modelle & Dienste"
     }
   },

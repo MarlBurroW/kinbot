@@ -10,8 +10,6 @@ import {
   setExtractionModel,
   getEmbeddingModel,
   setEmbeddingModel,
-  getDefaultSearchProvider,
-  setDefaultSearchProvider,
   getHubKinId,
   setHubKinId,
   getExtractionProviderId,
@@ -112,14 +110,12 @@ settingsRoutes.get('/default-models', async (c) => {
     defaultCompactingModel, defaultCompactingProviderId,
     extractionModel, extractionProviderId,
     embeddingModel, embeddingProviderId,
-    searchProviderId,
   ] = await Promise.all([
     getDefaultLlmModel(), getDefaultLlmProviderId(),
     getDefaultImageModel(), getDefaultImageProviderId(),
     getDefaultCompactingModel(), getDefaultCompactingProviderId(),
     getExtractionModel(), getExtractionProviderId(),
     getEmbeddingModel(), getEmbeddingProviderId(),
-    getDefaultSearchProvider(),
   ])
   return c.json({
     defaultLlmModel, defaultLlmProviderId,
@@ -127,7 +123,6 @@ settingsRoutes.get('/default-models', async (c) => {
     defaultCompactingModel, defaultCompactingProviderId,
     extractionModel, extractionProviderId,
     embeddingModel, embeddingProviderId,
-    searchProviderId,
   })
 })
 
@@ -247,29 +242,6 @@ settingsRoutes.put('/embedding-model', async (c) => {
   await setEmbeddingProviderId(providerId ?? null)
   log.info({ model: model.trim(), providerId }, 'Embedding model updated')
   return c.json({ embeddingModel: model.trim(), embeddingProviderId: providerId ?? null })
-})
-
-// GET /api/settings/search-provider
-settingsRoutes.get('/search-provider', async (c) => {
-  const searchProviderId = await getDefaultSearchProvider()
-  return c.json({ searchProviderId })
-})
-
-// PUT /api/settings/search-provider
-settingsRoutes.put('/search-provider', async (c) => {
-  const body = await c.req.json()
-  const { searchProviderId } = body as { searchProviderId: string | null }
-
-  if (searchProviderId !== null && typeof searchProviderId !== 'string') {
-    return c.json(
-      { error: { code: 'INVALID_BODY', message: 'searchProviderId must be a string or null' } },
-      400,
-    )
-  }
-
-  await setDefaultSearchProvider(searchProviderId ?? null)
-  log.info({ searchProviderId }, 'Default search provider updated')
-  return c.json({ searchProviderId: searchProviderId ?? null })
 })
 
 // GET /api/settings/hub

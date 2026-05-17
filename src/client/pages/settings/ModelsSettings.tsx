@@ -5,14 +5,11 @@ import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/client/components/ui/button'
 import { Label } from '@/client/components/ui/label'
 import { ModelPicker, modelPickerValue } from '@/client/components/common/ModelPicker'
-import { ProviderSelector } from '@/client/components/common/ProviderSelector'
 import { InfoTip } from '@/client/components/common/InfoTip'
 import { Skeleton } from '@/client/components/ui/skeleton'
 import { HelpPanel } from '@/client/components/common/HelpPanel'
 import { api, toastError } from '@/client/lib/api'
 import { useModels, type ProviderModel } from '@/client/hooks/useModels'
-import { useProviders } from '@/client/hooks/useProviders'
-import { SEARCH_PROVIDER_TYPES } from '@/shared/constants'
 
 interface DefaultModelsData {
   defaultLlmModel: string | null
@@ -25,13 +22,11 @@ interface DefaultModelsData {
   extractionProviderId: string | null
   embeddingModel: string | null
   embeddingProviderId: string | null
-  searchProviderId: string | null
 }
 
 export function ModelsSettings() {
   const { t } = useTranslation()
   const { models: allModels } = useModels()
-  const { providers: allProviders } = useProviders({ filterTypes: SEARCH_PROVIDER_TYPES, validOnly: true })
 
   const llmModels = useMemo(() => allModels.filter((m: ProviderModel) => m.capability === 'llm'), [allModels])
   const imageModels = useMemo(() => allModels.filter((m: ProviderModel) => m.capability === 'image'), [allModels])
@@ -65,9 +60,6 @@ export function ModelsSettings() {
   const [initEmbeddingModel, setInitEmbeddingModel] = useState('')
   const [initEmbeddingProviderId, setInitEmbeddingProviderId] = useState('')
 
-  const [searchProviderId, setSearchProviderId] = useState<string | null>(null)
-  const [initSearchProviderId, setInitSearchProviderId] = useState<string | null>(null)
-
   const [reembedding, setReembedding] = useState(false)
 
   // Saving state per field
@@ -100,9 +92,6 @@ export function ModelsSettings() {
         setEmbeddingProviderId(data.embeddingProviderId ?? '')
         setInitEmbeddingModel(data.embeddingModel ?? '')
         setInitEmbeddingProviderId(data.embeddingProviderId ?? '')
-
-        setSearchProviderId(data.searchProviderId)
-        setInitSearchProviderId(data.searchProviderId)
       })
       .catch(() => {})
       .finally(() => setIsLoading(false))
@@ -114,7 +103,6 @@ export function ModelsSettings() {
   const hasImageChanges = imageModel !== initImageModel || imageProviderId !== initImageProviderId
   const hasExtractionChanges = extractionModel !== initExtractionModel || extractionProviderId !== initExtractionProviderId
   const hasEmbeddingChanges = embeddingModel !== initEmbeddingModel || embeddingProviderId !== initEmbeddingProviderId
-  const hasSearchChanges = searchProviderId !== initSearchProviderId
 
   // Save handlers
   const saveField = async (
@@ -164,21 +152,6 @@ export function ModelsSettings() {
       setInitEmbeddingModel(embeddingModel)
       setInitEmbeddingProviderId(embeddingProviderId)
     })
-
-  const handleSaveSearch = async () => {
-    setSavingField('search')
-    try {
-      const newId = searchProviderId === '__automatic__' ? null : searchProviderId
-      await api.put('/settings/search-provider', { searchProviderId: newId })
-      setInitSearchProviderId(newId)
-      setSearchProviderId(newId)
-      toast.success(t('settings.models.saved'))
-    } catch (err: unknown) {
-      toastError(err)
-    } finally {
-      setSavingField(null)
-    }
-  }
 
   const handleReembed = async () => {
     if (!confirm(t('settings.memories.reembedConfirm'))) return
@@ -326,26 +299,6 @@ export function ModelsSettings() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">{t('settings.memories.reembedDescription')}</p>
-      </div>
-
-      {/* Default Search Provider */}
-      <div className="space-y-2">
-        <Label className="inline-flex items-center gap-1.5">
-          {t('settings.models.defaultSearchProvider')}
-          <InfoTip content={t('settings.models.defaultSearchProviderTip')} />
-        </Label>
-        <ProviderSelector
-          value={searchProviderId ?? '__automatic__'}
-          onValueChange={(v) => setSearchProviderId(v === '__automatic__' ? null : v)}
-          providers={allProviders}
-          noneLabel={t('settings.models.searchProviderAutomatic')}
-          noneValue="__automatic__"
-          triggerClassName="w-full"
-        />
-        <p className="text-xs text-muted-foreground">{t('settings.models.defaultSearchProviderHint')}</p>
-        <Button size="sm" onClick={handleSaveSearch} disabled={!hasSearchChanges || savingField === 'search'}>
-          {savingField === 'search' ? t('common.loading') : t('common.save')}
-        </Button>
       </div>
 
       <HelpPanel

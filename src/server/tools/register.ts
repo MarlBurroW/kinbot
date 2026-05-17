@@ -1,6 +1,5 @@
 import { createLogger } from '@/server/logger'
 import { toolRegistry } from '@/server/tools/index'
-import { webSearchTool } from '@/server/tools/search-tools'
 import {
   browseUrlTool,
   extractLinksTool,
@@ -247,9 +246,6 @@ const log = createLogger('tools')
  * registered here as they are implemented.
  */
 export function registerAllTools(): void {
-  // Phase 10.5: Web search
-  toolRegistry.register('web_search', webSearchTool, 'search')
-
   // Web browsing — read-only one-shot tools
   toolRegistry.register('browse_url', browseUrlTool, 'browse')
   toolRegistry.register('extract_links', extractLinksTool, 'browse')

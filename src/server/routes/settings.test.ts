@@ -14,8 +14,6 @@ const mockGetExtractionModel = mock(() => Promise.resolve(null as string | null)
 const mockSetExtractionModel = mock(() => Promise.resolve())
 const mockGetEmbeddingModel = mock(() => Promise.resolve(null as string | null))
 const mockSetEmbeddingModel = mock(() => Promise.resolve())
-const mockGetDefaultSearchProvider = mock(() => Promise.resolve(null as string | null))
-const mockSetDefaultSearchProvider = mock(() => Promise.resolve())
 const mockGetHubKinId = mock(() => Promise.resolve(null as string | null))
 const mockSetHubKinId = mock(() => Promise.resolve())
 
@@ -52,8 +50,6 @@ mock.module('@/server/services/app-settings', () => ({
   setExtractionModel: mockSetExtractionModel,
   getEmbeddingModel: mockGetEmbeddingModel,
   setEmbeddingModel: mockSetEmbeddingModel,
-  getDefaultSearchProvider: mockGetDefaultSearchProvider,
-  setDefaultSearchProvider: mockSetDefaultSearchProvider,
   getHubKinId: mockGetHubKinId,
   setHubKinId: mockSetHubKinId,
 }))
@@ -124,8 +120,6 @@ describe('settings routes', () => {
     mockSetExtractionModel.mockReset()
     mockGetEmbeddingModel.mockReset()
     mockSetEmbeddingModel.mockReset()
-    mockGetDefaultSearchProvider.mockReset()
-    mockSetDefaultSearchProvider.mockReset()
     mockGetHubKinId.mockReset()
     mockSetHubKinId.mockReset()
     mockSseBroadcast.mockReset()
@@ -137,8 +131,6 @@ describe('settings routes', () => {
     mockSetExtractionModel.mockImplementation(() => Promise.resolve())
     mockGetEmbeddingModel.mockImplementation(() => Promise.resolve(null))
     mockSetEmbeddingModel.mockImplementation(() => Promise.resolve())
-    mockGetDefaultSearchProvider.mockImplementation(() => Promise.resolve(null))
-    mockSetDefaultSearchProvider.mockImplementation(() => Promise.resolve())
     mockGetHubKinId.mockImplementation(() => Promise.resolve(null))
     mockSetHubKinId.mockImplementation(() => Promise.resolve())
   })
@@ -337,56 +329,6 @@ describe('settings routes', () => {
       const app = createApp()
       const res = await app.request('/api/settings/embedding-model', json({ model: true }))
       expect(res.status).toBe(400)
-    })
-  })
-
-  // ─── Search Provider ────────────────────────────────────────────────────
-
-  describe('GET /search-provider', () => {
-    itMocked('returns null when not configured', async () => {
-      const app = createApp()
-      const res = await app.request('/api/settings/search-provider')
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(body.searchProviderId).toBeNull()
-    })
-
-    itMocked('returns configured provider', async () => {
-      const app = createApp()
-      mockGetDefaultSearchProvider.mockImplementation(() => Promise.resolve('provider-123'))
-
-      const res = await app.request('/api/settings/search-provider')
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(body.searchProviderId).toBe('provider-123')
-    })
-  })
-
-  describe('PUT /search-provider', () => {
-    itMocked('sets search provider', async () => {
-      const app = createApp()
-      const res = await app.request('/api/settings/search-provider', json({ searchProviderId: 'p-abc' }))
-      expect(res.status).toBe(200)
-      expect(mockSetDefaultSearchProvider).toHaveBeenCalledWith('p-abc')
-      const body = await res.json()
-      expect(body.searchProviderId).toBe('p-abc')
-    })
-
-    itMocked('clears search provider when set to null', async () => {
-      const app = createApp()
-      const res = await app.request('/api/settings/search-provider', json({ searchProviderId: null }))
-      expect(res.status).toBe(200)
-      expect(mockSetDefaultSearchProvider).toHaveBeenCalledWith(null)
-      const body = await res.json()
-      expect(body.searchProviderId).toBeNull()
-    })
-
-    itMocked('returns 400 for non-string non-null value', async () => {
-      const app = createApp()
-      const res = await app.request('/api/settings/search-provider', json({ searchProviderId: 42 }))
-      expect(res.status).toBe(400)
-      const body = await res.json()
-      expect(body.error.code).toBe('INVALID_BODY')
     })
   })
 

@@ -1,6 +1,6 @@
 /**
- * Per-step consumer for the Vercel AI SDK `streamText` result that buffers
- * text-delta events server-side until the model's `finishReason` is known,
+ * Per-step consumer for a kinbot `LLMProvider.chat()` stream that buffers
+ * text-delta chunks server-side until the model's `finishReason` is known,
  * so pre-narration written before tool_use blocks in the same step never
  * reaches the client or the database.
  *
@@ -8,23 +8,22 @@
  * text blocks BEFORE the tool_use blocks of the same response. On Anthropic
  * the protocol guarantees `stop_reason: tool_use` arrives after the last
  * tool_use, so the suspect text always precedes the commit signal. Buffering
- * the text and inspecting `finishReason` post-stream is therefore sufficient
- * to classify the step:
+ * the text and inspecting `finishReason` post-stream is sufficient:
  *
- *   - `finishReason === 'stop'`  with no tool_use → pure-text final answer
+ *   - `finishReason === 'stop'` with no tool_use → pure-text final answer
  *     → flush the buffer to SSE + caller's content accumulator.
  *   - `finishReason === 'tool-calls'` (or any step with tool_use) → step is
  *     intermediate; the text is unverified pre-narration → drop it. The
- *     `tool-call` events themselves are forwarded immediately (committed
+ *     `tool-use` chunks themselves are forwarded immediately (committed
  *     actions) so the UI still renders cards in real time.
  *
- * Reasoning deltas are passed through unchanged: they are drafty by design,
- * client UIs treat them as thinking, and Opus 4.7 does not emit them on the
- * current stack.
+ * Thinking deltas are passed through unchanged: they are drafty by design,
+ * client UIs treat them as thinking.
  */
 import { sseManager } from '@/server/sse/index'
 import { createLogger } from '@/server/logger'
-import { extractApiErrorMessage } from '@/server/services/kin-engine'
+import type { ChatChunk } from '@/server/llm/llm/types'
+import type { Usage, FinishReason } from '@/server/llm/core/types'
 
 const log = createLogger('stream-runner')
 
@@ -36,25 +35,15 @@ export interface StreamStepToolCall {
 }
 
 /**
- * Coerce a tool_use `input` value into a plain object. The Anthropic API and
- * the Vercel AI SDK both require `input` to be a JSON object — anything else
- * makes the next turn fail with `messages.<N>.content.<K>.tool_use.input:
- * Input should be an object` and permanently bricks the task (the bad entry
- * survives in the persisted history).
+ * Coerce a tool_use `input` value into a plain object. The Anthropic API
+ * requires `input` to be a JSON object — anything else makes the next turn
+ * fail and permanently bricks the task (the bad entry survives in history).
  *
- * Real-world failure mode that motivated this guard (prod task on ticket #25,
- * read_file call #49): Opus 4.7 occasionally emits invalid JSON in tool_use
- * inputs — e.g. `{"path": "...", "offset": 1, 100, "limit": 80}` where it
- * meant to express a range. The AI SDK can't parse that and surfaces the raw
- * string in the `input` field. Without normalization, the string round-trips
- * through history and trips the API on the next step.
- *
- * Normalization rules:
- *   - plain object → passes through unchanged
- *   - string → attempt JSON.parse; if it yields a plain object, use it;
- *     otherwise fall back to `{}` (the tool will then fail zod validation
- *     cleanly and the model can re-emit a corrected call)
- *   - null / undefined / array / primitive → `{}`
+ * Real-world failure mode that motivated this guard (prod task on ticket
+ * #25, read_file call #49): Opus 4.7 occasionally emits invalid JSON in
+ * tool_use inputs — e.g. `{"path": "...", "offset": 1, 100, "limit": 80}`
+ * where it meant to express a range. Without normalization, the string
+ * round-trips through history and trips the API on the next step.
  */
 export function normalizeToolUseInput(value: unknown, context?: { toolName?: string; toolCallId?: string }): Record<string, unknown> {
   if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
@@ -89,13 +78,16 @@ export interface StreamStepOutcome {
   /** Tool-call intents collected during this step. Forwarded to SSE as they
    *  arrived; returned here so the caller can run them via `executeToolBatch`. */
   stepToolCalls: StreamStepToolCall[]
-  /** `finishReason` from the SDK's `finish` part. `undefined` if the stream
-   *  ended without emitting one (error, abort, or unfinished). */
-  finishReason: string | undefined
+  /** `finishReason` from the provider. `undefined` if the stream ended
+   *  without emitting one (error, abort, or unfinished). */
+  finishReason: FinishReason | undefined
+  /** Per-step token usage reported by the provider, or `undefined` when no
+   *  `finish` chunk was emitted (error/abort mid-stream). */
+  usage: Usage | undefined
   /** True when the caller's `abortController.signal` fired mid-stream. */
   wasAborted: boolean
-  /** Mid-stream error captured from `error` parts or thrown by the iterator.
-   *  Returned (not thrown) so each call site applies its own policy. */
+  /** Mid-stream error thrown by the provider. Returned (not thrown) so each
+   *  call site applies its own policy. */
   error: Error | null
 }
 
@@ -114,65 +106,52 @@ export interface StreamStepContext {
   /** Signal whose abortion gracefully terminates the loop. */
   abortController: AbortController
   /** Merged into every SSE event's `data` payload (e.g. `{ sessionId }`,
-   *  `{ taskId }`, or `{}`). Allows the three call sites to keep their
-   *  contextual extras without the helper knowing about them. */
+   *  `{ taskId }`, or `{}`). */
   extraSseFields?: Record<string, unknown>
-  /** When provided, the first committed `chat:token` event of the assistant
-   *  message includes these attribution fields. Used by the main Kin path
-   *  so the client can render correct attribution from the first frame. */
+  /** First committed `chat:token` event of the message includes these
+   *  attribution fields. Used by the main Kin path so the client can render
+   *  correct attribution from the first frame. */
   firstTokenAttribution?: StreamStepAttribution
-  /** Mutated in place when a `reasoning-end` event fires (one entry per
-   *  segment). Pre-existing reference, shared with the caller's snapshot. */
+  /** Mutated in place when a thinking block ends (one entry per segment). */
   reasoningSegments?: Array<{ offset: number; text: string }>
   /** Live snapshot whose `.content` field is updated on each committed text
-   *  flush. Used by clients that mount mid-stream to seed the bubble. The
-   *  in-flight buffer is NEVER written here. */
+   *  flush. The in-flight buffer is NEVER written here. */
   contentSnapshot?: { content: string }
-  /** Optional periodic persistence (sub-Kin only). The callback fires every
-   *  `intervalMs` while the step runs. It must read from the caller's
-   *  committed accumulator (not the in-flight buffer, which the helper
-   *  keeps private by design). */
+  /** Optional periodic persistence (sub-Kin only). Fires every `intervalMs`
+   *  while the step runs. */
   checkpoint?: { intervalMs: number; persist: () => void | Promise<void> }
-  /** Called when this step's buffered text is committed (final pure-text
-   *  step). `delta` = the full buffered string. `newLength` = the caller's
-   *  accumulator length AFTER appending. Use this to keep your `fullContent`
-   *  variable in sync with `contentSnapshot.content`. */
+  /** Called when this step's buffered text is committed (final pure-text step). */
   onCommittedText?: (delta: string, newLength: number) => void
   /** Called when this step's buffered text is dropped (intermediate step,
-   *  error, or abort). Use this for debug logging of the suspect content.
-   *  Never expose `droppedText` on SSE — it defeats the entire fix. */
+   *  error, or abort). Use for debug logging — never expose `droppedText` on SSE. */
   onDroppedText?: (droppedText: string, stepIndex: number) => void
 }
 
 /**
- * Consume one `streamText` step and return its outcome.
+ * Consume one provider chat stream and return its outcome.
  *
  * The function never throws — errors are returned as `outcome.error` so each
- * call site can apply its own recovery policy (rethrow / set a variable / log
- * and continue). Abort is also returned via `outcome.wasAborted`.
+ * call site can apply its own recovery policy. Abort is returned via
+ * `outcome.wasAborted`.
  */
 export async function runStreamStep(
-  result: { fullStream: AsyncIterable<unknown> },
+  stream: AsyncIterable<ChatChunk>,
   ctx: StreamStepContext,
   stepIndex: number,
 ): Promise<StreamStepOutcome> {
   const prevContentLen = ctx.contentSnapshot?.content.length ?? 0
   let buffered = ''
   const stepToolCalls: StreamStepToolCall[] = []
-  let finishReason: string | undefined
+  let finishReason: FinishReason | undefined
+  let usage: Usage | undefined
   let currentReasoning = ''
-  /** True once we've seen any signal that this step is intermediate
-   *  (tool_use of any kind). Once true, any buffered text is guaranteed
-   *  to be pre-narration — we mark the verdict early so the decision at
-   *  finish is just a sanity check. */
+  let inReasoning = false
+  /** True once any tool-use is seen this step. */
   let sawCommittedSignal = false
   let error: Error | null = null
 
   const checkpointTimer = ctx.checkpoint
     ? setInterval(() => {
-        // Fire-and-forget; errors are swallowed so a slow disk doesn't
-        // poison the stream loop. Matches the pre-existing inline
-        // checkpoint behaviour in tasks.ts.
         Promise.resolve(ctx.checkpoint!.persist()).catch(() => {})
       }, ctx.checkpoint.intervalMs)
     : null
@@ -185,135 +164,106 @@ export async function runStreamStep(
     })
   }
 
+  /** Close out an open reasoning block: push the segment and emit reasoning-done. */
+  const closeReasoning = () => {
+    if (!inReasoning) return
+    if (currentReasoning && ctx.reasoningSegments) {
+      ctx.reasoningSegments.push({
+        offset: prevContentLen + buffered.length,
+        text: currentReasoning,
+      })
+    }
+    currentReasoning = ''
+    inReasoning = false
+    send('chat:reasoning-done', { messageId: ctx.assistantMessageId })
+  }
+
   try {
-    for await (const rawPart of result.fullStream) {
-      // The AI SDK's `fullStream` chunks are a wide discriminated union we
-      // don't model statically — narrow per `type` with explicit casts.
-      const part = rawPart as { type: string } & Record<string, unknown>
-      const t = part.type
-      const partUnknown = rawPart as unknown
-
-      // Reasoning is drafty by design and orthogonal to pre-narration —
-      // forward immediately. Offset uses the live position so reasoning
-      // aligns with the eventual rendered text (matters only for pure-text
-      // steps; for intermediate steps the offset is moot because the text
-      // is dropped). On Opus 4.7 these events do not fire on this stack.
-      if (t === 'reasoning-start') {
-        currentReasoning = ''
-        continue
-      }
-      if (t === 'reasoning-delta') {
-        const text = (partUnknown as { text: string }).text
-        currentReasoning += text
-        send('chat:reasoning-token', {
-          messageId: ctx.assistantMessageId,
-          token: text,
-        })
-        continue
-      }
-      if (t === 'reasoning-end') {
-        if (currentReasoning && ctx.reasoningSegments) {
-          ctx.reasoningSegments.push({
-            offset: prevContentLen + buffered.length,
-            text: currentReasoning,
+    for await (const chunk of stream) {
+      switch (chunk.type) {
+        case 'thinking-delta': {
+          if (!inReasoning) {
+            inReasoning = true
+            currentReasoning = ''
+          }
+          currentReasoning += chunk.text
+          send('chat:reasoning-token', {
+            messageId: ctx.assistantMessageId,
+            token: chunk.text,
           })
-        }
-        currentReasoning = ''
-        send('chat:reasoning-done', {
-          messageId: ctx.assistantMessageId,
-        })
-        continue
-      }
-
-      // Tool-call-streaming-start is the earliest commit signal: the
-      // model has begun emitting a tool_use input. Forward to UI so the
-      // card appears immediately, and mark this step as intermediate.
-      if (t === 'tool-call-streaming-start') {
-        const p = partUnknown as { toolCallId: string; toolName: string }
-        sawCommittedSignal = true
-        send('chat:tool-call-start', {
-          messageId: ctx.assistantMessageId,
-          toolCallId: p.toolCallId,
-          toolName: p.toolName,
-          contentOffset: prevContentLen,
-        })
-        continue
-      }
-
-      switch (t) {
-        case 'text-delta': {
-          // BUFFER ONLY — no SSE emission, no mutation of contentSnapshot.
-          // The decision to flush or drop is taken at step finish based on
-          // finishReason.
-          const text = (partUnknown as { text: string }).text
-          buffered += text
           break
         }
-        case 'tool-call': {
+        case 'thinking-signature': {
+          // Signature marks the end of a thinking block.
+          closeReasoning()
+          break
+        }
+        case 'text-delta': {
+          // Any reasoning block in flight ends when text starts.
+          closeReasoning()
+          // BUFFER ONLY — no SSE emission, no mutation of contentSnapshot.
+          // The decision to flush or drop happens at step finish.
+          buffered += chunk.text
+          break
+        }
+        case 'tool-use': {
+          closeReasoning()
           sawCommittedSignal = true
-          const p = partUnknown as { toolCallId: string; toolName: string; input: unknown }
-          const normalizedInput = normalizeToolUseInput(p.input, { toolName: p.toolName, toolCallId: p.toolCallId })
+          const normalizedInput = normalizeToolUseInput(chunk.args, {
+            toolName: chunk.name,
+            toolCallId: chunk.id,
+          })
           stepToolCalls.push({
-            id: p.toolCallId,
-            name: p.toolName,
+            id: chunk.id,
+            name: chunk.name,
             args: normalizedInput,
             offset: prevContentLen,
           })
+          // We don't have a separate "tool-call-start" signal from the
+          // provider abstraction — emit both events together so the client
+          // sees the card appear immediately.
+          send('chat:tool-call-start', {
+            messageId: ctx.assistantMessageId,
+            toolCallId: chunk.id,
+            toolName: chunk.name,
+            contentOffset: prevContentLen,
+          })
           send('chat:tool-call', {
             messageId: ctx.assistantMessageId,
-            toolCallId: p.toolCallId,
-            toolName: p.toolName,
+            toolCallId: chunk.id,
+            toolName: chunk.name,
             args: normalizedInput,
             contentOffset: prevContentLen,
           })
           break
         }
         case 'finish': {
-          finishReason = (partUnknown as { finishReason?: string }).finishReason
+          closeReasoning()
+          finishReason = chunk.reason
+          usage = chunk.usage
           break
         }
-        case 'error': {
-          const errPart = (partUnknown as { error: unknown }).error
-          if (errPart instanceof Error) {
-            error = errPart
-          } else {
-            error = new Error(extractApiErrorMessage(errPart))
-          }
-          // Break out of the for-await: the SDK might still yield more
-          // parts after an error, but we treat the step as terminated.
-          // Throwing here is the only way to exit a for-await cleanly.
-          throw error
-        }
-        default:
-          // Unknown chunk types are ignored. The caller can log them
-          // upstream if desired.
-          break
       }
     }
   } catch (e) {
     if (ctx.abortController.signal.aborted) {
-      // User-initiated cancel: drop buffer, return wasAborted so callers
-      // can short-circuit their multi-step loop.
       if (buffered.length > 0) ctx.onDroppedText?.(buffered, stepIndex)
       return {
         stepText: '',
         stepToolCalls,
         finishReason,
+        usage,
         wasAborted: true,
         error: null,
       }
     }
-    // Either a mid-stream error part (already captured in `error`) or an
-    // unexpected throw from the iterator. Surface as outcome.error and
-    // drop the buffer.
-    if (error === null) {
-      error = e instanceof Error ? e : new Error(String(e))
-    }
+    error = e instanceof Error ? e : new Error(String(e))
     if (buffered.length > 0) ctx.onDroppedText?.(buffered, stepIndex)
     return {
       stepText: '',
       stepToolCalls,
       finishReason,
+      usage,
       wasAborted: false,
       error,
     }
@@ -321,8 +271,7 @@ export async function runStreamStep(
     if (checkpointTimer !== null) clearInterval(checkpointTimer)
   }
 
-  // DECISION POINT — the model finished the response without erroring
-  // and without aborting. Classify the step.
+  // DECISION POINT — classify the step.
   const isPureTextFinal =
     finishReason === 'stop' &&
     !sawCommittedSignal &&
@@ -335,9 +284,6 @@ export async function runStreamStep(
       messageId: ctx.assistantMessageId,
       token: buffered,
       contentLength: newLen,
-      // Attribution is only meaningful on the very first committed token
-      // of the message. If prevContentLen > 0 the bubble already exists
-      // client-side and re-attaching attribution would be redundant.
       ...(prevContentLen === 0 && ctx.firstTokenAttribution
         ? ctx.firstTokenAttribution
         : {}),
@@ -347,6 +293,7 @@ export async function runStreamStep(
       stepText: buffered,
       stepToolCalls: [],
       finishReason,
+      usage,
       wasAborted: false,
       error: null,
     }
@@ -359,6 +306,7 @@ export async function runStreamStep(
     stepText: '',
     stepToolCalls,
     finishReason,
+    usage,
     wasAborted: false,
     error: null,
   }

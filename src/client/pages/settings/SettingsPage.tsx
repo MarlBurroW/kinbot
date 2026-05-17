@@ -22,7 +22,6 @@ import {
 } from '@/client/components/ui/select'
 import { GeneralSettings } from '@/client/pages/settings/GeneralSettings'
 import { ProvidersSettings } from '@/client/pages/settings/ProvidersSettings'
-import { SearchProvidersSettings } from '@/client/pages/settings/SearchProvidersSettings'
 import { ModelsSettings } from '@/client/pages/settings/ModelsSettings'
 import { VaultSettings } from '@/client/pages/settings/VaultSettings'
 import { McpServersSettings } from '@/client/pages/settings/McpServersSettings'
@@ -42,7 +41,6 @@ import {
   Brain,
   BrainCircuit,
   Layers,
-  Search,
   Settings2,
   Puzzle,
   Lock,
@@ -80,7 +78,6 @@ const sectionGroups: SectionGroup[] = [
     items: [
       { id: 'general', icon: Settings2, labelKey: 'settings.general.title' },
       { id: 'providers', icon: BrainCircuit, labelKey: 'settings.providers.title' },
-      { id: 'search', icon: Search, labelKey: 'settings.searchProviders.title' },
       { id: 'models', icon: Layers, labelKey: 'settings.models.title' },
     ],
   },
@@ -126,7 +123,6 @@ type SectionId = string
 const sectionComponents: Record<string, React.FC> = {
   general: GeneralSettings,
   providers: ProvidersSettings,
-  search: SearchProvidersSettings,
   models: ModelsSettings,
   mcp: McpServersSettings,
   vault: VaultSettings,

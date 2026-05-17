@@ -1,10 +1,6 @@
 import { Hono } from 'hono'
 import { eq, and, desc, isNull, ne, inArray, sql } from 'drizzle-orm'
 import { mkdirSync, existsSync } from 'fs'
-import { generateText } from 'ai'
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { createOpenAI } from '@ai-sdk/openai'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { db } from '@/server/db/index'
 import { kins, kinMcpServers, mcpServers, queueItems, compactingSummaries, memories, messages, providers, tasks } from '@/server/db/schema'
 import { config } from '@/server/config'
@@ -38,12 +34,6 @@ import { kinAvatarUrl, validateKinFields } from '@/server/services/field-validat
 import { getHubKinId, getDefaultLlmModel, getDefaultLlmProviderId } from '@/server/services/app-settings'
 import { listModelsForProvider } from '@/server/providers/index'
 import type { AppVariables } from '@/server/app'
-
-/** Provider types that use the OpenAI-compatible SDK (createOpenAI) */
-const OPENAI_COMPATIBLE_PROVIDERS = new Set([
-  'openrouter', 'deepseek', 'fireworks', 'together', 'groq',
-  'mistral', 'perplexity', 'xai', 'ollama', 'cohere', 'openai-compatible',
-])
 import { createLogger } from '@/server/logger'
 import { recordUsage } from '@/server/services/token-usage'
 import { getLastContextUsage, compactingKins, resolveThinkingConfig } from '@/server/services/kin-engine'
@@ -126,69 +116,13 @@ kinRoutes.post('/generate-config', async (c) => {
     )
   }
 
-  const providerConfig = JSON.parse(await decrypt(llmProvider.configEncrypted)) as {
-    apiKey: string
-    baseUrl?: string
-  }
+  const { pickAnyLLMModel } = await import('@/server/llm/core/resolve')
+  const { runOneShot } = await import('@/server/llm/core/run-oneshot')
 
-  // Helper: pick the first available LLM model ID for a provider, with a fallback default
-  async function pickFirstLlmModelId(fallback: string): Promise<string> {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const providerModels = await listModelsForProvider(llmProvider!.type, providerConfig)
-      const first = providerModels.find((m) => m.capability === 'llm')
-      return first?.id ?? fallback
-    } catch {
-      return fallback
-    }
-  }
-
-  let model
-  if (llmProvider.type === 'anthropic') {
-    const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('claude-haiku-4-5-20251001')
-    model = anthropic(modelId)
-  } else if (llmProvider.type === 'anthropic-oauth') {
-    const { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK } = await import('@/server/providers/anthropic-oauth')
-    const accessToken = await getOAuthAccessToken(providerConfig.apiKey || undefined)
-    const anthropic = createAnthropic({
-      apiKey: 'oauth',
-      headers: OAUTH_HEADERS,
-      fetch: (async (url: URL | RequestInfo, init: RequestInit | undefined) => {
-        const headers = new Headers(init?.headers)
-        headers.delete('x-api-key')
-        headers.set('authorization', `Bearer ${accessToken}`)
-        if (init?.body && typeof init.body === 'string') {
-          try {
-            const body = JSON.parse(init.body)
-            if (body.system !== undefined) {
-              if (typeof body.system === 'string') {
-                body.system = [REQUIRED_SYSTEM_BLOCK, { type: 'text', text: body.system }]
-              } else if (Array.isArray(body.system)) {
-                body.system = [REQUIRED_SYSTEM_BLOCK, ...body.system]
-              }
-              init = { ...init, body: JSON.stringify(body) }
-            }
-          } catch { /* pass through */ }
-        }
-        return globalThis.fetch(url, { ...init, headers })
-      }) as unknown as typeof fetch,
-    })
-    model = anthropic('claude-haiku-4-5-20251001')
-  } else if (llmProvider.type === 'openai') {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
-    model = openai.chat(modelId)
-  } else if (OPENAI_COMPATIBLE_PROVIDERS.has(llmProvider.type)) {
-    const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    const modelId = await pickFirstLlmModelId('gpt-4o-mini')
-    model = openai.chat(modelId)
-  } else if (llmProvider.type === 'gemini') {
-    const google = createGoogleGenerativeAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-    model = google('gemini-2.0-flash')
-  } else {
+  const resolved = await pickAnyLLMModel()
+  if (!resolved) {
     return c.json(
-      { error: { code: 'UNSUPPORTED_PROVIDER', message: 'No supported LLM provider found' } },
+      { error: { code: 'NO_LLM_MODEL', message: 'No LLM model available for the configured provider' } },
       422,
     )
   }
@@ -290,22 +224,23 @@ Generate the complete Kin configuration as JSON.`
   }
 
   try {
-    const result = await generateText({
-      model,
-      system: systemPrompt,
-      prompt: userPrompt,
+    const result = await runOneShot(resolved, {
+      system: [{ type: 'text', text: systemPrompt }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: userPrompt }] }],
     })
 
-    const genModelId = llmProvider.type === 'anthropic' || llmProvider.type === 'anthropic-oauth'
-      ? 'claude-haiku-4-5-20251001'
-      : llmProvider.type === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'
     recordUsage({
       callSite: 'kin-generate',
       callType: 'generate-text',
-      providerType: llmProvider.type,
-      providerId: llmProvider.id,
-      modelId: genModelId,
-      usage: result.usage,
+      providerType: resolved.providerRow.type,
+      providerId: resolved.providerRow.id,
+      modelId: resolved.model.id,
+      usage: {
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        inputTokenDetails: { cacheReadTokens: result.usage.cacheReadTokens, cacheWriteTokens: result.usage.cacheWriteTokens },
+        outputTokenDetails: { reasoningTokens: result.usage.reasoningTokens },
+      },
     })
 
     // Parse JSON from response (handle potential markdown fences)

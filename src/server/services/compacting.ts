@@ -391,7 +391,7 @@ export async function runCompacting(
   // it can handle the same payload reformatted as a summarization prompt.
   // Without this, the API call throws "prompt is too long" and the Kin's
   // context grows unboundedly because compacting silently fails every turn.
-  const { resolveLLMModel } = await import('@/server/services/kin-engine')
+  const { resolveLLM } = await import('@/server/llm/core/resolve')
   let effectiveModelId = effectiveConfig.model
   let effectiveProviderId = effectiveConfig.providerId
   const promptTokens = estimateTokens(systemPrompt)
@@ -411,14 +411,11 @@ export async function runCompacting(
     effectiveProviderId = kin.providerId
   }
 
-  const model = await resolveLLMModel(effectiveModelId, effectiveProviderId)
-  if (!model) {
-    // Distinct from "no messages to summarize" (which legitimately returns
-    // null and gets a quiet compacting:done): this is a misconfiguration
-    // (provider deleted, model retired, OAuth expired). Throw so the catch
-    // surfaces compacting:error with an actionable message instead of a
-    // misleading "no-op" success.
-    log.warn({ kinId, effectiveModelId, effectiveProviderId }, 'No LLM model available for compacting — provider/model misconfiguration')
+  let resolved
+  try {
+    resolved = await resolveLLM({ modelId: effectiveModelId, providerId: effectiveProviderId })
+  } catch (err) {
+    log.warn({ kinId, effectiveModelId, effectiveProviderId, err }, 'No LLM model available for compacting — provider/model misconfiguration')
     throw new Error(`Compacting model '${effectiveModelId}' is unavailable. Check the Kin's compacting model + provider in settings.`)
   }
 
@@ -437,13 +434,11 @@ export async function runCompacting(
     // user message for this Kin. 5 min covers slow providers / large prompts
     // while still surfacing a real hang within a tolerable window.
     const result = await safeGenerateText({
-      model,
-      providerId: effectiveProviderId,
+      resolved,
       prompt: systemPrompt,
       maxTokens: summaryMaxTokens,
       timeoutMs: 5 * 60 * 1000,
       callSite: 'compacting',
-      modelId: effectiveModelId,
       kinId,
     })
 
@@ -659,7 +654,7 @@ async function maybeMergeSummaries(kinId: string, contextWindow: number): Promis
   // 1787d529, fa161f30): when the merge prompt exceeds the compacting
   // model's window, fall back to the Kin's own model; cap output to the
   // merged-summary budget; hard-timeout to avoid holding things up.
-  const { resolveLLMModel } = await import('@/server/services/kin-engine')
+  const { resolveLLM } = await import('@/server/llm/core/resolve')
   const kin = await db.select({ model: kins.model, providerId: kins.providerId }).from(kins).where(eq(kins.id, kinId)).get()
   let mergeModelId = effectiveConfig.model
   let mergeProviderId = effectiveConfig.providerId
@@ -675,8 +670,12 @@ async function maybeMergeSummaries(kinId: string, contextWindow: number): Promis
     mergeProviderId = kin.providerId
   }
 
-  const model = await resolveLLMModel(mergeModelId, mergeProviderId)
-  if (!model) return
+  let resolved
+  try {
+    resolved = await resolveLLM({ modelId: mergeModelId, providerId: mergeProviderId })
+  } catch {
+    return
+  }
 
   // Cap merged summary at one summary-slot worth of budget (same math as
   // runCompacting). A merged summary should be MORE compressed than its
@@ -689,13 +688,11 @@ async function maybeMergeSummaries(kinId: string, contextWindow: number): Promis
 
   try {
     const result = await safeGenerateText({
-      model,
-      providerId: mergeProviderId,
+      resolved,
       prompt: mergePrompt,
       maxTokens: mergeMaxTokens,
       timeoutMs: 5 * 60 * 1000,
       callSite: 'compacting',
-      modelId: mergeModelId,
       kinId,
     })
 
@@ -785,15 +782,19 @@ async function extractMemories(
   messagesToAnalyze: Array<{ id: string; content: string | null; role: string }>,
   lastMessageId: string,
 ): Promise<number> {
-  const { resolveLLMModel } = await import('@/server/services/kin-engine')
+  const { resolveLLM } = await import('@/server/llm/core/resolve')
   const settingsExtractionModel = await getExtractionModel()
   const settingsExtractionProviderId = await getExtractionProviderId()
   const effectiveExtractionModel = settingsExtractionModel ?? config.memory.extractionModel
   const extractionProviderId = settingsExtractionProviderId
     ?? config.memory.extractionProviderId
     ?? (effectiveExtractionModel ? null : kinProviderId)
-  const model = await resolveLLMModel(effectiveExtractionModel ?? kinModel, extractionProviderId)
-  if (!model) return 0
+  let resolved
+  try {
+    resolved = await resolveLLM({ modelId: effectiveExtractionModel ?? kinModel, providerId: extractionProviderId })
+  } catch {
+    return 0
+  }
 
   // Get existing memories for dedup context (include IDs for UPDATE actions)
   const existingMemories = await db
@@ -861,8 +862,7 @@ async function extractMemories(
 
   try {
     const result = await safeGenerateText({
-      model,
-      providerId: extractionProviderId,
+      resolved,
       prompt: extractionPrompt,
       // Output is a compact JSON array — even a chatty extraction shouldn't
       // need more than a few thousand tokens. Cap to prevent runaway output.
@@ -872,7 +872,6 @@ async function extractMemories(
       // for this Kin (same hazard as fa161f30 fixed for the summary call).
       timeoutMs: 3 * 60 * 1000,
       callSite: 'compacting',
-      modelId: effectiveExtractionModel ?? kinModel,
       kinId,
     })
 

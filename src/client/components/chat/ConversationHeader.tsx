@@ -302,7 +302,6 @@ export const ConversationHeader = memo(function ConversationHeader({
                 <ThinkingEffortPicker
                   enabled={thinkingEnabled}
                   effort={thinkingEffort}
-                  modelId={model}
                   onChange={onChangeThinking}
                   className="mt-1"
                 />
@@ -344,7 +343,6 @@ export const ConversationHeader = memo(function ConversationHeader({
           <ThinkingEffortPicker
             enabled={thinkingEnabled}
             effort={thinkingEffort}
-            modelId={model}
             onChange={onChangeThinking}
             compact
           />

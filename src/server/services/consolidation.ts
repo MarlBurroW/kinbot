@@ -101,12 +101,10 @@ function clusterPairs(pairs: Array<[MemoryRow, MemoryRow]>): MemoryRow[][] {
  */
 async function mergeCluster(
   cluster: MemoryRow[],
-  model: Awaited<ReturnType<typeof import('@/server/services/kin-engine').resolveLLMModel>>,
-  providerId?: string | null,
+  resolved: Awaited<ReturnType<typeof import('@/server/llm/core/resolve').resolveLLM>> | null,
   kinId?: string,
-  modelId?: string,
 ): Promise<{ content: string; category: string; subject: string | null; importance: number } | null> {
-  if (!model) return null
+  if (!resolved) return null
 
   const memoriesText = cluster
     .map((m, i) => `${i + 1}. [${m.category}${m.subject ? `, subject: ${m.subject}` : ''}${m.importance ? `, importance: ${m.importance}` : ''}] ${m.content}`)
@@ -128,8 +126,7 @@ async function mergeCluster(
 
   try {
     const result = await safeGenerateText({
-      model,
-      providerId,
+      resolved,
       prompt,
       // Output is a single small JSON object ({content, category, subject,
       // importance} or {abort: true}). 1500 is generous.
@@ -140,7 +137,6 @@ async function mergeCluster(
       // awaited inside runCompacting under the compactingKins lock.
       timeoutMs: 2 * 60 * 1000,
       callSite: 'consolidation',
-      modelId,
       kinId,
     })
 
@@ -268,17 +264,21 @@ export async function consolidateMemories(kinId: string): Promise<number> {
   log.info({ kinId, rawClusters: rawClusters.length, clusters: clusters.length, pairs: pairs.length }, 'Found memory clusters')
 
   // Phase 2: Merge each cluster via LLM
-  const { resolveLLMModel } = await import('@/server/services/kin-engine')
-  const model = await resolveLLMModel(
-    config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
-    config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
-  )
+  const { resolveLLM } = await import('@/server/llm/core/resolve')
+  let resolved: Awaited<ReturnType<typeof resolveLLM>> | null = null
+  try {
+    resolved = await resolveLLM({
+      modelId: config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano',
+      providerId: config.memory.consolidationProviderId ?? config.compacting.providerId ?? null,
+    })
+  } catch {
+    // Provider/model unavailable — every mergeCluster() call will short-circuit.
+  }
 
   let totalRemoved = 0
 
   for (const cluster of clusters) {
-    const consolidationModelId = config.memory.consolidationModel ?? config.compacting.model ?? 'gpt-4.1-nano'
-    const merged = await mergeCluster(cluster, model, config.memory.consolidationProviderId ?? config.compacting.providerId ?? null, kinId, consolidationModelId)
+    const merged = await mergeCluster(cluster, resolved, kinId)
     if (!merged) continue
 
     // Compute the new generation: max of sources + 1

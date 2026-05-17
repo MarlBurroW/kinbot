@@ -71,15 +71,6 @@ export async function setEmbeddingModel(model: string): Promise<void> {
   return setSetting('embedding_model', model)
 }
 
-export async function getDefaultSearchProvider(): Promise<string | null> {
-  return getSetting('default_search_provider')
-}
-
-export async function setDefaultSearchProvider(providerId: string | null): Promise<void> {
-  if (providerId === null) return deleteSetting('default_search_provider')
-  return setSetting('default_search_provider', providerId)
-}
-
 export async function getExtractionProviderId(): Promise<string | null> {
   return getSetting('extraction_provider_id')
 }

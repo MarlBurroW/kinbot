@@ -22,6 +22,7 @@ import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { executeToolBatch } from '@/server/services/tool-executor'
 import { recordUsage, aggregateStepUsage, getTaskTotals } from '@/server/services/token-usage'
 import { runStreamStep } from '@/server/services/stream-runner'
+import { vercelStreamToChatChunks } from '@/server/services/_vercel-stream-bridge'
 import type { TaskStatus, TaskMode, KinToolConfig, KinThinkingConfig } from '@/shared/types'
 import { guessProviderType } from '@/shared/model-ref'
 
@@ -1027,7 +1028,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
       // The 500ms DB checkpoint that used to live inline in `text-delta` is
       // now driven by `ctx.checkpoint` and persists only *committed* content
       // (the in-flight buffer is never written to DB).
-      const outcome = await runStreamStep(result, {
+      const outcome = await runStreamStep(vercelStreamToChatChunks(result), {
         kinId: task.parentKinId,
         assistantMessageId,
         abortController,

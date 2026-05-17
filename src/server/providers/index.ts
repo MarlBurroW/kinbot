@@ -5,26 +5,6 @@ import { createLogger } from '@/server/logger'
 import { anthropicProvider } from '@/server/providers/anthropic'
 import { anthropicOAuthProvider } from '@/server/providers/anthropic-oauth'
 import { openaiProvider } from '@/server/providers/openai'
-import { geminiProvider } from '@/server/providers/gemini'
-import { voyageProvider } from '@/server/providers/voyage'
-import { braveSearchProvider } from '@/server/providers/brave-search'
-import { mistralProvider } from '@/server/providers/mistral'
-import { groqProvider } from '@/server/providers/groq'
-import { togetherProvider } from '@/server/providers/together'
-import { fireworksProvider } from '@/server/providers/fireworks'
-import { deepseekProvider } from '@/server/providers/deepseek'
-import { ollamaProvider } from '@/server/providers/ollama'
-import { openrouterProvider } from '@/server/providers/openrouter'
-import { cohereProvider } from '@/server/providers/cohere'
-import { xaiProvider } from '@/server/providers/xai'
-import { tavilyProvider } from '@/server/providers/tavily'
-import { jinaProvider } from '@/server/providers/jina'
-import { nomicProvider } from '@/server/providers/nomic'
-import { replicateProvider } from '@/server/providers/replicate'
-import { stabilityProvider } from '@/server/providers/stability'
-import { falProvider } from '@/server/providers/fal'
-import { serperProvider } from '@/server/providers/serper'
-import { perplexityProvider } from '@/server/providers/perplexity'
 import { openaiCodexProvider } from '@/server/providers/openai-codex'
 
 const log = createLogger('providers')
@@ -34,26 +14,6 @@ const builtinRegistry: Record<string, ProviderDefinition> = {
   'anthropic-oauth': anthropicOAuthProvider,
   openai: openaiProvider,
   'openai-codex': openaiCodexProvider,
-  gemini: geminiProvider,
-  voyage: voyageProvider,
-  'brave-search': braveSearchProvider,
-  mistral: mistralProvider,
-  groq: groqProvider,
-  together: togetherProvider,
-  fireworks: fireworksProvider,
-  deepseek: deepseekProvider,
-  ollama: ollamaProvider,
-  openrouter: openrouterProvider,
-  cohere: cohereProvider,
-  xai: xaiProvider,
-  tavily: tavilyProvider,
-  jina: jinaProvider,
-  nomic: nomicProvider,
-  replicate: replicateProvider,
-  stability: stabilityProvider,
-  fal: falProvider,
-  serper: serperProvider,
-  perplexity: perplexityProvider,
 }
 
 // Dynamic registry for plugin-provided providers

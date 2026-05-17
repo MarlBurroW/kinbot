@@ -7,7 +7,6 @@ import { memories } from '@/server/db/schema'
 import { generateEmbedding } from '@/server/services/embeddings'
 import { sseManager } from '@/server/sse/index'
 import { config } from '@/server/config'
-import { rerankDocuments } from '@/server/services/rerank'
 import type { MemoryCategory, MemoryScope } from '@/shared/types'
 
 const log = createLogger('memory')
@@ -334,19 +333,19 @@ async function generateQueryVariations(query: string, knownSubjects?: string[], 
   if (!multiQueryModel) return [query]
 
   try {
-    const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(multiQueryModel, config.memory.multiQueryProviderId ?? null)
-    if (!model) return [query]
+    const { resolveLLM } = await import('@/server/llm/core/resolve')
+    let resolved
+    try {
+      resolved = await resolveLLM({ modelId: multiQueryModel, providerId: config.memory.multiQueryProviderId ?? null })
+    } catch { return [query] }
 
     const subjectHint = knownSubjects && knownSubjects.length > 0
       ? `\nKnown subjects in memory: ${knownSubjects.join(', ')}\nUse these to generate targeted queries about specific entities when relevant.`
       : ''
 
     const result = await safeGenerateText({
-      model,
-      providerId: config.memory.multiQueryProviderId ?? null,
+      resolved,
       callSite: 'memory-multi-query',
-      modelId: multiQueryModel,
       kinId,
       prompt:
         `Generate 3 alternative search queries for retrieving relevant memories based on this message. ` +
@@ -385,15 +384,15 @@ async function generateHypotheticalMemory(query: string, kinId?: string): Promis
   if (!hydeModel) return null
 
   try {
-    const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(hydeModel, config.memory.hydeProviderId ?? null)
-    if (!model) return null
+    const { resolveLLM } = await import('@/server/llm/core/resolve')
+    let resolved
+    try {
+      resolved = await resolveLLM({ modelId: hydeModel, providerId: config.memory.hydeProviderId ?? null })
+    } catch { return null }
 
     const result = await safeGenerateText({
-      model,
-      providerId: config.memory.hydeProviderId ?? null,
+      resolved,
       callSite: 'memory-hyde',
-      modelId: hydeModel,
       kinId,
       prompt:
         `You are a personal AI companion that stores memories about its user. ` +
@@ -776,8 +775,6 @@ function searchByFTS(
 
 /**
  * Re-rank memory search results using an LLM for better precision.
- * Orchestrate re-ranking: try cross-encoder API first (faster, cheaper),
- * fall back to LLM-based re-ranking if no rerank provider is configured.
  */
 async function rerankCandidates(
   query: string,
@@ -787,31 +784,6 @@ async function rerankCandidates(
 ): Promise<MemorySearchResult[]> {
   const rerankModel = config.memory.rerankModel
   if (!rerankModel || candidates.length === 0) return candidates.slice(0, limit)
-
-  // Try cross-encoder API first
-  const documents = candidates.map((m) => m.content.slice(0, 512))
-  const apiResults = await rerankDocuments(query, documents, rerankModel, limit)
-
-  if (apiResults && apiResults.length > 0) {
-    const reranked: MemorySearchResult[] = apiResults
-      .filter((r) => r.index >= 0 && r.index < candidates.length)
-      .map((r) => ({
-        ...candidates[r.index]!,
-        score: r.relevanceScore + (candidates[r.index]!.score * 0.001), // tiebreaker
-      }))
-      .sort((a, b) => b.score - a.score)
-
-    // Append any candidates missed by the API
-    const seen = new Set(reranked.map((r) => r.id))
-    for (const c of candidates) {
-      if (!seen.has(c.id)) reranked.push(c)
-    }
-
-    log.debug({ query: query.slice(0, 80), candidates: candidates.length, reranked: reranked.length, method: 'cross-encoder' }, 'Re-ranking complete')
-    return reranked.slice(0, limit)
-  }
-
-  // Fall back to LLM-based re-ranking
   return rerankWithLLM(query, candidates, limit, kinId)
 }
 
@@ -830,9 +802,11 @@ async function rerankWithLLM(
   if (!rerankModel || candidates.length === 0) return candidates.slice(0, limit)
 
   try {
-    const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const model = await resolveLLMModel(rerankModel, config.memory.rerankProviderId ?? null)
-    if (!model) return candidates.slice(0, limit)
+    const { resolveLLM } = await import('@/server/llm/core/resolve')
+    let resolved
+    try {
+      resolved = await resolveLLM({ modelId: rerankModel, providerId: config.memory.rerankProviderId ?? null })
+    } catch { return candidates.slice(0, limit) }
 
     // Build a numbered list of memory snippets (truncate long ones)
     const memoryList = candidates
@@ -840,10 +814,8 @@ async function rerankWithLLM(
       .join('\n')
 
     const result = await safeGenerateText({
-      model,
-      providerId: config.memory.rerankProviderId ?? null,
+      resolved,
       callSite: 'memory-rerank',
-      modelId: rerankModel,
       kinId,
       prompt:
         `You are a relevance judge. Given a user query and a list of memory snippets, ` +
@@ -957,9 +929,11 @@ export async function rewriteQueryWithContext(
   }
 
   try {
-    const { resolveLLMModel } = await import('@/server/services/kin-engine')
-    const resolved = await resolveLLMModel(model, config.memory.contextualRewriteProviderId ?? null)
-    if (!resolved) return message
+    const { resolveLLM } = await import('@/server/llm/core/resolve')
+    let resolved
+    try {
+      resolved = await resolveLLM({ modelId: model, providerId: config.memory.contextualRewriteProviderId ?? null })
+    } catch { return message }
 
     // Build a compact conversation snippet (last 4 turns max)
     const context = recentMessages
@@ -968,10 +942,8 @@ export async function rewriteQueryWithContext(
       .join('\n')
 
     const result = await safeGenerateText({
-      model: resolved,
-      providerId: config.memory.contextualRewriteProviderId ?? null,
+      resolved,
       callSite: 'memory-contextual-rewrite',
-      modelId: model,
       kinId,
       prompt:
         `Rewrite the user's last message into a standalone search query for retrieving relevant memories. ` +
