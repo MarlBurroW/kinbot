@@ -31,58 +31,45 @@ const log = createLogger('token-usage')
 // ─── Step Usage Aggregation ────────────────────────────────────────────────
 
 /**
- * Aggregate token usage across all steps of a multi-step LLM turn.
- * Returns null on timeout or if no usage data is available.
- *
- * `peakStepInputTokens` is the largest single-step input we saw across
- * the turn — the closest provider-reported number to "current context
- * size". It's the value to use for displaying the live context banner,
- * because the aggregate `inputTokens` field is the SUM across steps and
- * inflates with every tool round-trip.
+ * Aggregate already-resolved per-step `Usage` objects (kinbot LLMProvider
+ * shape) into a single `MessageTokenUsage` with a `peakStepInputTokens`
+ * extra. Sync version of `aggregateStepUsage` for the new abstraction.
  */
-export async function aggregateStepUsage(
-  stepResults: Array<{ usage: PromiseLike<Record<string, unknown>> }>,
-  timeoutMs = 5000,
-): Promise<(MessageTokenUsage & { peakStepInputTokens?: number }) | null> {
-  if (stepResults.length === 0) return null
-  try {
-    const settled = await Promise.race([
-      Promise.allSettled(stepResults.map(r => Promise.resolve(r.usage))),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ])
-    const turn = { inputTokens: 0, outputTokens: 0, totalTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 }
-    let hasData = false
-    let peakStepInputTokens = 0
-    for (const s of settled) {
-      if (s.status === 'fulfilled' && s.value) {
-        const v = s.value as Record<string, unknown>
-        const stepInput = (v.inputTokens as number) ?? 0
-        if (stepInput > peakStepInputTokens) peakStepInputTokens = stepInput
-        turn.inputTokens += stepInput
-        turn.outputTokens += (v.outputTokens as number) ?? 0
-        turn.totalTokens += (v.totalTokens as number) ?? 0
-        const inputDetails = v.inputTokenDetails as Record<string, number> | undefined
-        const outputDetails = v.outputTokenDetails as Record<string, number> | undefined
-        turn.cacheReadTokens += inputDetails?.cacheReadTokens ?? 0
-        turn.cacheWriteTokens += inputDetails?.cacheWriteTokens ?? 0
-        turn.reasoningTokens += outputDetails?.reasoningTokens ?? 0
-        hasData = true
-      }
-    }
-    if (!hasData) return null
-    return {
-      inputTokens: turn.inputTokens,
-      outputTokens: turn.outputTokens,
-      totalTokens: turn.totalTokens,
-      ...(turn.cacheReadTokens > 0 ? { cacheReadTokens: turn.cacheReadTokens } : {}),
-      ...(turn.cacheWriteTokens > 0 ? { cacheWriteTokens: turn.cacheWriteTokens } : {}),
-      ...(turn.reasoningTokens > 0 ? { reasoningTokens: turn.reasoningTokens } : {}),
-      stepCount: stepResults.length,
-      ...(peakStepInputTokens > 0 ? { peakStepInputTokens } : {}),
-    }
-  } catch {
-    log.warn('aggregateStepUsage timed out or failed')
-    return null
+export function aggregateUsages(
+  usages: ReadonlyArray<{
+    inputTokens?: number
+    outputTokens?: number
+    cacheReadTokens?: number
+    cacheWriteTokens?: number
+    reasoningTokens?: number
+  }>,
+): (MessageTokenUsage & { peakStepInputTokens?: number }) | null {
+  if (usages.length === 0) return null
+  const turn = { inputTokens: 0, outputTokens: 0, totalTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 }
+  let hasData = false
+  let peakStepInputTokens = 0
+  for (const u of usages) {
+    if (!u) continue
+    const stepInput = u.inputTokens ?? 0
+    if (stepInput > peakStepInputTokens) peakStepInputTokens = stepInput
+    turn.inputTokens += stepInput
+    turn.outputTokens += u.outputTokens ?? 0
+    turn.cacheReadTokens += u.cacheReadTokens ?? 0
+    turn.cacheWriteTokens += u.cacheWriteTokens ?? 0
+    turn.reasoningTokens += u.reasoningTokens ?? 0
+    hasData = true
+  }
+  if (!hasData) return null
+  turn.totalTokens = turn.inputTokens + turn.outputTokens
+  return {
+    inputTokens: turn.inputTokens,
+    outputTokens: turn.outputTokens,
+    totalTokens: turn.totalTokens,
+    ...(turn.cacheReadTokens > 0 ? { cacheReadTokens: turn.cacheReadTokens } : {}),
+    ...(turn.cacheWriteTokens > 0 ? { cacheWriteTokens: turn.cacheWriteTokens } : {}),
+    ...(turn.reasoningTokens > 0 ? { reasoningTokens: turn.reasoningTokens } : {}),
+    stepCount: usages.length,
+    ...(peakStepInputTokens > 0 ? { peakStepInputTokens } : {}),
   }
 }
 

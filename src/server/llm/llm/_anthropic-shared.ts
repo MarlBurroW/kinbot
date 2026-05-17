@@ -210,6 +210,7 @@ export function toolsToAnthropic(tools: ChatRequest['tools']): Tool[] | undefine
     name: t.name,
     description: t.description,
     input_schema: t.inputSchema as Tool['input_schema'],
+    ...(t.cacheControl ? { cache_control: { type: 'ephemeral' as const } } : {}),
   }))
 }
 

@@ -22,6 +22,8 @@ import type {
   KinbotMessage,
   KinbotMessageBlock,
   KinbotTool,
+  SystemPrompt,
+  TextBlock,
 } from '@/server/llm/llm/types'
 
 // ─── Tools ───────────────────────────────────────────────────────────────────
@@ -58,6 +60,18 @@ function extractJsonSchema(schema: unknown): Record<string, unknown> {
     return s.jsonSchema as Record<string, unknown>
   }
   return schema as Record<string, unknown>
+}
+
+/**
+ * Add a `cache_control: ephemeral` breakpoint on the last tool of the list,
+ * so Anthropic caches the whole tools block as a single prefix. No-op when
+ * the list is empty. Pure (returns a new array).
+ */
+export function markLastKinbotToolCacheable(tools: KinbotTool[]): KinbotTool[] {
+  if (tools.length === 0) return tools
+  return tools.map((t, i) =>
+    i === tools.length - 1 ? { ...t, cacheControl: { type: 'ephemeral' as const } } : t,
+  )
 }
 
 // ─── Messages ────────────────────────────────────────────────────────────────
@@ -117,6 +131,38 @@ export function modelMessagesToKinbot(messages: ModelMessage[]): KinbotMessage[]
     }
   }
   return out
+}
+
+/**
+ * Split the output of `buildSegmentedMessages` into kinbot's expected
+ * `{ system, messages }` pair.
+ *
+ * `buildSegmentedMessages` returns a `ModelMessage[]` where the first entry
+ * is a `role: 'system'` block (when a stable system segment exists) carrying
+ * the cache hint. The rest is the conversation history.
+ *
+ * kinbot's `ChatRequest` expects the system separately as a `SystemPrompt`
+ * (= `TextBlock[]`). This helper does the split + the per-block cache hint
+ * promotion in one pass.
+ */
+export function splitSystemFromVercelMessages(
+  messages: ModelMessage[],
+): { system: SystemPrompt | undefined; messages: KinbotMessage[] } {
+  const systemBlocks: TextBlock[] = []
+  const rest: ModelMessage[] = []
+  for (const m of messages) {
+    if (m.role === 'system' && typeof m.content === 'string') {
+      const block: TextBlock = { type: 'text', text: m.content }
+      if (hasMessageCacheHint(m)) block.cacheControl = { type: 'ephemeral' }
+      systemBlocks.push(block)
+    } else {
+      rest.push(m)
+    }
+  }
+  return {
+    system: systemBlocks.length > 0 ? systemBlocks : undefined,
+    messages: modelMessagesToKinbot(rest),
+  }
 }
 
 function hasMessageCacheHint(m: ModelMessage): boolean {

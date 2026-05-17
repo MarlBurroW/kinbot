@@ -1,6 +1,4 @@
 import { streamText, type ModelMessage, type UserContent, type Tool } from 'ai'
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { createOpenAI } from '@ai-sdk/openai'
 import { eq, and, isNull, ne, asc, desc } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { db, sqlite } from '@/server/db/index'
@@ -18,7 +16,6 @@ import {
   tickets,
 } from '@/server/db/schema'
 import { buildActiveProjectInfo } from '@/server/services/projects'
-import { guessProviderType } from '@/shared/model-ref'
 import { getContactDisplayName } from '@/shared/contact-display'
 import { decrypt } from '@/server/services/encryption'
 import { buildSystemPrompt, joinSystemPrompt } from '@/server/services/prompt-builder'
@@ -33,8 +30,6 @@ import { eventBus } from '@/server/services/events'
 import { hookRegistry } from '@/server/hooks/index'
 import { toolRegistry } from '@/server/tools/index'
 import { config } from '@/server/config'
-import { getOAuthAccessToken, OAUTH_HEADERS, REQUIRED_SYSTEM_BLOCK, getOAuthUserId, buildBillingHeaderText } from '@/server/providers/anthropic-oauth'
-import { getCodexOAuthCredentials, CODEX_BASE_URL } from '@/server/providers/openai-codex'
 import { getRelevantMemories, rewriteQueryWithContext } from '@/server/services/memory'
 import { maybeCompact } from '@/server/services/compacting'
 import { resolveMCPTools, getMCPToolsSummary } from '@/server/services/mcp'
@@ -50,9 +45,8 @@ import { parseMentions, notifyMentionedUsers } from '@/server/services/mentions'
 import { getGlobalPrompt, getHubKinId, getSetting, setSetting } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { executeToolBatch } from '@/server/services/tool-executor'
-import { recordUsage, aggregateStepUsage } from '@/server/services/token-usage'
+import { recordUsage, aggregateUsages } from '@/server/services/token-usage'
 import { runStreamStep, normalizeToolUseInput } from '@/server/services/stream-runner'
-import { vercelStreamToChatChunks } from '@/server/services/_vercel-stream-bridge'
 import { channelAdapters } from '@/server/channels/index'
 import { getModelContextWindow } from '@/shared/model-context-windows'
 
@@ -1420,10 +1414,13 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       return true
     }
 
-    // Resolve LLM model
-    const model = await resolveLLMModel(kin.model, kin.providerId)
-    if (!model) {
-      log.warn({ kinId, modelId: kin.model }, 'No LLM provider available')
+    // Resolve LLM (provider + model + decrypted config)
+    let resolved
+    try {
+      const { resolveLLM } = await import('@/server/llm/core/resolve')
+      resolved = await resolveLLM({ modelId: kin.model, providerId: kin.providerId })
+    } catch (err) {
+      log.warn({ kinId, modelId: kin.model, err }, 'No LLM provider available')
       sseManager.sendToKin(kinId, {
         type: 'kin:error',
         kinId,
@@ -1442,8 +1439,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
 
     // Resolve thinking config for this Kin (defaults to enabled if never configured)
     const thinkingConfig = resolveThinkingConfig(kin.thinkingConfig)
-    const providerType = guessProviderType(kin.model) ?? kin.providerId ?? ''
-    const thinkingProviderOptions = buildThinkingProviderOptions(providerType, thinkingConfig)
+    const providerType = resolved.providerRow.type
 
     const nativeTools = toolRegistry.resolve({
       kinId,
@@ -1581,37 +1577,56 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     }
     activeKinStreams.set(kinId, kinStreamSnapshot)
 
-    // Strip execute functions from tools so the SDK only collects intents
-    // (we execute tools ourselves between steps), then mark the last tool as
-    // cache-eligible for Anthropic prompt caching.
-    const toolSchemas = hasTools ? markLastToolCacheable(stripToolExecute(tools)) : undefined
+    // Convert tools to kinbot shape once (provider.chat() handles them natively).
+    // markLastKinbotToolCacheable adds the per-tool cache_control hint Anthropic
+    // uses to cache the whole tools block as a single prefix.
+    const { vercelToolsToKinbot, markLastKinbotToolCacheable, splitSystemFromVercelMessages } =
+      await import('@/server/llm/core/vercel-bridge')
+    const kinbotTools = hasTools
+      ? markLastKinbotToolCacheable(vercelToolsToKinbot(stripToolExecute(tools)))
+      : undefined
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : Infinity) : 1
     let wasAborted = false
     let silentStopAfterTools = false
-    const stepResults: Array<ReturnType<typeof streamText>> = []
-    // One entry per streamText() call. Captured from the SDK 'finish' part so
+    /** Per-step usage captured from each `provider.chat()` finish chunk. */
+    const stepUsages: Array<{
+      inputTokens?: number
+      outputTokens?: number
+      cacheReadTokens?: number
+      cacheWriteTokens?: number
+      reasoningTokens?: number
+    }> = []
+    // One entry per provider.chat() call. Captured from the `finish` chunk so
     // future incidents (silent stops, runaway tools, abnormal terminations)
     // can be classified from get_platform_logs without rerunning a turn.
     const stepFinishReasons: string[] = []
+
+    const thinkingEffort = thinkingConfig?.enabled ? thinkingConfig.effort ?? undefined : undefined
 
     let step = 0
     for (; step < maxSteps; step++) {
       if (abortController.signal.aborted) { wasAborted = true; break }
 
-      const result = streamText({
-        model,
-        messages: buildSegmentedMessages(systemSegments, messageHistory),
-        tools: toolSchemas,
-        abortSignal: abortController.signal,
-        ...(thinkingProviderOptions ? { providerOptions: thinkingProviderOptions as any } : {}),
-      })
-      stepResults.push(result)
+      const vercelMessages = buildSegmentedMessages(systemSegments, messageHistory)
+      const { system: kinbotSystem, messages: kinbotMessages } =
+        splitSystemFromVercelMessages(vercelMessages)
+      const stream = resolved.provider.chat(
+        resolved.model,
+        {
+          messages: kinbotMessages,
+          ...(kinbotSystem ? { system: kinbotSystem } : {}),
+          ...(kinbotTools ? { tools: kinbotTools } : {}),
+          ...(thinkingEffort ? { thinkingEffort } : {}),
+          signal: abortController.signal,
+        },
+        resolved.config,
+      )
 
       // Buffer text per step until finishReason is known — see stream-runner.ts.
       // Intermediate steps (with tool_use) drop their text; final pure-text
       // steps flush it. Tool-call / reasoning events are forwarded immediately.
-      const outcome = await runStreamStep(vercelStreamToChatChunks(result), {
+      const outcome = await runStreamStep(stream, {
         kinId,
         assistantMessageId,
         abortController,
@@ -1629,6 +1644,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           'Dropped pre-narration from intermediate step',
         ),
       }, step)
+      if (outcome.usage) stepUsages.push(outcome.usage)
 
       if (outcome.error && !outcome.wasAborted) throw outcome.error
       if (outcome.wasAborted) wasAborted = true
@@ -1680,8 +1696,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
     activeAbortControllers.delete(kinId)
     activeKinStreams.delete(kinId)
 
-    // Aggregate token usage (awaited so we can persist in metadata + SSE)
-    const tokenUsage = await aggregateStepUsage(stepResults)
+    // Aggregate token usage (synchronous: already collected from each step's
+    // `finish` chunk into `stepUsages` during the loop above).
+    const tokenUsage = aggregateUsages(stepUsages)
 
     // Replace the pre-call BPE estimate with the provider-reported peak step
     // input — ground truth for the live banner. The estimator stays the
@@ -1695,9 +1712,9 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       recordUsage({
         callSite: 'chat',
         callType: 'stream-text',
-        providerType: guessProviderType(kin.model),
-        providerId: kin.providerId,
-        modelId: kin.model,
+        providerType: resolved.providerRow.type,
+        providerId: resolved.providerRow.id,
+        modelId: resolved.model.id,
         kinId,
         usage: {
           inputTokens: tokenUsage.inputTokens,
@@ -1706,7 +1723,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
           inputTokenDetails: { cacheReadTokens: tokenUsage.cacheReadTokens ?? 0, cacheWriteTokens: tokenUsage.cacheWriteTokens ?? 0 },
           outputTokenDetails: { reasoningTokens: tokenUsage.reasoningTokens ?? 0 },
         },
-        stepCount: stepResults.length,
+        stepCount: stepUsages.length,
       })
 
       // Log cache hit/miss to make prompt-caching effectiveness observable.
@@ -2181,10 +2198,13 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
       }
     }
 
-    // Resolve LLM model
-    const model = await resolveLLMModel(kin.model, kin.providerId)
-    if (!model) {
-      log.warn({ kinId, sessionId, modelId: kin.model }, 'No LLM provider available for quick session')
+    // Resolve LLM (provider + model + decrypted config)
+    let qsResolved
+    try {
+      const { resolveLLM } = await import('@/server/llm/core/resolve')
+      qsResolved = await resolveLLM({ modelId: kin.model, providerId: kin.providerId })
+    } catch (err) {
+      log.warn({ kinId, sessionId, modelId: kin.model, err }, 'No LLM provider available for quick session')
       sseManager.sendToKin(kinId, {
         type: 'kin:error',
         kinId,
@@ -2198,8 +2218,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
 
     // Resolve thinking config for quick session (defaults to enabled)
     const qsThinkingConfig = resolveThinkingConfig(kin.thinkingConfig)
-    const qsProviderType = guessProviderType(kin.model) ?? kin.providerId ?? ''
-    const qsThinkingProviderOptions = buildThinkingProviderOptions(qsProviderType, qsThinkingConfig)
+    const qsProviderType = qsResolved.providerRow.type
 
     // Resolve tools (with exclusion list for quick sessions)
     const toolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
@@ -2231,35 +2250,51 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     const abortController = new AbortController()
     quickAbortControllers.set(sessionId, abortController)
 
-    // Strip execute functions from tools so the SDK only collects intents,
-    // then mark the last tool as cache-eligible for Anthropic prompt caching.
-    const toolSchemas = hasTools ? markLastToolCacheable(stripToolExecute(tools)) : undefined
+    // Convert tools to kinbot shape once.
+    const { vercelToolsToKinbot: qsVercelToolsToKinbot, markLastKinbotToolCacheable: qsMarkLastKinbotToolCacheable, splitSystemFromVercelMessages: qsSplitSystemFromVercelMessages } =
+      await import('@/server/llm/core/vercel-bridge')
+    const qsKinbotTools = hasTools
+      ? qsMarkLastKinbotToolCacheable(qsVercelToolsToKinbot(stripToolExecute(tools)))
+      : undefined
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : Infinity) : 1
     let wasAborted = false
     let silentStopAfterTools = false
-    const stepResults: Array<ReturnType<typeof streamText>> = []
+    const stepUsages: Array<{
+      inputTokens?: number
+      outputTokens?: number
+      cacheReadTokens?: number
+      cacheWriteTokens?: number
+      reasoningTokens?: number
+    }> = []
     // See processNextMessage for rationale.
     const stepFinishReasons: string[] = []
+
+    const qsThinkingEffort = qsThinkingConfig?.enabled ? qsThinkingConfig.effort ?? undefined : undefined
 
     let step = 0
     for (; step < maxSteps; step++) {
       if (abortController.signal.aborted) { wasAborted = true; break }
 
-      const result = streamText({
-        model,
-        messages: buildSegmentedMessages(systemSegments, messageHistory),
-        tools: toolSchemas,
-        abortSignal: abortController.signal,
-        ...(qsThinkingProviderOptions ? { providerOptions: qsThinkingProviderOptions as any } : {}),
-      })
-      stepResults.push(result)
+      const vercelMessages = buildSegmentedMessages(systemSegments, messageHistory)
+      const { system: qsSystem, messages: qsMessages } = qsSplitSystemFromVercelMessages(vercelMessages)
+      const stream = qsResolved.provider.chat(
+        qsResolved.model,
+        {
+          messages: qsMessages,
+          ...(qsSystem ? { system: qsSystem } : {}),
+          ...(qsKinbotTools ? { tools: qsKinbotTools } : {}),
+          ...(qsThinkingEffort ? { thinkingEffort: qsThinkingEffort } : {}),
+          signal: abortController.signal,
+        },
+        qsResolved.config,
+      )
 
       // Buffer text per step until finishReason is known — see stream-runner.ts.
       // Quick session has no mid-stream rehydration snapshot (no client-side
       // remount support) and no first-token attribution payload — those are
       // the only differences from the main Kin path.
-      const outcome = await runStreamStep(vercelStreamToChatChunks(result), {
+      const outcome = await runStreamStep(stream, {
         kinId,
         assistantMessageId,
         abortController,
@@ -2271,6 +2306,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
           'Dropped pre-narration from intermediate step (quick session)',
         ),
       }, step)
+      if (outcome.usage) stepUsages.push(outcome.usage)
 
       if (outcome.error && !outcome.wasAborted) throw outcome.error
       if (outcome.wasAborted) wasAborted = true
@@ -2318,17 +2354,17 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
 
     quickAbortControllers.delete(sessionId)
 
-    // Aggregate token usage (awaited so we can persist in metadata + SSE)
-    const tokenUsage = await aggregateStepUsage(stepResults)
+    // Aggregate token usage (synchronous: already collected from each step).
+    const tokenUsage = aggregateUsages(stepUsages)
 
     // Fire-and-forget: record to llm_usage table for analytics
     if (tokenUsage) {
       recordUsage({
         callSite: 'quick-session',
         callType: 'stream-text',
-        providerType: guessProviderType(kin.model),
-        providerId: kin.providerId,
-        modelId: kin.model,
+        providerType: qsResolved.providerRow.type,
+        providerId: qsResolved.providerRow.id,
+        modelId: qsResolved.model.id,
         kinId,
         sessionId,
         usage: {
@@ -2338,7 +2374,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
           inputTokenDetails: { cacheReadTokens: tokenUsage.cacheReadTokens ?? 0, cacheWriteTokens: tokenUsage.cacheWriteTokens ?? 0 },
           outputTokenDetails: { reasoningTokens: tokenUsage.reasoningTokens ?? 0 },
         },
-        stepCount: stepResults.length,
+        stepCount: stepUsages.length,
       })
     }
 
@@ -3000,14 +3036,6 @@ export async function buildMessageHistory(kinId: string): Promise<{ messages: Mo
 }
 
 /**
- * Determine which provider type a model ID belongs to.
- * @deprecated Use guessProviderType from @/shared/model-ref instead.
- */
-function getProviderTypeForModel(modelId: string): string | null {
-  return guessProviderType(modelId)
-}
-
-/**
  * Resolve a Kin's thinking config from its raw JSON column.
  * Defaults to `{ enabled: true, effort: 'medium' }` when never configured —
  * interleaved thinking measurably reduces tool-result hallucinations on multi-step turns.
@@ -3029,320 +3057,6 @@ export function resolveThinkingConfig(rawJson: string | null | undefined): KinTh
   } catch {
     return DEFAULT_THINKING_CONFIG
   }
-}
-
-/**
- * Effort → budget mapping per provider family.
- * Anthropic accepts a token budget. OpenAI reasoning models use a string enum.
- * Opus 4.7 ignores the `thinking` param silently (handles thinking internally).
- */
-const ANTHROPIC_EFFORT_BUDGETS: Record<KinThinkingEffort, number> = {
-  low: 2048,
-  medium: 8192,
-  high: 24576,
-  max: 32000,
-}
-const OPENAI_EFFORT_LEVELS: Record<KinThinkingEffort, 'low' | 'medium' | 'high'> = {
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-  max: 'high', // OpenAI caps at 'high'
-}
-
-/** Resolve a config to a concrete budget for Anthropic-style providers. */
-function resolveAnthropicBudget(config: KinThinkingConfig): number {
-  if (config.effort) return ANTHROPIC_EFFORT_BUDGETS[config.effort]
-  if (config.budgetTokens != null) return config.budgetTokens
-  return ANTHROPIC_EFFORT_BUDGETS.medium
-}
-
-/**
- * Build provider-specific options to enable thinking/reasoning on the LLM call.
- * Returns undefined when thinking is disabled or the provider doesn't support it.
- */
-export function buildThinkingProviderOptions(
-  providerType: string,
-  config: KinThinkingConfig | null,
-): Record<string, Record<string, unknown>> | undefined {
-  if (!config?.enabled) return undefined
-
-  if (providerType === 'anthropic' || providerType === 'anthropic-oauth') {
-    return {
-      anthropic: {
-        thinking: { type: 'enabled', budgetTokens: resolveAnthropicBudget(config) },
-      },
-    }
-  }
-  if (providerType === 'openai' || providerType === 'openai-codex') {
-    const effort = config.effort ?? 'medium'
-    return {
-      openai: { reasoningEffort: OPENAI_EFFORT_LEVELS[effort] },
-    }
-  }
-  return undefined
-}
-
-/**
- * Try to instantiate a Vercel AI SDK model from a specific provider.
- * Returns the model instance on success, or null if this provider can't serve the model.
- */
-async function tryCreateModel(
-  provider: typeof providers.$inferSelect,
-  modelId: string,
-  expectedType: string | null,
-) {
-  if (!provider.isValid) return null
-
-  try {
-    const capabilities = JSON.parse(provider.capabilities) as string[]
-    if (!capabilities.includes('llm')) return null
-
-    const providerFamily = provider.type === 'anthropic-oauth' ? 'anthropic'
-      : provider.type === 'openai-codex' ? 'openai'
-      : provider.type
-    if (expectedType && providerFamily !== expectedType) return null
-
-    const providerConfig = JSON.parse(await decrypt(provider.configEncrypted)) as {
-      apiKey: string
-      baseUrl?: string
-    }
-
-    if (provider.type === 'anthropic') {
-      const anthropic = createAnthropic({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-      return anthropic(modelId)
-    } else if (provider.type === 'anthropic-oauth') {
-      const accessToken = await getOAuthAccessToken(providerConfig.apiKey || undefined)
-      const anthropic = createAnthropic({
-        apiKey: 'oauth', // placeholder — overridden by custom fetch below
-        headers: OAUTH_HEADERS,
-        fetch: (async (url: URL | RequestInfo, init: RequestInit | undefined) => {
-          const headers = new Headers(init?.headers)
-          headers.delete('x-api-key')
-          headers.set('authorization', `Bearer ${accessToken}`)
-
-          // Per-request Stainless headers — these change per call and can't
-          // live in the static OAUTH_HEADERS. Without them, the request looks
-          // like it's coming from a non-Anthropic-SDK client.
-          if (!headers.has('x-stainless-retry-count')) {
-            headers.set('x-stainless-retry-count', '0')
-          }
-          if (!headers.has('x-stainless-timeout')) {
-            headers.set('x-stainless-timeout', '600')
-          }
-
-          // Rewrite `/v1/messages` → `/v1/messages?beta=true` so the request
-          // shape matches the official Claude Code CLI (which uses the SDK's
-          // `beta.messages.stream()` helper, hitting the `?beta=true` URL).
-          // Without this query param, Anthropic likely classifies the request
-          // as a non-beta-aware client and re-routes to the "extra usage" pool.
-          let rewrittenUrl: URL | RequestInfo = url
-          const urlString = typeof url === 'string'
-            ? url
-            : url instanceof URL
-              ? url.toString()
-              : url instanceof Request
-                ? url.url
-                : String(url)
-          if (urlString.includes('/v1/messages') && !urlString.includes('beta=true')) {
-            const sep = urlString.includes('?') ? '&' : '?'
-            const newUrl = `${urlString}${sep}beta=true`
-            rewrittenUrl = typeof url === 'string' ? newUrl
-              : url instanceof URL ? new URL(newUrl)
-              : url instanceof Request ? new Request(newUrl, url)
-              : newUrl
-          }
-
-          // Three body rewrites needed for OAuth:
-          //
-          // 1. Compute the signed billing tag and inject it as the FIRST
-          //    text block in the system array (before the magic identity
-          //    block). Anthropic's request router validates this signature
-          //    to decide whether to bill the request against the plan pool
-          //    (signature valid) or against "extra usage" (missing/invalid).
-          //    The signature is derived from the first user message text
-          //    plus a hardcoded salt — see buildBillingHeaderText().
-          //
-          // 2. Prepend the REQUIRED_SYSTEM_BLOCK identity prefix so the OAuth
-          //    endpoint accepts the request. Do NOT add cache_control to
-          //    existing blocks — the Vercel AI SDK already places cache_control
-          //    on the right blocks (via providerOptions.anthropic.cacheControl
-          //    in llm-cache-hints.ts). Forcing cache_control here would either
-          //    blow past Anthropic's 4-breakpoint limit, or cache the volatile
-          //    segment of the system prompt (which changes each turn —
-          //    pure cache-write waste).
-          //
-          // 3. Inject `metadata.user_id` so the request shape matches the
-          //    official Claude Code CLI. Anthropic prefers the OAuth account's
-          //    UUID (from ~/.claude.json#oauthAccount.accountUuid) over a
-          //    random installation ID.
-          if (init?.body && typeof init.body === 'string') {
-            try {
-              const body = JSON.parse(init.body)
-              const billingBlock = {
-                type: 'text' as const,
-                text: buildBillingHeaderText(body.messages),
-              }
-              if (body.system === undefined) {
-                body.system = [billingBlock, REQUIRED_SYSTEM_BLOCK]
-              } else if (typeof body.system === 'string') {
-                body.system = [
-                  billingBlock,
-                  REQUIRED_SYSTEM_BLOCK,
-                  { type: 'text', text: body.system },
-                ]
-              } else if (Array.isArray(body.system)) {
-                body.system = [billingBlock, REQUIRED_SYSTEM_BLOCK, ...body.system]
-              }
-              if (!body.metadata || typeof body.metadata !== 'object') {
-                body.metadata = {}
-              }
-              if (!body.metadata.user_id) {
-                body.metadata.user_id = getOAuthUserId()
-              }
-
-              // Debug: dump cache breakpoint layout when DEBUG_OAUTH_CACHE=1
-              if (process.env.DEBUG_OAUTH_CACHE) {
-                const summarize = (item: unknown, idx: number, kind: 'system' | 'message') => {
-                  const it = item as { type?: string; text?: string; content?: unknown; cache_control?: unknown; role?: string }
-                  let preview = ''
-                  let length = 0
-                  let hasCacheControl = false
-                  if (kind === 'system') {
-                    preview = (it.text ?? '').slice(0, 60)
-                    length = (it.text ?? '').length
-                    hasCacheControl = !!it.cache_control
-                  } else {
-                    if (typeof it.content === 'string') {
-                      preview = it.content.slice(0, 60)
-                      length = it.content.length
-                    } else if (Array.isArray(it.content)) {
-                      const blocks = it.content as Array<{ type: string; text?: string; cache_control?: unknown }>
-                      preview = blocks.map(b => b.text ?? `<${b.type}>`).join('|').slice(0, 60)
-                      length = blocks.reduce((acc, b) => acc + (b.text?.length ?? 0), 0)
-                      hasCacheControl = blocks.some(b => !!b.cache_control)
-                    }
-                  }
-                  return `  [${idx}] ${kind} role=${it.role ?? '-'} cc=${hasCacheControl ? 'YES' : 'no '} len=${length.toString().padStart(6)} | ${preview.replace(/\n/g, '\\n')}`
-                }
-                const lines: string[] = ['OAuth wire dump:']
-                if (Array.isArray(body.system)) {
-                  body.system.forEach((s: unknown, i: number) => lines.push(summarize(s, i, 'system')))
-                }
-                if (Array.isArray(body.messages)) {
-                  body.messages.forEach((m: unknown, i: number) => lines.push(summarize(m, i, 'message')))
-                }
-                log.info({ provider: 'anthropic-oauth' }, lines.join('\n'))
-              }
-
-              init = { ...init, body: JSON.stringify(body) }
-            } catch {
-              // Not JSON, pass through
-            }
-          }
-
-          return globalThis.fetch(rewrittenUrl, { ...init, headers })
-        }) as unknown as typeof fetch,
-      })
-      return anthropic(modelId)
-    } else if (provider.type === 'openai-codex') {
-      const { accessToken, accountId } = await getCodexOAuthCredentials(providerConfig.apiKey || undefined)
-      const openai = createOpenAI({
-        apiKey: 'codex-oauth', // placeholder — overridden by custom fetch
-        baseURL: CODEX_BASE_URL,
-        fetch: (async (url: URL | RequestInfo, init: RequestInit | undefined) => {
-          const headers = new Headers(init?.headers)
-          headers.set('Authorization', `Bearer ${accessToken}`)
-          headers.set('ChatGPT-Account-ID', accountId)
-
-          // Modify request body: strip forbidden params, enforce store: false,
-          // and hoist developer/system messages into top-level `instructions`.
-          if (init?.body && typeof init.body === 'string') {
-            try {
-              const body = JSON.parse(init.body)
-              delete body.max_output_tokens
-              body.store = false
-
-              // The Codex backend rejects requests without a top-level
-              // `instructions` field (`{"detail":"Instructions are required"}`),
-              // but the Vercel AI SDK passes the system prompt as a
-              // `developer`-role message inside `input[]` instead. Hoist any
-              // leading developer/system messages into `instructions` and
-              // strip them from `input[]` so both formats coexist.
-              if (!body.instructions && Array.isArray(body.input)) {
-                const instr: string[] = []
-                const remaining: unknown[] = []
-                for (const item of body.input as Array<{
-                  role?: string
-                  content?: unknown
-                }>) {
-                  if (item && (item.role === 'developer' || item.role === 'system')) {
-                    const text = typeof item.content === 'string'
-                      ? item.content
-                      : Array.isArray(item.content)
-                        ? (item.content as unknown[])
-                            .map((c) => (typeof c === 'string' ? c : (c as { text?: string })?.text ?? ''))
-                            .join('')
-                        : ''
-                    if (text) instr.push(text)
-                  } else {
-                    remaining.push(item)
-                  }
-                }
-                if (instr.length > 0) {
-                  body.instructions = instr.join('\n\n')
-                  body.input = remaining
-                }
-              }
-
-              init = { ...init, body: JSON.stringify(body) }
-            } catch {
-              // Not JSON, pass through
-            }
-          }
-
-          return globalThis.fetch(url, { ...init, headers })
-        }) as unknown as typeof fetch,
-      })
-      return openai.responses(modelId)
-    } else if (provider.type === 'openai') {
-      const openai = createOpenAI({ apiKey: providerConfig.apiKey, baseURL: providerConfig.baseUrl })
-      return openai.chat(modelId)
-    }
-  } catch {
-    return null
-  }
-
-  return null
-}
-
-/**
- * Resolve a model string (e.g. "claude-sonnet-4-20250514") to a Vercel AI SDK model.
- * If preferredProviderId is set, that provider is tried first before falling back to first-match.
- */
-export async function resolveLLMModel(modelId: string, preferredProviderId?: string | null) {
-  if (!preferredProviderId) {
-    log.warn({ modelId }, 'resolveLLMModel called without providerId — using auto-detect (deprecated)')
-  }
-  const allProviders = await db.select().from(providers).all()
-  const expectedType = getProviderTypeForModel(modelId)
-
-  // If a preferred provider is specified, try it first — skip type heuristic since user explicitly chose this provider
-  if (preferredProviderId) {
-    const preferred = allProviders.find((p) => p.id === preferredProviderId)
-    if (preferred) {
-      const result = await tryCreateModel(preferred, modelId, null)
-      if (result) return result
-    }
-  }
-
-  // Fallback: first-match (skip the preferred one since we already tried it)
-  for (const provider of allProviders) {
-    if (preferredProviderId && provider.id === preferredProviderId) continue
-    const result = await tryCreateModel(provider, modelId, expectedType)
-    if (result) return result
-  }
-
-  return null
 }
 
 // ─── Queue Worker ───────────────────────────────────────────────────────────

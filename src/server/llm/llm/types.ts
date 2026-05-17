@@ -64,6 +64,11 @@ export interface KinbotTool {
   description: string
   /** JSON Schema for the tool's input arguments. */
   inputSchema: Record<string, unknown>
+  /** Provider-side cache hint (Anthropic). Ignored by providers that don't
+   *  support per-tool cache control. Used by callers (kin-engine) to mark
+   *  the last tool of the list cacheable so Anthropic caches the whole
+   *  tools block as a single prefix. */
+  cacheControl?: { type: 'ephemeral' }
 }
 
 // ─── Messages ────────────────────────────────────────────────────────────────

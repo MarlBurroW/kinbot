@@ -11,7 +11,7 @@ import {
   buildSegmentedMessages,
   markLastToolCacheable,
 } from '@/server/services/llm-cache-hints'
-import { resolveLLMModel, buildThinkingProviderOptions, resolveThinkingConfig, isContextTooLargeError, sanitizePersistedToolCalls } from '@/server/services/kin-engine'
+import { resolveThinkingConfig, isContextTooLargeError, sanitizePersistedToolCalls } from '@/server/services/kin-engine'
 import { toolRegistry } from '@/server/tools/index'
 import { resolveMCPTools } from '@/server/services/mcp'
 import { resolveCustomTools } from '@/server/services/custom-tools'
@@ -20,11 +20,9 @@ import { config } from '@/server/config'
 import { getGlobalPrompt } from '@/server/services/app-settings'
 import { wrapToolsWithSpill } from '@/server/services/tool-output-spill'
 import { executeToolBatch } from '@/server/services/tool-executor'
-import { recordUsage, aggregateStepUsage, getTaskTotals } from '@/server/services/token-usage'
+import { recordUsage, aggregateUsages, getTaskTotals } from '@/server/services/token-usage'
 import { runStreamStep } from '@/server/services/stream-runner'
-import { vercelStreamToChatChunks } from '@/server/services/_vercel-stream-bridge'
 import type { TaskStatus, TaskMode, KinToolConfig, KinThinkingConfig } from '@/shared/types'
-import { guessProviderType } from '@/shared/model-ref'
 
 const log = createLogger('tasks')
 
@@ -740,12 +738,15 @@ async function executeSubKin(taskId: string, isNudge = false) {
       taskTodos: getTodosForTask(taskId),
     })
 
-    // Resolve model — use task's provider if stored, else Kin's provider when using Kin's own model
+    // Resolve LLM — use task's provider if stored, else Kin's provider when using Kin's own model
     const modelId = task.model ?? kinIdentity.model
     const preferredProvider = task.providerId ?? (task.model ? null : kinIdentity.providerId)
-    const model = await resolveLLMModel(modelId, preferredProvider)
-    if (!model) {
-      throw new Error('No LLM provider available')
+    const { resolveLLM } = await import('@/server/llm/core/resolve')
+    let taskResolved
+    try {
+      taskResolved = await resolveLLM({ modelId, providerId: preferredProvider })
+    } catch (err) {
+      throw new Error(`No LLM provider available for task ${taskId}: ${err instanceof Error ? err.message : String(err)}`)
     }
 
     // Resolve thinking config: task-level override takes precedence over parent Kin.
@@ -753,8 +754,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const taskThinkingConfig = resolveThinkingConfig(
       (task.thinkingConfig as string | null) ?? (kinIdentity.thinkingConfig as string | null),
     )
-    const taskProviderType = guessProviderType(modelId) ?? kinIdentity.providerId ?? ''
-    const taskThinkingProviderOptions = buildThinkingProviderOptions(taskProviderType, taskThinkingConfig)
+    const taskProviderType = taskResolved.providerRow.type
 
     // Resolve tools: spawned Kin's full toolset (minus excluded) + sub-Kin communication tools
     const kinToolConfig: KinToolConfig | null = kinIdentity.toolConfig
@@ -1000,35 +1000,50 @@ async function executeSubKin(taskId: string, isNudge = false) {
     const abortController = new AbortController()
     activeTaskAbortControllers.set(taskId, abortController)
 
-    // Strip execute functions from tools so the SDK only collects intents
-    // (we execute tools ourselves between steps), then mark the last tool as
-    // cache-eligible for Anthropic prompt caching.
-    const toolSchemas = hasTools ? markLastToolCacheable(stripToolExecute(tools)) : undefined
+    // Convert tools to kinbot shape once.
+    const { vercelToolsToKinbot: taskVercelToolsToKinbot, markLastKinbotToolCacheable: taskMarkLastKinbotToolCacheable, splitSystemFromVercelMessages: taskSplitSystemFromVercelMessages } =
+      await import('@/server/llm/core/vercel-bridge')
+    const taskKinbotTools = hasTools
+      ? taskMarkLastKinbotToolCacheable(taskVercelToolsToKinbot(stripToolExecute(tools)))
+      : undefined
 
     const maxSteps = hasTools ? (config.tools.maxSteps > 0 ? config.tools.maxSteps : Infinity) : 1
-    const stepResults: Array<ReturnType<typeof streamText>> = []
+    const stepUsages: Array<{
+      inputTokens?: number
+      outputTokens?: number
+      cacheReadTokens?: number
+      cacheWriteTokens?: number
+      reasoningTokens?: number
+    }> = []
     let silentStopAfterTools = false
     // See processNextMessage in kin-engine.ts for rationale.
     const stepFinishReasons: string[] = []
+
+    const taskThinkingEffort = taskThinkingConfig?.enabled ? taskThinkingConfig.effort ?? undefined : undefined
 
     let step = 0
     for (; step < maxSteps; step++) {
       if (abortController.signal.aborted) break
 
-      const result = streamText({
-        model,
-        messages: buildSegmentedMessages(systemSegments, messageHistory),
-        tools: toolSchemas,
-        abortSignal: abortController.signal,
-        ...(taskThinkingProviderOptions ? { providerOptions: taskThinkingProviderOptions as any } : {}),
-      })
-      stepResults.push(result)
+      const vercelMessages = buildSegmentedMessages(systemSegments, messageHistory)
+      const { system: taskSystem, messages: taskMessages } = taskSplitSystemFromVercelMessages(vercelMessages)
+      const stream = taskResolved.provider.chat(
+        taskResolved.model,
+        {
+          messages: taskMessages,
+          ...(taskSystem ? { system: taskSystem } : {}),
+          ...(taskKinbotTools ? { tools: taskKinbotTools } : {}),
+          ...(taskThinkingEffort ? { thinkingEffort: taskThinkingEffort } : {}),
+          signal: abortController.signal,
+        },
+        taskResolved.config,
+      )
 
       // Buffer text per step until finishReason is known — see stream-runner.ts.
       // The 500ms DB checkpoint that used to live inline in `text-delta` is
       // now driven by `ctx.checkpoint` and persists only *committed* content
       // (the in-flight buffer is never written to DB).
-      const outcome = await runStreamStep(vercelStreamToChatChunks(result), {
+      const outcome = await runStreamStep(stream, {
         kinId: task.parentKinId,
         assistantMessageId,
         abortController,
@@ -1053,6 +1068,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
           },
         },
       }, step)
+      if (outcome.usage) stepUsages.push(outcome.usage)
 
       if (outcome.error) {
         streamError = outcome.error
@@ -1169,19 +1185,17 @@ async function executeSubKin(taskId: string, isNudge = false) {
       silentStopAfterTools,
     }, 'Sub-Kin LLM turn completed')
 
-    // Aggregate token usage (awaited so we can persist in metadata + SSE)
-    const taskModelId = task.model ?? kinIdentity.model
-    const taskProviderId = task.providerId ?? (task.model ? null : kinIdentity.providerId)
-    const tokenUsage = await aggregateStepUsage(stepResults)
+    // Aggregate token usage (synchronous: already collected from each step).
+    const tokenUsage = aggregateUsages(stepUsages)
 
     // Fire-and-forget: record to llm_usage table for analytics
     if (tokenUsage) {
       recordUsage({
         callSite: 'task',
         callType: 'stream-text',
-        providerType: guessProviderType(taskModelId),
-        providerId: taskProviderId,
-        modelId: taskModelId,
+        providerType: taskResolved.providerRow.type,
+        providerId: taskResolved.providerRow.id,
+        modelId: taskResolved.model.id,
         kinId: task.parentKinId,
         taskId,
         cronId: task.cronId ?? null,
@@ -1192,7 +1206,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
           inputTokenDetails: { cacheReadTokens: tokenUsage.cacheReadTokens ?? 0, cacheWriteTokens: tokenUsage.cacheWriteTokens ?? 0 },
           outputTokenDetails: { reasoningTokens: tokenUsage.reasoningTokens ?? 0 },
         },
-        stepCount: stepResults.length,
+        stepCount: stepUsages.length,
       })
 
       // Persist the provider-reported peak input as the task's "real" context
