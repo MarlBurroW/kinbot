@@ -21,7 +21,7 @@ import { join } from 'path'
 import {
   getCodexOAuthCredentials,
   CODEX_BASE_URL,
-} from '@/server/providers/openai-codex'
+} from '@/server/llm/llm/_codex-auth'
 
 import type {
   ConfigField,

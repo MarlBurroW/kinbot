@@ -29,7 +29,7 @@ import {
   REQUIRED_SYSTEM_BLOCK,
   buildBillingHeaderText,
   getOAuthUserId,
-} from '@/server/providers/anthropic-oauth'
+} from '@/server/llm/llm/_anthropic-oauth-auth'
 
 import type {
   ConfigField,
