@@ -1456,6 +1456,7 @@ export async function processNextMessage(kinId: string): Promise<boolean> {
       userId: effectiveUserId,
       isSubKin: false,
       channelOriginId: queueItem.channelOriginId ?? undefined,
+      toolConfig,
     })
 
     // Filter disabled native tools (deny-list)
@@ -2210,7 +2211,7 @@ export async function processQuickMessage(kinId: string): Promise<boolean> {
     // Resolve tools (with exclusion list for quick sessions)
     const toolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
     const quickEffectiveUserId = queueItem.sourceType === 'user' ? (queueItem.sourceId ?? undefined) : undefined
-    const nativeTools = toolRegistry.resolve({ kinId, userId: quickEffectiveUserId, isSubKin: false })
+    const nativeTools = toolRegistry.resolve({ kinId, userId: quickEffectiveUserId, isSubKin: false, toolConfig })
 
     // Apply Kin-level deny-list
     if (toolConfig?.disabledNativeTools?.length) {

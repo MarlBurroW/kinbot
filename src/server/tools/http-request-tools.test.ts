@@ -1,135 +1,133 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test'
 
-// We need to test `isPrivateUrl` which is not exported, so we'll test it
-// indirectly through the tool's execute function. We also test the tool
-// registration shape and input validation.
+// We need to test the private URL guard indirectly through the tool's execute
+// function. The direct helper below mirrors the source logic for edge-case unit
+// coverage while integration tests verify the real tool behavior.
 
-// ---------------------------------------------------------------------------
-// 1. Direct test of isPrivateUrl logic (re-implemented to mirror source)
-// ---------------------------------------------------------------------------
+type UrlSafety =
+  | { allowed: true; privateNetwork: boolean }
+  | { allowed: false; reason: string }
 
-// Mirror the private function for direct unit testing
-function isPrivateUrl(urlStr: string): boolean {
-  try {
-    const url = new URL(urlStr)
-    const host = url.hostname
-    if (
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === '::1' ||
-      host === '0.0.0.0' ||
-      host.startsWith('10.') ||
-      host.startsWith('192.168.') ||
-      host.startsWith('172.16.') ||
-      host.startsWith('172.17.') ||
-      host.startsWith('172.18.') ||
-      host.startsWith('172.19.') ||
-      host.startsWith('172.2') ||
-      host.startsWith('172.30.') ||
-      host.startsWith('172.31.') ||
-      host === '169.254.169.254' ||
-      host.endsWith('.internal') ||
-      host.endsWith('.local')
-    ) {
-      return true
-    }
-    return false
-  } catch {
-    return true
-  }
+function isPrivateIpv4(host: string): boolean {
+  return (
+    host.startsWith('10.') ||
+    host.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  )
 }
 
-describe('isPrivateUrl (SSRF protection)', () => {
-  // Localhost variants
-  it('blocks localhost', () => {
-    expect(isPrivateUrl('http://localhost/api')).toBe(true)
-    expect(isPrivateUrl('http://localhost:8080/api')).toBe(true)
+function isLocalNetworkHostname(host: string): boolean {
+  return host.endsWith('.internal') || host.endsWith('.local')
+}
+
+function checkUrlSafety(urlStr: string, allowPrivateNetwork: boolean): UrlSafety {
+  let url: URL
+  try {
+    url = new URL(urlStr)
+  } catch {
+    return { allowed: false, reason: 'Invalid URL' }
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return { allowed: false, reason: 'Only HTTP and HTTPS URLs are supported' }
+  }
+
+  const host = url.hostname.toLowerCase()
+  if (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    host === '[::1]' ||
+    host === '0.0.0.0'
+  ) {
+    return { allowed: false, reason: 'Requests to loopback or unspecified addresses are not allowed' }
+  }
+
+  if (host === '169.254.169.254') {
+    return { allowed: false, reason: 'Requests to link-local metadata endpoints are not allowed' }
+  }
+
+  if (isPrivateIpv4(host) || isLocalNetworkHostname(host)) {
+    if (allowPrivateNetwork) return { allowed: true, privateNetwork: true }
+    return { allowed: false, reason: 'Requests to private/internal addresses are not allowed' }
+  }
+
+  return { allowed: true, privateNetwork: false }
+}
+
+function isAllowed(url: string, allowPrivateNetwork = false): boolean {
+  return checkUrlSafety(url, allowPrivateNetwork).allowed
+}
+
+describe('http_request URL safety', () => {
+  it('blocks localhost and loopback addresses even when private network access is enabled', () => {
+    expect(isAllowed('http://localhost/api')).toBe(false)
+    expect(isAllowed('http://127.0.0.1/')).toBe(false)
+    expect(isAllowed('http://[::1]/')).toBe(false)
+    expect(isAllowed('http://0.0.0.0/')).toBe(false)
+
+    expect(isAllowed('http://localhost/api', true)).toBe(false)
+    expect(isAllowed('http://127.0.0.1/', true)).toBe(false)
+    expect(isAllowed('http://[::1]/', true)).toBe(false)
+    expect(isAllowed('http://0.0.0.0/', true)).toBe(false)
   })
 
-  it('blocks 127.0.0.1', () => {
-    expect(isPrivateUrl('http://127.0.0.1/')).toBe(true)
-    expect(isPrivateUrl('https://127.0.0.1:3000/path')).toBe(true)
+  it('blocks RFC1918 private IP ranges by default', () => {
+    expect(isAllowed('http://10.0.0.1/')).toBe(false)
+    expect(isAllowed('http://10.255.255.255/')).toBe(false)
+    expect(isAllowed('http://192.168.1.1/')).toBe(false)
+    expect(isAllowed('http://192.168.0.100:9090/')).toBe(false)
+    expect(isAllowed('http://172.16.0.1/')).toBe(false)
+    expect(isAllowed('http://172.17.0.2/')).toBe(false)
+    expect(isAllowed('http://172.20.5.5/')).toBe(false)
+    expect(isAllowed('http://172.31.255.255/')).toBe(false)
   })
 
-  it('does not block ::1 in bracket notation (known limitation — Bun parses hostname as [::1])', () => {
-    // Note: the source checks `host === '::1'` but Bun's URL parser returns '[::1]'
-    // with brackets, so this SSRF check is bypassed for IPv6 loopback.
-    // This is a minor gap — IPv6 loopback is rarely exploitable in practice.
-    expect(isPrivateUrl('http://[::1]/')).toBe(false)
+  it('allows RFC1918 private IP ranges when explicitly enabled', () => {
+    expect(isAllowed('http://10.0.0.1/', true)).toBe(true)
+    expect(isAllowed('http://10.255.255.255/', true)).toBe(true)
+    expect(isAllowed('http://192.168.1.1/', true)).toBe(true)
+    expect(isAllowed('http://192.168.0.100:9090/', true)).toBe(true)
+    expect(isAllowed('http://172.16.0.1/', true)).toBe(true)
+    expect(isAllowed('http://172.17.0.2/', true)).toBe(true)
+    expect(isAllowed('http://172.20.5.5/', true)).toBe(true)
+    expect(isAllowed('http://172.31.255.255/', true)).toBe(true)
   })
 
-  it('blocks 0.0.0.0', () => {
-    expect(isPrivateUrl('http://0.0.0.0/')).toBe(true)
+  it('blocks link-local metadata endpoint even when private network access is enabled', () => {
+    expect(isAllowed('http://169.254.169.254/latest/meta-data/')).toBe(false)
+    expect(isAllowed('http://169.254.169.254/latest/meta-data/', true)).toBe(false)
   })
 
-  // Private IP ranges
-  it('blocks 10.x.x.x', () => {
-    expect(isPrivateUrl('http://10.0.0.1/')).toBe(true)
-    expect(isPrivateUrl('http://10.255.255.255/')).toBe(true)
+  it('allows local-network hostnames only when explicitly enabled', () => {
+    expect(isAllowed('http://myservice.internal/')).toBe(false)
+    expect(isAllowed('http://db.cluster.internal:5432/')).toBe(false)
+    expect(isAllowed('http://printer.local/')).toBe(false)
+
+    expect(isAllowed('http://myservice.internal/', true)).toBe(true)
+    expect(isAllowed('http://db.cluster.internal:5432/', true)).toBe(true)
+    expect(isAllowed('http://printer.local/', true)).toBe(true)
   })
 
-  it('blocks 192.168.x.x', () => {
-    expect(isPrivateUrl('http://192.168.1.1/')).toBe(true)
-    expect(isPrivateUrl('http://192.168.0.100:9090/')).toBe(true)
+  it('blocks invalid and non-HTTP URLs', () => {
+    expect(isAllowed('not-a-url')).toBe(false)
+    expect(isAllowed('')).toBe(false)
+    expect(isAllowed('ftp://example.com/file')).toBe(false)
   })
 
-  it('blocks 172.16-31.x.x', () => {
-    expect(isPrivateUrl('http://172.16.0.1/')).toBe(true)
-    expect(isPrivateUrl('http://172.17.0.2/')).toBe(true)
-    expect(isPrivateUrl('http://172.20.5.5/')).toBe(true)
-    expect(isPrivateUrl('http://172.31.255.255/')).toBe(true)
-  })
-
-  // AWS metadata
-  it('blocks AWS metadata endpoint', () => {
-    expect(isPrivateUrl('http://169.254.169.254/latest/meta-data/')).toBe(true)
-  })
-
-  // .internal / .local TLDs
-  it('blocks .internal domains', () => {
-    expect(isPrivateUrl('http://myservice.internal/')).toBe(true)
-    expect(isPrivateUrl('http://db.cluster.internal:5432/')).toBe(true)
-  })
-
-  it('blocks .local domains', () => {
-    expect(isPrivateUrl('http://printer.local/')).toBe(true)
-  })
-
-  // Invalid URLs
-  it('blocks invalid URLs', () => {
-    expect(isPrivateUrl('not-a-url')).toBe(true)
-    expect(isPrivateUrl('')).toBe(true)
-    expect(isPrivateUrl('ftp://')).toBe(true)
-  })
-
-  // Public URLs should pass
   it('allows public URLs', () => {
-    expect(isPrivateUrl('https://api.example.com/v1')).toBe(false)
-    expect(isPrivateUrl('https://google.com')).toBe(false)
-    expect(isPrivateUrl('http://8.8.8.8/')).toBe(false)
-    expect(isPrivateUrl('https://api.openai.com/v1/chat')).toBe(false)
+    expect(isAllowed('https://api.example.com/v1')).toBe(true)
+    expect(isAllowed('https://google.com')).toBe(true)
+    expect(isAllowed('http://8.8.8.8/')).toBe(true)
+    expect(isAllowed('https://api.openai.com/v1/chat')).toBe(true)
   })
 
-  // Edge cases
-  it('allows 172.32.x.x (outside private range)', () => {
-    // Note: the source uses host.startsWith('172.2') which catches 172.2x.x.x
-    // This means 172.32 is NOT caught by the 172.2 prefix
-    // but IS caught by... let's check: 172.32 starts with "172.3" not "172.2"
-    expect(isPrivateUrl('http://172.32.0.1/')).toBe(false)
-  })
-
-  it('allows 192.169.x.x (not in private range)', () => {
-    expect(isPrivateUrl('http://192.169.1.1/')).toBe(false)
-  })
-
-  it('allows 11.x.x.x (not in 10.x range)', () => {
-    expect(isPrivateUrl('http://11.0.0.1/')).toBe(false)
+  it('allows nearby public IP ranges that are outside private ranges', () => {
+    expect(isAllowed('http://172.32.0.1/')).toBe(true)
+    expect(isAllowed('http://192.169.1.1/')).toBe(true)
+    expect(isAllowed('http://11.0.0.1/')).toBe(true)
   })
 })
-
-// ---------------------------------------------------------------------------
-// 2. Tool registration shape tests
-// ---------------------------------------------------------------------------
 
 describe('httpRequestTool registration', () => {
   it('imports and has correct shape', async () => {
@@ -141,14 +139,10 @@ describe('httpRequestTool registration', () => {
 
   it('create() returns a tool object', async () => {
     const { httpRequestTool } = await import('./http-request-tools')
-    const created = httpRequestTool.create({} as any)
+    const created = httpRequestTool.create({ kinId: 'kin-1', isSubKin: false })
     expect(created).toBeDefined()
   })
 })
-
-// ---------------------------------------------------------------------------
-// 3. Tool execute integration tests (with mocked fetch)
-// ---------------------------------------------------------------------------
 
 describe('httpRequestTool execute', () => {
   const originalFetch = globalThis.fetch
@@ -171,15 +165,21 @@ describe('httpRequestTool execute', () => {
     globalThis.fetch = originalFetch
   })
 
-  async function getExecute() {
-    // Fresh import to pick up mocked fetch
+  async function getExecute(allowPrivateNetworkHttpRequests = false) {
     const { httpRequestTool } = await import('./http-request-tools')
-    const created = httpRequestTool.create({} as any)
-    // The ai SDK tool wraps execute; access it through the tool's execute
+    const created = httpRequestTool.create({
+      kinId: 'kin-1',
+      isSubKin: false,
+      toolConfig: {
+        disabledNativeTools: [],
+        mcpAccess: {},
+        allowPrivateNetworkHttpRequests,
+      },
+    })
     return (created as any).execute
   }
 
-  it('blocks requests to private IPs with SSRF error', async () => {
+  it('blocks requests to private IPs with SSRF error by default', async () => {
     const execute = await getExecute()
     const result = await execute({
       method: 'GET',
@@ -190,14 +190,48 @@ describe('httpRequestTool execute', () => {
     expect(mockFetchFn).not.toHaveBeenCalled()
   })
 
-  it('blocks requests to localhost', async () => {
-    const execute = await getExecute()
+  it('allows requests to private IPs when explicitly enabled', async () => {
+    const execute = await getExecute(true)
+    const result = await execute({
+      method: 'GET',
+      url: 'http://192.168.1.1/admin',
+      timeout_seconds: 5,
+    })
+    expect(result.status).toBe(200)
+    expect(result.body).toEqual({ ok: true })
+    expect(mockFetchFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('allows requests to local-network hostnames when explicitly enabled', async () => {
+    const execute = await getExecute(true)
+    const result = await execute({
+      method: 'GET',
+      url: 'http://homeassistant.local:8123/api/',
+      timeout_seconds: 5,
+    })
+    expect(result.status).toBe(200)
+    expect(mockFetchFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps blocking localhost when private network access is enabled', async () => {
+    const execute = await getExecute(true)
     const result = await execute({
       method: 'GET',
       url: 'http://localhost:3000/secret',
       timeout_seconds: 5,
     })
-    expect(result.error).toContain('private/internal')
+    expect(result.error).toContain('loopback')
+    expect(mockFetchFn).not.toHaveBeenCalled()
+  })
+
+  it('keeps blocking cloud metadata when private network access is enabled', async () => {
+    const execute = await getExecute(true)
+    const result = await execute({
+      method: 'GET',
+      url: 'http://169.254.169.254/latest/meta-data/',
+      timeout_seconds: 5,
+    })
+    expect(result.error).toContain('metadata')
     expect(mockFetchFn).not.toHaveBeenCalled()
   })
 
@@ -267,7 +301,7 @@ describe('httpRequestTool execute', () => {
   })
 
   it('truncates large response bodies', async () => {
-    const largeBody = 'x'.repeat(150 * 1024) // 150KB
+    const largeBody = 'x'.repeat(150 * 1024)
     globalThis.fetch = mock(() =>
       Promise.resolve(
         new Response(largeBody, {
@@ -319,9 +353,7 @@ describe('httpRequestTool execute', () => {
   })
 
   it('handles fetch errors gracefully', async () => {
-    globalThis.fetch = mock(() =>
-      Promise.reject(new Error('DNS resolution failed')),
-    ) as any
+    globalThis.fetch = mock(() => Promise.reject(new Error('DNS resolution failed'))) as any
 
     const execute = await getExecute()
     const result = await execute({
@@ -348,7 +380,6 @@ describe('httpRequestTool execute', () => {
 
   it('caps timeout at 120 seconds', async () => {
     const execute = await getExecute()
-    // We can't easily test the exact timeout value, but we ensure it doesn't crash
     const result = await execute({
       method: 'GET',
       url: 'https://api.example.com/data',
@@ -374,7 +405,6 @@ describe('httpRequestTool execute', () => {
       timeout_seconds: 5,
     })
     expect(result.status).toBe(200)
-    // Should fall back to string when JSON parse fails
     expect(typeof result.body).toBe('string')
     expect(result.body).toContain('not valid json')
   })

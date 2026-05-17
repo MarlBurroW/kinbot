@@ -1,4 +1,5 @@
 import type { Tool } from 'ai'
+import type { KinToolConfig } from '@/shared/types'
 
 /** Execution context: main Kin agent or sub-Kin (task) */
 export type ToolAvailability = 'main' | 'sub-kin'
@@ -15,8 +16,10 @@ export interface ToolExecutionContext {
   channelOriginId?: string
   /** Cron ID when executing a cron-triggered task */
   cronId?: string
-  /** Ticket ID when executing a ticket-linked task (Phase 26 — projects.md § 13.1) */
+  /** Ticket ID when executing a ticket-linked task (Phase 26, projects.md § 13.1) */
   ticketId?: string
+  /** Parsed per-Kin tool authorization config for tools with runtime options. */
+  toolConfig?: KinToolConfig | null
 }
 
 /** Factory function that creates an AI SDK Tool bound to an execution context */

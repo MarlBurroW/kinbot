@@ -499,7 +499,7 @@ export async function buildContextPreview(kinId: string): Promise<ContextPreview
 
   // Resolve tools
   const toolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
-  const nativeTools = toolRegistry.resolve({ kinId, isSubKin: false })
+  const nativeTools = toolRegistry.resolve({ kinId, isSubKin: false, toolConfig })
 
   if (toolConfig?.disabledNativeTools?.length) {
     for (const name of toolConfig.disabledNativeTools) {
@@ -886,7 +886,7 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
 
   // Tools: same resolution as executeSubKin
   const kinToolConfig: KinToolConfig | null = kinIdentity.toolConfig ? JSON.parse(kinIdentity.toolConfig) : null
-  const nativeTools = toolRegistry.resolve({ kinId: kinIdentity.id, taskId, taskDepth: task.depth, isSubKin: false })
+  const nativeTools = toolRegistry.resolve({ kinId: kinIdentity.id, taskId, taskDepth: task.depth, isSubKin: false, toolConfig: kinToolConfig })
 
   if (kinToolConfig?.disabledNativeTools?.length) {
     for (const name of kinToolConfig.disabledNativeTools) {
@@ -904,7 +904,7 @@ export async function buildTaskContextPreview(taskId: string): Promise<ContextPr
     delete nativeTools[name]
   }
 
-  const subKinTools = toolRegistry.resolve({ kinId: task.parentKinId, taskId, taskDepth: task.depth, isSubKin: true })
+  const subKinTools = toolRegistry.resolve({ kinId: task.parentKinId, taskId, taskDepth: task.depth, isSubKin: true, toolConfig: kinToolConfig })
   const mcpTools = await resolveMCPTools(kinIdentity.id, kinToolConfig)
   const customToolDefs = await resolveCustomTools(kinIdentity.id)
   const taskSourceMap = new Map<string, ToolSource>()
@@ -1053,7 +1053,7 @@ export async function buildQuickSessionContextPreview(kinId: string, sessionId: 
 
   // Tools: same resolution as processQuickMessage
   const kinToolConfig: KinToolConfig | null = kin.toolConfig ? JSON.parse(kin.toolConfig) : null
-  const nativeTools = toolRegistry.resolve({ kinId, isSubKin: false })
+  const nativeTools = toolRegistry.resolve({ kinId, isSubKin: false, toolConfig: kinToolConfig })
 
   if (kinToolConfig?.disabledNativeTools?.length) {
     for (const name of kinToolConfig.disabledNativeTools) {

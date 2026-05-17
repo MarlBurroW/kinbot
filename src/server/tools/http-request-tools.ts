@@ -1,45 +1,69 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { createLogger } from '@/server/logger'
-import type { ToolRegistration } from '@/server/tools/types'
+import type { ToolExecutionContext, ToolRegistration } from '@/server/tools/types'
 
 const log = createLogger('tools:http-request')
 
 const MAX_RESPONSE_BODY = 100 * 1024 // 100KB
 const DEFAULT_TIMEOUT = 30_000
 
+type UrlSafety =
+  | { allowed: true; privateNetwork: boolean }
+  | { allowed: false; reason: string }
+
+function isPrivateIpv4(host: string): boolean {
+  return (
+    host.startsWith('10.') ||
+    host.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  )
+}
+
+function isLocalNetworkHostname(host: string): boolean {
+  return host.endsWith('.internal') || host.endsWith('.local')
+}
+
 /**
- * Check if a URL resolves to a private/internal IP range (basic SSRF protection).
+ * Check whether a URL is safe for http_request.
+ *
+ * Loopback, unspecified addresses, link-local metadata endpoints, and invalid
+ * URLs are always blocked. RFC1918 IPv4 ranges and local-network hostnames can
+ * be allowed per Kin through toolConfig.allowPrivateNetworkHttpRequests.
  */
-function isPrivateUrl(urlStr: string): boolean {
+function checkUrlSafety(urlStr: string, allowPrivateNetwork: boolean): UrlSafety {
+  let url: URL
   try {
-    const url = new URL(urlStr)
-    const host = url.hostname
-    // Block common private ranges and metadata endpoints
-    if (
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === '::1' ||
-      host === '0.0.0.0' ||
-      host.startsWith('10.') ||
-      host.startsWith('192.168.') ||
-      host.startsWith('172.16.') ||
-      host.startsWith('172.17.') ||
-      host.startsWith('172.18.') ||
-      host.startsWith('172.19.') ||
-      host.startsWith('172.2') ||
-      host.startsWith('172.30.') ||
-      host.startsWith('172.31.') ||
-      host === '169.254.169.254' || // AWS metadata
-      host.endsWith('.internal') ||
-      host.endsWith('.local')
-    ) {
-      return true
-    }
-    return false
+    url = new URL(urlStr)
   } catch {
-    return true
+    return { allowed: false, reason: 'Invalid URL' }
   }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return { allowed: false, reason: 'Only HTTP and HTTPS URLs are supported' }
+  }
+
+  const host = url.hostname.toLowerCase()
+  if (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    host === '[::1]' ||
+    host === '0.0.0.0'
+  ) {
+    return { allowed: false, reason: 'Requests to loopback or unspecified addresses are not allowed' }
+  }
+
+  if (host === '169.254.169.254') {
+    return { allowed: false, reason: 'Requests to link-local metadata endpoints are not allowed' }
+  }
+
+  if (isPrivateIpv4(host) || isLocalNetworkHostname(host)) {
+    if (allowPrivateNetwork) return { allowed: true, privateNetwork: true }
+    return { allowed: false, reason: 'Requests to private/internal addresses are not allowed' }
+  }
+
+  return { allowed: true, privateNetwork: false }
 }
 
 /**
@@ -48,10 +72,12 @@ function isPrivateUrl(urlStr: string): boolean {
  */
 export const httpRequestTool: ToolRegistration = {
   availability: ['main', 'sub-kin'],
-  create: () =>
-    tool({
-      description:
-        'Make an HTTP request to an external URL. Private/internal IPs are blocked.',
+  create: (ctx: ToolExecutionContext) => {
+    const allowPrivateNetwork = ctx.toolConfig?.allowPrivateNetworkHttpRequests === true
+    return tool({
+      description: allowPrivateNetwork
+        ? 'Make an HTTP request to an external URL. RFC1918 and local-network addresses are allowed for this Kin, but loopback and metadata endpoints are still blocked.'
+        : 'Make an HTTP request to an external URL. Private/internal IPs are blocked.',
       inputSchema: z.object({
         method: z
           .enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
@@ -73,8 +99,9 @@ export const httpRequestTool: ToolRegistration = {
       }),
       execute: async ({ method, url, headers, body, timeout_seconds }) => {
         // SSRF protection
-        if (isPrivateUrl(url)) {
-          return { error: 'Requests to private/internal addresses are not allowed' }
+        const urlSafety = checkUrlSafety(url, allowPrivateNetwork)
+        if (!urlSafety.allowed) {
+          return { error: urlSafety.reason }
         }
 
         const timeout = Math.min((timeout_seconds ?? 30) * 1000, 120_000)
@@ -96,7 +123,7 @@ export const httpRequestTool: ToolRegistration = {
             }
           }
 
-          log.debug({ method, url }, 'HTTP request')
+          log.debug({ method, url, privateNetwork: urlSafety.privateNetwork }, 'HTTP request')
 
           const response = await fetch(url, {
             method,
@@ -152,5 +179,6 @@ export const httpRequestTool: ToolRegistration = {
           clearTimeout(timer)
         }
       },
-    }),
+    })
+  },
 }

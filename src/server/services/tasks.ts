@@ -769,6 +769,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
       channelOriginId: task.channelOriginId ?? undefined,
       cronId: task.cronId ?? undefined,
       ticketId: task.ticketId ?? undefined,
+      toolConfig: kinToolConfig,
     })
 
     // Filter disabled native tools per Kin config (deny-list)
@@ -809,6 +810,7 @@ async function executeSubKin(taskId: string, isNudge = false) {
       isSubKin: true,
       channelOriginId: task.channelOriginId ?? undefined,
       cronId: task.cronId ?? undefined,
+      toolConfig: kinToolConfig,
     })
 
     // On ticket sub-Kins the parent Kin has nothing actionable to do with
