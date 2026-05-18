@@ -1,18 +1,9 @@
-export interface HookContext {
-  kinId: string
-  userId?: string
-  taskId?: string
-  [key: string]: unknown
-}
-
-export type HookHandler = (context: HookContext) => Promise<HookContext | void> | HookContext | void
-
-export type HookName =
-  | 'beforeChat'
-  | 'afterChat'
-  | 'beforeToolCall'
-  | 'afterToolCall'
-  | 'beforeCompacting'
-  | 'afterCompacting'
-  | 'onTaskSpawn'
-  | 'onCronTrigger'
+/**
+ * Hook types — the SDK is the source of truth.
+ *
+ * Internal modules import from this file rather than `@kinbot-developer/sdk`
+ * directly so the existing import paths keep working. The SDK is the
+ * single source of truth — see `packages/sdk/src/index.ts` for the
+ * authoritative definitions.
+ */
+export type { HookName, HookHandler, HookPayloadMap } from '@kinbot-developer/sdk'

@@ -1,24 +1,30 @@
-import type { HookName, HookHandler, HookContext } from '@/server/hooks/types'
+import type { HookName, HookHandler, HookPayloadMap } from '@/server/hooks/types'
 import { createLogger } from '@/server/logger'
 
 const log = createLogger('hooks')
 
-class HookRegistry {
-  private hooks = new Map<HookName, HookHandler[]>()
+// Erased handler type stored inside the registry. The public `register` /
+// `unregister` / `execute` methods preserve the per-hook discriminant; the
+// internal map only needs to know it holds *some* HookHandler, which is what
+// `AnyHookHandler` captures without forcing distributive intersections.
+type AnyHookHandler = (ctx: unknown) => Promise<unknown> | unknown
 
-  register(name: HookName, handler: HookHandler): void {
+class HookRegistry {
+  private hooks = new Map<HookName, AnyHookHandler[]>()
+
+  register<H extends HookName>(name: H, handler: HookHandler<H>): void {
     let handlers = this.hooks.get(name)
     if (!handlers) {
       handlers = []
       this.hooks.set(name, handlers)
     }
-    handlers.push(handler)
+    handlers.push(handler as unknown as AnyHookHandler)
   }
 
-  unregister(name: HookName, handler: HookHandler): void {
+  unregister<H extends HookName>(name: H, handler: HookHandler<H>): void {
     const handlers = this.hooks.get(name)
     if (handlers) {
-      const index = handlers.indexOf(handler)
+      const index = handlers.indexOf(handler as unknown as AnyHookHandler)
       if (index !== -1) {
         handlers.splice(index, 1)
       }
@@ -26,19 +32,24 @@ class HookRegistry {
   }
 
   /**
-   * Execute all registered handlers for a hook in order.
-   * Each handler receives the context and can modify it.
-   * Returns the final context after all handlers have run.
+   * Execute all registered handlers for a hook in order. Each handler
+   * receives the typed payload for its hook and may return a modified
+   * payload to be passed to the next handler.
+   *
+   * Returns the final payload after all handlers have run.
    */
-  async execute(name: HookName, context: HookContext): Promise<HookContext> {
+  async execute<H extends HookName>(
+    name: H,
+    context: HookPayloadMap[H],
+  ): Promise<HookPayloadMap[H]> {
     const handlers = this.hooks.get(name)
     if (!handlers || handlers.length === 0) return context
     log.debug({ hookName: name, handlerCount: handlers.length }, 'Executing hook')
 
-    let currentContext = context
+    let currentContext: HookPayloadMap[H] = context
 
     for (const handler of handlers) {
-      const result = await handler(currentContext)
+      const result = await (handler as unknown as HookHandler<H>)(currentContext)
       if (result) {
         currentContext = result
       }

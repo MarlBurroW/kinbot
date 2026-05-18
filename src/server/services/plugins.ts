@@ -5,6 +5,14 @@ import { eq, and, like } from 'drizzle-orm'
 import { db } from '@/server/db/index'
 import { pluginStates, pluginStorage } from '@/server/db/schema'
 import { encrypt, decrypt } from '@/server/services/encryption'
+import {
+  getSecretValue as vaultGetSecretValue,
+  getSecretByKey as vaultGetSecretByKey,
+  createSecret as vaultCreateSecret,
+  updateSecretValueByKey as vaultUpdateSecretValueByKey,
+  deleteSecret as vaultDeleteSecret,
+  listKeysByPrefix as vaultListKeysByPrefix,
+} from '@/server/services/vault'
 import { createLogger } from '@/server/logger'
 import { toolRegistry } from '@/server/tools/index'
 import { hookRegistry } from '@/server/hooks/index'
@@ -24,6 +32,7 @@ import type {
   PluginLogger,
   PluginStorageAPI,
   PluginHTTPClient,
+  PluginVaultAPI,
 } from '@kinbot-developer/sdk'
 
 // Re-export the plugin-facing surface so other internal modules keep their
@@ -31,6 +40,51 @@ import type {
 export type { PluginCardActionContext, PluginCardActionResult }
 
 const log = createLogger('plugins')
+
+/**
+ * Build the `ctx.vault` API for a plugin.
+ *
+ * Read (`getSecret`) is permissive: plugins read any vault key, since the
+ * key typically arrives via their config (e.g. `authTokenVaultKey` for a
+ * channel password field stored by KinBot core).
+ *
+ * Write (`setSecret`), delete, and list are strictly scoped to a
+ * `plugin:<pluginName>:` namespace so plugins cannot overwrite each other's
+ * secrets or those managed by KinBot core.
+ *
+ * Exported for unit testing. Production callers go through `createContext`.
+ */
+export function createPluginVault(pluginName: string): PluginVaultAPI {
+  const prefix = `plugin:${pluginName}:`
+  return {
+    async getSecret(key) {
+      return vaultGetSecretValue(key)
+    },
+    async setSecret(key, value, description) {
+      const scopedKey = `${prefix}${key}`
+      const existing = await vaultGetSecretByKey(scopedKey)
+      if (existing) {
+        await vaultUpdateSecretValueByKey(scopedKey, value)
+      } else {
+        await vaultCreateSecret(
+          scopedKey,
+          value,
+          undefined,
+          description ?? `Plugin "${pluginName}" secret: ${key}`,
+        )
+      }
+    },
+    async deleteSecret(key) {
+      const scopedKey = `${prefix}${key}`
+      const existing = await vaultGetSecretByKey(scopedKey)
+      if (existing) await vaultDeleteSecret(existing.id)
+    },
+    async listKeys() {
+      const keys = await vaultListKeysByPrefix(prefix)
+      return keys.map((k) => k.slice(prefix.length))
+    },
+  }
+}
 
 // ─── Internal types ──────────────────────────────────────────────────────────
 
@@ -741,13 +795,15 @@ class PluginManager {
         }
       }
 
-      // Register hooks
+      // Register hooks. The iteration loses the per-hook discriminant, so we
+      // erase the handler's payload type and cast at the registry boundary —
+      // the registry stores handlers in a discriminant-agnostic map anyway.
       if (exports.hooks) {
         for (const [hookName, handler] of Object.entries(exports.hooks)) {
           if (handler) {
-            const wrappedHandler: HookHandler = async (ctx) => {
+            const wrappedHandler = async (ctx: unknown): Promise<unknown> => {
               try {
-                const result = await handler(ctx)
+                const result = await (handler as (c: unknown) => unknown)(ctx)
                 // Successful execution resets consecutive error count
                 plugin.health.consecutiveErrors = 0
                 return result
@@ -756,8 +812,14 @@ class PluginManager {
                 return ctx
               }
             }
-            hookRegistry.register(hookName as HookName, wrappedHandler)
-            plugin.registeredHooks.push({ name: hookName as HookName, handler: wrappedHandler })
+            hookRegistry.register(
+              hookName as HookName,
+              wrappedHandler as unknown as HookHandler<HookName>,
+            )
+            plugin.registeredHooks.push({
+              name: hookName as HookName,
+              handler: wrappedHandler as unknown as HookHandler<HookName>,
+            })
           }
         }
       }
@@ -983,11 +1045,14 @@ class PluginManager {
       update: (params) => updatePluginCard(params),
     }
 
+    const vault: PluginVaultAPI = createPluginVault(manifest.name)
+
     return {
       config,
       log: pluginLog as unknown as PluginLogger,
       storage,
       http,
+      vault,
       manifest,
       cards,
     }

@@ -1,40 +1,45 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import type { HookContext, HookHandler, HookName } from '@/server/hooks/types'
+import type { HookHandler, HookName, HookPayloadMap } from '@/server/hooks/types'
 
 // We can't import hookRegistry directly (singleton with logger side effects),
 // so we recreate the class logic to test it in isolation.
 // This tests the HookRegistry pattern without DB/logger deps.
 
-class HookRegistry {
-  private hooks = new Map<HookName, HookHandler[]>()
+type AnyHookHandler = (ctx: unknown) => Promise<unknown> | unknown
 
-  register(name: HookName, handler: HookHandler): void {
+class HookRegistry {
+  private hooks = new Map<HookName, AnyHookHandler[]>()
+
+  register<H extends HookName>(name: H, handler: HookHandler<H>): void {
     let handlers = this.hooks.get(name)
     if (!handlers) {
       handlers = []
       this.hooks.set(name, handlers)
     }
-    handlers.push(handler)
+    handlers.push(handler as unknown as AnyHookHandler)
   }
 
-  unregister(name: HookName, handler: HookHandler): void {
+  unregister<H extends HookName>(name: H, handler: HookHandler<H>): void {
     const handlers = this.hooks.get(name)
     if (handlers) {
-      const index = handlers.indexOf(handler)
+      const index = handlers.indexOf(handler as unknown as AnyHookHandler)
       if (index !== -1) {
         handlers.splice(index, 1)
       }
     }
   }
 
-  async execute(name: HookName, context: HookContext): Promise<HookContext> {
+  async execute<H extends HookName>(
+    name: H,
+    context: HookPayloadMap[H],
+  ): Promise<HookPayloadMap[H]> {
     const handlers = this.hooks.get(name)
     if (!handlers || handlers.length === 0) return context
 
-    let currentContext = context
+    let currentContext: HookPayloadMap[H] = context
 
     for (const handler of handlers) {
-      const result = await handler(currentContext)
+      const result = await (handler as unknown as HookHandler<H>)(currentContext)
       if (result) {
         currentContext = result
       }
@@ -44,6 +49,30 @@ class HookRegistry {
   }
 }
 
+// ─── Fixtures ────────────────────────────────────────────────────────────────
+
+const beforeChat: HookPayloadMap['beforeChat'] = {
+  kinId: 'kin-123',
+  userId: 'user-1',
+  message: 'hello',
+}
+const afterChat: HookPayloadMap['afterChat'] = {
+  kinId: 'kin-123',
+  userId: 'user-1',
+  message: 'hello',
+  response: 'hi',
+}
+const beforeToolCall: HookPayloadMap['beforeToolCall'] = {
+  kinId: 'kin-123',
+  isSubKin: false,
+  toolName: 'read_file',
+  toolArgs: { path: '/tmp/x' },
+}
+const afterToolCall: HookPayloadMap['afterToolCall'] = {
+  ...beforeToolCall,
+  toolResult: { ok: true },
+}
+
 describe('HookRegistry', () => {
   let registry: HookRegistry
 
@@ -51,193 +80,184 @@ describe('HookRegistry', () => {
     registry = new HookRegistry()
   })
 
-  const baseContext: HookContext = { kinId: 'kin-123' }
-
   describe('register', () => {
-    it('should register a handler for a hook', async () => {
-      const handler: HookHandler = (ctx) => ({ ...ctx, touched: true })
-      registry.register('beforeChat', handler)
+    it('passes the typed payload through to the handler', async () => {
+      let receivedMessage = ''
+      registry.register('beforeChat', (ctx) => {
+        receivedMessage = ctx.message
+      })
 
-      const result = await registry.execute('beforeChat', { ...baseContext })
-      expect(result.touched).toBe(true)
+      await registry.execute('beforeChat', beforeChat)
+      expect(receivedMessage).toBe('hello')
     })
 
-    it('should allow multiple handlers for the same hook', async () => {
+    it('runs multiple handlers for the same hook in order', async () => {
       const calls: number[] = []
-      registry.register('beforeChat', async (ctx) => { calls.push(1); return ctx })
-      registry.register('beforeChat', async (ctx) => { calls.push(2); return ctx })
+      registry.register('beforeChat', async () => { calls.push(1) })
+      registry.register('beforeChat', async () => { calls.push(2) })
 
-      await registry.execute('beforeChat', { ...baseContext })
+      await registry.execute('beforeChat', beforeChat)
       expect(calls).toEqual([1, 2])
     })
 
-    it('should allow handlers on different hooks without interference', async () => {
+    it('does not invoke a hook B handler when hook A is executed', async () => {
       let beforeCalled = false
       let afterCalled = false
 
       registry.register('beforeChat', () => { beforeCalled = true })
       registry.register('afterChat', () => { afterCalled = true })
 
-      await registry.execute('beforeChat', { ...baseContext })
+      await registry.execute('beforeChat', beforeChat)
       expect(beforeCalled).toBe(true)
       expect(afterCalled).toBe(false)
     })
   })
 
   describe('unregister', () => {
-    it('should remove a registered handler', async () => {
+    it('removes a registered handler', async () => {
       let called = false
-      const handler: HookHandler = () => { called = true }
+      const handler: HookHandler<'beforeChat'> = () => { called = true }
 
       registry.register('beforeChat', handler)
       registry.unregister('beforeChat', handler)
 
-      await registry.execute('beforeChat', { ...baseContext })
+      await registry.execute('beforeChat', beforeChat)
       expect(called).toBe(false)
     })
 
-    it('should not throw when unregistering from empty hook', () => {
-      const handler: HookHandler = () => {}
-      // Should not throw
+    it('is a no-op when unregistering from an empty hook list', () => {
+      const handler: HookHandler<'beforeChat'> = () => {}
       registry.unregister('beforeChat', handler)
     })
 
-    it('should not throw when unregistering a handler that was never registered', () => {
-      const handlerA: HookHandler = () => {}
-      const handlerB: HookHandler = () => {}
+    it('is a no-op when unregistering a handler that was never registered', () => {
+      const handlerA: HookHandler<'beforeChat'> = () => {}
+      const handlerB: HookHandler<'beforeChat'> = () => {}
       registry.register('beforeChat', handlerA)
-      // Unregistering handlerB which was never added
       registry.unregister('beforeChat', handlerB)
     })
 
-    it('should only remove the specific handler, not others', async () => {
+    it('only removes the specific handler, leaving siblings intact', async () => {
       const calls: string[] = []
-      const handlerA: HookHandler = () => { calls.push('A') }
-      const handlerB: HookHandler = () => { calls.push('B') }
+      const handlerA: HookHandler<'afterChat'> = () => { calls.push('A') }
+      const handlerB: HookHandler<'afterChat'> = () => { calls.push('B') }
 
       registry.register('afterChat', handlerA)
       registry.register('afterChat', handlerB)
       registry.unregister('afterChat', handlerA)
 
-      await registry.execute('afterChat', { ...baseContext })
+      await registry.execute('afterChat', afterChat)
       expect(calls).toEqual(['B'])
     })
   })
 
   describe('execute', () => {
-    it('should return the original context when no handlers are registered', async () => {
-      const ctx = { kinId: 'test-kin', userId: 'user-1' }
-      const result = await registry.execute('beforeToolCall', ctx)
-      expect(result).toBe(ctx)
+    it('returns the input context unchanged when no handlers are registered', async () => {
+      const result = await registry.execute('beforeToolCall', beforeToolCall)
+      expect(result).toBe(beforeToolCall)
     })
 
-    it('should pass context through a chain of handlers', async () => {
-      registry.register('beforeChat', (ctx) => ({ ...ctx, step1: true }))
-      registry.register('beforeChat', (ctx) => ({ ...ctx, step2: true }))
-      registry.register('beforeChat', (ctx) => ({ ...ctx, step3: true }))
+    it('passes context through a chain of handlers, each returning a modified copy', async () => {
+      registry.register('beforeChat', (ctx) => ({ ...ctx, message: `${ctx.message}!` }))
+      registry.register('beforeChat', (ctx) => ({ ...ctx, message: `${ctx.message}?` }))
+      registry.register('beforeChat', (ctx) => ({ ...ctx, message: `${ctx.message}.` }))
 
-      const result = await registry.execute('beforeChat', { kinId: 'k1' })
-      expect(result.step1).toBe(true)
-      expect(result.step2).toBe(true)
-      expect(result.step3).toBe(true)
+      const result = await registry.execute('beforeChat', beforeChat)
+      expect(result.message).toBe('hello!?.')
     })
 
-    it('should preserve context when a handler returns void', async () => {
-      registry.register('beforeChat', (ctx) => ({ ...ctx, added: 'value' }))
-      registry.register('beforeChat', () => { /* void - no return */ })
-      registry.register('beforeChat', (ctx) => ({ ...ctx, final: true }))
+    it('preserves the previous context when a handler returns void', async () => {
+      registry.register('beforeChat', (ctx) => ({ ...ctx, message: 'changed-1' }))
+      registry.register('beforeChat', () => { /* void */ })
+      registry.register('beforeChat', (ctx) => ({ ...ctx, message: `${ctx.message}-then-final` }))
 
-      const result = await registry.execute('beforeChat', { kinId: 'k1' })
-      expect(result.added).toBe('value')
-      expect(result.final).toBe(true)
+      const result = await registry.execute('beforeChat', beforeChat)
+      expect(result.message).toBe('changed-1-then-final')
     })
 
-    it('should handle async handlers', async () => {
+    it('awaits async handlers before invoking the next one', async () => {
       registry.register('afterToolCall', async (ctx) => {
         await new Promise((r) => setTimeout(r, 5))
-        return { ...ctx, asyncDone: true }
+        return { ...ctx, toolResult: { asyncDone: true } }
       })
 
-      const result = await registry.execute('afterToolCall', { kinId: 'k1' })
-      expect(result.asyncDone).toBe(true)
+      const result = await registry.execute('afterToolCall', afterToolCall)
+      expect((result.toolResult as { asyncDone: boolean }).asyncDone).toBe(true)
     })
 
-    it('should execute handlers in registration order', async () => {
+    it('executes handlers in registration order even when first is slower', async () => {
       const order: number[] = []
 
-      registry.register('onTaskSpawn', async (ctx) => {
+      registry.register('beforeToolCall', async () => {
         await new Promise((r) => setTimeout(r, 10))
         order.push(1)
-        return ctx
       })
-      registry.register('onTaskSpawn', async (ctx) => {
+      registry.register('beforeToolCall', async () => {
         order.push(2)
-        return ctx
       })
 
-      await registry.execute('onTaskSpawn', { kinId: 'k1' })
+      await registry.execute('beforeToolCall', beforeToolCall)
       expect(order).toEqual([1, 2])
     })
 
-    it('should allow a handler to modify the kinId', async () => {
+    it('lets a handler modify the kinId via the returned payload', async () => {
       registry.register('beforeChat', (ctx) => ({ ...ctx, kinId: 'modified-kin' }))
 
-      const result = await registry.execute('beforeChat', { kinId: 'original-kin' })
+      const result = await registry.execute('beforeChat', beforeChat)
       expect(result.kinId).toBe('modified-kin')
     })
 
-    it('should support all hook names', async () => {
-      const hookNames: HookName[] = [
-        'beforeChat', 'afterChat',
-        'beforeToolCall', 'afterToolCall',
-        'beforeCompacting', 'afterCompacting',
-        'onTaskSpawn', 'onCronTrigger',
-      ]
+    it('supports every declared hook name', async () => {
+      const payloads: { [K in HookName]: HookPayloadMap[K] } = {
+        beforeChat,
+        afterChat,
+        beforeToolCall,
+        afterToolCall,
+      }
 
-      for (const name of hookNames) {
-        const marker = `executed-${name}`
-        registry.register(name, (ctx) => ({ ...ctx, marker }))
-        const result = await registry.execute(name, { kinId: 'k1' })
-        expect(result.marker).toBe(marker)
+      for (const name of Object.keys(payloads) as HookName[]) {
+        let saw = false
+        registry.register(name, () => { saw = true })
+        await registry.execute(name, payloads[name] as never)
+        expect(saw).toBe(true)
       }
     })
   })
 
   describe('edge cases', () => {
-    it('should handle a handler that replaces the context entirely', async () => {
+    it('handles a handler that replaces the context entirely', async () => {
       registry.register('beforeChat', () => ({
         kinId: 'new-kin',
         userId: 'new-user',
-        custom: 42,
+        message: 'replaced',
       }))
 
-      const result = await registry.execute('beforeChat', { kinId: 'old', userId: 'old' })
+      const result = await registry.execute('beforeChat', beforeChat)
       expect(result.kinId).toBe('new-kin')
       expect(result.userId).toBe('new-user')
-      expect(result.custom).toBe(42)
+      expect(result.message).toBe('replaced')
     })
 
-    it('should handle registering the same handler twice', async () => {
+    it('runs the same handler twice when registered twice', async () => {
       let count = 0
-      const handler: HookHandler = (ctx) => { count++; return ctx }
+      const handler: HookHandler<'beforeChat'> = () => { count++ }
 
       registry.register('beforeChat', handler)
       registry.register('beforeChat', handler)
 
-      await registry.execute('beforeChat', { kinId: 'k1' })
+      await registry.execute('beforeChat', beforeChat)
       expect(count).toBe(2)
     })
 
-    it('should handle unregistering the same handler twice (only first splice)', async () => {
+    it('only removes one instance when the same handler is registered twice', async () => {
       let count = 0
-      const handler: HookHandler = (ctx) => { count++; return ctx }
+      const handler: HookHandler<'beforeChat'> = () => { count++ }
 
       registry.register('beforeChat', handler)
       registry.register('beforeChat', handler)
       registry.unregister('beforeChat', handler)
 
-      await registry.execute('beforeChat', { kinId: 'k1' })
-      // Only one instance removed, one should remain
+      await registry.execute('beforeChat', beforeChat)
       expect(count).toBe(1)
     })
   })

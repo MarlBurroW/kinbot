@@ -129,6 +129,22 @@ export async function searchSecrets(query: string) {
     .all()
 }
 
+/**
+ * List every vault entry key that starts with the given prefix. Returns the
+ * keys verbatim (including the prefix). Used by the plugin SDK's
+ * `ctx.vault.listKeys()` to enumerate keys inside a `plugin:<name>:`
+ * namespace.
+ */
+export async function listKeysByPrefix(prefix: string): Promise<string[]> {
+  const escaped = prefix.replace(/[\\%_]/g, '\\$&')
+  const rows = await db
+    .select({ key: vaultSecrets.key })
+    .from(vaultSecrets)
+    .where(like(vaultSecrets.key, `${escaped}%`))
+    .all()
+  return rows.map((r) => r.key)
+}
+
 // ─── Tool operations ─────────────────────────────────────────────────────────
 
 export async function getSecretValue(key: string): Promise<string | null> {

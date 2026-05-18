@@ -17,15 +17,14 @@ import type {
   OutboundMessageResult,
   PluginContext,
 } from '@kinbot-developer/sdk'
-import { getSecretValue } from '@/server/services/vault'
 import { getAccount, sendSms, TwilioApiException, type TwilioAuth } from './twilioApi'
 import { validateTwilioSignature } from './webhookSecurity'
 
 // ─── Resolved channel config shape ──────────────────────────────────────────
 // Stored in `channels.platformConfig` as JSON. The Auth Token is a password
 // field so KinBot replaces it with `authTokenVaultKey` on persistence; the
-// real value is fetched from the vault at use time. Plain-text fallback is
-// supported for tests and dev-time fixtures.
+// real value is fetched via `ctx.vault.getSecret()` at use time. Plain-text
+// fallback is supported for tests and dev-time fixtures.
 
 export interface TwilioChannelConfig {
   accountSid: string
@@ -34,14 +33,17 @@ export interface TwilioChannelConfig {
   fromNumber: string
 }
 
-async function resolveAuth(config: Record<string, unknown>): Promise<TwilioAuth> {
+async function resolveAuth(
+  ctx: PluginContext,
+  config: Record<string, unknown>,
+): Promise<TwilioAuth> {
   const cfg = config as Partial<TwilioChannelConfig>
   if (!cfg.accountSid || typeof cfg.accountSid !== 'string') {
     throw new Error('Twilio channel config missing accountSid')
   }
   let token = typeof cfg.authToken === 'string' ? cfg.authToken : ''
   if (!token && typeof cfg.authTokenVaultKey === 'string') {
-    const fromVault = await getSecretValue(cfg.authTokenVaultKey)
+    const fromVault = await ctx.vault.getSecret(cfg.authTokenVaultKey)
     if (!fromVault) {
       throw new Error(`Twilio Auth Token vault key "${cfg.authTokenVaultKey}" not found`)
     }
@@ -101,7 +103,7 @@ export default function twilioSmsPlugin(ctx: PluginContext): {
 
     async validateConfig(config: Record<string, unknown>): Promise<{ valid: boolean; error?: string }> {
       try {
-        const auth = await resolveAuth(config)
+        const auth = await resolveAuth(ctx, config)
         const fromNumber = (config as Partial<TwilioChannelConfig>).fromNumber
         if (!fromNumber || !E164_RE.test(fromNumber)) {
           return { valid: false, error: 'fromNumber must be E.164 (e.g. +15551234567)' }
@@ -122,7 +124,7 @@ export default function twilioSmsPlugin(ctx: PluginContext): {
     async getBotInfo(config: Record<string, unknown>): Promise<{ name: string; username?: string } | null> {
       const cfg = config as Partial<TwilioChannelConfig>
       try {
-        const auth = await resolveAuth(config)
+        const auth = await resolveAuth(ctx, config)
         const account = await getAccount(auth)
         return {
           name: account.friendly_name || 'Twilio SMS',
@@ -142,7 +144,7 @@ export default function twilioSmsPlugin(ctx: PluginContext): {
       config: Record<string, unknown>,
       params: OutboundMessageParams,
     ): Promise<OutboundMessageResult> {
-      const auth = await resolveAuth(config)
+      const auth = await resolveAuth(ctx, config)
       const from = requireFromNumber(config)
       const to = params.chatId
       if (!E164_RE.test(to)) {
@@ -170,7 +172,7 @@ export default function twilioSmsPlugin(ctx: PluginContext): {
       config: Record<string, unknown>,
       req: Request,
     ): Promise<{ incoming: IncomingMessage | null; response: Response }> {
-      const auth = await resolveAuth(config)
+      const auth = await resolveAuth(ctx, config)
 
       // Reconstruct the canonical URL Twilio used to sign. Twilio always
       // signs the public URL configured in the console, so we prefer

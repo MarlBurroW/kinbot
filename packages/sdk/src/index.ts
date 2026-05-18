@@ -398,26 +398,75 @@ export interface PluginProviderRegistration {
 //  Hooks
 // ════════════════════════════════════════════════════════════════════════════
 
-export interface HookContext {
-  kinId: string
-  userId?: string
-  taskId?: string
-  [key: string]: unknown
+/**
+ * Mapping from each hook name to the exact payload shape KinBot delivers
+ * to handlers. Plugin authors get autocomplete on `ctx.<field>` inside their
+ * handler — no more loose `[key: string]: unknown` access.
+ *
+ * When a new hook is added internally, extend this map first and the
+ * registry signature picks it up automatically.
+ */
+export interface HookPayloadMap {
+  /** Fired once per Kin turn, just before the system prompt is assembled. */
+  beforeChat: {
+    kinId: string
+    userId?: string
+    /** The raw incoming user message content for this turn. */
+    message: string
+  }
+  /** Fired once per Kin turn, after the assistant's response is finalized. */
+  afterChat: {
+    kinId: string
+    userId?: string
+    /** The raw incoming user message content for this turn. */
+    message: string
+    /** The assistant's final text response (excluding tool call payloads). */
+    response: string
+  }
+  /** Fired before each tool call inside a turn. Mutations to `toolArgs` are
+   *  observed by the executor when the handler returns the modified ctx. */
+  beforeToolCall: {
+    kinId: string
+    userId?: string
+    taskId?: string
+    isSubKin: boolean
+    /** Tool name as seen by the LLM (already plugin-prefixed when applicable). */
+    toolName: string
+    /** The arguments passed to the tool by the LLM. */
+    toolArgs: unknown
+    /** Originating channel queue item ID (causal chain tracking). */
+    channelOriginId?: string
+    cronId?: string
+    ticketId?: string
+  }
+  /** Fired after each tool call. `toolResult` is whatever the tool returned. */
+  afterToolCall: {
+    kinId: string
+    userId?: string
+    taskId?: string
+    isSubKin: boolean
+    toolName: string
+    toolArgs: unknown
+    toolResult: unknown
+    channelOriginId?: string
+    cronId?: string
+    ticketId?: string
+  }
 }
 
-export type HookHandler = (
-  context: HookContext,
-) => Promise<HookContext | void> | HookContext | void
+export type HookName = keyof HookPayloadMap
 
-export type HookName =
-  | 'beforeChat'
-  | 'afterChat'
-  | 'beforeToolCall'
-  | 'afterToolCall'
-  | 'beforeCompacting'
-  | 'afterCompacting'
-  | 'onTaskSpawn'
-  | 'onCronTrigger'
+/**
+ * A hook handler receives a strongly-typed payload based on its name and may
+ * optionally return a modified payload to be used by downstream consumers.
+ * Most handlers return `void` (observe-only).
+ */
+export type HookHandler<H extends HookName = HookName> = (
+  context: HookPayloadMap[H],
+) =>
+  | Promise<HookPayloadMap[H] | void>
+  | HookPayloadMap[H]
+  | void
 
 // ════════════════════════════════════════════════════════════════════════════
 //  Plugin context (what the host passes to the default export)
@@ -444,6 +493,30 @@ export interface PluginStorageAPI {
 
 export interface PluginHTTPClient {
   fetch(url: string, init?: RequestInit): Promise<Response>
+}
+
+/**
+ * Vault access exposed to plugins.
+ *
+ * Read access is permissive: `getSecret(key)` reads any vault entry by key.
+ * Plugins are expected to only read keys they were handed via their config
+ * (e.g. a channel password field stored by KinBot under a deterministic key).
+ * There is no API to enumerate the full vault.
+ *
+ * Write access is strictly scoped: `setSecret` / `deleteSecret` / `listKeys`
+ * operate inside a `plugin:<plugin-name>:` namespace so plugins cannot
+ * overwrite each other's secrets or those managed by KinBot core.
+ */
+export interface PluginVaultAPI {
+  /** Read any vault entry by its key (returns the decrypted value or null).
+   *  Permissive — the plugin must know the key (typically passed via config). */
+  getSecret(key: string): Promise<string | null>
+  /** Store a secret under `plugin:<plugin-name>:<key>`. Auto-scoped. */
+  setSecret(key: string, value: string, description?: string): Promise<void>
+  /** Delete a secret stored by this plugin. No-op when the key doesn't exist. */
+  deleteSecret(key: string): Promise<void>
+  /** List the keys owned by this plugin (unprefixed). */
+  listKeys(): Promise<string[]>
 }
 
 export interface PluginManifestInfo {
@@ -486,6 +559,7 @@ export interface PluginContext {
   log: PluginLogger
   storage: PluginStorageAPI
   http: PluginHTTPClient
+  vault: PluginVaultAPI
   manifest: PluginManifestInfo
   cards: PluginCardsAPI
 }
@@ -498,7 +572,9 @@ export interface PluginExports {
   tools?: Record<string, ToolRegistration>
   providers?: Record<string, PluginProviderRegistration>
   channels?: Record<string, ChannelAdapter>
-  hooks?: Partial<Record<HookName, HookHandler>>
+  /** Hook handlers keyed by hook name. Each handler receives the typed
+   *  payload for its hook (see {@link HookPayloadMap}). */
+  hooks?: { [H in HookName]?: HookHandler<H> }
   /** Handle user clicks on action-row buttons emitted by this plugin's cards. */
   onCardAction?(ctx: PluginCardActionContext): Promise<PluginCardActionResult>
   activate?(): Promise<void>
