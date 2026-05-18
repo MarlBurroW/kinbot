@@ -376,6 +376,62 @@ describe('replicate plugin — Image provider', () => {
     expect(calls).toHaveLength(2)
     expect(calls[0]!.url).toContain('/predictions')
     expect(calls[1]!.url).toBe('https://replicate.delivery/abc/image.png')
+
+    // Default 1024x1024 must reduce to "1:1", not "1024:1024" — the latter
+    // is rejected by Flux/SDXL with a 422 enum error.
+    const body = JSON.parse(calls[0]!.init!.body as string)
+    expect(body.input.aspect_ratio).toBe('1:1')
+    expect(body.input.width).toBe(1024)
+    expect(body.input.height).toBe(1024)
+  })
+
+  it('omits aspect_ratio entirely when the reduced ratio is not on Replicate\'s enum (avoids 422)', async () => {
+    const { ctx, calls, pushResponse } = makeCtx()
+    const image = pickProvider(replicatePlugin(ctx), isImage)
+
+    pushResponse(200, {
+      id: 'pred_odd',
+      status: 'succeeded',
+      output: ['https://replicate.delivery/x/o.png'],
+      error: null,
+    })
+    pushResponse(200, new Uint8Array([0x89]), { 'Content-Type': 'image/png' })
+
+    await image.generate(
+      { id: 'whatever/model', name: 'Whatever' },
+      { prompt: 'x', size: '1234x567' },
+      { apiToken: 'r8_test' },
+    )
+
+    const body = JSON.parse(calls[0]!.init!.body as string)
+    // 1234:567 reduces to 1234:567 (coprime) — not a known Replicate
+    // aspect_ratio. The plugin omits the field rather than sending an
+    // invalid value, and width/height carry the size info.
+    expect(body.input.aspect_ratio).toBeUndefined()
+    expect(body.input.width).toBe(1234)
+    expect(body.input.height).toBe(567)
+  })
+
+  it('reduces wide ratios to the canonical form (1920x1080 -> 16:9)', async () => {
+    const { ctx, calls, pushResponse } = makeCtx()
+    const image = pickProvider(replicatePlugin(ctx), isImage)
+
+    pushResponse(200, {
+      id: 'pred_wide',
+      status: 'succeeded',
+      output: ['https://replicate.delivery/x/wide.png'],
+      error: null,
+    })
+    pushResponse(200, new Uint8Array([0x89]), { 'Content-Type': 'image/png' })
+
+    await image.generate(
+      { id: 'whatever/model', name: 'Whatever' },
+      { prompt: 'x', size: '1920x1080' },
+      { apiToken: 'r8_test' },
+    )
+
+    const body = JSON.parse(calls[0]!.init!.body as string)
+    expect(body.input.aspect_ratio).toBe('16:9')
   })
 
   it('fetches the text-to-image collection and detects image-input support', async () => {

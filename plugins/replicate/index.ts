@@ -303,6 +303,32 @@ function firstUrl(output: unknown): string | null {
   return null
 }
 
+/**
+ * The union of `aspect_ratio` enum values accepted by the popular
+ * Replicate image families (Flux, SDXL, recraft, …). When a model
+ * accepts the field at all it accepts at least these strings; passing
+ * anything outside this set yields a 422 with "must be one of …".
+ */
+const REPLICATE_ASPECT_RATIOS = new Set([
+  '1:1', '16:9', '9:16', '21:9', '9:21',
+  '4:3', '3:4', '3:2', '2:3', '4:5', '5:4',
+])
+
+/**
+ * Convert raw pixel dimensions into a Replicate-friendly `aspect_ratio`.
+ * Returns undefined when the reduced ratio isn't on the allowed list —
+ * better to omit the field (and let the model fall back to its default
+ * or use the explicit width/height) than to send "1024:1024" and get a
+ * 422 like the user saw with marlburrow/nicolas-lora.
+ */
+function aspectRatioFor(width: number, height: number): string | undefined {
+  if (!width || !height) return undefined
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
+  const g = gcd(width, height)
+  const ratio = `${width / g}:${height / g}`
+  return REPLICATE_ASPECT_RATIOS.has(ratio) ? ratio : undefined
+}
+
 // ─── LLM provider ───────────────────────────────────────────────────────────
 
 class ReplicateLLMProvider implements LLMProvider {
@@ -423,12 +449,14 @@ class ReplicateImageProvider implements ImageProvider {
     const client = new Replicate(this.fetch, token)
     const [width, height] = (request.size ?? '1024x1024').split('x').map((n) => Number(n))
 
+    const aspect = aspectRatioFor(width, height)
     const prediction = await client.runPrediction<string[] | string>(
       {
         model: model.id,
         input: {
           prompt: request.prompt,
-          ...(width && height ? { width, height, aspect_ratio: `${width}:${height}` } : {}),
+          ...(width && height ? { width, height } : {}),
+          ...(aspect ? { aspect_ratio: aspect } : {}),
           output_format: 'png',
           num_outputs: 1,
         },
