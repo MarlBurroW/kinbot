@@ -315,6 +315,12 @@ providerRoutes.post('/test', async (c) => {
 })
 
 // POST /api/providers/:id/test — test provider connection
+//
+// Optional body `{ config: { ... } }` overlays a partial config onto the
+// stored one before testing. Used by the edit dialog so the user can
+// validate a new config field (e.g. custom-models list, rotated token)
+// without having to re-enter the masked API key — the stored token
+// is merged in server-side.
 providerRoutes.post('/:id/test', async (c) => {
   const id = c.req.param('id')
 
@@ -323,7 +329,19 @@ providerRoutes.post('/:id/test', async (c) => {
     return c.json({ error: { code: 'PROVIDER_NOT_FOUND', message: 'Provider not found' } }, 404)
   }
 
-  const providerConfig = JSON.parse(await decrypt(existing.configEncrypted))
+  // Body is optional — `c.req.json()` throws on empty body, so guard.
+  let patch: Record<string, unknown> | undefined
+  try {
+    const body = await c.req.json().catch(() => null)
+    if (body && typeof body === 'object' && body !== null && 'config' in body) {
+      patch = (body as { config?: Record<string, unknown> }).config
+    }
+  } catch {
+    // No body / not JSON — fall through, test against stored config as-is.
+  }
+
+  const storedConfig = JSON.parse(await decrypt(existing.configEncrypted))
+  const providerConfig = patch ? { ...storedConfig, ...patch } : storedConfig
   // Authenticate is family-invariant (same creds across families) — no
   // hint needed; the dispatcher hits whichever family is registered.
   const result = await testProviderConnection(existing.type, providerConfig)

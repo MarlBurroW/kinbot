@@ -183,9 +183,17 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
     try {
       const config = buildConfig()
 
-      // For edit mode without new config, test the existing provider as-is.
-      if (isEditing && Object.keys(config).length === 0) {
-        const result = await api.post<{ valid: boolean; error?: string }>(`/providers/${provider!.id}/test`)
+      // In edit mode the provider already has a stored config (the encrypted
+      // API token, etc.). Hit the per-provider test endpoint so the server
+      // overlays the partial patch onto the stored config — that way the
+      // user can validate a new field (custom-models list, rotated token)
+      // without re-entering the masked secrets the placeholder told them
+      // they could leave blank.
+      if (isEditing) {
+        const result = await api.post<{ valid: boolean; error?: string }>(
+          `/providers/${provider!.id}/test`,
+          Object.keys(config).length > 0 ? { config } : undefined,
+        )
         if (result.valid) {
           setTestPassed(true)
         } else {
