@@ -43,6 +43,12 @@ import type {
   SystemPrompt,
 } from '@kinbot-developer/sdk'
 import { Replicate, ReplicateApiError, type ReplicateCollectionModel } from './replicateApi'
+import {
+  instructTunedFromSchema,
+  composeToolSystemPrompt,
+  renderHistoryForToolProtocol,
+  toolProtocolChunks,
+} from './jsonToolProtocol'
 
 interface ReplicateConfig {
   apiToken?: string
@@ -173,28 +179,25 @@ function llmModelFrom(m: ReplicateCollectionModel): LLMModel {
   ])
   const maxOutput =
     schemaInts.max_new_tokens ?? schemaInts.max_tokens ?? schemaInts.max_length
+
+  // Tool-calling capability is derived from the OpenAPI schema, NOT
+  // from a hardcoded model-name allowlist. Models that declare a
+  // `system_prompt` (Llama/Mistral/DeepSeek-instruct convention) or
+  // `messages` (chat-completion convention) input field are
+  // instruct-tuned and can follow our JSON `<tool_call>{...}</tool_call>`
+  // protocol — those keep `maxTools` undefined so the engine inherits
+  // the provider's `defaultMaxTools`. Raw text-completion models
+  // (no system_prompt) get `maxTools: 0` and the engine drops tools
+  // + skips the tool-discipline sections of the system prompt.
+  const instructTuned = instructTunedFromSchema(m.latest_version?.openapi_schema)
+
   return {
     id: `${m.owner}/${m.name}`,
     name: displayNameOf(m),
     // contextWindow is left undefined — Replicate doesn't expose it
     // uniformly across community models. The SDK allows undefined.
     ...(typeof maxOutput === 'number' ? { maxOutput } : {}),
-    // UNIFORM rule across the entire Replicate catalogue: this plugin's
-    // `chat()` implements a plain `prompt + system_prompt` round-trip
-    // — no tool calling. Setting `maxTools: 0` on every surfaced model
-    // tells the KinBot engine to (a) drop every tool from the request,
-    // (b) skip tool-usage instructions in the system prompt. Without
-    // this, Replicate-hosted instruct models (DeepSeek, Qwen3, …) see
-    // "use these tools" guidance with no actual tool channel and
-    // fabricate JSON tool-call syntax as text.
-    //
-    // No hardcoded model whitelist: every model from the curated
-    // language-models collection AND every custom LLM gets the same
-    // treatment. When a future iteration adds a JSON tool-calling
-    // layer to this plugin, that layer will set maxTools > 0 from
-    // an automatic schema heuristic (e.g. `tool_use` field in the
-    // model's OpenAPI Input), never from a model-name allowlist.
-    maxTools: 0,
+    ...(instructTuned ? {} : { maxTools: 0 }),
   }
 }
 
@@ -512,8 +515,25 @@ class ReplicateLLMProvider implements LLMProvider {
   ): AsyncIterable<ChatChunk> {
     const token = requireToken(config)
     const client = new Replicate(this.fetch, token)
-    const systemPrompt = flattenSystem(request.system)
-    const prompt = buildPrompt(request.messages)
+
+    // When the engine sent tools AND the model is instruct-tuned, wrap
+    // the round-trip in our JSON `<tool_call>` protocol. Otherwise fall
+    // back to the plain prompt → text path (text-completion models).
+    //
+    // The model is considered instruct-tuned when `maxTools !== 0` —
+    // listModels has already filtered raw completion models to
+    // `maxTools: 0` via `instructTunedFromSchema`, so this branch is
+    // a derived signal, not a parallel decision.
+    const hasTools = (request.tools?.length ?? 0) > 0
+    const supportsTools = model.maxTools !== 0
+    const useToolProtocol = hasTools && supportsTools
+
+    const systemPrompt = useToolProtocol
+      ? composeToolSystemPrompt(request.system, request.tools!)
+      : flattenSystem(request.system)
+    const prompt = useToolProtocol
+      ? renderHistoryForToolProtocol(request.messages)
+      : buildPrompt(request.messages)
 
     const prediction = await client.runPrediction<string[] | string>(
       {
@@ -531,15 +551,23 @@ class ReplicateLLMProvider implements LLMProvider {
     )
 
     const text = joinOutput(prediction.output)
-    yield { type: 'text-delta', text }
-    yield {
-      type: 'finish',
-      reason: 'stop',
-      usage: {
-        inputTokens: prediction.metrics?.input_token_count,
-        outputTokens: prediction.metrics?.output_token_count,
-      },
+    const usage = {
+      inputTokens: prediction.metrics?.input_token_count,
+      outputTokens: prediction.metrics?.output_token_count,
     }
+
+    if (useToolProtocol) {
+      // Parse <tool_call>...</tool_call> blocks from the response.
+      // Emits text-delta for any lead-in prose, then one tool-use
+      // chunk per parsed call, then finish with reason 'tool-calls'.
+      // Falls through to plain text when no tool_call block is found.
+      for (const chunk of toolProtocolChunks(text, usage)) yield chunk
+      return
+    }
+
+    // Plain text path (text-completion models, no tools).
+    yield { type: 'text-delta', text }
+    yield { type: 'finish', reason: 'stop', usage }
   }
 }
 

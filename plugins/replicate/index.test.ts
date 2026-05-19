@@ -161,12 +161,107 @@ describe('replicate plugin — LLM provider', () => {
     expect(models[0]?.contextWindow).toBeUndefined()
     // The second model has no schema → maxOutput undefined
     expect(models[1]?.maxOutput).toBeUndefined()
-    // Every model in the catalogue is uniformly marked as non-tool-
-    // calling — Replicate's chat() does a plain prompt round-trip,
-    // no tool-use protocol. The KinBot engine's per-model
-    // `maxTools` override picks this up and skips the tool-usage
-    // sections of the system prompt.
+    // Neither fixture declares `system_prompt` in its Input schema,
+    // so the schema-driven heuristic classifies both as raw text-
+    // completion models. `maxTools: 0` propagates → engine drops
+    // every tool from the request AND prompt builder skips the tool-
+    // discipline sections.
     for (const m of models) expect(m.maxTools).toBe(0)
+  })
+
+  it('marks models that declare a `system_prompt` Input field as tool-capable (schema heuristic, no allowlist)', async () => {
+    const { ctx, pushResponse } = makeCtx()
+    const llm = pickProvider(replicatePlugin(ctx), isLLM)
+
+    pushResponse(200, {
+      name: 'Language models',
+      slug: 'language-models',
+      models: [
+        {
+          owner: 'meta',
+          name: 'meta-llama-3-8b-instruct',
+          description: 'Instruct-tuned',
+          latest_version: {
+            id: 'v1',
+            openapi_schema: {
+              components: {
+                schemas: {
+                  Input: {
+                    properties: {
+                      prompt: { type: 'string' },
+                      system_prompt: { type: 'string' },
+                      max_new_tokens: { type: 'integer' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          owner: 'openai-community',
+          name: 'gpt2-completion',
+          description: 'Raw text-completion model',
+          latest_version: {
+            id: 'v1',
+            openapi_schema: {
+              components: {
+                schemas: {
+                  Input: {
+                    properties: { prompt: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    })
+
+    const models = await llm.listModels({ apiToken: 'r8_test' })
+
+    // Instruct-tuned model has `system_prompt` → maxTools undefined
+    // (inherits provider default → tool-calling enabled via JSON
+    // protocol when the engine sends tools).
+    expect(models[0]?.id).toBe('meta/meta-llama-3-8b-instruct')
+    expect(models[0]?.maxTools).toBeUndefined()
+    // Completion-only model → maxTools: 0.
+    expect(models[1]?.id).toBe('openai-community/gpt2-completion')
+    expect(models[1]?.maxTools).toBe(0)
+  })
+
+  it('also recognises models that declare `messages` (chat-completion convention) as tool-capable', async () => {
+    const { ctx, pushResponse } = makeCtx()
+    const llm = pickProvider(replicatePlugin(ctx), isLLM)
+
+    pushResponse(200, {
+      name: 'Language models',
+      slug: 'language-models',
+      models: [
+        {
+          owner: 'community',
+          name: 'qwen-chat',
+          latest_version: {
+            id: 'v1',
+            openapi_schema: {
+              components: {
+                schemas: {
+                  Input: {
+                    properties: {
+                      messages: { type: 'array' },
+                      max_tokens: { type: 'integer' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    })
+
+    const models = await llm.listModels({ apiToken: 'r8_test' })
+    expect(models[0]?.maxTools).toBeUndefined()
   })
 
   it('lists nothing when the collection has no models (returns []) ', async () => {

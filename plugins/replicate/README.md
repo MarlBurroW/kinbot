@@ -32,7 +32,7 @@ This plugin doubles as a real-world reference for [`@kinbot-developer/sdk`](http
 ## Caveats
 
 - **Not streamed.** The current implementation uses Replicate's `Prefer: wait` sync mode and emits the whole response as one `text-delta` followed by `finish`. Real SSE streaming is a follow-up.
-- **No tool calling.** Replicate-hosted open models don't have a uniform tool-calling format, so this provider doesn't advertise tools. Use the built-in Anthropic / OpenAI providers if your Kin needs tool use.
+- **Tool calling via a JSON protocol** (best-effort). Replicate's prediction API doesn't model tool calling at the transport layer, but instruct-tuned models (Llama-instruct, DeepSeek, Qwen, Hermes, Mistral-instruct…) are trained to follow precise format instructions, so the plugin wraps the round-trip in a universal `<tool_call>{"name":"...","arguments":{...}}</tool_call>` protocol. Detection is purely schema-driven: any model whose OpenAPI Input declares a `system_prompt` (Llama/DeepSeek convention) or `messages` (chat-completion convention) field automatically participates. Raw text-completion models without either marker keep `maxTools: 0` and stay tool-less. Robustness depends on each model's instruction-following; very small models can mangle JSON or invent fake tools — KinBot's engine sees those as parse failures and recovers on the next turn.
 - **Async generation is bounded.** Image generation can exceed the 60s `Prefer: wait` window; the plugin then polls for up to 5 minutes before giving up.
 
 ## Tests
