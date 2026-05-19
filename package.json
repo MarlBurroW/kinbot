@@ -35,7 +35,7 @@
     "dev": "concurrently -n client,server -c blue,green \"bun run dev:client\" \"bun run dev:server\"",
     "dev:client": "vite",
     "dev:server": "bun --watch src/server/index.ts",
-    "build": "vite build",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "start": "bun src/server/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun scripts/migrate.ts",
