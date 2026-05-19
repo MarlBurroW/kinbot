@@ -62,6 +62,49 @@ pluginRoutes.get('/registry/search', async (c) => {
   }
 })
 
+// GET /api/plugins/registry/npm-search — discover plugins via npm
+//
+// Queries the public npm registry for packages tagged with the
+// `kinbot-plugin` keyword. The user's free-form `q` is combined with
+// that keyword filter so authors can search by package name /
+// description / their own tags from the Browse tab.
+//
+// Cached server-side for 5 minutes per query (no per-user data
+// involved). Open to any authenticated user; install still requires
+// admin (POST /api/plugins/install).
+pluginRoutes.get('/registry/npm-search', async (c) => {
+  try {
+    const q = c.req.query('q') ?? ''
+    const plugins = await pluginRegistry.searchNpm(q)
+
+    // Tag installed plugins so the Browse UI can render the "Already
+    // installed" state without a second round-trip. Match by npm
+    // package name when present, otherwise fall back to manifest name.
+    const installed = pluginManager.listPlugins()
+    const installedNpmPackages = new Set<string>()
+    const installedNames = new Set<string>()
+    for (const p of installed) {
+      installedNames.add(p.name)
+      if (p.installMeta && 'package' in p.installMeta && typeof p.installMeta.package === 'string') {
+        installedNpmPackages.add(p.installMeta.package)
+      }
+    }
+
+    return c.json({
+      plugins: plugins.map((p) => ({
+        ...p,
+        installed: installedNpmPackages.has(p.name) || installedNames.has(p.name),
+      })),
+    })
+  } catch (err) {
+    log.error({ err }, 'Failed to search npm for plugins')
+    return c.json(
+      { error: { code: 'NPM_SEARCH_FAILED', message: 'Failed to search npm for plugins' } },
+      500,
+    )
+  }
+})
+
 // GET /api/plugins/registry/readme — fetch a plugin's README
 pluginRoutes.get('/registry/readme', async (c) => {
   try {

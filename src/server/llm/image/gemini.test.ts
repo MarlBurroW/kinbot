@@ -64,6 +64,28 @@ describe('geminiImageProvider.listModels — family detection', () => {
     expect(result[0]?.maxImageInputs).toBeGreaterThan(0)
   })
 
+  it('gives Nano Banana Pro a higher reference-image budget than standard Nano Banana', async () => {
+    const { result } = await withFetch(
+      () => new Response(JSON.stringify({
+        models: [
+          {
+            name: 'models/gemini-2.5-flash-image-preview',
+            supportedGenerationMethods: ['generateContent'],
+          },
+          {
+            name: 'models/gemini-3-pro-image',
+            supportedGenerationMethods: ['generateContent'],
+          },
+        ],
+      }), { status: 200 }),
+      () => geminiImageProvider.listModels({ apiKey: 'AIza-test' }),
+    )
+    const standard = result.find((m) => m.id === 'gemini-2.5-flash-image-preview')
+    const pro = result.find((m) => m.id === 'gemini-3-pro-image')
+    expect(standard?.maxImageInputs).toBe(3)
+    expect(pro?.maxImageInputs).toBe(14)
+  })
+
   it('routes Imagen models to the predict family with maxImageInputs: 0', async () => {
     const { result } = await withFetch(
       () => new Response(JSON.stringify({

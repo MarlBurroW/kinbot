@@ -107,6 +107,37 @@ export interface RegistryPlugin {
   readme_url?: string
 }
 
+/**
+ * Normalised npm search result. Built from registry.npmjs.org's
+ * `/-/v1/search` API, which returns the `{ objects: [{ package, score }] }`
+ * shape — KinBot's UI just needs the flat fields below.
+ */
+export interface NpmPlugin {
+  /** Full npm package name (e.g. `@marlburrow/kinbot-plugin-x`). */
+  name: string
+  /** Latest version published to npm. */
+  version: string
+  /** One-line description from package.json. */
+  description: string
+  /** Author name (free-form). */
+  author: string
+  /** Publisher's npm username (always present, used for trust display). */
+  publisherUsername?: string
+  /** Free-form keywords from package.json — used by the UI to surface tags. */
+  keywords: string[]
+  /** When the latest version was published. */
+  date?: string
+  /** npm-computed quality/popularity/maintenance composite. 0..1. */
+  score?: number
+  /** Links from package.json (homepage, repository, bugs, npm). */
+  links?: {
+    npm?: string
+    homepage?: string
+    repository?: string
+    bugs?: string
+  }
+}
+
 export interface PluginHealthStats {
   totalErrors: number
   consecutiveErrors: number

@@ -76,7 +76,19 @@ interface FamilyTag {
 }
 
 const NANO_BANANA_PATTERN = /(^|[-_])image([-_]|$)/i
+// Nano Banana Pro family: `gemini-3-pro-image`, future `gemini-N-pro-image`.
+// Higher reference-image budget than the standard Flash image variant.
+const NANO_BANANA_PRO_PATTERN = /^gemini-\d+-pro-image/i
 const IMAGEN_PATTERN = /^imagen-/i
+
+// Reference-image budgets are not exposed by `/v1beta/models` — Google
+// publishes them in docs only. Per Vertex AI docs:
+//   - Nano Banana (gemini-2.5-flash-image / -preview): "works best with up
+//     to 3 images" (technical cap is far higher but quality degrades).
+//   - Nano Banana Pro (gemini-3-pro-image): up to 14 reference images,
+//     character consistency on up to 5 people.
+const NANO_BANANA_MAX_INPUTS = 3
+const NANO_BANANA_PRO_MAX_INPUTS = 14
 
 function familyForModel(
   id: string,
@@ -297,9 +309,14 @@ export const geminiImageProvider: ImageProvider = {
           id,
           name: m.displayName ?? id,
           // Nano Banana accepts reference images (single or multi for
-          // compositional editing). Imagen is text-to-image only.
+          // compositional editing); Pro has a much higher budget than
+          // the standard Flash variant. Imagen is text-to-image only.
           ...(family === 'generate-content'
-            ? { maxImageInputs: 4 }
+            ? {
+                maxImageInputs: NANO_BANANA_PRO_PATTERN.test(id)
+                  ? NANO_BANANA_PRO_MAX_INPUTS
+                  : NANO_BANANA_MAX_INPUTS,
+              }
             : { maxImageInputs: 0 }),
           // Imagen output sizes are controlled by aspectRatio (not
           // pixel dimensions). Nano Banana picks its own. Either

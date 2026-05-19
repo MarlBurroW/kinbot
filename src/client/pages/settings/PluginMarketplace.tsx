@@ -37,8 +37,9 @@ import {
   Globe,
   ExternalLink,
   AlertTriangle,
+  Package,
 } from 'lucide-react'
-import type { PluginSummary, RegistryPlugin } from '@/shared/types/plugin'
+import type { PluginSummary, RegistryPlugin, NpmPlugin } from '@/shared/types/plugin'
 import { satisfiesSemver } from '@/shared/semver'
 
 interface StorePlugin {
@@ -70,6 +71,11 @@ export function PluginMarketplace() {
   const [registryLoading, setRegistryLoading] = useState(true)
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
+  // npm search state — discovers any package on npmjs.com tagged with
+  // the `kinbot-plugin` keyword. Open ecosystem, no curation.
+  const [npmResults, setNpmResults] = useState<Array<NpmPlugin & { installed: boolean }>>([])
+  const [npmLoading, setNpmLoading] = useState(false)
+
   // Installed plugins (to check install status for registry)
   const [installedNames, setInstalledNames] = useState<Set<string>>(new Set())
 
@@ -89,8 +95,32 @@ export function PluginMarketplace() {
     loadAll()
   }, [])
 
+  // Debounced npm search: refetch 300ms after the user stops typing.
+  // The query is server-side (registry.npmjs.org), not a client-side
+  // filter — unlike Store / Community whose data is already local.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      loadNpm(searchQuery)
+    }, 300)
+    return () => clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
   const loadAll = async () => {
-    await Promise.all([loadStore(), loadRegistry(), loadVersion()])
+    await Promise.all([loadStore(), loadRegistry(), loadVersion(), loadNpm('')])
+  }
+
+  const loadNpm = async (q: string) => {
+    setNpmLoading(true)
+    try {
+      const url = q ? `/plugins/registry/npm-search?q=${encodeURIComponent(q)}` : '/plugins/registry/npm-search'
+      const res = await api.get<{ plugins: Array<NpmPlugin & { installed: boolean }> }>(url)
+      setNpmResults(res?.plugins ?? [])
+    } catch {
+      setNpmResults([])
+    } finally {
+      setNpmLoading(false)
+    }
   }
 
   const loadStore = async () => {
@@ -195,6 +225,23 @@ export function PluginMarketplace() {
     }
   }
 
+  // Install from npm (live discovery — package name comes from search result)
+  const handleNpmInstall = async (plugin: NpmPlugin) => {
+    setInstallingPlugin(plugin.name)
+    try {
+      const result = await api.post<{ success: boolean; name: string }>('/plugins/install', {
+        source: 'npm',
+        package: plugin.name,
+      })
+      toast.success(t('settings.marketplace.installSuccess', { name: result.name }))
+      await loadAll()
+    } catch (err) {
+      toastError(err)
+    } finally {
+      setInstallingPlugin(null)
+    }
+  }
+
   const confirmUninstall = async () => {
     if (!uninstallTarget) return
     setUninstalling(true)
@@ -286,6 +333,13 @@ export function PluginMarketplace() {
               <Badge variant="secondary" className="text-xs ml-1 px-1.5 py-0">{filteredRegistry.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="npm" className="gap-1.5">
+            <Package className="size-3.5" />
+            {t('settings.marketplace.npmTab', 'npm')}
+            {npmResults.length > 0 && (
+              <Badge variant="secondary" className="text-xs ml-1 px-1.5 py-0">{npmResults.length}</Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* Store tab */}
@@ -359,6 +413,41 @@ export function PluginMarketplace() {
                   onInstall={() => handleRegistryInstall(plugin)}
                   onUninstall={() => setUninstallTarget(plugin.name)}
                   onClick={() => openRegistryDetail(plugin)}
+                  t={t}
+                />
+              ))}
+            </PluginGrid>
+          )}
+        </TabsContent>
+
+        {/* npm tab — live discovery on the public npm registry */}
+        <TabsContent value="npm" className="mt-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            {t(
+              'settings.marketplace.npmDescription',
+              'Plugins published to npm with the `kinbot-plugin` keyword. Anyone can publish — review the package author and source repository before installing.',
+            )}
+          </p>
+          {npmLoading ? (
+            <SettingsListSkeleton />
+          ) : npmResults.length === 0 ? (
+            <EmptyState
+              icon={Package}
+              title={t('settings.marketplace.npmEmpty.title', 'No npm results')}
+              description={t(
+                'settings.marketplace.npmEmpty.description',
+                'No package matches your search. Try a broader term, or wait for plugins to be published to npm.',
+              )}
+            />
+          ) : (
+            <PluginGrid>
+              {npmResults.map((plugin) => (
+                <NpmPluginCard
+                  key={plugin.name}
+                  plugin={plugin}
+                  installing={installingPlugin === plugin.name}
+                  onInstall={() => handleNpmInstall(plugin)}
+                  onUninstall={() => setUninstallTarget(plugin.name)}
                   t={t}
                 />
               ))}
@@ -587,6 +676,116 @@ function RegistryPluginCard({
 
       <div className="mt-auto pt-3" onClick={(e) => e.stopPropagation()}>
         {installed ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={onUninstall}
+          >
+            {t('settings.marketplace.uninstall')}
+          </Button>
+        ) : (
+          <Button size="sm" className="w-full" onClick={onInstall} disabled={installing}>
+            {installing ? (
+              <><Loader2 className="size-4 mr-2 animate-spin" />{t('settings.marketplace.installing')}</>
+            ) : (
+              <><Download className="size-4 mr-2" />{t('settings.marketplace.installBtn')}</>
+            )}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── npm plugin card ─────────────────────────────────────────────────────────
+
+function NpmPluginCard({
+  plugin,
+  installing,
+  onInstall,
+  onUninstall,
+  t,
+}: {
+  plugin: NpmPlugin & { installed: boolean }
+  installing: boolean
+  onInstall: () => void
+  onUninstall: () => void
+  t: (key: string, opts?: any) => string
+}) {
+  return (
+    <div className="flex flex-col rounded-lg border p-4 surface-card hover:border-primary/50 transition-colors">
+      <div className="flex items-center gap-1.5 mb-1">
+        {plugin.installed && (
+          <Badge variant="default" className="gap-1">
+            <Check className="size-3" />
+            {t('settings.marketplace.installed')}
+          </Badge>
+        )}
+        <Badge variant="outline" className="text-[10px] gap-1">
+          <Package className="size-3" />
+          npm
+        </Badge>
+      </div>
+
+      <div className="min-w-0">
+        <h4 className="font-medium truncate">{plugin.name}</h4>
+        {plugin.author && (
+          <p className="text-xs text-muted-foreground">
+            <User className="size-3 inline mr-1" />
+            {plugin.author}
+            {plugin.publisherUsername && plugin.publisherUsername !== plugin.author && (
+              <span className="opacity-60"> (@{plugin.publisherUsername})</span>
+            )}
+          </p>
+        )}
+      </div>
+
+      <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
+        {plugin.description || <span className="italic opacity-60">{t('settings.marketplace.noDescription', 'No description provided.')}</span>}
+      </p>
+
+      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+        <Badge variant="outline" className="text-xs">v{plugin.version}</Badge>
+        {plugin.links?.repository && (
+          <a
+            href={plugin.links.repository}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="size-3" />
+            {t('settings.marketplace.repository', 'source')}
+          </a>
+        )}
+        {plugin.links?.npm && (
+          <a
+            href={plugin.links.npm}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="size-3" />
+            npm
+          </a>
+        )}
+      </div>
+
+      {plugin.keywords.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {plugin.keywords
+            .filter((k) => k !== 'kinbot-plugin' && k !== 'kinbot')
+            .slice(0, 4)
+            .map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+            ))}
+        </div>
+      )}
+
+      <div className="mt-auto pt-3">
+        {plugin.installed ? (
           <Button
             variant="outline"
             size="sm"

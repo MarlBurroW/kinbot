@@ -7,6 +7,7 @@ import {
   generateIndex,
   generateReadme,
   generateGitignore,
+  generatePackageJson,
   scaffold,
   type ScaffoldOptions,
 } from './index'
@@ -29,6 +30,54 @@ describe('generateManifest', () => {
     expect(manifest.author).toBe('Tester')
     expect(manifest.main).toBe('index.ts')
     expect(manifest.kinbot).toBe('>=0.41.0')
+  })
+})
+
+describe('generatePackageJson', () => {
+  test('declares the kinbot-plugin keyword so the Browse tab discovers it', () => {
+    const pkg = JSON.parse(generatePackageJson(defaultOpts))
+    expect(pkg.keywords).toContain('kinbot-plugin')
+    // `kinbot` as a convenience second keyword.
+    expect(pkg.keywords).toContain('kinbot')
+  })
+
+  test('declares @kinbot-developer/sdk as a peerDependency, NOT a regular dependency', () => {
+    // Critical: a regular dependency would let bun install a SECOND
+    // copy of the SDK and break instanceof checks across the
+    // plugin/host boundary.
+    const pkg = JSON.parse(generatePackageJson(defaultOpts))
+    expect(pkg.peerDependencies['@kinbot-developer/sdk']).toBeTruthy()
+    expect(pkg.dependencies['@kinbot-developer/sdk']).toBeUndefined()
+  })
+
+  test('lists the SDK in devDependencies so the plugin can compile against types in dev', () => {
+    const pkg = JSON.parse(generatePackageJson(defaultOpts))
+    expect(pkg.devDependencies['@kinbot-developer/sdk']).toBeTruthy()
+  })
+
+  test('files array limits what ships in the published tarball', () => {
+    const pkg = JSON.parse(generatePackageJson(defaultOpts))
+    expect(pkg.files).toContain('plugin.json')
+    expect(pkg.files).toContain('index.ts')
+    // No node_modules, no test files, no .gitignore.
+    expect(pkg.files).not.toContain('node_modules')
+  })
+
+  test('main field points at index.ts so the loader knows what to import', () => {
+    const pkg = JSON.parse(generatePackageJson(defaultOpts))
+    expect(pkg.main).toBe('index.ts')
+  })
+
+  test('propagates name / description / author from the scaffold options', () => {
+    const pkg = JSON.parse(generatePackageJson({
+      ...defaultOpts,
+      name: 'custom-name',
+      description: 'a custom one',
+      author: 'A Tester',
+    }))
+    expect(pkg.name).toBe('custom-name')
+    expect(pkg.description).toBe('a custom one')
+    expect(pkg.author).toBe('A Tester')
   })
 })
 
@@ -118,9 +167,19 @@ describe('scaffold', () => {
     scaffold(dir, defaultOpts)
 
     expect(existsSync(join(dir, 'plugin.json'))).toBe(true)
+    expect(existsSync(join(dir, 'package.json'))).toBe(true)
     expect(existsSync(join(dir, 'index.ts'))).toBe(true)
     expect(existsSync(join(dir, 'README.md'))).toBe(true)
     expect(existsSync(join(dir, '.gitignore'))).toBe(true)
+  })
+
+  test('package.json is publishable on npm (has the discovery keyword)', () => {
+    const dir = makeTempDir()
+    scaffold(dir, defaultOpts)
+    const raw = readFileSync(join(dir, 'package.json'), 'utf-8')
+    const pkg = JSON.parse(raw)
+    expect(pkg.keywords).toContain('kinbot-plugin')
+    expect(pkg.peerDependencies['@kinbot-developer/sdk']).toBeTruthy()
   })
 
   test('plugin.json is valid JSON', () => {

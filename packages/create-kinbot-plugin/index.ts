@@ -305,6 +305,49 @@ export function generateGitignore(): string {
 `
 }
 
+/**
+ * Generate a `package.json` so the plugin is publishable on npm with
+ * the `kinbot-plugin` keyword. KinBot's Browse tab (Settings →
+ * Plugins → npm) discovers packages via the npm search API filtered
+ * on that exact keyword — without it, the plugin stays invisible.
+ *
+ * Key choices:
+ * - **peerDependencies on @kinbot-developer/sdk**: the SDK MUST come
+ *   from the host. If a plugin declares it as a regular `dependencies`,
+ *   npm/bun installs a SECOND copy and `instanceof` checks across
+ *   plugin/host break (the two SDK modules export DIFFERENT class
+ *   identities even when the file content is identical).
+ * - **files**: only the bits that should ship in the published
+ *   tarball. Bundled output is preferred; the scaffold defaults to
+ *   shipping `index.ts` + `plugin.json` so KinBot can dynamic-import
+ *   the TS directly under Bun.
+ * - **keywords ["kinbot-plugin", "kinbot"]**: `kinbot-plugin` is the
+ *   discovery keyword; `kinbot` is a convention.
+ */
+export function generatePackageJson(opts: ScaffoldOptions): string {
+  const pkg = {
+    name: opts.name,
+    version: '0.1.0',
+    description: opts.description,
+    author: opts.author,
+    license: 'MIT',
+    main: 'index.ts',
+    files: ['index.ts', 'plugin.json', 'README.md'],
+    keywords: ['kinbot-plugin', 'kinbot'],
+    peerDependencies: {
+      '@kinbot-developer/sdk': '^0.2.0',
+    },
+    // Empty by default. Add real dependencies (axios, ws, …) as needed.
+    // Bun runs `bun install --production` after a git-clone install so
+    // these resolve at activation time.
+    dependencies: {},
+    devDependencies: {
+      '@kinbot-developer/sdk': '^0.2.0',
+    },
+  }
+  return JSON.stringify(pkg, null, 2) + '\n'
+}
+
 // ─── Scaffold function ───────────────────────────────────────────────────────
 
 export function scaffold(targetDir: string, opts: ScaffoldOptions): void {
@@ -314,6 +357,7 @@ export function scaffold(targetDir: string, opts: ScaffoldOptions): void {
 
   mkdirSync(targetDir, { recursive: true })
   writeFileSync(join(targetDir, 'plugin.json'), generateManifest(opts))
+  writeFileSync(join(targetDir, 'package.json'), generatePackageJson(opts))
   writeFileSync(join(targetDir, 'index.ts'), generateIndex(opts))
   writeFileSync(join(targetDir, 'README.md'), generateReadme(opts))
   writeFileSync(join(targetDir, '.gitignore'), generateGitignore())
@@ -333,10 +377,19 @@ async function main() {
   console.log(`\n✅ Plugin scaffolded at: ${targetDir}`)
   console.log(`\nNext steps:`)
   console.log(`  1. cd ${opts.name}`)
-  console.log(`  2. Edit plugin.json to add permissions and config`)
+  console.log(`  2. Edit plugin.json (permissions, config schema)`)
   console.log(`  3. Implement your plugin in index.ts`)
-  console.log(`  4. Copy to KinBot's plugins/ directory`)
-  console.log(`  5. Enable in Settings → Plugins\n`)
+  console.log(``)
+  console.log(`Distribute it:`)
+  console.log(`  • Publish on npm:`)
+  console.log(`      npm publish              # makes it discoverable in KinBot's Browse → npm tab`)
+  console.log(`  • Or push to a public git repo:`)
+  console.log(`      git init && git add . && git commit -m "init"`)
+  console.log(`      git push <your-remote>   # admin installs via Settings → Plugins → Install from git`)
+  console.log(``)
+  console.log(`Test locally:`)
+  console.log(`  • Drop the directory into KinBot's plugins/ folder and reload`)
+  console.log(`  • Or run: bunx kinbot install ${opts.name} (when published)\n`)
 }
 
 // Only run main when executed directly (not imported for tests)
