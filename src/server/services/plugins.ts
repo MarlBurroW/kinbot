@@ -216,6 +216,19 @@ export function topologicalSortPlugins(
 
 const NAME_PATTERN = /^[a-z0-9-]+$/
 
+/**
+ * Mirror of the JSON schema's `permissions.items.pattern`. Anything
+ * outside this set is rejected at manifest-validation time so plugin
+ * authors get immediate feedback instead of a silent runtime gate.
+ */
+const PERMISSION_PATTERN = /^(http:[^\s]+|storage|cards|vault|cron|kins)$/
+
+/**
+ * Allowed `type` enum on a channel adapter's config field. Matches
+ * the JSON schema's ChannelConfigField.type enum exactly.
+ */
+const CHANNEL_FIELD_TYPES = ['text', 'password', 'number', 'select', 'switch']
+
 export function validateManifest(data: unknown): { valid: boolean; errors: string[] } {
   const errors: string[] = []
   if (!data || typeof data !== 'object') {
@@ -295,7 +308,11 @@ export function validateManifest(data: unknown): { valid: boolean; errors: strin
     }
   }
 
-  // Validate permissions
+  // Validate permissions. The JSON schema published alongside the SDK
+  // enforces the same regex — we mirror it here so the runtime catches
+  // typos ("htp:foo.com" / "telemetry" / "http:" with no domain)
+  // before the plugin loads. Without this, the only feedback was at
+  // ctx.http.fetch time when the HTTP gate refused the URL.
   if (m.permissions !== undefined) {
     if (!Array.isArray(m.permissions)) {
       errors.push('permissions must be an array of strings')
@@ -303,13 +320,29 @@ export function validateManifest(data: unknown): { valid: boolean; errors: strin
       for (const p of m.permissions) {
         if (typeof p !== 'string') {
           errors.push('Each permission must be a string')
+          continue
+        }
+        if (!PERMISSION_PATTERN.test(p)) {
+          errors.push(
+            `permission "${p}" is invalid — must be either an http permission ("http:<host>" or "http:*") or one of: storage, cards, vault, cron, kins`,
+          )
         }
       }
     }
   }
 
-  // Validate optional channels metadata (permissive: shape only, no value
-  // checks). See PluginManifest.channels in src/shared/types/plugin.ts.
+  // Validate optional tags (string array — schema documents it, parser
+  // used to ignore it).
+  if (m.tags !== undefined) {
+    if (!Array.isArray(m.tags) || m.tags.some((t) => typeof t !== 'string')) {
+      errors.push('tags must be an array of strings')
+    }
+  }
+
+  // Validate channel metadata. The schema declares per-field shape
+  // (name + label + type enum); the parser used to stop at "fields is
+  // an array", which let malformed field entries slip past plugin load
+  // and only surface when the channels UI failed to render them.
   if (m.channels !== undefined) {
     if (typeof m.channels !== 'object' || m.channels === null || Array.isArray(m.channels)) {
       errors.push('channels must be an object keyed by platform name')
@@ -329,7 +362,26 @@ export function validateManifest(data: unknown): { valid: boolean; errors: strin
           const cs = e.configSchema as Record<string, unknown>
           if (!Array.isArray(cs.fields)) {
             errors.push(`channels.${platform}.configSchema.fields must be an array`)
+            continue
           }
+          cs.fields.forEach((field, i) => {
+            if (!field || typeof field !== 'object') {
+              errors.push(`channels.${platform}.configSchema.fields[${i}] must be an object`)
+              return
+            }
+            const f = field as Record<string, unknown>
+            if (typeof f.name !== 'string' || !f.name) {
+              errors.push(`channels.${platform}.configSchema.fields[${i}].name is required`)
+            }
+            if (typeof f.label !== 'string' || !f.label) {
+              errors.push(`channels.${platform}.configSchema.fields[${i}].label is required`)
+            }
+            if (!CHANNEL_FIELD_TYPES.includes(f.type as string)) {
+              errors.push(
+                `channels.${platform}.configSchema.fields[${i}].type must be one of: ${CHANNEL_FIELD_TYPES.join(', ')}`,
+              )
+            }
+          })
         }
       }
     }

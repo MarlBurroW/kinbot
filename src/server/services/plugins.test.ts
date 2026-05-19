@@ -213,6 +213,79 @@ describe('validateManifest', () => {
     expect(result.errors.some(e => e.includes('permissions'))).toBe(true)
   })
 
+  test('rejects permissions outside the documented set (typo / invented capability)', () => {
+    const result = validateManifest({
+      name: 'test',
+      version: '1.0.0',
+      description: 'Test',
+      main: 'index.ts',
+      permissions: ['htp:example.com', 'telemetry', 'http:'],
+    })
+    expect(result.valid).toBe(false)
+    // One error per bad permission. "http:" alone has no host → caught by the [^\s]+ requirement.
+    expect(result.errors.filter(e => e.includes('is invalid'))).toHaveLength(3)
+  })
+
+  test('accepts the full documented permission set', () => {
+    const result = validateManifest({
+      name: 'test',
+      version: '1.0.0',
+      description: 'Test',
+      main: 'index.ts',
+      permissions: ['http:api.example.com', 'http:*', 'storage', 'cards', 'vault', 'cron', 'kins'],
+    })
+    expect(result.valid).toBe(true)
+  })
+
+  test('rejects malformed tags', () => {
+    const result = validateManifest({
+      name: 'test',
+      version: '1.0.0',
+      description: 'Test',
+      main: 'index.ts',
+      tags: [123, 'foo'],
+    })
+    expect(result.valid).toBe(false)
+    expect(result.errors.some(e => e.includes('tags'))).toBe(true)
+  })
+
+  test('rejects channel configSchema field without name/label/type', () => {
+    const result = validateManifest({
+      name: 'test',
+      version: '1.0.0',
+      description: 'Test',
+      main: 'index.ts',
+      channels: {
+        telegram: {
+          configSchema: {
+            fields: [{ name: 'token' /* missing label + type */ }],
+          },
+        },
+      },
+    })
+    expect(result.valid).toBe(false)
+    expect(result.errors.some(e => e.includes('label'))).toBe(true)
+    expect(result.errors.some(e => e.includes('type'))).toBe(true)
+  })
+
+  test('rejects channel field with unknown type', () => {
+    const result = validateManifest({
+      name: 'test',
+      version: '1.0.0',
+      description: 'Test',
+      main: 'index.ts',
+      channels: {
+        telegram: {
+          configSchema: {
+            fields: [{ name: 'token', label: 'Token', type: 'magic' }],
+          },
+        },
+      },
+    })
+    expect(result.valid).toBe(false)
+    expect(result.errors.some(e => e.includes('must be one of'))).toBe(true)
+  })
+
   test('collects multiple errors', () => {
     const result = validateManifest({
       name: 'INVALID NAME!',

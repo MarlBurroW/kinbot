@@ -121,7 +121,6 @@ describe('listImageModelsTool', () => {
         type: 'openai',
         isValid: true,
         capabilities: JSON.stringify(['chat', 'image']),
-        family: 'image',
         configEncrypted: 'encrypted-config',
       },
     ]
@@ -152,7 +151,6 @@ describe('listImageModelsTool', () => {
         type: 'openai',
         isValid: false,
         capabilities: JSON.stringify(['image']),
-        family: 'image',
         configEncrypted: 'encrypted-config',
       },
     ]
@@ -178,7 +176,6 @@ describe('listImageModelsTool', () => {
         type: 'openai',
         isValid: true,
         capabilities: JSON.stringify(['chat']),
-        family: 'llm',
         configEncrypted: 'encrypted-config',
       },
     ]
@@ -219,7 +216,6 @@ describe('listImageModelsTool', () => {
         type: 'openai',
         isValid: true,
         capabilities: JSON.stringify(['image']),
-        family: 'image',
         configEncrypted: 'encrypted-config',
       },
     ]
