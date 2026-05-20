@@ -3,7 +3,7 @@ import { readdir, readFile, access, rm, mkdir } from 'fs/promises'
 import { watch, type FSWatcher } from 'fs'
 import { eq, and, like } from 'drizzle-orm'
 import { db } from '@/server/db/index'
-import { pluginStates, pluginStorage } from '@/server/db/schema'
+import { pluginStates, pluginStorage, providers, channels, vaultSecrets } from '@/server/db/schema'
 import { encrypt, decrypt } from '@/server/services/encryption'
 import {
   getSecretValue as vaultGetSecretValue,
@@ -1858,6 +1858,33 @@ class PluginManager {
   }
 
   /** Install a plugin from the in-repo store/ directory */
+  /**
+   * Delete every DB row that lives under the plugin's namespace
+   * (`plugin:<name>:`). Run as part of uninstall so config (provider
+   * API keys, channel tokens, vault secrets the plugin stashed)
+   * doesn't survive a reinstall and re-appear.
+   *
+   * Returns a breakdown so callers can log / report what was purged.
+   * pluginStorage is intentionally NOT included here — uninstallPlugin
+   * already deletes it via pluginName equality, no namespace trick
+   * needed.
+   */
+  private async purgePluginNamespacedRows(name: string): Promise<{
+    providers: number
+    channels: number
+    vaultSecrets: number
+  }> {
+    const pattern = `plugin:${name}:%`
+    const provRows = await db.delete(providers).where(like(providers.type, pattern)).returning({ id: providers.id })
+    const chanRows = await db.delete(channels).where(like(channels.platform, pattern)).returning({ id: channels.id })
+    const vaultRows = await db.delete(vaultSecrets).where(like(vaultSecrets.key, pattern)).returning({ id: vaultSecrets.id })
+    return {
+      providers: provRows.length,
+      channels: chanRows.length,
+      vaultSecrets: vaultRows.length,
+    }
+  }
+
   /** Uninstall a plugin: deactivate, remove files, clean DB */
   async uninstallPlugin(name: string): Promise<void> {
     const plugin = this.plugins.get(name)
@@ -1881,9 +1908,10 @@ class PluginManager {
         await db.delete(pluginStorage).where(eq(pluginStorage.pluginName, name))
         await db.delete(pluginStates).where(eq(pluginStates.name, name))
       }
+      const purged = await this.purgePluginNamespacedRows(name)
 
       sseManager.broadcast({ type: 'plugin:uninstalled', data: { name } })
-      log.info({ plugin: name, recovery: true }, 'Plugin uninstalled (orphan recovery)')
+      log.info({ plugin: name, recovery: true, purged }, 'Plugin uninstalled (orphan recovery)')
 
       // Filesystem cleanup delayed (same reason as the regular path).
       if (dirExists) {
@@ -1918,6 +1946,7 @@ class PluginManager {
     // the response is flushed and before the DB delete commits.
     await db.delete(pluginStorage).where(eq(pluginStorage.pluginName, name))
     await db.delete(pluginStates).where(eq(pluginStates.name, name))
+    const purged = await this.purgePluginNamespacedRows(name)
     this.plugins.delete(name)
 
     sseManager.broadcast({
@@ -1925,7 +1954,7 @@ class PluginManager {
       data: { name },
     })
 
-    log.info({ plugin: name }, 'Plugin uninstalled')
+    log.info({ plugin: name, purged }, 'Plugin uninstalled')
 
     // Filesystem cleanup last — and delayed so the watch-induced reload
     // (if any) happens after the client's follow-up refresh request has

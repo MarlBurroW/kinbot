@@ -1490,7 +1490,7 @@
       "installSuccess": "Plugin \"{{name}}\" instalado exitosamente",
       "uninstall": "Desinstalar",
       "uninstallTitle": "Desinstalar plugin",
-      "uninstallDescription": "¿Estás seguro de que quieres desinstalar \"{{name}}\"? Esto eliminará todos los archivos y datos del plugin.",
+      "uninstallDescription": "¿Estás seguro de que quieres desinstalar \"{{name}}\"? Se eliminarán los archivos del plugin, sus providers configurados (con sus claves API), sus channels y los secretos del vault.",
       "uninstallSuccess": "Plugin desinstalado",
       "update": "Actualizar",
       "updateSuccess": "Plugin actualizado exitosamente",

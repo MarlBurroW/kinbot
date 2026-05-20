@@ -1692,7 +1692,7 @@
       "installSuccess": "Plugin \"{{name}}\" installé avec succès",
       "uninstall": "Désinstaller",
       "uninstallTitle": "Désinstaller le plugin",
-      "uninstallDescription": "Êtes-vous sûr de vouloir désinstaller \"{{name}}\" ? Tous les fichiers et données du plugin seront supprimés.",
+      "uninstallDescription": "Êtes-vous sûr de vouloir désinstaller \"{{name}}\" ? Les fichiers du plugin, ses providers configurés (avec leurs clés API), ses channels et ses secrets du vault seront tous supprimés.",
       "uninstallSuccess": "Plugin désinstallé",
       "update": "Mettre à jour",
       "updateSuccess": "Plugin mis à jour avec succès",
