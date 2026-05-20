@@ -13,6 +13,13 @@ export interface NativeToolGroup {
 
 export interface PluginToolGroup {
   pluginName: string
+  /** Human-readable plugin name (manifest.displayName). Falls back
+   *  to pluginName when missing. */
+  displayName?: string
+  /** `/api/plugins/<name>/logo` when the plugin ships an iconUrl. */
+  logoUrl?: string
+  /** Emoji fallback when no logoUrl. */
+  icon?: string
   tools: Array<{ name: string; enabled: boolean; defaultDisabled?: boolean; label?: ToolLabel }>
 }
 

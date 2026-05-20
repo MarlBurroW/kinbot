@@ -1477,11 +1477,29 @@ class PluginManager {
    * underscores both round-trip safely; we never parse them back from the
    * concatenated `plugin_<name>_<tool>` identifier.
    */
-  listToolsByPlugin(): Array<{ pluginName: string; toolNames: string[] }> {
-    const groups: Array<{ pluginName: string; toolNames: string[] }> = []
+  listToolsByPlugin(): Array<{
+    pluginName: string
+    displayName?: string
+    logoUrl?: string
+    icon?: string
+    toolNames: string[]
+  }> {
+    const groups: Array<{
+      pluginName: string
+      displayName?: string
+      logoUrl?: string
+      icon?: string
+      toolNames: string[]
+    }> = []
     for (const [name, plugin] of this.plugins) {
       if (plugin.registeredTools.length === 0) continue
-      groups.push({ pluginName: name, toolNames: [...plugin.registeredTools] })
+      groups.push({
+        pluginName: name,
+        ...(plugin.manifest.displayName ? { displayName: plugin.manifest.displayName } : {}),
+        ...(plugin.manifest.iconUrl ? { logoUrl: `/api/plugins/${encodeURIComponent(name)}/logo` } : {}),
+        ...(plugin.manifest.icon ? { icon: plugin.manifest.icon } : {}),
+        toolNames: [...plugin.registeredTools],
+      })
     }
     return groups
   }

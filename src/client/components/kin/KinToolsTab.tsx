@@ -268,6 +268,9 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange, isHub }: Ki
               <PluginGroup
                 key={group.pluginName}
                 pluginName={group.pluginName}
+                displayName={group.displayName}
+                logoUrl={group.logoUrl}
+                icon={group.icon}
                 enabledCount={enabledCount}
                 totalCount={group.tools.length}
                 allEnabled={allEnabled}
@@ -420,6 +423,9 @@ function DomainGroup({
 
 function PluginGroup({
   pluginName,
+  displayName,
+  logoUrl,
+  icon,
   enabledCount,
   totalCount,
   allEnabled,
@@ -427,6 +433,9 @@ function PluginGroup({
   children,
 }: {
   pluginName: string
+  displayName?: string
+  logoUrl?: string
+  icon?: string
   enabledCount: number
   totalCount: number
   allEnabled: boolean
@@ -435,6 +444,9 @@ function PluginGroup({
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  // Header label hierarchy mirrors the marketplace card: prefer the
+  // human-readable displayName, fall back to the npm slug.
+  const headerLabel = displayName || pluginName
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -443,16 +455,32 @@ function PluginGroup({
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex flex-1 items-center gap-2 text-left"
+              className="flex flex-1 items-center gap-2 text-left min-w-0"
             >
               <ChevronRight className={cn(
-                'size-3.5 text-muted-foreground transition-transform',
+                'size-3.5 shrink-0 text-muted-foreground transition-transform',
                 open && 'rotate-90',
               )} />
-              <span className="flex size-6 items-center justify-center rounded-md bg-primary/10">
-                <Puzzle className="size-3.5 text-primary" />
-              </span>
-              <span className="text-sm font-medium">{t('kin.tools.pluginGroup', { name: pluginName })}</span>
+              {/* Logo slot: real logo from the plugin manifest when
+                  available, emoji fallback, otherwise the generic
+                  Puzzle icon so the row baseline stays consistent. */}
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt=""
+                  className="size-6 shrink-0 rounded-md object-contain bg-muted/40 p-0.5"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                />
+              ) : icon ? (
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted/40 text-sm">
+                  {icon}
+                </span>
+              ) : (
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <Puzzle className="size-3.5 text-primary" />
+                </span>
+              )}
+              <span className="text-sm font-medium truncate">{headerLabel}</span>
               <Badge variant="secondary" size="xs">
                 {t('kin.tools.optIn')}
               </Badge>

@@ -36,14 +36,31 @@ export interface KinNativeToolGroup {
 
 export interface KinPluginToolGroup {
   pluginName: string
+  /** Human-readable plugin name from manifest.displayName, falling
+   *  back to `pluginName` when the plugin author didn't set one. */
+  displayName?: string
+  /** Resolved logo URL (`/api/plugins/<name>/logo`) when the plugin
+   *  ships an iconUrl. Undefined otherwise. */
+  logoUrl?: string
+  /** Emoji icon from manifest.icon, used as fallback when logoUrl
+   *  isn't available. */
+  icon?: string
   tools: ToolListItem[]
 }
 
 export interface BuildKinToolBucketsInput {
   /** Every tool currently in the registry (core + plugin), flat. */
   registered: ToolEntry[]
-  /** Plugin tool ownership, sourced from PluginManager.listToolsByPlugin(). */
-  pluginGroups: Array<{ pluginName: string; toolNames: string[] }>
+  /** Plugin tool ownership, sourced from PluginManager.listToolsByPlugin().
+   *  Carries display metadata so the UI can render plugin groups with
+   *  the same icon + name as the marketplace card. */
+  pluginGroups: Array<{
+    pluginName: string
+    displayName?: string
+    logoUrl?: string
+    icon?: string
+    toolNames: string[]
+  }>
   /** The Kin's persisted tool config; null when nothing has been saved yet. */
   toolConfig: KinToolConfig | null
 }
@@ -90,7 +107,7 @@ export function buildKinToolBuckets(input: BuildKinToolBucketsInput): BuildKinTo
   // the defaultDisabled flag the plugin loader set (always true today,
   // but we honor whatever the registry says rather than assume).
   const pluginTools: KinPluginToolGroup[] = pluginGroups
-    .map(({ pluginName, toolNames }) => {
+    .map(({ pluginName, displayName, logoUrl, icon, toolNames }) => {
       const tools: ToolListItem[] = []
       for (const name of toolNames) {
         const reg = registeredByName.get(name)
@@ -102,7 +119,13 @@ export function buildKinToolBuckets(input: BuildKinToolBucketsInput): BuildKinTo
           ...(reg.label !== undefined ? { label: reg.label } : {}),
         })
       }
-      return { pluginName, tools }
+      return {
+        pluginName,
+        ...(displayName ? { displayName } : {}),
+        ...(logoUrl ? { logoUrl } : {}),
+        ...(icon ? { icon } : {}),
+        tools,
+      }
     })
     .filter((g) => g.tools.length > 0)
 
