@@ -721,6 +721,16 @@ export interface ProviderUIHints {
    * because it ships a `.Color` variant for several brands.
    */
   readonly reactIcon?: string
+  /**
+   * Optional brand color (CSS hex like `"#FB542B"`) applied when a
+   * `reactIcon` is used and the host requests the colored variant.
+   * Lobehub icons with a native `.Color` variant ignore this — that
+   * variant already paints itself. Pure-monochrome icon sources
+   * (react-icons SimpleIcons, react-icons FontAwesome, …) honor it to
+   * give plugin/provider brands the same coloured presence as
+   * Lobehub's curated set.
+   */
+  readonly brandColor?: string
 }
 
 // ─── LLM ────────────────────────────────────────────────────────────────────

@@ -96,6 +96,7 @@ providerRoutes.get('/types', async (c) => {
     apiKeyUrl: (meta as any).apiKeyUrl,
     lobehubIcon: (meta as any).lobehubIcon,
     reactIcon: (meta as any).reactIcon,
+    brandColor: (meta as any).brandColor,
     source: 'builtin' as const,
     configSchema: readConfigSchema(type),
   }))
@@ -110,6 +111,7 @@ providerRoutes.get('/types', async (c) => {
     apiKeyUrl: meta.apiKeyUrl,
     lobehubIcon: meta.lobehubIcon,
     reactIcon: meta.reactIcon,
+    brandColor: meta.brandColor,
     source: 'plugin' as const,
     configSchema: readConfigSchema(type),
   }))

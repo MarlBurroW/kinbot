@@ -29,6 +29,12 @@ export interface ProviderMeta {
    * (when in whitelist) → reactIcon → generic chip icon.
    */
   readonly reactIcon?: string
+  /**
+   * Brand colour applied to a monochrome `reactIcon` when the host
+   * requests its coloured variant. Hex string (`"#FB542B"`). Ignored
+   * by Lobehub icons that already have a native `.Color` variant.
+   */
+  readonly brandColor?: string
 }
 
 export const PROVIDER_META = {
@@ -37,7 +43,7 @@ export const PROVIDER_META = {
   openai:             { capabilities: ['llm', 'embedding', 'image'], displayName: 'OpenAI',                 lobehubIcon: 'OpenAI',  apiKeyUrl: 'https://platform.openai.com/api-keys' },
   'openai-codex':     { capabilities: ['llm'],                       displayName: 'OpenAI (Codex CLI)',     lobehubIcon: 'OpenAI',  noApiKey: true },
   gemini:             { capabilities: ['llm', 'image'],              displayName: 'Google Gemini',          lobehubIcon: 'Gemini',  apiKeyUrl: 'https://aistudio.google.com/apikey' },
-  'brave-search':     { capabilities: ['search'],                    displayName: 'Brave Search',           reactIcon: 'si/SiBrave', apiKeyUrl: 'https://brave.com/search/api/' },
+  'brave-search':     { capabilities: ['search'],                    displayName: 'Brave Search',           reactIcon: 'si/SiBrave', brandColor: '#FB542B', apiKeyUrl: 'https://brave.com/search/api/' },
 } as const satisfies Record<string, ProviderMeta>
 
 export type ProviderType = keyof typeof PROVIDER_META

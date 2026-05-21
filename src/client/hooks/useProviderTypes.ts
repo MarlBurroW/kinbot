@@ -29,6 +29,9 @@ export interface ProviderTypeInfo {
    *  (e.g. "si/SiBrave"). Used when lobehubIcon isn't set or isn't in
    *  the Lobehub whitelist. */
   reactIcon?: string
+  /** Brand color (hex) applied when `reactIcon` is rendered with the
+   *  coloured variant. Optional. */
+  brandColor?: string
   source: 'builtin' | 'plugin'
   configSchema?: ConfigField[]
 }
@@ -95,7 +98,7 @@ export function useProviderTypes(): ProviderTypesView {
       // without each caller having to thread the meta through props.
       for (const t of data.types) {
         if (t.lobehubIcon) registerProviderLobehubIcon(t.type, t.lobehubIcon)
-        if (t.reactIcon) registerProviderReactIcon(t.type, t.reactIcon)
+        if (t.reactIcon) registerProviderReactIcon(t.type, t.reactIcon, t.brandColor)
       }
     } catch {
       // keep fallback

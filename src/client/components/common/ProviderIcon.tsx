@@ -98,7 +98,7 @@ function loadReactCollection(collection: string): Promise<ReactIconCollection> |
   return raw as Promise<ReactIconCollection>
 }
 
-const REACT_ICON_LOADERS = new Map<string, { collection: string; componentName: string }>()
+const REACT_ICON_LOADERS = new Map<string, { collection: string; componentName: string; brandColor?: string }>()
 const reactCollectionCache = new Map<string, Promise<ReactIconCollection>>()
 const reactComponentCache = new Map<string, ReactIcon>()
 
@@ -106,12 +106,17 @@ const reactComponentCache = new Map<string, ReactIcon>()
  * Register a provider type's react-icons identifier (`"collection/Name"`).
  * Called from useProviderTypes for every entry that declares `reactIcon`.
  * Idempotent; silently ignores malformed ids and unknown collections.
+ *
+ * `brandColor` (optional, hex) is applied when the host requests the
+ * coloured variant — react-icons SimpleIcons (and most other react-icons
+ * sets) are monochrome, so without it the icon picks up the surface's
+ * currentColor and looks washed out next to Lobehub's coloured set.
  */
-export function registerProviderReactIcon(providerType: string, identifier: string): void {
+export function registerProviderReactIcon(providerType: string, identifier: string, brandColor?: string): void {
   const [collection, componentName] = identifier.split('/')
   if (!collection || !componentName) return
   if (!loadReactCollection(collection)) return  // unknown collection
-  REACT_ICON_LOADERS.set(providerType, { collection, componentName })
+  REACT_ICON_LOADERS.set(providerType, { collection, componentName, ...(brandColor ? { brandColor } : {}) })
 }
 
 /** Cache resolved icon modules so re-renders don't re-import. */
@@ -138,7 +143,15 @@ export const ProviderIcon = memo(function ProviderIcon({ providerType, className
   // whitelist (Brave, Kagi, niche search/embedding providers, …).
   const reactEntry = REACT_ICON_LOADERS.get(providerType)
   if (reactEntry) {
-    return <LazyReactIcon providerType={providerType} collection={reactEntry.collection} componentName={reactEntry.componentName} className={className} />
+    return (
+      <LazyReactIcon
+        providerType={providerType}
+        collection={reactEntry.collection}
+        componentName={reactEntry.componentName}
+        color={variant === 'color' ? reactEntry.brandColor : undefined}
+        className={className}
+      />
+    )
   }
 
   return <Cpu className={className} />
@@ -189,10 +202,11 @@ function LazyIcon({ providerType, loader, lobehubName, variant, className }: {
 /** Lazy-loads a react-icons collection (cached per collection), then
  *  pulls the requested component out of it. Renders a same-size
  *  placeholder while the import resolves to avoid layout shift. */
-function LazyReactIcon({ providerType, collection, componentName, className }: {
+function LazyReactIcon({ providerType, collection, componentName, color, className }: {
   providerType: string
   collection: string
   componentName: string
+  color?: string
   className?: string
 }) {
   const cacheKey = `${collection}/${componentName}`
@@ -229,7 +243,10 @@ function LazyReactIcon({ providerType, collection, componentName, className }: {
   const Icon = icon
   // react-icons SVGs take size via prop, but for parity with Lobehub
   // icons we let the className drive sizing (the existing Cpu fallback
-  // already does this). Don't pass size — let CSS handle it.
+  // already does this). Don't pass size — let CSS handle it. The
+  // optional `color` prop drives the brand-tinted variant; when
+  // omitted react-icons falls back to currentColor (matching the
+  // mono Lobehub path).
   void providerType
-  return <Icon className={className} />
+  return <Icon className={className} {...(color ? { color } : {})} />
 }
