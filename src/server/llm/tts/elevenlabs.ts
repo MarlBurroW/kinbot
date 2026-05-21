@@ -222,10 +222,15 @@ export const elevenlabsTTSProvider: TTSProvider = {
       return { valid: false, error: err instanceof Error ? err.message : String(err) }
     }
 
-    // /v1/user is the cheapest auth probe — no quota cost, returns the
-    // account's subscription tier as a bonus.
+    // /v1/models is the universally-accessible auth probe. We
+    // deliberately avoid /v1/user — Workspace / Service-account API
+    // keys created with TTS-only scope 401 on /v1/user despite being
+    // perfectly valid keys for everything we'll actually do
+    // (listVoices, text_to_speech). /v1/models is part of the base
+    // tier and returns the available model catalogue without
+    // burning quota.
     try {
-      await callElevenLabs<unknown>(`${API_BASE}/user`, apiKey, { method: 'GET' }, 'json')
+      await callElevenLabs<unknown>(`${API_BASE}/models`, apiKey, { method: 'GET' }, 'json')
       return { valid: true }
     } catch (err) {
       return { valid: false, error: err instanceof Error ? err.message : String(err) }

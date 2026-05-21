@@ -427,7 +427,11 @@ export function ProviderFormDialog({ open, onOpenChange, onSaved, provider, prov
                 </Label>
                 <Tag
                   id={field.key}
-                  type={field.type === 'url' ? 'url' : 'text'}
+                  // Only forward `type` for non-secret fields. PasswordInput
+                  // owns its own type ('password' vs 'text' driven by the
+                  // eye toggle) and explicitly Omit<…,'type'>s it from its
+                  // public surface — passing it here defeats the masking.
+                  {...(isSecret ? {} : { type: field.type === 'url' ? 'url' : 'text' })}
                   value={configValues[field.key] ?? ''}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setConfigValues((v) => ({ ...v, [field.key]: e.target.value }))
