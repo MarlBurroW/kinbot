@@ -1869,6 +1869,7 @@
     "domains": {
       "search": "Recherche",
       "browse": "Navigation web",
+      "voice": "Voix (TTS / STT)",
       "contacts": "Contacts",
       "memory": "Mémoire",
       "vault": "Coffre-fort",

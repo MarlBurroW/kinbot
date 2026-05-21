@@ -516,6 +516,7 @@ export interface VersionInfo {
 export type ToolDomain =
   | 'search'
   | 'browse'
+  | 'voice'
   | 'contacts'
   | 'memory'
   | 'vault'

@@ -1869,6 +1869,7 @@
     "domains": {
       "search": "Search",
       "browse": "Web Browse",
+      "voice": "Voice (TTS / STT)",
       "contacts": "Contacts",
       "memory": "Memory",
       "vault": "Vault",

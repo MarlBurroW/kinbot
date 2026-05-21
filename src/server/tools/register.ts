@@ -10,6 +10,14 @@ import {
   webSearchTool,
 } from '@/server/tools/search-tools'
 import {
+  listTtsProvidersTool,
+  listVoicesTool,
+  textToSpeechTool,
+  listSttProvidersTool,
+  listSttModelsTool,
+  transcribeAudioTool,
+} from '@/server/tools/voice-tools'
+import {
   browserOpenSessionTool,
   browserCloseSessionTool,
   browserListSessionsTool,
@@ -247,6 +255,16 @@ export function registerAllTools(): void {
   // Search tools — discovery + action. Use browse_url for follow-up fetch.
   toolRegistry.register('list_search_providers', listSearchProvidersTool, 'search')
   toolRegistry.register('web_search', webSearchTool, 'search')
+
+  // Voice tools — TTS + STT discovery and actions. Audio bytes flow
+  // through the messages-attachment files table (same path as
+  // generate_image), never as base64 in the LLM context.
+  toolRegistry.register('list_tts_providers', listTtsProvidersTool, 'voice')
+  toolRegistry.register('list_voices', listVoicesTool, 'voice')
+  toolRegistry.register('text_to_speech', textToSpeechTool, 'voice')
+  toolRegistry.register('list_stt_providers', listSttProvidersTool, 'voice')
+  toolRegistry.register('list_stt_models', listSttModelsTool, 'voice')
+  toolRegistry.register('transcribe_audio', transcribeAudioTool, 'voice')
 
   // Web browsing — stateful sessions (opt-in: enable via tool_config.enabledOptInTools)
   toolRegistry.register('browser_open_session', browserOpenSessionTool, 'browse')

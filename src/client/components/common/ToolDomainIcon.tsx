@@ -1,6 +1,7 @@
 import {
   Search,
   Globe,
+  Mic,
   Users,
   Brain,
   ShieldCheck,
@@ -29,6 +30,7 @@ import type { ToolDomain } from '@/shared/types'
 const DOMAIN_ICONS: Record<ToolDomain, React.FC<LucideProps>> = {
   search: Search,
   browse: Globe,
+  voice: Mic,
   contacts: Users,
   memory: Brain,
   vault: ShieldCheck,
