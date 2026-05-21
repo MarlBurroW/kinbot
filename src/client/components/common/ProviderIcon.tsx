@@ -40,6 +40,7 @@ const LOBEHUB_LOADERS: Record<string, IconLoader> = {
   Replicate: () => import('@lobehub/icons/es/Replicate') as any,
   Stability: () => import('@lobehub/icons/es/Stability') as any,
   Fal: () => import('@lobehub/icons/es/Fal') as any,
+  ElevenLabs: () => import('@lobehub/icons/es/ElevenLabs') as any,
 }
 
 /** Providers that have a `.Color` variant in their Lobehub module. */
