@@ -419,7 +419,14 @@
       "connectionFailed": "Connection failed - unable to discover tools from this server.",
       "enableAll": "Enable all",
       "disableAll": "Disable all",
-      "optIn": "Opt-in"
+      "optIn": "Opt-in",
+      "missingCapability": {
+        "image": "Needs an image provider — toggle works but the tool will return an error until one is configured.",
+        "search": "Needs a search provider — toggle works but the tool will return an error until one is configured.",
+        "tts": "Needs a text-to-speech provider — toggle works but the tool will return an error until one is configured.",
+        "stt": "Needs a speech-to-text provider — toggle works but the tool will return an error until one is configured.",
+        "embedding": "Needs an embedding provider — memory recall and storage will fail until one is configured."
+      }
     },
     "defaults": {
       "character": "You are a friendly, thoughtful, and versatile assistant. You communicate clearly and adapt your tone to the context - casual when appropriate, precise when needed.\n\nYou are patient, curious, and genuinely enjoy helping. When you don't know something, you say so honestly. You ask clarifying questions when the request is ambiguous.\n\nYou keep your responses concise unless the user explicitly asks for detail.",
@@ -481,6 +488,7 @@
       "confirm": "Use this avatar",
       "generating": "Generating...",
       "noImageProvider": "No image provider configured. Add one in Settings.",
+      "noImageProviderAction": "Open Providers",
       "createFirst": "Save the Kin first to enable generation.",
       "uploadHint": "Click to select or drag & drop an image (any size)",
       "imageModel": "Image model",
@@ -505,6 +513,7 @@
     "modelUnavailable": "Model unavailable",
     "modelUnavailableHint": "This Kin's model is no longer available. Update the model in Kin settings or add the provider back.",
     "modelUnavailableInput": "Cannot send messages - this Kin's model is unavailable",
+    "modelUnavailableAction": "Open Providers",
     "invalidJsonFile": "Invalid JSON file",
     "hub": "Hub",
     "delete": "Delete this Kin",
@@ -1311,6 +1320,8 @@
       "reembedInProgress": "Re-embedding memories...",
       "modelSaved": "Model saved",
       "empty": "No memories yet",
+      "noEmbedding": "Semantic search disabled",
+      "noEmbeddingHint": "Without an embedding provider, memory tools (recall, memorize) fail at call time and search falls back to keyword-only. Configure one in Settings → Models.",
       "add": "Add memory",
       "edit": "Edit memory",
       "content": "Content",

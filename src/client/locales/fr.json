@@ -419,7 +419,14 @@
       "connectionFailed": "Connexion échouée - impossible de découvrir les outils de ce serveur.",
       "enableAll": "Tout activer",
       "disableAll": "Tout désactiver",
-      "optIn": "Activation manuelle"
+      "optIn": "Activation manuelle",
+      "missingCapability": {
+        "image": "Nécessite un fournisseur d'image — la bascule fonctionne mais l'outil renverra une erreur tant qu'aucun n'est configuré.",
+        "search": "Nécessite un fournisseur de recherche — la bascule fonctionne mais l'outil renverra une erreur tant qu'aucun n'est configuré.",
+        "tts": "Nécessite un fournisseur de synthèse vocale — la bascule fonctionne mais l'outil renverra une erreur tant qu'aucun n'est configuré.",
+        "stt": "Nécessite un fournisseur de reconnaissance vocale — la bascule fonctionne mais l'outil renverra une erreur tant qu'aucun n'est configuré.",
+        "embedding": "Nécessite un fournisseur d'embedding — le rappel et l'enregistrement en mémoire échoueront tant qu'aucun n'est configuré."
+      }
     },
     "defaults": {
       "character": "Tu es un assistant amical, réfléchi et polyvalent. Tu communiques clairement et tu adaptes ton ton au contexte - décontracté quand c'est approprié, précis quand c'est nécessaire.\n\nTu es patient, curieux et tu prends plaisir à aider. Quand tu ne sais pas quelque chose, tu le dis honnêtement. Tu poses des questions de clarification quand la demande est ambiguë.\n\nTu gardes tes réponses concises sauf si l'utilisateur demande explicitement plus de détails.",
@@ -481,6 +488,7 @@
       "confirm": "Utiliser cet avatar",
       "generating": "Génération...",
       "noImageProvider": "Aucun fournisseur d'image configuré. Ajoutez-en un dans les Paramètres.",
+      "noImageProviderAction": "Ouvrir Fournisseurs",
       "createFirst": "Enregistrez le Kin d'abord pour activer la génération.",
       "uploadHint": "Cliquez pour sélectionner ou glissez-déposez une image (toute taille)",
       "imageModel": "Modèle d'image",
@@ -505,6 +513,7 @@
     "modelUnavailable": "Modèle indisponible",
     "modelUnavailableHint": "Le modèle de ce Kin n'est plus disponible. Modifiez le modèle dans les paramètres du Kin ou réajoutez le fournisseur.",
     "modelUnavailableInput": "Envoi impossible - le modèle de ce Kin est indisponible",
+    "modelUnavailableAction": "Ouvrir Fournisseurs",
     "invalidJsonFile": "Fichier JSON invalide",
     "hub": "Hub",
     "delete": "Supprimer ce Kin",
@@ -1311,6 +1320,8 @@
       "reembedInProgress": "Régénération des embeddings en cours...",
       "modelSaved": "Modèle sauvegardé",
       "empty": "Aucun souvenir",
+      "noEmbedding": "Recherche sémantique désactivée",
+      "noEmbeddingHint": "Sans fournisseur d'embedding, les outils de mémoire (recall, memorize) échouent à l'appel et la recherche bascule sur les mots-clés uniquement. Configurez-en un dans Paramètres → Modèles.",
       "add": "Ajouter un souvenir",
       "edit": "Modifier le souvenir",
       "content": "Contenu",

@@ -6,10 +6,38 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/client/co
 import { ToolDomainIcon } from '@/client/components/common/ToolDomainIcon'
 import { Badge } from '@/client/components/ui/badge'
 import { useKinTools, type NativeToolGroup, type McpToolGroup, type PluginToolGroup, type ToolLabel } from '@/client/hooks/useKinTools'
+import { useHasCapability } from '@/client/hooks/useHasCapability'
 import { TOOL_DOMAIN_META } from '@/shared/constants'
-import { ChevronRight, Loader2, Plug, Puzzle } from 'lucide-react'
+import { AlertCircle, ChevronRight, Loader2, Plug, Puzzle } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
 import type { KinToolConfig, ToolDomain } from '@/shared/types'
+
+/**
+ * Native tools whose execution requires a provider of the named
+ * capability family. When the family is unconfigured the row shows a
+ * soft 'Add a … provider' note next to the toggle so the user
+ * understands the toggle will still flip but the tool itself will
+ * return an error at call time.
+ *
+ * Keep in sync with the actual tool implementations — when a new
+ * capability-bound native tool lands, add it here so the UI keeps
+ * surfacing the gap.
+ */
+const TOOL_REQUIRED_CAPABILITY: Record<string, 'image' | 'search' | 'tts' | 'stt' | 'embedding'> = {
+  generate_image: 'image',
+  list_image_models: 'image',
+  describe_image_model: 'image',
+  web_search: 'search',
+  list_search_providers: 'search',
+  text_to_speech: 'tts',
+  list_voices: 'tts',
+  list_tts_providers: 'tts',
+  transcribe_audio: 'stt',
+  list_stt_models: 'stt',
+  list_stt_providers: 'stt',
+  recall: 'embedding',
+  memorize: 'embedding',
+}
 
 interface KinToolsTabProps {
   kinId: string | null
@@ -52,6 +80,30 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsT
   const userLang = (i18n.language || 'en').split('-')[0]! // 'fr-FR' → 'fr'
 
   const config = getEffectiveConfig(toolConfig)
+
+  // Capability awareness for native tools whose execution depends on a
+  // provider family. The toggle still flips when the family is missing
+  // (a user might add a provider later), but the row gets a soft note
+  // so the gap is visible up-front.
+  const hasImage = useHasCapability('image')
+  const hasSearch = useHasCapability('search')
+  const hasTts = useHasCapability('tts')
+  const hasStt = useHasCapability('stt')
+  const hasEmbedding = useHasCapability('embedding')
+  const capabilityAvailable: Record<'image' | 'search' | 'tts' | 'stt' | 'embedding', boolean> = {
+    image: hasImage,
+    search: hasSearch,
+    tts: hasTts,
+    stt: hasStt,
+    embedding: hasEmbedding,
+  }
+
+  const missingCapabilityFor = (toolName: string): string | undefined => {
+    const family = TOOL_REQUIRED_CAPABILITY[toolName]
+    if (!family) return undefined
+    if (capabilityAvailable[family]) return undefined
+    return t(`kin.tools.missingCapability.${family}`)
+  }
 
   // ─── Native tool toggle (dual model: deny-list + opt-in allow-list) ──
 
@@ -239,6 +291,7 @@ export function KinToolsTab({ kinId, toolConfig, onToolConfigChange }: KinToolsT
                     toolKey={showKey ? tool.name : undefined}
                     enabled={isNativeToolEnabled(tool.name, tool.defaultDisabled)}
                     onToggle={() => toggleNativeTool(tool.name, tool.defaultDisabled)}
+                    missingCapability={missingCapabilityFor(tool.name)}
                   />
                 )
               })}
@@ -572,6 +625,7 @@ function ToolRow({
   description,
   enabled,
   onToggle,
+  missingCapability,
 }: {
   label: string
   /** Optional tool identifier (e.g. "browser_open_session") shown muted next to the label */
@@ -579,6 +633,8 @@ function ToolRow({
   description?: string
   enabled: boolean
   onToggle: () => void
+  /** Soft warning shown when the tool needs a provider family that isn't configured. */
+  missingCapability?: string
 }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5 pr-3 pl-12 hover:bg-accent/30 transition-colors">
@@ -591,6 +647,12 @@ function ToolRow({
         </span>
         {description && (
           <p className="truncate text-xs text-muted-foreground">{description}</p>
+        )}
+        {missingCapability && (
+          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+            <AlertCircle className="size-3 shrink-0" />
+            <span className="truncate">{missingCapability}</span>
+          </p>
         )}
       </div>
       <Switch

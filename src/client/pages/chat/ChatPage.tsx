@@ -338,6 +338,7 @@ export function ChatPage({ onOpenSettings, onOpenAccount }: ChatPageProps) {
             onGenerateKinConfig={generateKinConfig}
             onGenerateAvatarPreviewFromConfig={generateAvatarPreviewFromConfig}
             hasImageCapability={hasImageCapability}
+            onOpenSettings={onOpenSettings}
           />
         )}
 
@@ -354,6 +355,7 @@ export function ChatPage({ onOpenSettings, onOpenAccount }: ChatPageProps) {
             onUploadAvatar={uploadAvatar}
             onGenerateAvatarPreview={generateAvatarPreview}
             hasImageCapability={hasImageCapability}
+            onOpenSettings={onOpenSettings}
           />
         )}
 

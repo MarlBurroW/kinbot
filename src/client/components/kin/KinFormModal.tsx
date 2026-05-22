@@ -103,6 +103,10 @@ interface KinFormModalProps {
     character: string
     expertise: string
   }) => Promise<string>
+  /** Open the global settings modal at the given section. Passed through
+   *  to AvatarPickerModal so the 'no image provider' notice can offer a
+   *  jump-to-providers CTA. */
+  onOpenSettings?: (section?: string) => void
 }
 
 type TabId = 'general' | 'tools' | 'memory' | 'compaction' | 'thinking'
@@ -164,6 +168,7 @@ export function KinFormModal({
   onDeleteKin,
   onGenerateKinConfig,
   onGenerateAvatarPreviewFromConfig,
+  onOpenSettings,
 }: KinFormModalProps) {
   const { t, i18n } = useTranslation()
 
@@ -1062,6 +1067,7 @@ export function KinFormModal({
         imageModels={imageModels}
         onGenerateAvatarPreview={onGenerateAvatarPreview}
         onConfirm={handleAvatarConfirm}
+        onOpenSettings={onOpenSettings}
       />
 
       {/* Unsaved changes confirmation */}

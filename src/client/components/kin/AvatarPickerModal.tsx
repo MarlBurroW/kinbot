@@ -52,6 +52,10 @@ interface AvatarPickerModalProps {
     imageModel?: { providerId: string; modelId: string },
   ) => Promise<string>
   onConfirm: (result: AvatarPickerResult) => void
+  /** Open the global Settings modal at the providers section. When
+   *  provided, the 'no image provider' notice gets a CTA that closes
+   *  this picker and jumps the user there. */
+  onOpenSettings?: (section?: string) => void
 }
 
 export function AvatarPickerModal({
@@ -64,6 +68,7 @@ export function AvatarPickerModal({
   imageModels,
   onGenerateAvatarPreview,
   onConfirm,
+  onOpenSettings,
 }: AvatarPickerModalProps) {
   const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -358,11 +363,30 @@ export function AvatarPickerModal({
                     </div>
                   )}
                   {!canGenerate && (
-                    <p className="text-center text-sm text-muted-foreground">
-                      {!hasImageCapability
-                        ? t('kin.avatar.noImageProvider')
-                        : t('kin.avatar.createFirst')}
-                    </p>
+                    !hasImageCapability ? (
+                      <div className="space-y-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-center">
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          {t('kin.avatar.noImageProvider')}
+                        </p>
+                        {onOpenSettings && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              onOpenChange(false)
+                              onOpenSettings('providers')
+                            }}
+                          >
+                            {t('kin.avatar.noImageProviderAction')}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-center text-sm text-muted-foreground">
+                        {t('kin.avatar.createFirst')}
+                      </p>
+                    )
                   )}
                   {canGenerate && (
                     <Button
@@ -412,11 +436,30 @@ export function AvatarPickerModal({
                     </div>
                   )}
                   {!canGenerate && (
-                    <p className="text-center text-sm text-muted-foreground">
-                      {!hasImageCapability
-                        ? t('kin.avatar.noImageProvider')
-                        : t('kin.avatar.createFirst')}
-                    </p>
+                    !hasImageCapability ? (
+                      <div className="space-y-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-center">
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          {t('kin.avatar.noImageProvider')}
+                        </p>
+                        {onOpenSettings && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              onOpenChange(false)
+                              onOpenSettings('providers')
+                            }}
+                          >
+                            {t('kin.avatar.noImageProviderAction')}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-center text-sm text-muted-foreground">
+                        {t('kin.avatar.createFirst')}
+                      </p>
+                    )
                   )}
                   {canGenerate && (
                     <Button

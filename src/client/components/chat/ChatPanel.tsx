@@ -37,7 +37,7 @@ import { useMentionables } from '@/client/hooks/useMentionables'
 import { useProject } from '@/client/hooks/useProjects'
 import { cn, getUserInitials } from '@/client/lib/utils'
 import { useSidePanel } from '@/client/contexts/SidePanelContext'
-import { ArrowDown, ArrowUp, Upload, Pin, PinOff } from 'lucide-react'
+import { ArrowDown, ArrowUp, Upload, Pin, PinOff, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 
@@ -1055,6 +1055,29 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
         isStreaming={isStreaming}
         onInject={injectQueueItem}
       />
+
+      {/* Model-unavailable banner — visible above the input when this
+          Kin's configured model can't be resolved (provider deleted,
+          plugin unloaded, family stripped from the row, …). The
+          input is already disabled with a tooltip via `disabledReason`,
+          but the tooltip requires hover; this banner makes the state
+          + the fix discoverable at a glance. */}
+      {modelUnavailable && (
+        <div className="flex items-center justify-between gap-3 border-t bg-destructive/5 px-4 py-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangle className="size-4 shrink-0 text-destructive" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-destructive">{t('kin.modelUnavailable')}</p>
+              <p className="text-xs text-muted-foreground truncate">{t('kin.modelUnavailableHint')}</p>
+            </div>
+          </div>
+          {onOpenSettings && (
+            <Button size="sm" variant="outline" className="shrink-0" onClick={() => onOpenSettings('providers')}>
+              {t('kin.modelUnavailableAction')}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Input */}
       <MessageInput

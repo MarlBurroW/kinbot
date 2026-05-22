@@ -20,10 +20,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog'
-import { Brain, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
+import { AlertTriangle, Brain, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { api, toastError } from '@/client/lib/api'
 import { useMemories } from '@/client/hooks/useMemories'
+import { useHasCapability } from '@/client/hooks/useHasCapability'
 import { MemoryCard } from '@/client/components/memory/MemoryCard'
 import { MemoryFormDialog } from '@/client/components/memory/MemoryFormDialog'
 import { KinSelector } from '@/client/components/common/KinSelector'
@@ -38,6 +39,7 @@ interface MemoryListProps {
 
 export function MemoryList({ kinId, compact }: MemoryListProps) {
   const { t } = useTranslation()
+  const hasEmbedding = useHasCapability('embedding')
   const {
     memories,
     isLoading,
@@ -136,6 +138,22 @@ export function MemoryList({ kinId, compact }: MemoryListProps) {
 
   return (
     <div className="space-y-4">
+      {/* Embedding capability banner — without it, hybrid search drops
+          to FTS5 keyword-only and the recall/memorize tools can't run. */}
+      {!hasEmbedding && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+          <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              {t('settings.memories.noEmbedding')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t('settings.memories.noEmbeddingHint')}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Filters row */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[180px]">
