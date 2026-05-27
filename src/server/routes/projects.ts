@@ -37,6 +37,53 @@ projectRoutes.get('/', async (c) => {
   return c.json({ projects })
 })
 
+// ─── GitHub integration ──────────────────────────────────────────────────────
+// NOTE: declared before `/:id` so Hono's router doesn't grab the static path
+// as a project id (which would return "Project not found" for any search).
+
+/**
+ * Repo picker backend. Given a `pat_vault_key` query, resolves the PAT
+ * via the vault and returns repos the user can see.
+ *
+ *   - empty `q` (or missing): repos the PAT can directly access (own,
+ *     collaborator, org member) sorted by most-recently-updated
+ *   - non-empty `q`: free-form search across all of GitHub
+ *
+ * The PAT itself is never echoed in the response.
+ */
+projectRoutes.get('/list-github-repos', async (c) => {
+  const patVaultKey = c.req.query('pat_vault_key')
+  if (!patVaultKey) {
+    return c.json({ error: { code: 'INVALID_INPUT', message: 'pat_vault_key is required' } }, 400)
+  }
+  const q = c.req.query('q') ?? ''
+  const perPageRaw = Number(c.req.query('per_page') ?? '50')
+  const perPage = Number.isFinite(perPageRaw) ? perPageRaw : 50
+  const pageRaw = Number(c.req.query('page') ?? '1')
+  const page = Number.isFinite(pageRaw) ? pageRaw : 1
+
+  const pat = await resolvePat(patVaultKey)
+  if (!pat) {
+    return c.json({ error: { code: 'VAULT_KEY_NOT_FOUND', message: 'No vault entry matches that key' } }, 404)
+  }
+  try {
+    const repos = q.trim()
+      ? await searchRepos(pat, q, { perPage, page })
+      : await listAccessibleRepos(pat, { perPage, page })
+    return c.json({ repos })
+  } catch (err) {
+    if (err instanceof GitHubError) {
+      const status = err.status === 401 || err.status === 403 || err.status === 404
+        ? err.status
+        : 502
+      return c.json({ error: { code: err.code, message: err.message } }, status)
+    }
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    log.warn({ err }, 'list-github-repos failed')
+    return c.json({ error: { code: 'INTERNAL', message: msg } }, 500)
+  }
+})
+
 projectRoutes.get('/:id', async (c) => {
   const id = c.req.param('id')
   const project = await getProject(id)
@@ -179,51 +226,6 @@ projectRoutes.patch('/:id', async (c) => {
       return c.json({ error: { code: 'SLUG_TAKEN', message: 'Another project already uses this slug' } }, 409)
     }
     log.warn({ err }, 'updateProject failed')
-    return c.json({ error: { code: 'INTERNAL', message: msg } }, 500)
-  }
-})
-
-// ─── GitHub integration ──────────────────────────────────────────────────────
-
-/**
- * Repo picker backend. Given a `pat_vault_key` query, resolves the PAT
- * via the vault and returns repos the user can see.
- *
- *   - empty `q` (or missing): repos the PAT can directly access (own,
- *     collaborator, org member) sorted by most-recently-updated
- *   - non-empty `q`: free-form search across all of GitHub
- *
- * The PAT itself is never echoed in the response.
- */
-projectRoutes.get('/list-github-repos', async (c) => {
-  const patVaultKey = c.req.query('pat_vault_key')
-  if (!patVaultKey) {
-    return c.json({ error: { code: 'INVALID_INPUT', message: 'pat_vault_key is required' } }, 400)
-  }
-  const q = c.req.query('q') ?? ''
-  const perPageRaw = Number(c.req.query('per_page') ?? '50')
-  const perPage = Number.isFinite(perPageRaw) ? perPageRaw : 50
-  const pageRaw = Number(c.req.query('page') ?? '1')
-  const page = Number.isFinite(pageRaw) ? pageRaw : 1
-
-  const pat = await resolvePat(patVaultKey)
-  if (!pat) {
-    return c.json({ error: { code: 'VAULT_KEY_NOT_FOUND', message: 'No vault entry matches that key' } }, 404)
-  }
-  try {
-    const repos = q.trim()
-      ? await searchRepos(pat, q, { perPage, page })
-      : await listAccessibleRepos(pat, { perPage, page })
-    return c.json({ repos })
-  } catch (err) {
-    if (err instanceof GitHubError) {
-      const status = err.status === 401 || err.status === 403 || err.status === 404
-        ? err.status
-        : 502
-      return c.json({ error: { code: err.code, message: err.message } }, status)
-    }
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    log.warn({ err }, 'list-github-repos failed')
     return c.json({ error: { code: 'INTERNAL', message: msg } }, 500)
   }
 })
