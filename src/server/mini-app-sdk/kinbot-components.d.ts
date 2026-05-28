@@ -71,6 +71,25 @@ export interface PanelProps extends BaseProps {
 }
 export function Panel(props: PanelProps): React.ReactElement;
 
+// ─── Typography ─────────────────────────────────────────────────────────────
+
+export interface TextProps extends BaseProps {
+  as?: 'p' | 'span' | 'div' | 'label';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  weight?: 'normal' | 'medium' | 'semibold' | 'bold';
+  muted?: boolean;
+  align?: 'left' | 'center' | 'right';
+}
+export function Text(props: TextProps): React.ReactElement;
+
+export interface HeadingProps extends BaseProps {
+  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  weight?: 'normal' | 'medium' | 'semibold' | 'bold';
+  align?: 'left' | 'center' | 'right';
+}
+export function Heading(props: HeadingProps): React.ReactElement;
+
 // ─── Buttons ────────────────────────────────────────────────────────────────
 
 export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'style'>, BaseProps {

@@ -6,7 +6,7 @@
  * All components use CSS variables from kinbot-sdk.css for automatic theme support.
  *
  * Usage in mini-apps:
- *   import { Card, Button, Input, Badge, Alert, Tabs, Modal, Spinner, Accordion, DropdownMenu, DataGrid, Panel, RadioGroup, Slider, DatePicker, Stepper, StepperContent, FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Combobox, TagInput, Kanban } from '@kinbot/components'
+ *   import { Card, Text, Heading, Button, Input, Badge, Alert, Tabs, Modal, Spinner, Accordion, DropdownMenu, DataGrid, Panel, RadioGroup, Slider, DatePicker, Stepper, StepperContent, FileUpload, CodeBlock, Timeline, AvatarGroup, NumberInput, Combobox, TagInput, Kanban } from '@kinbot/components'
  */
 
 import React, { useState, useEffect, useRef, useCallback, useId, createContext, useContext } from 'react'
@@ -95,6 +95,53 @@ Card.Content = function CardContent({ className, style, children, ...rest }) {
 
 Card.Footer = function CardFooter({ className, style, children, ...rest }) {
   return React.createElement('div', { className: cn('card-footer', className), style, ...rest }, children)
+}
+
+// ─── Typography ───────────────────────────────────────────────────────────────
+
+const TEXT_SIZES = { xs: '0.75rem', sm: '0.875rem', md: '0.9375rem', lg: '1.125rem' }
+const HEADING_SIZES = { sm: '1rem', md: '1.25rem', lg: '1.5rem', xl: '1.875rem', '2xl': '2.25rem' }
+const FONT_WEIGHTS = { normal: 400, medium: 500, semibold: 600, bold: 700 }
+const HEADING_DEFAULT_SIZE = { h1: 'xl', h2: 'lg', h3: 'md', h4: 'sm', h5: 'sm', h6: 'sm' }
+
+/**
+ * Themed text block. Use instead of a raw <p>/<span> when you want theme-aware
+ * color and the standard type scale. There is no separate "Text"-less option —
+ * for a title use Heading (standalone) or Card.Title (inside a Card).
+ * @param {{ as?: 'p'|'span'|'div'|'label', size?: 'xs'|'sm'|'md'|'lg', weight?: 'normal'|'medium'|'semibold'|'bold', muted?: boolean, align?: 'left'|'center'|'right', className?: string, style?: object, children: any }} props
+ */
+export function Text({ as = 'p', size = 'md', weight = 'normal', muted, align, className, style, children, ...rest }) {
+  return React.createElement(as, {
+    className,
+    style: mergeStyles({
+      fontSize: TEXT_SIZES[size] || TEXT_SIZES.md,
+      fontWeight: FONT_WEIGHTS[weight] || FONT_WEIGHTS.normal,
+      color: muted ? 'var(--color-muted-foreground)' : 'var(--color-foreground)',
+      textAlign: align,
+      margin: 0,
+    }, style),
+    ...rest,
+  }, children)
+}
+
+/**
+ * Themed heading. Renders a real <h1>–<h6> (set via `as`) with the standard
+ * type scale. Use this for standalone titles; use Card.Title inside a Card.
+ * @param {{ as?: 'h1'|'h2'|'h3'|'h4'|'h5'|'h6', size?: 'sm'|'md'|'lg'|'xl'|'2xl', weight?: 'normal'|'medium'|'semibold'|'bold', align?: 'left'|'center'|'right', className?: string, style?: object, children: any }} props
+ */
+export function Heading({ as = 'h2', size, weight = 'semibold', align, className, style, children, ...rest }) {
+  const resolvedSize = size || HEADING_DEFAULT_SIZE[as] || 'lg'
+  return React.createElement(as, {
+    className,
+    style: mergeStyles({
+      fontSize: HEADING_SIZES[resolvedSize] || HEADING_SIZES.lg,
+      fontWeight: FONT_WEIGHTS[weight] || FONT_WEIGHTS.semibold,
+      color: 'var(--color-foreground)',
+      lineHeight: 1.25,
+      margin: 0,
+    }, style),
+    ...rest,
+  }, children)
 }
 
 // ─── Button ───────────────────────────────────────────────────────────────────

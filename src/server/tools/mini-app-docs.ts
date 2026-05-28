@@ -122,6 +122,9 @@ Use \`get_mini_app_templates\` to see built-in templates (dashboard, todo-list, 
 
 Add to app.json: \`"@kinbot/components": "/api/mini-apps/sdk/kinbot-components.js"\`
 
+## Typography
+Heading (standalone title, renders h1–h6 via \`as\`), Text (themed p/span). NOTE: there is no \`Title\` export — use Heading, or Card.Title inside a Card.
+
 ## Layout
 Card (+Header/Title/Description/Content/Footer), Stack, Grid (+Grid.Item), Divider, Panel (collapsible)
 

@@ -15,6 +15,49 @@ Import from `@kinbot/components` after adding it to your `app.json` dependencies
 
 All components auto-adapt to light/dark theme.
 
+## ⚠️ Pièges courants
+
+- **Pour un titre autonome, le composant s'appelle `Heading`** (pas `Title`). Il n'existe **pas** de composant `Title` à importer : à l'intérieur d'une `Card`, utilisez `Card.Title` ; partout ailleurs, utilisez `Heading`.
+- **Pour du texte, utilisez `Text`** (ou du HTML natif `<p>`/`<span>`). `Card.Description` reste réservé au sous-titre d'une `Card`.
+- Les sous-composants de `Card` s'utilisent en notation point : `Card.Header`, `Card.Title`, `Card.Description`, `Card.Content`, `Card.Footer`.
+
+## Typography
+
+### Heading
+
+Standalone, theme-aware title. Renders a real `<h1>`–`<h6>` via `as`.
+
+```jsx
+<Heading as="h1">Page title</Heading>
+<Heading as="h2" size="md" weight="bold" align="center">Section</Heading>
+```
+
+| Prop | Type | Default |
+|------|------|---------|
+| `as` | `"h1"`–`"h6"` | `"h2"` |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl"` | derived from `as` |
+| `weight` | `"normal" \| "medium" \| "semibold" \| "bold"` | `"semibold"` |
+| `align` | `"left" \| "center" \| "right"` | — |
+
+### Text
+
+Theme-aware text block. Prefer this over a raw `<p>`/`<span>` so the color follows the theme.
+
+```jsx
+<Text>Body copy.</Text>
+<Text as="span" size="sm" muted>Secondary label</Text>
+```
+
+| Prop | Type | Default |
+|------|------|---------|
+| `as` | `"p" \| "span" \| "div" \| "label"` | `"p"` |
+| `size` | `"xs" \| "sm" \| "md" \| "lg"` | `"md"` |
+| `weight` | `"normal" \| "medium" \| "semibold" \| "bold"` | `"normal"` |
+| `muted` | `boolean` | `false` |
+| `align` | `"left" \| "center" \| "right"` | — |
+
+> Inside a `Card`, use `Card.Title` / `Card.Description` instead — they carry the card-specific spacing.
+
 ## Layout
 
 ### Stack
