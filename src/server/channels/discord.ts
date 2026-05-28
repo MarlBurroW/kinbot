@@ -79,6 +79,9 @@ async function discordApi(token: string, method: string, endpoint: string, body?
   return await resp.json()
 }
 
+const RECONNECT_BASE_MS = 2000
+const RECONNECT_MAX_MS = 60000
+
 interface GatewayState {
   ws: WebSocket | null
   heartbeatInterval: ReturnType<typeof setInterval> | null
@@ -92,6 +95,28 @@ interface GatewayState {
   botUserId: string | null
   allowedChannelIds: Set<string> | null
   stopped: boolean
+  reconnecting: boolean
+  reconnectAttempts: number
+  reconnectTimer: ReturnType<typeof setTimeout> | null
+}
+
+/**
+ * Send a JSON payload only when the socket is OPEN, swallowing any error.
+ * Discord's WebSocket throws `InvalidStateError` from `send()` when the
+ * socket is CONNECTING or CLOSING. If that throw escapes a timer callback
+ * (the heartbeat interval) it is an uncaught exception that crashes the
+ * entire Bun process — taking down the whole KinBot server, not just Discord.
+ * A gateway send must never be able to crash the host.
+ */
+function wsSend(ws: WebSocket | null, payload: Record<string, unknown>, channelId: string): boolean {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return false
+  try {
+    ws.send(JSON.stringify(payload))
+    return true
+  } catch (err) {
+    log.warn({ channelId, err }, 'Discord gateway send failed')
+    return false
+  }
 }
 
 function createGateway(state: GatewayState): void {
@@ -122,10 +147,12 @@ function createGateway(state: GatewayState): void {
   state.ws = ws
 
   ws.addEventListener('open', () => {
+    if (ws !== state.ws) return // superseded by a newer gateway
     log.info({ channelId: state.channelId }, 'Discord gateway connected')
   })
 
   ws.addEventListener('message', (event) => {
+    if (ws !== state.ws) return // superseded by a newer gateway — ignore its traffic
     let payload: { op: number; d: Record<string, unknown> | null; s?: number; t?: string }
     try {
       payload = JSON.parse(String(event.data))
@@ -144,17 +171,17 @@ function createGateway(state: GatewayState): void {
 
         if (state.sessionId) {
           // Resume
-          ws.send(JSON.stringify({
+          wsSend(ws, {
             op: OP_RESUME,
             d: {
               token: state.token,
               session_id: state.sessionId,
               seq: state.sequence,
             },
-          }))
+          }, state.channelId)
         } else {
           // Identify
-          ws.send(JSON.stringify({
+          wsSend(ws, {
             op: OP_IDENTIFY,
             d: {
               token: state.token,
@@ -165,7 +192,7 @@ function createGateway(state: GatewayState): void {
                 device: 'kinbot',
               },
             },
-          }))
+          }, state.channelId)
         }
         break
       }
@@ -180,7 +207,7 @@ function createGateway(state: GatewayState): void {
 
       case OP_RECONNECT:
         log.info({ channelId: state.channelId }, 'Discord gateway requested reconnect')
-        reconnect(state)
+        scheduleReconnect(state)
         break
 
       case OP_INVALID_SESSION: {
@@ -189,7 +216,7 @@ function createGateway(state: GatewayState): void {
           state.sessionId = null
           state.sequence = null
         }
-        setTimeout(() => reconnect(state), 1000 + Math.random() * 4000)
+        scheduleReconnect(state)
         break
       }
 
@@ -200,14 +227,14 @@ function createGateway(state: GatewayState): void {
   })
 
   ws.addEventListener('close', (event) => {
+    if (ws !== state.ws) return // superseded gateway closing — don't trigger another reconnect
     log.warn({ channelId: state.channelId, code: event.code }, 'Discord gateway closed')
     stopHeartbeat(state)
-    if (!state.stopped) {
-      setTimeout(() => reconnect(state), 2000 + Math.random() * 3000)
-    }
+    if (!state.stopped) scheduleReconnect(state)
   })
 
   ws.addEventListener('error', (event) => {
+    if (ws !== state.ws) return // superseded gateway
     log.error({ channelId: state.channelId, error: event }, 'Discord gateway error')
   })
 }
@@ -218,6 +245,7 @@ function handleDispatch(state: GatewayState, event: string, data: Record<string,
     state.sessionId = d.session_id
     state.resumeGatewayUrl = d.resume_gateway_url
     state.botUserId = d.user.id
+    state.reconnectAttempts = 0 // healthy session — reset backoff
     log.info({ channelId: state.channelId, botUserId: state.botUserId }, 'Discord gateway ready')
     return
   }
@@ -274,7 +302,7 @@ function handleDispatch(state: GatewayState, event: string, data: Record<string,
 
 function sendHeartbeat(state: GatewayState): void {
   state.heartbeatAcked = false
-  state.ws?.send(JSON.stringify({ op: OP_HEARTBEAT, d: state.sequence }))
+  wsSend(state.ws, { op: OP_HEARTBEAT, d: state.sequence }, state.channelId)
 }
 
 /**
@@ -314,7 +342,7 @@ function startHeartbeat(state: GatewayState, intervalMs: number): void {
   state.heartbeatInterval = setInterval(() => {
     if (!state.heartbeatAcked) {
       log.warn({ channelId: state.channelId }, 'Discord heartbeat not acked, reconnecting')
-      reconnect(state)
+      scheduleReconnect(state)
       return
     }
     sendHeartbeat(state)
@@ -328,13 +356,34 @@ function stopHeartbeat(state: GatewayState): void {
   }
 }
 
-function reconnect(state: GatewayState): void {
+function scheduleReconnect(state: GatewayState): void {
+  if (state.stopped) return
+  // Coalesce: a single gateway lifecycle can fire several reconnect triggers
+  // at once (close event + OP_INVALID_SESSION + missed-heartbeat). Without
+  // this guard each trigger would spawn its own gateway, and every fresh
+  // gateway re-identifies, which Discord rejects as a duplicate — producing
+  // an exponential connection storm. Collapse them into one reconnect.
+  if (state.reconnecting) return
+  state.reconnecting = true
+
   stopHeartbeat(state)
-  try {
-    state.ws?.close()
-  } catch { /* ignore */ }
+
+  // Detach the current socket *before* closing it: null out state.ws so the
+  // old socket's own 'close' handler sees it is no longer current and bails
+  // out instead of scheduling yet another reconnect.
+  const old = state.ws
   state.ws = null
-  createGateway(state)
+  if (old) {
+    try { old.close() } catch { /* ignore */ }
+  }
+
+  const attempt = state.reconnectAttempts++
+  const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS) + Math.random() * 1000
+  state.reconnectTimer = setTimeout(() => {
+    state.reconnectTimer = null
+    state.reconnecting = false
+    createGateway(state)
+  }, delay)
 }
 
 // Dynamic config schema (issue #381). Field names are user-facing; the
@@ -383,6 +432,9 @@ export class DiscordAdapter implements ChannelAdapter {
         ? new Set(discordCfg.allowedChannelIds)
         : null,
       stopped: false,
+      reconnecting: false,
+      reconnectAttempts: 0,
+      reconnectTimer: null,
     }
 
     this.gateways.set(channelId, state)
@@ -395,6 +447,10 @@ export class DiscordAdapter implements ChannelAdapter {
     if (state) {
       state.stopped = true
       stopHeartbeat(state)
+      if (state.reconnectTimer) {
+        clearTimeout(state.reconnectTimer)
+        state.reconnectTimer = null
+      }
       try {
         state.ws?.close(1000, 'Channel deactivated')
       } catch { /* ignore */ }

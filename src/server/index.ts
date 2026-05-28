@@ -35,6 +35,27 @@ import { preloadTokenizer } from '@/shared/token-estimator'
 
 const log = createLogger('server')
 
+// ---------------------------------------------------------------------------
+// Last-resort process guards. KinBot is a single process: an uncaught error
+// anywhere — a stray setInterval/setTimeout callback, a WebSocket/event
+// listener, or a floating promise without a .catch() — would otherwise
+// terminate the whole server and drop every connected client's SSE stream.
+// (That is exactly how a Discord-gateway heartbeat bug used to crash us.)
+// Plugins run in-process via dynamic import and share this event loop, so the
+// host cannot wrap the async work a plugin schedules on its own. We log with
+// full context and stay alive: a localized fault must never take the server
+// down for everyone. A surviving process can be inconsistent in rare cases,
+// but for a single-process self-hosted app that trade-off beats a total
+// outage. True per-plugin isolation would require a worker/child-process
+// boundary — a larger change tracked separately.
+// ---------------------------------------------------------------------------
+process.on('unhandledRejection', (reason) => {
+  log.error({ err: reason }, 'Unhandled promise rejection — kept alive')
+})
+process.on('uncaughtException', (err) => {
+  log.error({ err }, 'Uncaught exception — kept alive')
+})
+
 // Eagerly load the BPE tokenizer (~1 MB) so the very first context-size
 // estimation uses the accurate path instead of falling back to chars/4.
 preloadTokenizer().catch((err) => log.warn({ err }, 'Tokenizer preload failed; estimator will fall back to chars/4 until first async call'))

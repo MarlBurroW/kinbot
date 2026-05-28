@@ -167,6 +167,7 @@ export function useSSE(handlers: HandlersMap) {
   handlersRef.current = handlers
 
   useEffect(() => {
+    attachRecoveryListeners()
     // Cancel any pending teardown — a new subscriber is mounting
     if (state.teardownTimer) {
       clearTimeout(state.teardownTimer)
@@ -216,6 +217,55 @@ export function resetSSE() {
   // Only reconnect if there are active subscribers
   if (state.subscribers.size > 0) {
     connect()
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recovery — once we hit MAX_CONSECUTIVE_FAILURES we stop retrying and sit in
+// 'disconnected' until something tells us the world might have changed. The
+// classic case: a backgrounded tab whose connection dropped (server restart,
+// laptop sleep, network blip). The user comes back to a red banner because
+// nothing re-armed the connection. Reconnect immediately when the tab becomes
+// visible / regains focus / the network comes back, so no manual refresh is
+// needed.
+// ---------------------------------------------------------------------------
+
+function reconnectNow() {
+  if (state.subscribers.size === 0) return
+  // Already healthy — leave it alone.
+  if (state.eventSource && state.eventSource.readyState !== EventSource.CLOSED) return
+  // Reset the give-up counter and cancel any long backoff so we retry now
+  // instead of waiting out the (up to 60s) delay.
+  state.consecutiveFailures = 0
+  if (state.reconnectTimer) {
+    clearTimeout(state.reconnectTimer)
+    state.reconnectTimer = null
+  }
+  connect()
+}
+
+// Module-level so it survives every useSSE mount (one instance in prod);
+// seeded from hot.data so a Vite HMR re-eval doesn't re-attach duplicates.
+let recoveryAttached = Boolean(import.meta.hot?.data?.sseRecoveryAttached)
+
+function attachRecoveryListeners() {
+  if (recoveryAttached) return
+  if (typeof window === 'undefined') return
+  recoveryAttached = true
+  if (import.meta.hot) import.meta.hot.data.sseRecoveryAttached = true
+
+  const tryRecover = () => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+    reconnectNow()
+  }
+
+  window.addEventListener('online', tryRecover)
+  window.addEventListener('focus', tryRecover)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') tryRecover()
+    })
   }
 }
 

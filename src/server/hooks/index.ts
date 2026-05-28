@@ -49,9 +49,16 @@ class HookRegistry {
     let currentContext: HookPayloadMap[H] = context
 
     for (const handler of handlers) {
-      const result = await (handler as unknown as HookHandler<H>)(currentContext)
-      if (result) {
-        currentContext = result
+      // Isolate each handler: a throwing (or rejecting) plugin hook must not
+      // break the chain for other handlers, nor propagate up to the caller.
+      // The context is passed through unchanged when a handler fails.
+      try {
+        const result = await (handler as unknown as HookHandler<H>)(currentContext)
+        if (result) {
+          currentContext = result
+        }
+      } catch (err) {
+        log.error({ hookName: name, err }, 'Hook handler threw — skipping')
       }
     }
 
