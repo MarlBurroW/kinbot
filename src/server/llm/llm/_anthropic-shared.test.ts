@@ -6,6 +6,7 @@ import {
   toolsToAnthropic,
   thinkingConfig,
   mapAnthropicApiError,
+  streamChat,
 } from './_anthropic-shared'
 import {
   AuthError,
@@ -235,5 +236,55 @@ describe('mapAnthropicApiError', () => {
   it('classifies 5xx as ProviderServerError', () => {
     expect(mapAnthropicApiError(makeError(500, 'oops'))).toBeInstanceOf(ProviderServerError)
     expect(mapAnthropicApiError(makeError(503, 'maintenance'))).toBeInstanceOf(ProviderServerError)
+  })
+})
+
+// ─── streamChat usage accounting ─────────────────────────────────────────────
+
+/** Minimal Anthropic client stub whose stream yields the given raw events. */
+function mockClient(events: Array<Record<string, unknown>>) {
+  return {
+    messages: {
+      create: async () => ({
+        async *[Symbol.asyncIterator]() {
+          for (const e of events) yield e
+        },
+      }),
+    },
+  } as unknown as Parameters<typeof streamChat>[0]
+}
+
+async function collectFinishUsage(events: Array<Record<string, unknown>>) {
+  let usage: Record<string, number | undefined> | undefined
+  for await (const chunk of streamChat(mockClient(events), {} as Parameters<typeof streamChat>[1], undefined)) {
+    if (chunk.type === 'finish') usage = chunk.usage as Record<string, number | undefined>
+  }
+  return usage
+}
+
+describe('streamChat usage accounting', () => {
+  it('folds cache read/write back into inputTokens so it is the total context the model saw', async () => {
+    // Anthropic splits a cache-hit prompt: input_tokens holds only the few
+    // uncached tokens; the rest lands in cache_read/cache_creation. Reporting
+    // input_tokens alone is the "6 / 1000k" bug.
+    const usage = await collectFinishUsage([
+      { type: 'message_start', message: { usage: { input_tokens: 6, cache_read_input_tokens: 49_000, cache_creation_input_tokens: 1_000 } } },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 120 } },
+      { type: 'message_stop' },
+    ])
+    expect(usage).toBeDefined()
+    expect(usage!.inputTokens).toBe(50_006) // 6 + 49000 + 1000
+    expect(usage!.cacheReadTokens).toBe(49_000)
+    expect(usage!.cacheWriteTokens).toBe(1_000)
+    expect(usage!.outputTokens).toBe(120)
+  })
+
+  it('leaves inputTokens unchanged when there is no caching', async () => {
+    const usage = await collectFinishUsage([
+      { type: 'message_start', message: { usage: { input_tokens: 1_234 } } },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 50 } },
+      { type: 'message_stop' },
+    ])
+    expect(usage!.inputTokens).toBe(1_234)
   })
 })

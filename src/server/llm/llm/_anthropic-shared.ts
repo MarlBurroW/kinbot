@@ -345,8 +345,20 @@ export async function* streamChat(
           break
         }
         case 'message_stop': {
+          // Anthropic reports `input_tokens` EXCLUDING cached tokens — cache
+          // reads and cache creation are billed/counted in separate fields.
+          // KinBot's internal convention (matching OpenAI's `prompt_tokens`
+          // and the billing math in token-usage.ts) is that `inputTokens` is
+          // the TOTAL input the model processed, with the cache figures as
+          // subsets of it. Fold the cache tokens back in so the context bar,
+          // calibration, compaction trigger, and billing all see the real
+          // context size — otherwise a cache hit collapses it to the handful
+          // of uncached tokens left over (the "6 / 1000k" bug).
+          const totalInputTokens = inputTokens != null
+            ? inputTokens + (cacheReadTokens ?? 0) + (cacheWriteTokens ?? 0)
+            : undefined
           const usage: Usage = {
-            inputTokens,
+            inputTokens: totalInputTokens,
             outputTokens,
             cacheReadTokens,
             cacheWriteTokens,
