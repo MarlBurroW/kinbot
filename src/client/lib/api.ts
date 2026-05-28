@@ -21,17 +21,23 @@ export class ApiRequestError extends Error {
 /**
  * Extract a displayable string from any caught value.
  * Always use this in catch blocks instead of `String(err)`.
+ *
+ * Recognized shapes:
+ *  - `Error` instances → `.message`
+ *  - KinBot API shape `{ error: { code, message } }` → inner message
+ *  - Better Auth shape `{ code, message }` (flat) → `.message`. Routes
+ *    under `/api/auth/*` are served directly by Better Auth and don't
+ *    follow KinBot's wrapped error format.
  */
 export function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
-  if (
-    err !== null &&
-    typeof err === 'object' &&
-    'error' in err &&
-    typeof (err as { error: unknown }).error === 'object'
-  ) {
-    const inner = (err as { error: { message?: unknown } }).error
-    if (typeof inner.message === 'string' && inner.message) return inner.message
+  if (err !== null && typeof err === 'object') {
+    const o = err as { error?: unknown; message?: unknown }
+    if (typeof o.error === 'object' && o.error !== null) {
+      const inner = o.error as { message?: unknown }
+      if (typeof inner.message === 'string' && inner.message) return inner.message
+    }
+    if (typeof o.message === 'string' && o.message) return o.message
   }
   return 'An unexpected error occurred'
 }

@@ -76,6 +76,7 @@ export type SSEEventType =
   | 'plugin:configUpdated'
   | 'plugin:autoDisabled'
   | 'settings:hub-changed'
+  | 'settings:defaults-updated'
   | 'version:update-available'
   | 'log:entry'
   | 'card:updated'

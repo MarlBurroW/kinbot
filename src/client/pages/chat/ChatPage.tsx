@@ -116,7 +116,11 @@ export function ChatPage({ onOpenSettings, onOpenAccount }: ChatPageProps) {
   // on "/" before kins/models have been fetched, then flips to the
   // "Select a kin" placeholder once data lands. Showing nothing during
   // load is much calmer than the flash.
-  const initialDataLoaded = !kinsLoading && (llmModels.length > 0 || kins.length > 0)
+  //
+  // We rely on `kinsLoading` alone — gating on `llmModels.length > 0 ||
+  // kins.length > 0` used to leave a freshly-onboarded user (zero of
+  // everything) stuck on a blank screen forever.
+  const initialDataLoaded = !kinsLoading
 
   const handleOpenEditModal = async (kinId?: string) => {
     const id = kinId ?? selectedKin?.id
@@ -270,21 +274,28 @@ export function ChatPage({ onOpenSettings, onOpenAccount }: ChatPageProps) {
                     onOpenSettings={handleOpenSettings}
                   />
                 ) : (
-                  <div className="surface-chat flex flex-1 flex-col items-center justify-center p-6">
+                  /* `m-auto` on the child centers vertically when content
+                     fits; on short viewports the child overflows and the
+                     parent's `overflow-y-auto` lets the user scroll. Using
+                     `justify-center` here would clip the top of overflowing
+                     content (no way to scroll up). */
+                  <div className="surface-chat flex flex-1 flex-col items-center overflow-y-auto p-6">
                     {!initialDataLoaded ? (
                       /* Still loading kins/models — render nothing rather than
                          flashing the onboarding checklist for a few hundred ms. */
                       null
                     ) : !onboardingComplete ? (
                       /* ── Onboarding not finished: show full setup checklist ── */
-                      <SetupChecklist
-                        variant="inline"
-                        onCreateKin={handleOpenCreateModal}
-                        onOpenSettings={handleOpenSettings}
-                      />
+                      <div className="m-auto w-full max-w-md">
+                        <SetupChecklist
+                          variant="inline"
+                          onCreateKin={handleOpenCreateModal}
+                          onOpenSettings={handleOpenSettings}
+                        />
+                      </div>
                     ) : (
                       /* ── Onboarding done, no Kin selected ── */
-                      <div className="text-center animate-fade-in-up space-y-4">
+                      <div className="m-auto text-center animate-fade-in-up space-y-4">
                         <div className="mx-auto mb-2 flex size-16 items-center justify-center rounded-2xl bg-primary/10">
                           <Bot className="size-8 text-primary" />
                         </div>

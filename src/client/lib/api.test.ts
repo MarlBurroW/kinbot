@@ -47,6 +47,26 @@ describe('getErrorMessage', () => {
   it('returns fallback when error key is not an object', () => {
     expect(getErrorMessage({ error: 'string' })).toBe('An unexpected error occurred')
   })
+
+  it('extracts message from Better Auth flat shape', () => {
+    // /api/auth/* routes are served by Better Auth and return errors as
+    // { message, code } directly, not wrapped in { error: { ... } }.
+    expect(
+      getErrorMessage({ message: 'Password too short', code: 'PASSWORD_TOO_SHORT' }),
+    ).toBe('Password too short')
+  })
+
+  it('prefers nested error.message over a top-level message', () => {
+    // Defensive: if both shapes are present (KinBot routes shouldn't but
+    // could in theory), the wrapped one wins because it's the documented
+    // contract.
+    expect(
+      getErrorMessage({
+        error: { message: 'kinbot wins' },
+        message: 'flat loses',
+      }),
+    ).toBe('kinbot wins')
+  })
 })
 
 // ─── ApiRequestError ──────────────────────────────────────────────────────────

@@ -43,6 +43,20 @@ import { createLogger } from '@/server/logger'
 const log = createLogger('routes:settings')
 const settingsRoutes = new Hono<{ Variables: AppVariables }>()
 
+/**
+ * Notify clients that a default-model setting changed.
+ *
+ * The setup checklist + KinFormModal pre-fill rely on
+ * `/settings/default-models`, but there was no event to invalidate
+ * them — adding a default LLM updated the navbar popover (popovers
+ * remount fresh on open) but left the inline checklist stale. One
+ * coarse event keeps the wiring trivial: clients refetch the
+ * defaults payload, recompute, done.
+ */
+function broadcastDefaultsUpdated() {
+  sseManager.broadcast({ type: 'settings:defaults-updated', data: {} })
+}
+
 // Admin guard
 settingsRoutes.use('*', async (c, next) => {
   const currentUser = c.get('user')
@@ -158,12 +172,14 @@ settingsRoutes.put('/default-llm', async (c) => {
     await setDefaultLlmModel(null)
     await setDefaultLlmProviderId(null)
     log.info('Default LLM model cleared')
+    broadcastDefaultsUpdated()
     return c.json({ defaultLlmModel: null, defaultLlmProviderId: null })
   }
 
   await setDefaultLlmModel(model.trim())
   await setDefaultLlmProviderId(providerId ?? null)
   log.info({ model: model.trim(), providerId }, 'Default LLM model updated')
+  broadcastDefaultsUpdated()
   return c.json({ defaultLlmModel: model.trim(), defaultLlmProviderId: providerId ?? null })
 })
 
@@ -183,12 +199,14 @@ settingsRoutes.put('/default-image', async (c) => {
     await setDefaultImageModel(null)
     await setDefaultImageProviderId(null)
     log.info('Default image model cleared')
+    broadcastDefaultsUpdated()
     return c.json({ defaultImageModel: null, defaultImageProviderId: null })
   }
 
   await setDefaultImageModel(model.trim())
   await setDefaultImageProviderId(providerId ?? null)
   log.info({ model: model.trim(), providerId }, 'Default image model updated')
+  broadcastDefaultsUpdated()
   return c.json({ defaultImageModel: model.trim(), defaultImageProviderId: providerId ?? null })
 })
 
@@ -208,12 +226,14 @@ settingsRoutes.put('/default-compacting', async (c) => {
     await setDefaultCompactingModel(null)
     await setDefaultCompactingProviderId(null)
     log.info('Default compacting model cleared')
+    broadcastDefaultsUpdated()
     return c.json({ defaultCompactingModel: null, defaultCompactingProviderId: null })
   }
 
   await setDefaultCompactingModel(model.trim())
   await setDefaultCompactingProviderId(providerId ?? null)
   log.info({ model: model.trim(), providerId }, 'Default compacting model updated')
+  broadcastDefaultsUpdated()
   return c.json({ defaultCompactingModel: model.trim(), defaultCompactingProviderId: providerId ?? null })
 })
 
@@ -234,11 +254,13 @@ settingsRoutes.put('/default-search', async (c) => {
   if (!providerId || providerId.trim() === '') {
     await setDefaultSearchProviderId(null)
     log.info('Default search provider cleared')
+    broadcastDefaultsUpdated()
     return c.json({ defaultSearchProviderId: null })
   }
 
   await setDefaultSearchProviderId(providerId.trim())
   log.info({ providerId: providerId.trim() }, 'Default search provider updated')
+  broadcastDefaultsUpdated()
   return c.json({ defaultSearchProviderId: providerId.trim() })
 })
 
@@ -260,11 +282,13 @@ settingsRoutes.put('/default-tts', async (c) => {
   if (!providerId || providerId.trim() === '') {
     await setDefaultTtsProviderId(null)
     log.info('Default TTS provider cleared')
+    broadcastDefaultsUpdated()
     return c.json({ defaultTtsProviderId: null })
   }
 
   await setDefaultTtsProviderId(providerId.trim())
   log.info({ providerId: providerId.trim() }, 'Default TTS provider updated')
+  broadcastDefaultsUpdated()
   return c.json({ defaultTtsProviderId: providerId.trim() })
 })
 
@@ -286,11 +310,13 @@ settingsRoutes.put('/default-stt', async (c) => {
   if (!providerId || providerId.trim() === '') {
     await setDefaultSttProviderId(null)
     log.info('Default STT provider cleared')
+    broadcastDefaultsUpdated()
     return c.json({ defaultSttProviderId: null })
   }
 
   await setDefaultSttProviderId(providerId.trim())
   log.info({ providerId: providerId.trim() }, 'Default STT provider updated')
+  broadcastDefaultsUpdated()
   return c.json({ defaultSttProviderId: providerId.trim() })
 })
 
@@ -310,12 +336,14 @@ settingsRoutes.put('/extraction-model', async (c) => {
     await deleteSetting('extraction_model')
     await setExtractionProviderId(null)
     log.info('Extraction model cleared')
+    broadcastDefaultsUpdated()
     return c.json({ extractionModel: null, extractionProviderId: null })
   }
 
   await setExtractionModel(model.trim())
   await setExtractionProviderId(providerId ?? null)
   log.info({ model: model.trim(), providerId }, 'Extraction model updated')
+  broadcastDefaultsUpdated()
   return c.json({ extractionModel: model.trim(), extractionProviderId: providerId ?? null })
 })
 
@@ -334,6 +362,7 @@ settingsRoutes.put('/embedding-model', async (c) => {
   await setEmbeddingModel(model.trim())
   await setEmbeddingProviderId(providerId ?? null)
   log.info({ model: model.trim(), providerId }, 'Embedding model updated')
+  broadcastDefaultsUpdated()
   return c.json({ embeddingModel: model.trim(), embeddingProviderId: providerId ?? null })
 })
 

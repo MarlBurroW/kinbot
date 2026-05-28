@@ -172,6 +172,8 @@ export function useSetupChecklist(): UseSetupChecklistResult {
 
   // Re-fetch on plugin lifecycle changes — newly-installed plugins can
   // add provider types, which changes which capabilities are reachable.
+  // `settings:defaults-updated` covers default-model writes (set_default_llm
+  // item flips done without it).
   useSSE({
     'plugin:installed': () => fetchAll(),
     'plugin:uninstalled': () => fetchAll(),
@@ -181,6 +183,7 @@ export function useSetupChecklist(): UseSetupChecklistResult {
     'provider:created': () => fetchAll(),
     'provider:updated': () => fetchAll(),
     'provider:deleted': () => fetchAll(),
+    'settings:defaults-updated': () => fetchAll(),
   })
 
   const items = useMemo<SetupItem[]>(() => {

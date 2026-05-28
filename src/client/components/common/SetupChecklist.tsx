@@ -52,13 +52,13 @@ export function SetupChecklist({
   const isCompact = variant === 'compact'
 
   return (
-    <div className={cn(isCompact ? 'space-y-2 p-3' : 'w-full max-w-md space-y-6 animate-fade-in-up')}>
+    <div className={cn(isCompact ? 'space-y-2 p-3' : 'w-full space-y-4 animate-fade-in-up')}>
       {!isCompact && (
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-primary/10">
-            <Sparkles className="size-8 text-primary" />
+        <div className="text-center space-y-1.5">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10">
+            <Sparkles className="size-6 text-primary" />
           </div>
-          <h2 className="text-xl font-semibold">{t('chat.welcome.title')}</h2>
+          <h2 className="text-lg font-semibold">{t('chat.welcome.title')}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {t('chat.welcome.checklistIntro')}
           </p>
