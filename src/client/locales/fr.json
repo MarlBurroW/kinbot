@@ -2245,7 +2245,10 @@
       "knowledgeResults": "{{count}} entrée",
       "knowledgeResults_plural": "{{count}} entrées",
       "knowledgeNoResults": "Aucun résultat",
-      "knowledgeMatch": "{{score}} %"
+      "knowledgeMatch": "{{score}} %",
+      "browseContentLength": "{{count}} caractère",
+      "browseContentLength_plural": "{{count}} caractères",
+      "browseFetchTime": "{{ms}} ms"
     }
   },
   "invite": {

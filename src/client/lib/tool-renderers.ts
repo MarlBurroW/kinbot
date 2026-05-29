@@ -30,6 +30,7 @@ import { SqlResultRenderer } from '@/client/components/chat/renderers/SqlResultR
 import { WebSearchRenderer } from '@/client/components/chat/renderers/WebSearchRenderer'
 import { GeneratedImageRenderer } from '@/client/components/chat/renderers/GeneratedImageRenderer'
 import { KnowledgeResultRenderer } from '@/client/components/chat/renderers/KnowledgeResultRenderer'
+import { BrowseUrlRenderer } from '@/client/components/chat/renderers/BrowseUrlRenderer'
 
 registerRenderer('run_shell', ShellResultRenderer)
 registerRenderer('http_request', HttpRequestRenderer)
@@ -46,6 +47,7 @@ registerRenderer('recall', KnowledgeResultRenderer)
 registerRenderer('search_knowledge', KnowledgeResultRenderer)
 registerRenderer('search_project_knowledge', KnowledgeResultRenderer)
 registerRenderer('list_project_knowledge', KnowledgeResultRenderer)
+registerRenderer('browse_url', BrowseUrlRenderer)
 
 // Browser tools — screenshot-shaped results (image thumbnail with click-to-zoom)
 registerRenderer('screenshot_url', BrowserScreenshotRenderer)
