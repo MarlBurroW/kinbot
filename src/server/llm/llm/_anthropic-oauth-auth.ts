@@ -262,17 +262,30 @@ export const STAINLESS_HEADERS: Record<string, string> = {
  * are added by the OAuth fetch wrapper rather than baked in here.
  */
 export const OAUTH_HEADERS = {
+  // Beta set aligned with what the real Claude Code CLI sends (captured on the
+  // wire). Most are capability-enablers that are NO-OP unless the matching
+  // request param is used — they're included to match CC's fingerprint (which
+  // helps stay on the subscription billing pool) and to unlock features we do
+  // use. We intentionally do NOT send the `context_management` request param
+  // (KinBot has its own compacting), only the header. `context-1m` actually
+  // enables the 1M context window for the [1m] models.
   'anthropic-beta': [
     'claude-code-20250219',
     'oauth-2025-04-20',
+    'context-1m-2025-08-07',
     'interleaved-thinking-2025-05-14',
+    'redact-thinking-2026-02-12',
+    'thinking-token-count-2026-05-13',
+    'context-management-2025-06-27',
     'fine-grained-tool-streaming-2025-05-14',
     'prompt-caching-scope-2026-01-05',
+    'mid-conversation-system-2026-04-07',
     'advisor-tool-2026-03-01',
-    // Enables the adaptive-thinking effort dial (`output_config.effort` +
-    // `thinking:{type:'adaptive'}`). Claude Code sends this; required for the
-    // server to honor effort instead of the legacy fixed budget.
+    // Adaptive-thinking effort dial (`output_config.effort` +
+    // `thinking:{type:'adaptive'}`) — required for the server to honor effort.
     'effort-2025-11-24',
+    'extended-cache-ttl-2025-04-11',
+    'structured-outputs-2025-12-15',
   ].join(','),
   'user-agent': `claude-cli/${CLAUDE_CODE_VERSION} (external, cli)`,
   'x-app': 'cli',

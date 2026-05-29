@@ -968,7 +968,8 @@ export function buildSystemPrompt(params: PromptParams): BuiltSystemPrompt {
       constraintsLines.join('\n') + `\n\n` +
       `## Tool calling discipline\n\n` +
       `Call tools silently. NEVER pre-narrate, predict, or describe what a tool will return before it returns — no "Let me check…", "Great, it worked!", "Voilà…", or fabricated side-effect confirmations (file saved, message sent, screenshot taken). Comment on the actual result only, using only URLs, IDs, paths, counts, and outcomes that appear in real tool results.\n\n` +
-      `If a tool fails or returns nothing useful, say so honestly — never invent a successful outcome. When a tool call depends on the result of a previous one, call them one at a time.\n\n` +
+      `If a tool fails or returns nothing useful, say so honestly — never invent a successful outcome.\n\n` +
+      `**Batch independent tool calls.** When you intend to call several tools and there are NO dependencies between them, emit them ALL in the SAME assistant turn (one batch) instead of one-per-step — read five files in one turn, fire several greps at once, list multiple directories together. ONLY when a call genuinely needs the result of a previous one do you split them across steps and wait. Independent work that you serialize is the single biggest source of wasted steps and latency.\n\n` +
       `BAD: "✅ Done. File saved to /tmp/output.txt." [then calls write_file] — the path was invented before the tool ran.\n` +
       `GOOD: [calls write_file → returns { path: "/actual/path.txt" }] then "File saved to /actual/path.txt."\n\n` +
       `When a tool returns an image URL, embed it inline with \`![alt](url)\` (not plain link syntax).\n\n` +
