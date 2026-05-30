@@ -18,6 +18,8 @@ import { useSSE } from '@/client/hooks/useSSE'
 import { useSidePanel } from '@/client/contexts/SidePanelContext'
 import { cn } from '@/client/lib/utils'
 import { ProviderIcon } from '@/client/components/common/ProviderIcon'
+import { TaskStatusBadge } from '@/client/components/common/TaskStatusBadge'
+import { taskStatusMeta, isActiveStatus, isTerminalStatus } from '@/client/lib/task-status'
 import { formatRelativeTime, formatDurationBetween, formatDurationMs, computeDurationMs } from '@/client/lib/time'
 import { useNow } from '@/client/hooks/useNow'
 import {
@@ -34,9 +36,6 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  Ban,
-  UserCheck,
-  MessageSquare,
   GitBranch,
   Layers,
   Cpu,
@@ -53,7 +52,6 @@ import {
   ChevronDown,
   RotateCcw,
   GitFork,
-  Search,
   Ticket,
 } from 'lucide-react'
 import { useAutoScroll } from '@/client/hooks/useAutoScroll'
@@ -81,26 +79,6 @@ interface TaskPanelContentProps {
   kinName?: string
   kinAvatarUrl?: string | null
   llmModels?: LLMModel[]
-}
-
-const STATUS_CONFIG: Record<
-  TaskStatus,
-  {
-    icon: typeof Clock
-    iconClass: string
-    badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline'
-  }
-> = {
-  queued: { icon: ListOrdered, iconClass: 'text-orange-500', badgeVariant: 'outline' },
-  pending: { icon: Clock, iconClass: 'text-muted-foreground', badgeVariant: 'secondary' },
-  in_progress: { icon: Loader2, iconClass: 'animate-spin', badgeVariant: 'default' },
-  paused: { icon: Pause, iconClass: 'text-amber-500', badgeVariant: 'outline' },
-  awaiting_human_input: { icon: UserCheck, iconClass: 'text-warning animate-pulse', badgeVariant: 'outline' },
-  awaiting_kin_response: { icon: MessageSquare, iconClass: 'text-info animate-pulse', badgeVariant: 'outline' },
-  awaiting_subtask: { icon: Search, iconClass: 'text-info animate-pulse', badgeVariant: 'outline' },
-  completed: { icon: CheckCircle2, iconClass: 'text-success', badgeVariant: 'outline' },
-  failed: { icon: XCircle, iconClass: 'text-destructive', badgeVariant: 'destructive' },
-  cancelled: { icon: Ban, iconClass: 'text-muted-foreground', badgeVariant: 'secondary' },
 }
 
 export function TaskPanelContent({
@@ -220,12 +198,10 @@ export function TaskPanelContent({
 
   const [isForceStarting, setIsForceStarting] = useState(false)
 
-  const statusConfig = task ? STATUS_CONFIG[task.status] : null
-  const StatusIcon = statusConfig?.icon
   const isQueued = task?.status === 'queued'
   const isRunning = task?.status === 'in_progress'
   const isPaused = task?.status === 'paused'
-  const isActive = isRunning || isPaused || task?.status === 'pending' || task?.status === 'awaiting_human_input' || task?.status === 'awaiting_kin_response' || task?.status === 'awaiting_subtask'
+  const isActive = task ? isActiveStatus(task.status) : false
   const initials = kinName?.slice(0, 2).toUpperCase() ?? 'K'
   const resolvedModel = task?.model ? llmModels.find((m) => m.id === task.model) : null
   // Qualified ticket ref (e.g. kinbot#42) for ticket-bound tasks. Null otherwise.
@@ -234,7 +210,7 @@ export function TaskPanelContent({
   // Live + persisted run duration. Ticks every second while the task is active
   // (measured from startedAt), then freezes at endedAt once terminal. Null for
   // queued/pending tasks that haven't started executing yet.
-  const isTerminal = task?.status === 'completed' || task?.status === 'failed' || task?.status === 'cancelled'
+  const isTerminal = task ? isTerminalStatus(task.status) : false
   const nowMs = useNow(isActive)
   const startedMs = task?.startedAt ? new Date(task.startedAt).getTime() : null
   const endedMs = task?.endedAt ? new Date(task.endedAt).getTime() : null
@@ -339,11 +315,8 @@ export function TaskPanelContent({
             )}
           </div>
 
-          {statusConfig && StatusIcon && task && (
-            <Badge variant={statusConfig.badgeVariant} className="shrink-0 gap-1 text-[10px] px-1.5 py-0.5 h-5">
-              <StatusIcon className={cn('size-2.5', statusConfig.iconClass)} />
-              {t(`sidebar.tasks.status.${task.status}`)}
-            </Badge>
+          {task && (
+            <TaskStatusBadge status={task.status} size="sm" className="shrink-0 h-5 px-1.5 py-0.5" />
           )}
         </div>
 
@@ -501,9 +474,10 @@ export function TaskPanelContent({
                       </p>
                     ) : (
                       siblingRuns.map((run) => {
-                        const runStatusCfg = STATUS_CONFIG[run.status]
-                        const RunStatusIcon = runStatusCfg.icon
-                        const isFinished = run.status === 'completed' || run.status === 'failed' || run.status === 'cancelled'
+                        const runStatusMeta = taskStatusMeta(run.status)
+                        const RunStatusIcon = runStatusMeta.icon
+                        const runStatusSpin = run.status === 'in_progress'
+                        const isFinished = isTerminalStatus(run.status)
                         const runStartMs = run.startedAt ? new Date(run.startedAt).getTime() : null
                         const runEndMs = run.endedAt ? new Date(run.endedAt).getTime() : null
                         const runDurationMs = isFinished ? computeDurationMs(runStartMs, runEndMs) : null
@@ -523,7 +497,7 @@ export function TaskPanelContent({
                               isCurrent ? 'bg-primary/10 text-foreground' : 'hover:bg-accent/50',
                             )}
                           >
-                            <RunStatusIcon className={cn('size-3 shrink-0', runStatusCfg.iconClass)} />
+                            <RunStatusIcon className={cn('size-3 shrink-0', runStatusMeta.textClass, runStatusSpin && 'animate-spin', !runStatusSpin && runStatusMeta.pulse && 'animate-pulse')} />
                             <span className="min-w-0 flex-1 truncate">
                               {run.title ?? run.description.slice(0, 50)}
                             </span>
@@ -712,7 +686,7 @@ export function TaskPanelContent({
               status (completed/failed/cancelled) when usage was recorded.
               Header badge stays visible too; this footer makes the final total
               scannable next to the result/error block. */}
-          {task && task.tokenUsage && (task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled') && (
+          {task && task.tokenUsage && isTerminal && (
             <TaskTokenUsageFooter
               tokenUsage={task.tokenUsage}
               providerType={task.providerType ?? resolvedModel?.providerType ?? null}

@@ -6,10 +6,11 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/client/components/ui/collapsible'
-import { CheckCircle2, AlertCircle, ChevronRight, Loader2, Clock, XCircle, ExternalLink, UserCheck, MessageSquare, ArrowDownToLine, Pause, Search } from 'lucide-react'
+import { ChevronRight, ExternalLink, ArrowDownToLine } from 'lucide-react'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { cn } from '@/client/lib/utils'
 import { RelativeTimestamp } from '@/client/components/chat/RelativeTimestamp'
+import { taskStatusMeta, isActiveStatus } from '@/client/lib/task-status'
 import type { TaskStatus } from '@/shared/types'
 
 // ─── Message-based props (persisted task results) ────────────────────────────
@@ -109,85 +110,31 @@ function resolveTask(props: TaskResultCardProps): ParsedTask | null {
 
 // ─── Status visual config ───────────────────────────────────────────────────
 
-function getStatusConfig(status: DisplayTaskStatus, t: (key: string) => string) {
-  switch (status) {
-    case 'pending':
-      return {
-        icon: Clock,
-        colorClass: 'text-muted-foreground',
-        label: t('sidebar.tasks.status.pending'),
-        animate: true,
-      }
-    case 'in_progress':
-      return {
-        icon: Loader2,
-        colorClass: 'text-primary',
-        label: t('sidebar.tasks.status.in_progress'),
-        animate: true,
-      }
-    case 'completed':
-      return {
-        icon: CheckCircle2,
-        colorClass: 'text-success',
-        label: t('sidebar.tasks.status.completed'),
-        animate: false,
-      }
-    case 'failed':
-      return {
-        icon: AlertCircle,
-        colorClass: 'text-destructive',
-        label: t('sidebar.tasks.status.failed'),
-        animate: false,
-      }
-    case 'awaiting_human_input':
-      return {
-        icon: UserCheck,
-        colorClass: 'text-warning',
-        label: t('sidebar.tasks.status.awaiting_human_input'),
-        animate: true,
-      }
-    case 'awaiting_kin_response':
-      return {
-        icon: MessageSquare,
-        colorClass: 'text-info',
-        label: t('sidebar.tasks.status.awaiting_kin_response'),
-        animate: true,
-      }
-    case 'awaiting_subtask':
-      return {
-        icon: Search,
-        colorClass: 'text-info',
-        label: t('sidebar.tasks.status.awaiting_subtask'),
-        animate: true,
-      }
-    case 'paused':
-      return {
-        icon: Pause,
-        colorClass: 'text-amber-500',
-        label: t('sidebar.tasks.status.paused'),
-        animate: false,
-      }
-    case 'cancelled':
-      return {
-        icon: XCircle,
-        colorClass: 'text-muted-foreground',
-        label: t('sidebar.tasks.status.cancelled'),
-        animate: false,
-      }
-    case 'assigned':
-      return {
-        icon: ArrowDownToLine,
-        colorClass: 'text-primary',
-        label: t('chat.taskResult.assigned'),
-        animate: false,
-      }
-    case 'queued':
-      return {
-        icon: Clock,
-        colorClass: 'text-muted-foreground',
-        label: t('sidebar.tasks.status.pending'),
-        animate: true,
-      }
+interface StatusVisual {
+  icon: typeof ArrowDownToLine
+  colorClass: string
+  label: string
+  animate: boolean
+}
+
+function getStatusConfig(status: DisplayTaskStatus, t: (key: string) => string): StatusVisual {
+  // 'assigned' is a display-only pseudo-status (trace-back card) with no entry
+  // in the task-status SoT — handle it explicitly.
+  if (status === 'assigned') {
+    return {
+      icon: ArrowDownToLine,
+      colorClass: 'text-primary',
+      label: t('chat.taskResult.assigned'),
+      animate: false,
+    }
+  }
+  // Everything else reads from the task-status SoT.
+  const meta = taskStatusMeta(status)
+  return {
+    icon: meta.icon,
+    colorClass: meta.textClass,
+    label: t(meta.labelKey),
+    animate: meta.pulse || status === 'in_progress',
   }
 }
 
@@ -218,7 +165,8 @@ export const TaskResultCard = memo(function TaskResultCard(props: TaskResultCard
 
   const statusConfig = getStatusConfig(task.status, t)
   const StatusIcon = statusConfig.icon
-  const isActive = task.status === 'pending' || task.status === 'in_progress' || task.status === 'paused' || task.status === 'awaiting_human_input' || task.status === 'awaiting_kin_response' || task.status === 'awaiting_subtask'
+  // 'assigned' is a display-only pseudo-status (not in the SoT) and never active.
+  const isActive = task.status !== 'assigned' && isActiveStatus(task.status)
   const isError = task.status === 'failed'
   const hasResult = task.result.trim().length > 0
 
@@ -237,7 +185,8 @@ export const TaskResultCard = memo(function TaskResultCard(props: TaskResultCard
                 <StatusIcon className={cn(
                   'size-3 shrink-0',
                   statusConfig.colorClass,
-                  statusConfig.animate && task.status === 'in_progress' && 'animate-spin',
+                  task.status === 'in_progress' && 'animate-spin',
+                  statusConfig.animate && task.status !== 'in_progress' && 'animate-pulse',
                 )} />
                 <span className={cn('text-xs font-medium', statusConfig.colorClass)}>
                   {statusConfig.label}

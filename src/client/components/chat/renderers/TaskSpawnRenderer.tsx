@@ -1,21 +1,15 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, ListTodo, AlertTriangle, MessageSquare } from 'lucide-react'
-import { cn } from '@/client/lib/utils'
 import { JsonViewer } from '@/client/components/common/JsonViewer'
+import { TaskStatusBadge } from '@/client/components/common/TaskStatusBadge'
+import { TASK_STATUS_META } from '@/client/lib/task-status'
+import type { TaskStatus } from '@/shared/types'
 import type { ToolResultRendererProps } from '@/client/lib/tool-renderers'
 
-const STATUS_COLOR: Record<string, string> = {
-  queued: 'text-orange-500 bg-orange-500/10',
-  pending: 'text-muted-foreground bg-muted',
-  in_progress: 'text-primary bg-primary/10',
-  paused: 'text-amber-500 bg-amber-500/10',
-  awaiting_human_input: 'text-warning bg-warning/10',
-  awaiting_kin_response: 'text-info bg-info/10',
-  awaiting_subtask: 'text-info bg-info/10',
-  completed: 'text-success bg-success/10',
-  failed: 'text-destructive bg-destructive/10',
-  cancelled: 'text-muted-foreground bg-muted',
+/** Narrow an arbitrary tool-payload string to a known TaskStatus. */
+function asTaskStatus(s: string | undefined): TaskStatus | null {
+  return s && s in TASK_STATUS_META ? (s as TaskStatus) : null
 }
 
 interface TaskDetail {
@@ -47,13 +41,18 @@ export function TaskSpawnRenderer({ args, result, status }: ToolResultRendererPr
   const isSpawn = !detail && typeof res?.taskId === 'string'
   const messages = Array.isArray(res?.messages) ? (res!.messages as unknown[]) : null
 
-  const statusLabel = (s?: string) => (s ? t(`sidebar.tasks.status.${s}`, { defaultValue: s }) : null)
-  const StatusBadge = ({ s }: { s?: string }) =>
-    s ? (
-      <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium shrink-0', STATUS_COLOR[s] ?? 'bg-muted text-muted-foreground')}>
-        {statusLabel(s)}
+  // Shared status pill driven by the task-status SoT. Falls back to a neutral
+  // chip for unexpected/unknown status strings coming off the tool payload.
+  const StatusBadge = ({ s }: { s?: string }) => {
+    if (!s) return null
+    const known = asTaskStatus(s)
+    if (known) return <TaskStatusBadge status={known} />
+    return (
+      <span className="rounded px-1.5 py-0.5 text-[10px] font-medium shrink-0 bg-muted text-muted-foreground">
+        {t(`sidebar.tasks.status.${s}`, { defaultValue: s })}
       </span>
-    ) : null
+    )
+  }
 
   if (error || status === 'error') {
     return (

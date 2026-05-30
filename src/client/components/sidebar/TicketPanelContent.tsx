@@ -11,6 +11,7 @@ import { cn } from '@/client/lib/utils'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { MarkdownContent } from '@/client/components/chat/MarkdownContent'
 import { TaskTimelineItem } from '@/client/components/common/TaskTimelineItem'
+import { isTerminalStatus } from '@/client/lib/task-status'
 import { useSidePanel } from '@/client/contexts/SidePanelContext'
 import { formatRelativeTime, formatDurationMs, computeDurationMs } from '@/client/lib/time'
 import { useNow } from '@/client/hooks/useNow'
@@ -347,7 +348,7 @@ export function TicketPanelContent({ ticketId }: TicketPanelContentProps) {
           ) : (
             <ul className="space-y-0">
               {ticket.tasks.map((task, i) => {
-                const isFinished = task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled'
+                const isFinished = isTerminalStatus(task.status)
                 const runMs = computeDurationMs(
                   task.startedAt,
                   isFinished ? task.endedAt : null,

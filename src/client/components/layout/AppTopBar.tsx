@@ -5,6 +5,7 @@ import { PaletteToggle } from '@/client/components/common/PaletteToggle'
 import { UserMenu } from '@/client/components/common/UserMenu'
 import { NotificationBell } from '@/client/components/notifications/NotificationBell'
 import { SSEStatusIndicator } from '@/client/components/common/SSEStatusIndicator'
+import { QueueIndicator } from '@/client/components/layout/QueueIndicator'
 import { SetupChecklistButton } from '@/client/components/layout/SetupChecklistButton'
 
 interface AppTopBarProps {
@@ -42,6 +43,7 @@ export function AppTopBar({ onOpenSettings, onOpenAccount }: AppTopBarProps) {
         </span>
       </button>
       <div className="flex flex-1 items-center justify-end gap-1">
+        {user && <QueueIndicator />}
         <SSEStatusIndicator />
         {user && <SetupChecklistButton onOpenSettings={onOpenSettings} />}
         <PaletteToggle />

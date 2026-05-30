@@ -21,18 +21,11 @@ import {
   ArrowRight,
   Clock,
   Pencil,
-  CheckCircle2,
-  XCircle,
   Loader2,
-  Ban,
-  UserCheck,
-  MessageSquare,
   Cpu,
   Copy,
   Play,
-  Pause,
   Sparkles,
-  Search,
   Bell,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -41,6 +34,7 @@ import { cn } from '@/client/lib/utils'
 import { formatRelativeTime, formatDurationBetween } from '@/client/lib/time'
 import { cronToHuman } from '@/client/lib/cron-human'
 import { cronNextRun, formatCountdown } from '@/client/lib/cron-next'
+import { taskStatusMeta, isTerminalStatus } from '@/client/lib/task-status'
 import { api } from '@/client/lib/api'
 import type { CronSummary, TaskSummary, TaskStatus } from '@/shared/types'
 
@@ -68,22 +62,6 @@ interface CronDetailModalProps {
   onDuplicate?: () => void
   onApprove: (id: string) => Promise<CronSummary>
   onToggleActive: (id: string, isActive: boolean) => Promise<CronSummary>
-}
-
-const TASK_STATUS_CONFIG: Record<TaskStatus, {
-  icon: typeof Clock
-  iconClass: string
-}> = {
-  queued: { icon: Clock, iconClass: 'text-orange-500' },
-  pending: { icon: Clock, iconClass: 'text-muted-foreground' },
-  in_progress: { icon: Loader2, iconClass: 'text-primary animate-spin' },
-  paused: { icon: Pause, iconClass: 'text-amber-500' },
-  completed: { icon: CheckCircle2, iconClass: 'text-success' },
-  failed: { icon: XCircle, iconClass: 'text-destructive' },
-  cancelled: { icon: Ban, iconClass: 'text-muted-foreground' },
-  awaiting_human_input: { icon: UserCheck, iconClass: 'text-warning animate-pulse' },
-  awaiting_kin_response: { icon: MessageSquare, iconClass: 'text-info animate-pulse' },
-  awaiting_subtask: { icon: Search, iconClass: 'text-info animate-pulse' },
 }
 
 export function CronDetailModal({
@@ -375,9 +353,10 @@ export function CronDetailModal({
                 ) : (
                   <div className="space-y-1 max-h-48 overflow-y-auto">
                     {executions.map((task) => {
-                      const statusCfg = TASK_STATUS_CONFIG[task.status]
-                      const StatusIcon = statusCfg.icon
-                      const isFinished = task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled'
+                      const statusMeta = taskStatusMeta(task.status)
+                      const StatusIcon = statusMeta.icon
+                      const statusSpin = task.status === 'in_progress'
+                      const isFinished = isTerminalStatus(task.status)
                       const duration = isFinished
                         ? formatDurationBetween(task.createdAt, task.updatedAt)
                         : undefined
@@ -391,7 +370,7 @@ export function CronDetailModal({
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleOpenTask(task) }}
                           className="flex items-center gap-3 rounded-lg bg-sidebar-accent/30 px-3 py-2 text-xs hover:bg-sidebar-accent/50 transition-colors cursor-pointer"
                         >
-                          <StatusIcon className={cn('size-3.5 shrink-0', statusCfg.iconClass)} />
+                          <StatusIcon className={cn('size-3.5 shrink-0', statusMeta.textClass, statusSpin && 'animate-spin', !statusSpin && statusMeta.pulse && 'animate-pulse')} />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-foreground">
                               {task.title ?? task.description.slice(0, 60)}

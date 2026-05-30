@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
 import type { TaskSummary, TaskStatus, TaskTokenUsage } from '@/shared/types'
+import { isActiveStatus, isQueuedStatus } from '@/client/lib/task-status'
 
 const PAGE_SIZE = 20
 const SEARCH_DEBOUNCE_MS = 300
@@ -118,8 +119,8 @@ export function useTasks() {
         ...(endedAt !== undefined && { endedAt }),
       })
 
-      const isActiveStatus = status === 'pending' || status === 'in_progress' || status === 'paused' || status === 'awaiting_human_input' || status === 'awaiting_kin_response' || status === 'awaiting_subtask'
-      const isQueued = status === 'queued'
+      const isActive = isActiveStatus(status)
+      const isQueued = isQueuedStatus(status)
 
       let movedTask: TaskSummary | null = null
 
@@ -143,14 +144,14 @@ export function useTasks() {
       setActiveTasks((prev) => {
         const existing = prev.find((t) => t.id === taskId)
         if (existing) {
-          if (isActiveStatus) {
+          if (isActive) {
             return prev.map((t) => (t.id === taskId ? patchTimes(t) : t))
           }
           // Moved to terminal state — remove from active, save for history move
           movedTask = patchTimes(existing)
           return prev.filter((t) => t.id !== taskId)
         }
-        if (isActiveStatus) {
+        if (isActive) {
           // New active task (or promoted from queued) — track and refetch to get full data
           knownTaskIdsRef.current.add(taskId)
           fetchActiveTasks()

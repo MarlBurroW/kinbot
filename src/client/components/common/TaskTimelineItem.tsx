@@ -1,79 +1,7 @@
 import type { ReactNode } from 'react'
-import { Loader2, CheckCircle2, XCircle, Clock, Ban, UserCheck, MessageSquare, Pause, ListOrdered, Search } from 'lucide-react'
 import { cn } from '@/client/lib/utils'
+import { taskStatusMeta, isExecutingStatus, isSuspendedStatus } from '@/client/lib/task-status'
 import type { TaskStatus } from '@/shared/types'
-
-/**
- * Visual config for each task status — single source of truth used by every
- * timeline-style task list (sidebar tasks tab, ticket detail panel, etc.).
- */
-export const TASK_STATUS_CONFIG: Record<TaskStatus, {
-  icon: typeof Clock
-  iconClass: string
-  dotClass: string
-  ringClass: string
-}> = {
-  queued: {
-    icon: ListOrdered,
-    iconClass: 'text-orange-500',
-    dotClass: 'bg-orange-500/30',
-    ringClass: 'ring-orange-500/15',
-  },
-  pending: {
-    icon: Clock,
-    iconClass: 'text-muted-foreground',
-    dotClass: 'bg-muted-foreground/50',
-    ringClass: 'ring-muted-foreground/20',
-  },
-  in_progress: {
-    icon: Loader2,
-    iconClass: 'text-primary animate-spin',
-    dotClass: 'bg-primary',
-    ringClass: 'ring-primary/30',
-  },
-  paused: {
-    icon: Pause,
-    iconClass: 'text-amber-500',
-    dotClass: 'bg-amber-500/50',
-    ringClass: 'ring-amber-500/20',
-  },
-  awaiting_human_input: {
-    icon: UserCheck,
-    iconClass: 'text-warning animate-pulse',
-    dotClass: 'bg-warning animate-pulse',
-    ringClass: 'ring-warning/30',
-  },
-  awaiting_kin_response: {
-    icon: MessageSquare,
-    iconClass: 'text-info animate-pulse',
-    dotClass: 'bg-info animate-pulse',
-    ringClass: 'ring-info/30',
-  },
-  awaiting_subtask: {
-    icon: Search,
-    iconClass: 'text-info animate-pulse',
-    dotClass: 'bg-info animate-pulse',
-    ringClass: 'ring-info/30',
-  },
-  completed: {
-    icon: CheckCircle2,
-    iconClass: 'text-success',
-    dotClass: 'bg-success',
-    ringClass: 'ring-success/20',
-  },
-  failed: {
-    icon: XCircle,
-    iconClass: 'text-destructive',
-    dotClass: 'bg-destructive',
-    ringClass: 'ring-destructive/20',
-  },
-  cancelled: {
-    icon: Ban,
-    iconClass: 'text-muted-foreground',
-    dotClass: 'bg-muted-foreground/40',
-    ringClass: 'ring-muted-foreground/10',
-  },
-}
 
 export interface TaskTimelineItemProps {
   status: TaskStatus
@@ -109,17 +37,15 @@ export function TaskTimelineItem({
   trailing,
   onClick,
 }: TaskTimelineItemProps) {
-  const config = TASK_STATUS_CONFIG[status]
-  const Icon = config.icon
+  const meta = taskStatusMeta(status)
+  const Icon = meta.icon
   const isCancelled = status === 'cancelled'
   const isQueued = status === 'queued'
-  const isActive =
-    status === 'in_progress' ||
-    status === 'paused' ||
-    status === 'awaiting_human_input' ||
-    status === 'awaiting_kin_response' ||
-    status === 'awaiting_subtask' ||
-    status === 'pending'
+  // Active = anything live and holding/occupying attention in the list:
+  // executing (pending, in_progress) + suspended (paused, awaiting_*).
+  const isActive = isExecutingStatus(status) || isSuspendedStatus(status)
+  // Loader2 spins for in_progress; every other live status conveys motion via pulse.
+  const spin = status === 'in_progress'
 
   return (
     <div className="relative flex gap-3 group">
@@ -128,8 +54,9 @@ export function TaskTimelineItem({
         <div
           className={cn(
             'relative z-10 mt-2.5 size-2.5 rounded-full ring-2',
-            config.dotClass,
-            config.ringClass,
+            meta.dotClass,
+            meta.ringClass,
+            meta.pulse && 'animate-pulse',
             isActive && 'size-3',
           )}
         />
@@ -162,7 +89,7 @@ export function TaskTimelineItem({
           {primary}
         </p>
         <div className="flex items-center gap-1.5 mt-1">
-          <Icon className={cn('size-3 shrink-0', config.iconClass)} />
+          <Icon className={cn('size-3 shrink-0', meta.textClass, spin && 'animate-spin', !spin && meta.pulse && 'animate-pulse')} />
           {secondary != null && (
             <span className="text-[10px] text-muted-foreground truncate">{secondary}</span>
           )}

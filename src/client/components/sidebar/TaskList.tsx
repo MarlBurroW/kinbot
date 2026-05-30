@@ -11,6 +11,7 @@ import { Loader2, Search, ListTodo, ChevronDown, Zap } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { TaskTimelineItem } from '@/client/components/common/TaskTimelineItem'
 import { useSidePanel } from '@/client/contexts/SidePanelContext'
+import { isQueuedStatus, isTerminalStatus } from '@/client/lib/task-status'
 import type { TaskSummary } from '@/shared/types'
 
 interface LLMModel {
@@ -79,9 +80,8 @@ function TokenChip({ headline }: { headline: number }) {
 
 function TimelineTaskCard({ task, onClick, isLast, queuePosition, nowMs }: { task: TaskSummary; onClick: () => void; isLast: boolean; queuePosition?: number; nowMs: number }) {
   const kinName = task.sourceKinName ?? task.parentKinName
-  const isQueued = task.status === 'queued'
-  const isActive = task.status === 'in_progress' || task.status === 'paused' || task.status === 'awaiting_human_input' || task.status === 'awaiting_kin_response' || task.status === 'awaiting_subtask' || task.status === 'pending'
-  const isFinished = task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled'
+  const isQueued = isQueuedStatus(task.status)
+  const isFinished = isTerminalStatus(task.status)
 
   // Run duration is measured from when the task actually started executing
   // (startedAt), not when it was spawned/queued. While running it ticks live
@@ -296,9 +296,9 @@ export const TaskList = memo(function TaskList({ llmModels, taskData }: TaskList
                   {/* Queued header with filter */}
                   <div className="relative flex gap-3 items-center mb-0.5 mt-1">
                     <div className="flex flex-col items-center shrink-0 w-4">
-                      <div className="size-1.5 rounded-full bg-orange-500/40" />
+                      <div className="size-1.5 rounded-full bg-queued/40" />
                     </div>
-                    <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold text-queued uppercase tracking-wider">
                       {t('sidebar.tasks.queuedLabel')} ({filteredQueuedTasks.length})
                     </span>
                     {/* Queue filter dropdown */}

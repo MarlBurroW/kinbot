@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { api } from '@/client/lib/api'
 import { useSSE } from '@/client/hooks/useSSE'
 import { getToolDomain as lookupToolDomain } from '@/client/lib/tool-domain-lookup'
+import { isTerminalStatus } from '@/client/lib/task-status'
 import type { TaskStatus, ToolCallEntry, ToolDomain, MessageTokenUsage, KinThinkingEffort, TaskTodo, TaskTokenUsage } from '@/shared/types'
 import type { ToolCallViewItem, ToolCallStatus } from '@/client/hooks/useToolCalls'
 
@@ -184,7 +185,7 @@ export function useTaskDetail(taskId: string | null) {
 
       // Safety net: if task is terminal, ensure streaming is cleared
       const s = data.task.status
-      if (s === 'completed' || s === 'failed' || s === 'cancelled') {
+      if (isTerminalStatus(s)) {
         setIsStreaming(false)
         setStreamingMessage(null)
         setStreamingReasoning('')
@@ -433,7 +434,7 @@ export function useTaskDetail(taskId: string | null) {
           : prev,
       )
       // Terminal or paused status → clear streaming state (safety net if chat:done was missed)
-      if (status === 'completed' || status === 'failed' || status === 'cancelled' || status === 'paused') {
+      if (isTerminalStatus(status) || status === 'paused') {
         if (batchTimerRef.current) {
           clearTimeout(batchTimerRef.current)
           batchTimerRef.current = null
@@ -554,7 +555,7 @@ export function useTaskDetail(taskId: string | null) {
     // overwrite the streaming state with stale DB content
     if (isStreaming) return
     const status = task?.status
-    if (!status || status === 'completed' || status === 'failed' || status === 'cancelled' || status === 'paused') return
+    if (!status || isTerminalStatus(status) || status === 'paused') return
 
     const interval = setInterval(fetchDetail, 1000)
     return () => clearInterval(interval)
