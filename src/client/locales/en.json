@@ -2341,7 +2341,20 @@
       "cronApproval": "Awaiting approval",
       "cronLastRun": "Last run: {{date}}",
       "cronNoRuns": "No runs yet",
-      "cronNoResults": "No scheduled tasks"
+      "cronNoResults": "No scheduled tasks",
+      "grepNoMatches": "No matches",
+      "grepMatchCount": "{{count}} match",
+      "grepMatchCount_plural": "{{count}} matches",
+      "grepFileCount": "{{count}} file",
+      "grepFileCount_plural": "{{count}} files",
+      "grepTruncated": "results truncated",
+      "multiEditCount": "{{count}} edit",
+      "multiEditCount_plural": "{{count}} edits",
+      "multiEditHunk": "Edit #{{index}}",
+      "thought": "Thought",
+      "todosTitle": "Plan",
+      "todosProgress": "{{completed}}/{{total}} done",
+      "todosEmpty": "No steps"
     }
   },
   "invite": {

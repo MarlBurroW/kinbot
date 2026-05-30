@@ -1778,7 +1778,20 @@
       "failedToListDirectory": "Error al listar el directorio",
       "linesWritten": "{{count}} líneas",
       "bytesKB": "{{size}} KB",
-      "bytesB": "{{size}} B"
+      "bytesB": "{{size}} B",
+      "grepNoMatches": "Sin coincidencias",
+      "grepMatchCount": "{{count}} coincidencia",
+      "grepMatchCount_plural": "{{count}} coincidencias",
+      "grepFileCount": "{{count}} archivo",
+      "grepFileCount_plural": "{{count}} archivos",
+      "grepTruncated": "resultados truncados",
+      "multiEditCount": "{{count}} edición",
+      "multiEditCount_plural": "{{count}} ediciones",
+      "multiEditHunk": "Edición n.º {{index}}",
+      "thought": "Pensamiento",
+      "todosTitle": "Plan",
+      "todosProgress": "{{completed}}/{{total}} completado",
+      "todosEmpty": "Sin pasos"
     }
   },
   "invite": {

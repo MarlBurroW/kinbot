@@ -1778,7 +1778,20 @@
       "failedToListDirectory": "Verzeichnis konnte nicht aufgelistet werden",
       "linesWritten": "{{count}}-Linien",
       "bytesKB": "{{size}} KB",
-      "bytesB": "{{size}} B"
+      "bytesB": "{{size}} B",
+      "grepNoMatches": "Keine Treffer",
+      "grepMatchCount": "{{count}} Treffer",
+      "grepMatchCount_plural": "{{count}} Treffer",
+      "grepFileCount": "{{count}} Datei",
+      "grepFileCount_plural": "{{count}} Dateien",
+      "grepTruncated": "Ergebnisse abgeschnitten",
+      "multiEditCount": "{{count}} Bearbeitung",
+      "multiEditCount_plural": "{{count}} Bearbeitungen",
+      "multiEditHunk": "Bearbeitung Nr. {{index}}",
+      "thought": "Gedanke",
+      "todosTitle": "Plan",
+      "todosProgress": "{{completed}}/{{total}} erledigt",
+      "todosEmpty": "Keine Schritte"
     }
   },
   "invite": {

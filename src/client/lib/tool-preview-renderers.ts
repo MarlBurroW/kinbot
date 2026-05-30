@@ -50,6 +50,23 @@ registerPreviewRenderer('grep', ({ args }) => {
   return pattern ? `"${truncate(pattern, 30)}"${glob ? ` in ${glob}` : ''}` : null
 })
 
+// --- Reasoning / planning ---
+
+registerPreviewRenderer('think', ({ args }) => {
+  return (args.thought as string) ? truncate(args.thought as string, 60) : null
+})
+
+registerPreviewRenderer('task_todos', ({ args }) => {
+  const todos = args.todos
+  if (!Array.isArray(todos)) return null
+  const total = todos.length
+  const completed = todos.filter(
+    (todo): todo is { status: string } =>
+      typeof todo === 'object' && todo !== null && (todo as { status?: unknown }).status === 'completed',
+  ).length
+  return `${completed}/${total}`
+})
+
 // --- Web ---
 
 registerPreviewRenderer('web_search', ({ args }) => {

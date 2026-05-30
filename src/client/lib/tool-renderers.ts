@@ -34,16 +34,26 @@ import { BrowseUrlRenderer } from '@/client/components/chat/renderers/BrowseUrlR
 import { ContactResultRenderer } from '@/client/components/chat/renderers/ContactResultRenderer'
 import { TaskSpawnRenderer } from '@/client/components/chat/renderers/TaskSpawnRenderer'
 import { CronResultRenderer } from '@/client/components/chat/renderers/CronResultRenderer'
+import { GrepResultRenderer } from '@/client/components/chat/renderers/GrepResultRenderer'
+import { MultiEditRenderer } from '@/client/components/chat/renderers/MultiEditRenderer'
+import { ThinkRenderer } from '@/client/components/chat/renderers/ThinkRenderer'
+import { TaskTodosRenderer } from '@/client/components/chat/renderers/TaskTodosRenderer'
 
 registerRenderer('run_shell', ShellResultRenderer)
 registerRenderer('http_request', HttpRequestRenderer)
 registerRenderer('read_file', FileReadRenderer)
 registerRenderer('write_file', FileWriteRenderer)
 registerRenderer('edit_file', FileEditRenderer)
+registerRenderer('multi_edit', MultiEditRenderer)
 registerRenderer('list_directory', ListDirectoryRenderer)
+registerRenderer('grep', GrepResultRenderer)
 registerRenderer('execute_sql', SqlResultRenderer)
 registerRenderer('web_search', WebSearchRenderer)
 registerRenderer('generate_image', GeneratedImageRenderer)
+
+// Reasoning / planning aids — code-task tools
+registerRenderer('think', ThinkRenderer)
+registerRenderer('task_todos', TaskTodosRenderer)
 
 // Memory / knowledge lookups — list-of-hits shaped results
 registerRenderer('recall', KnowledgeResultRenderer)
