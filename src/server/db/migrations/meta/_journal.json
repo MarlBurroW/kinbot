@@ -610,6 +610,13 @@
       "when": 1780108000000,
       "tag": "0086_cross_kin_send",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "6",
+      "when": 1780268177638,
+      "tag": "0087_curved_mentallo",
+      "breakpoints": true
     }
   ]
 }

@@ -406,6 +406,26 @@ export const crons = sqliteTable('crons', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 })
 
+// Email sends queued for human approval (only when the account's send_mode is
+// 'approval'). The user approves → the email is actually sent; rejects → dropped.
+export const pendingEmailSends = sqliteTable('pending_email_sends', {
+  id: text('id').primaryKey(),
+  /** The email account (a `providers` row) the message would be sent from. */
+  accountId: text('account_id').notNull().references(() => providers.id, { onDelete: 'cascade' }),
+  /** The Kin that requested the send (already allow-list-checked at request time). */
+  kinId: text('kin_id').notNull().references(() => kins.id),
+  /** The task that requested it, if any. No FK — tasks are ephemeral. */
+  taskId: text('task_id'),
+  /** JSON SendEmailParams (to/cc/bcc/subject/body/html/replyToMessageId). */
+  payload: text('payload').notNull(),
+  /** Short "to · subject" used in lists and the notification body. */
+  summary: text('summary'),
+  status: text('status').notNull().default('pending'), // 'pending' | 'sent' | 'rejected' | 'failed'
+  error: text('error'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+})
+
 export const cronLearnings = sqliteTable('cron_learnings', {
   id: text('id').primaryKey(),
   cronId: text('cron_id').notNull().references(() => crons.id, { onDelete: 'cascade' }),

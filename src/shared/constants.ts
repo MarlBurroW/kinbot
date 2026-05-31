@@ -94,6 +94,7 @@ export const NOTIFICATION_TYPES = [
   'channel:user-pending',
   'cron:pending-approval',
   'mcp:pending-approval',
+  'email:pending-send-approval',
   'kin:error',
   'kin:alert',
   'mention',

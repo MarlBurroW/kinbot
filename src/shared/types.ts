@@ -17,11 +17,28 @@ export type NotificationType =
   | 'channel:user-pending'
   | 'cron:pending-approval'
   | 'mcp:pending-approval'
+  | 'email:pending-send-approval'
   | 'kin:error'
   | 'kin:alert'
   | 'mention'
 
-export type NotificationRelatedType = 'prompt' | 'channel' | 'cron' | 'mcp' | 'kin' | 'message'
+export type NotificationRelatedType = 'prompt' | 'channel' | 'cron' | 'mcp' | 'email' | 'kin' | 'message'
+
+/** An email send queued for human approval (account in send_mode='approval'). */
+export interface PendingEmailSend {
+  id: string
+  accountId: string
+  accountEmail: string
+  kinId: string
+  kinName: string
+  to: string[]
+  cc?: string[]
+  subject: string
+  body: string
+  status: 'pending' | 'sent' | 'rejected' | 'failed'
+  error: string | null
+  createdAt: number
+}
 
 export interface NotificationSummary {
   id: string

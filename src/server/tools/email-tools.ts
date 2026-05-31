@@ -209,26 +209,36 @@ export const sendEmailTool: ToolRegistration = {
             slug: args.account,
             kinId: ctx.kinId,
           })
+          const sendParams = {
+            to: args.to.map(parseAddr),
+            cc: args.cc?.map(parseAddr),
+            bcc: args.bcc?.map(parseAddr),
+            subject: args.subject,
+            body: args.body,
+            bodyHtml: args.html,
+            replyToMessageId: args.reply_to_message_id,
+          }
+          // Approval mode (opt-in, per account): queue for human approval instead
+          // of sending. The user approves/rejects in the UI; on approve it sends.
           if (sendMode === 'approval') {
+            const { createPendingSend } = await import('@/server/services/pending-email-sends')
+            const pendingId = await createPendingSend({
+              accountId: account.id,
+              kinId: ctx.kinId,
+              taskId: ctx.taskId,
+              params: sendParams,
+            })
+            log.info({ kinId: ctx.kinId, account: account.slug, pendingId }, 'send_email queued for approval')
             return {
-              error:
-                `Account "${account.slug}" is in approval mode — sending requires human approval, ` +
-                `which is not yet available. Switch the account to direct send to use this tool.`,
-              code: 'APPROVAL_REQUIRED',
+              account: account.slug,
+              queued: true,
+              pendingId,
+              message:
+                `Email queued for human approval (account "${account.slug}" is in approval mode). ` +
+                `It will be sent once a human approves it.`,
             }
           }
-          const sent = await provider.sendMessage(
-            {
-              to: args.to.map(parseAddr),
-              cc: args.cc?.map(parseAddr),
-              bcc: args.bcc?.map(parseAddr),
-              subject: args.subject,
-              body: args.body,
-              bodyHtml: args.html,
-              replyToMessageId: args.reply_to_message_id,
-            },
-            config,
-          )
+          const sent = await provider.sendMessage(sendParams, config)
           log.info({ kinId: ctx.kinId, account: account.slug, recipients: args.to.length }, 'send_email')
           return { account: account.slug, sent: { id: sent.id, threadId: sent.threadId } }
         } catch (err) {
