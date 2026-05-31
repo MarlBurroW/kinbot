@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Mail, Plus, Check, X } from 'lucide-react'
+import { Mail, Plus, Check, X, Pencil, Copy, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, getErrorMessage } from '@/client/lib/api'
 import { cn } from '@/client/lib/utils'
 import { Button } from '@/client/components/ui/button'
+import { Badge } from '@/client/components/ui/badge'
 import { Card, CardContent } from '@/client/components/ui/card'
+import { ProviderIcon } from '@/client/components/common/ProviderIcon'
 import { Input } from '@/client/components/ui/input'
 import { PasswordInput } from '@/client/components/ui/password-input'
 import { Label } from '@/client/components/ui/label'
@@ -140,6 +142,9 @@ function ProviderConnect({ provider, onChange }: { provider: EmailProviderInfo; 
   const [connecting, setConnecting] = useState(false)
 
   const showForm = editing || !provider.oauthConfigured
+  // The exact redirect URI the user must register in the Google app — derived
+  // from the host they're browsing on, which is what the server will use too.
+  const redirectUri = `${window.location.origin}/api/email-accounts/oauth/callback`
 
   useEffect(() => {
     if (!showForm || !provider.usesOAuth) return
@@ -177,45 +182,112 @@ function ProviderConnect({ provider, onChange }: { provider: EmailProviderInfo; 
     }
   }
 
-  if (showForm) {
-    return (
-      <div className="space-y-2 rounded-md border border-border/60 p-3">
-        <p className="text-xs text-muted-foreground">{t('settings.emailAccounts.oauthHelp')}</p>
-        <div className="space-y-1">
-          <Label className="text-xs">{t('settings.emailAccounts.clientId')}</Label>
-          <Input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="…apps.googleusercontent.com" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t('settings.emailAccounts.clientSecret')}</Label>
-          <PasswordInput value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} />
-        </div>
-        <div className="flex gap-2 pt-1">
-          <Button size="sm" onClick={saveCreds} disabled={saving || !clientId || !clientSecret}>
-            {t('common.save')}
-          </Button>
-          {provider.oauthConfigured && (
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              {t('common.cancel')}
-            </Button>
-          )}
-        </div>
-      </div>
-    )
+  const copyRedirect = () => {
+    navigator.clipboard
+      .writeText(redirectUri)
+      .then(() => toast.success(t('settings.emailAccounts.copied')))
+      .catch(() => {})
   }
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <button
-        type="button"
-        className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-        onClick={() => setEditing(true)}
-      >
-        {t('settings.emailAccounts.editCreds')}
-      </button>
-      <Button size="sm" onClick={connect} disabled={connecting}>
-        <Plus className="size-4" />
-        {t('settings.emailAccounts.connect', { provider: provider.displayName })}
-      </Button>
+    <div className="space-y-3">
+      {/* Provider app status — provider-card style: logo + status badge + edit. */}
+      <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 p-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <ProviderIcon providerType={provider.type} variant="color" className="size-4 shrink-0" />
+          <span className="truncate text-sm font-medium">{provider.displayName}</span>
+        </div>
+        {provider.usesOAuth && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            {provider.oauthConfigured ? (
+              <Badge variant="secondary" className="gap-1 text-[10px]">
+                <Check className="size-3" />
+                {t('settings.emailAccounts.appConfigured')}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-warning/40 text-[10px] text-warning">
+                {t('settings.emailAccounts.appNotConfigured')}
+              </Badge>
+            )}
+            {provider.oauthConfigured && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7"
+                aria-label={t('settings.emailAccounts.editApp')}
+                onClick={() => setEditing((v) => !v)}
+              >
+                <Pencil className="size-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {showForm && provider.usesOAuth && (
+        <div className="space-y-3 rounded-md border border-border/60 p-3">
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <p>{t('settings.emailAccounts.oauthSetup')}</p>
+            <a
+              href="https://console.cloud.google.com/apis/credentials"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              {t('settings.emailAccounts.oauthConsoleLink')}
+              <ExternalLink className="size-3" />
+            </a>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">{t('settings.emailAccounts.redirectUri')}</Label>
+            <p className="text-[10px] text-muted-foreground">{t('settings.emailAccounts.redirectUriHelp')}</p>
+            <div className="flex gap-1">
+              <Input
+                readOnly
+                value={redirectUri}
+                className="font-mono text-xs"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                size="icon"
+                variant="outline"
+                className="shrink-0"
+                aria-label={t('settings.emailAccounts.copy')}
+                onClick={copyRedirect}
+              >
+                <Copy className="size-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">{t('settings.emailAccounts.clientId')}</Label>
+            <Input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="…apps.googleusercontent.com" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t('settings.emailAccounts.clientSecret')}</Label>
+            <PasswordInput value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" onClick={saveCreds} disabled={saving || !clientId || !clientSecret}>
+              {t('common.save')}
+            </Button>
+            {provider.oauthConfigured && (
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                {t('common.cancel')}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!showForm && (
+        <Button className="w-full" onClick={connect} disabled={connecting}>
+          <Plus className="size-4" />
+          {t('settings.emailAccounts.connect', { provider: provider.displayName })}
+        </Button>
+      )}
     </div>
   )
 }
@@ -246,12 +318,18 @@ function EmailAccountCard({ account, onChange }: { account: EmailAccount; onChan
     <Card>
       <CardContent className="flex items-center justify-between gap-3 p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className={cn('size-2 shrink-0 rounded-full', account.isValid ? 'bg-success' : 'bg-destructive')} />
+          <div className="relative shrink-0">
+            <ProviderIcon providerType={account.type} variant="color" className="size-5" />
+            <span
+              className={cn(
+                'absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-card',
+                account.isValid ? 'bg-success' : 'bg-destructive',
+              )}
+            />
+          </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{account.emailAddress}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {account.name} · {account.type}
-            </p>
+            <p className="truncate text-xs text-muted-foreground">{account.name}</p>
             {account.lastError && <p className="truncate text-xs text-destructive">{account.lastError}</p>}
           </div>
         </div>

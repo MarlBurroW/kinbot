@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/client/lib/api'
+import { registerProviderReactIcon } from '@/client/components/common/ProviderIcon'
 
 export interface EmailAccount {
   id: string
@@ -19,6 +20,9 @@ export interface EmailProviderInfo {
   usesOAuth: boolean
   /** Whether the operator has configured this provider's OAuth app credentials. */
   oauthConfigured: boolean
+  /** react-icons identifier ("si/SiGmail") + brand color for the provider logo. */
+  reactIcon: string | null
+  brandColor: string | null
 }
 
 export function useEmailAccounts() {
@@ -32,6 +36,11 @@ export function useEmailAccounts() {
         api.get<{ accounts: EmailAccount[] }>('/email-accounts'),
         api.get<{ providers: EmailProviderInfo[] }>('/email-accounts/providers'),
       ])
+      // Register provider logos before rendering so <ProviderIcon> resolves
+      // them (keyed by provider type, same registry as the AI providers).
+      for (const prov of p.providers) {
+        if (prov.reactIcon) registerProviderReactIcon(prov.type, prov.reactIcon, prov.brandColor ?? undefined)
+      }
       setAccounts(a.accounts)
       setProviders(p.providers)
     } catch {

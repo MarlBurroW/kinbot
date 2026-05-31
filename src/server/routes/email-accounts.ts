@@ -47,6 +47,8 @@ emailAccountRoutes.get('/providers', async (c) => {
       displayName: p.displayName,
       usesOAuth: !!p.oauth,
       oauthConfigured: p.oauth ? !!(await getOAuthClient(p.type)) : true,
+      reactIcon: p.reactIcon ?? null,
+      brandColor: p.brandColor ?? null,
     })
   }
   return c.json({ providers: out })

@@ -221,7 +221,10 @@ function toSummary(m: GmailMessageMeta): EmailSummary {
 export const gmailProvider: EmailProvider = {
   type: 'gmail',
   displayName: 'Gmail',
-  lobehubIcon: 'Gmail',
+  // Lobehub has no Gmail glyph (it's an AI-brand set) — use the Simple Icons
+  // Gmail logo via the react-icons fallback, in Gmail red.
+  reactIcon: 'si/SiGmail',
+  brandColor: '#EA4335',
   configSchema: [],
   capabilities: {
     supportsOAuth: true,
