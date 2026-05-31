@@ -35,7 +35,7 @@ import type { PendingEmailSend } from '@/shared/types'
 
 export function EmailAccountsSettings() {
   const { t } = useTranslation()
-  const { accounts, providers, isLoading, refetch } = useEmailAccounts()
+  const { accounts, providers, redirectUri, isLoading, refetch } = useEmailAccounts()
   const [addOpen, setAddOpen] = useState(false)
 
   if (isLoading) return <SettingsListSkeleton count={2} />
@@ -76,7 +76,13 @@ export function EmailAccountsSettings() {
         </>
       )}
 
-      <AddEmailAccountDialog open={addOpen} onOpenChange={setAddOpen} providers={providers} onChange={refetch} />
+      <AddEmailAccountDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        providers={providers}
+        redirectUri={redirectUri}
+        onChange={refetch}
+      />
     </div>
   )
 }
@@ -85,11 +91,13 @@ function AddEmailAccountDialog({
   open,
   onOpenChange,
   providers,
+  redirectUri,
   onChange,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   providers: EmailProviderInfo[]
+  redirectUri: string
   onChange: () => void
 }) {
   const { t } = useTranslation()
@@ -124,7 +132,7 @@ function AddEmailAccountDialog({
               </SelectContent>
             </Select>
           </div>
-          {provider && <ProviderConnect provider={provider} onChange={onChange} />}
+          {provider && <ProviderConnect provider={provider} redirectUri={redirectUri} onChange={onChange} />}
         </div>
       </DialogContent>
     </Dialog>
@@ -133,7 +141,15 @@ function AddEmailAccountDialog({
 
 /** The connect step inside the Add dialog — adapts to the selected provider:
  *  OAuth (Gmail) → app-credentials form when unconfigured, else a Connect button. */
-function ProviderConnect({ provider, onChange }: { provider: EmailProviderInfo; onChange: () => void }) {
+function ProviderConnect({
+  provider,
+  redirectUri,
+  onChange,
+}: {
+  provider: EmailProviderInfo
+  redirectUri: string
+  onChange: () => void
+}) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [clientId, setClientId] = useState('')
@@ -142,9 +158,6 @@ function ProviderConnect({ provider, onChange }: { provider: EmailProviderInfo; 
   const [connecting, setConnecting] = useState(false)
 
   const showForm = editing || !provider.oauthConfigured
-  // The exact redirect URI the user must register in the Google app — derived
-  // from the host they're browsing on, which is what the server will use too.
-  const redirectUri = `${window.location.origin}/api/email-accounts/oauth/callback`
 
   useEffect(() => {
     if (!showForm || !provider.usesOAuth) return

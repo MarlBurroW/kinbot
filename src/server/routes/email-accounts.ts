@@ -1,4 +1,6 @@
 import { Hono } from 'hono'
+import type { Context } from 'hono'
+import { config } from '@/server/config'
 import { createLogger } from '@/server/logger'
 import { getEmailProvider, listEmailProviders } from '@/server/email/registry'
 import {
@@ -28,8 +30,24 @@ function sweepStates() {
   for (const [k, v] of pendingStates) if (v.createdAt < cutoff) pendingStates.delete(k)
 }
 
-function callbackUri(reqUrl: string): string {
-  return new URL('/api/email-accounts/oauth/callback', new URL(reqUrl).origin).toString()
+/**
+ * Public origin for the OAuth redirect URI. MUST match what's registered in the
+ * provider app exactly. Behind a TLS-terminating reverse proxy, `c.req.url` is
+ * the internal http URL — wrong — so we resolve, in order:
+ *   1. PUBLIC_URL (authoritative; the canonical fix for proxied deployments)
+ *   2. X-Forwarded-Proto / X-Forwarded-Host (set by most reverse proxies)
+ *   3. the request URL origin (direct access / dev)
+ */
+function publicOrigin(c: Context): string {
+  if (process.env.PUBLIC_URL) return new URL(config.publicUrl).origin
+  const fwdProto = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim()
+  const fwdHost = (c.req.header('x-forwarded-host') ?? c.req.header('host'))?.split(',')[0]?.trim()
+  if (fwdHost) return `${fwdProto || 'https'}://${fwdHost}`
+  return new URL(c.req.url).origin
+}
+
+function callbackUri(c: Context): string {
+  return `${publicOrigin(c)}/api/email-accounts/oauth/callback`
 }
 
 // GET /api/email-accounts — list connected accounts (admin view: all accounts)
@@ -51,7 +69,9 @@ emailAccountRoutes.get('/providers', async (c) => {
       brandColor: p.brandColor ?? null,
     })
   }
-  return c.json({ providers: out })
+  // The exact redirect URI the server will send — so the UI shows what to
+  // register in the provider app (not a client-side guess).
+  return c.json({ providers: out, redirectUri: callbackUri(c) })
 })
 
 // GET /api/email-accounts/oauth-config/:type — is the OAuth app configured?
@@ -100,7 +120,7 @@ emailAccountRoutes.post('/connect/:type', async (c) => {
   const authUrl = buildAuthorizeUrl({
     profile: provider.oauth,
     clientId: client.clientId,
-    redirectUri: callbackUri(c.req.url),
+    redirectUri: callbackUri(c),
     state,
   })
   return c.json({ authUrl })
@@ -129,7 +149,7 @@ emailAccountRoutes.get('/oauth/callback', async (c) => {
       clientId: client.clientId,
       clientSecret: client.clientSecret,
       code,
-      redirectUri: callbackUri(c.req.url),
+      redirectUri: callbackUri(c),
     })
     if (!tokens.refreshToken) {
       // No refresh token means we'd lose access on expiry — usually because the

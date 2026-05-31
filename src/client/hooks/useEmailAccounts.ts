@@ -28,14 +28,16 @@ export interface EmailProviderInfo {
 export function useEmailAccounts() {
   const [accounts, setAccounts] = useState<EmailAccount[]>([])
   const [providers, setProviders] = useState<EmailProviderInfo[]>([])
+  const [redirectUri, setRedirectUri] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
   const refetch = useCallback(async () => {
     try {
       const [a, p] = await Promise.all([
         api.get<{ accounts: EmailAccount[] }>('/email-accounts'),
-        api.get<{ providers: EmailProviderInfo[] }>('/email-accounts/providers'),
+        api.get<{ providers: EmailProviderInfo[]; redirectUri: string }>('/email-accounts/providers'),
       ])
+      setRedirectUri(p.redirectUri)
       // Register provider logos before rendering so <ProviderIcon> resolves
       // them (keyed by provider type, same registry as the AI providers).
       for (const prov of p.providers) {
@@ -54,5 +56,5 @@ export function useEmailAccounts() {
     void refetch()
   }, [refetch])
 
-  return { accounts, providers, isLoading, refetch }
+  return { accounts, providers, redirectUri, isLoading, refetch }
 }
