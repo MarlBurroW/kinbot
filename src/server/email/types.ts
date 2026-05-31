@@ -1,0 +1,18 @@
+/**
+ * Email provider types — re-exports from the SDK. Single source of truth in
+ * `packages/sdk/src/index.ts`.
+ */
+export type {
+  EmailCapabilities,
+  EmailAddress,
+  EmailAttachment,
+  EmailSummary,
+  EmailFull,
+  EmailSearchQuery,
+  EmailListOptions,
+  EmailListResult,
+  SendEmailParams,
+  SendEmailResult,
+  OAuthProfile,
+  EmailProvider,
+} from '@kinbot-developer/sdk'

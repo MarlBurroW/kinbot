@@ -31,6 +31,7 @@ import { getImageProvider, listImageProviders } from '@/server/llm/image/registr
 import { getSearchProvider, listSearchProviders } from '@/server/llm/search/registry'
 import { getTTSProvider, listTTSProviders } from '@/server/llm/tts/registry'
 import { getSTTProvider, listSTTProviders } from '@/server/llm/stt/registry'
+import { getEmailProvider, listEmailProviders } from '@/server/email/registry'
 import type { Voice } from '@/server/llm/tts/types'
 
 const log = createLogger('providers')
@@ -89,10 +90,12 @@ function metaForType(type: string): ProviderMeta | undefined {
   if (tts) capabilities.push('tts')
   const stt = getSTTProvider(type)
   if (stt) capabilities.push('stt')
+  const email = getEmailProvider(type)
+  if (email) capabilities.push('email')
 
   if (capabilities.length === 0) return undefined
 
-  const first = llm ?? emb ?? img ?? search ?? tts ?? stt
+  const first = llm ?? emb ?? img ?? search ?? tts ?? stt ?? email
   return {
     capabilities,
     displayName: first?.displayName ?? type,
@@ -120,6 +123,7 @@ export function getPluginProviderMeta(): Record<string, ProviderMeta> {
     ...listSearchProviders(),
     ...listTTSProviders(),
     ...listSTTProviders(),
+    ...listEmailProviders(),
   ]) {
     if (!p.type.startsWith('plugin:')) continue
     if (out[p.type]) {

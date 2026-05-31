@@ -507,7 +507,7 @@ export interface ChannelAdapter {
 
 /** Capability flags a provider declares. Implemented as the union of the
  *  six native interfaces below. */
-export type ProviderCapability = 'llm' | 'embedding' | 'image' | 'search' | 'tts' | 'stt' | 'rerank'
+export type ProviderCapability = 'llm' | 'embedding' | 'image' | 'search' | 'tts' | 'stt' | 'rerank' | 'email'
 
 // ─── Config schema (provider-declared, UI-rendered) ─────────────────────────
 
