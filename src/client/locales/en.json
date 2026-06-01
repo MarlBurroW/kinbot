@@ -1708,6 +1708,25 @@
         "bullet3": "Invitations can be revoked at any time before they are used"
       }
     },
+    "addressBook": {
+      "title": "Address Books",
+      "subtitle": "Connect external address books so your Kins can look up contacts (read-only).",
+      "add": "Add address book",
+      "addTitle": "Add an address book",
+      "addDescription": "Connect an external contacts source. Read-only — these never enter KinBot's own contacts.",
+      "provider": "Provider",
+      "connect": "Connect {{provider}}",
+      "connected": "{{provider}} address book connected",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "This Kin will no longer be able to read this address book. The contacts themselves are not affected.",
+      "disconnected": "Address book disconnected",
+      "credentialsLink": "Where to generate a {{provider}} app password",
+      "emptyTitle": "No address book connected",
+      "emptyDescription": "Connect iCloud (or another CardDAV source) so your Kins can look up a contact's phone or email.",
+      "help": {
+        "content": "Connect an external address book (e.g. iCloud via an app-specific password). Kins can then look up contacts read-only — for example to find a phone number before sending an SMS. These contacts are never copied into KinBot's own contacts."
+      }
+    },
     "emailAccounts": {
       "title": "Email Accounts",
       "description": "Connect email accounts so your Kins can read and send email. Stored as encrypted provider accounts.",

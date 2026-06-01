@@ -1708,6 +1708,25 @@
         "bullet3": "Les invitations peuvent être révoquées à tout moment avant utilisation"
       }
     },
+    "addressBook": {
+      "title": "Carnets d'adresses",
+      "subtitle": "Connecte des carnets d'adresses externes pour que tes Kins puissent consulter les contacts (lecture seule).",
+      "add": "Ajouter un carnet",
+      "addTitle": "Ajouter un carnet d'adresses",
+      "addDescription": "Connecte une source de contacts externe. Lecture seule — n'entre jamais dans les contacts de KinBot.",
+      "provider": "Fournisseur",
+      "connect": "Connecter {{provider}}",
+      "connected": "Carnet {{provider}} connecté",
+      "disconnect": "Déconnecter",
+      "disconnectConfirm": "Ce Kin ne pourra plus lire ce carnet d'adresses. Les contacts eux-mêmes ne sont pas affectés.",
+      "disconnected": "Carnet d'adresses déconnecté",
+      "credentialsLink": "Où générer un mot de passe d'app {{provider}}",
+      "emptyTitle": "Aucun carnet d'adresses connecté",
+      "emptyDescription": "Connecte iCloud (ou une autre source CardDAV) pour que tes Kins puissent retrouver le téléphone ou l'email d'un contact.",
+      "help": {
+        "content": "Connecte un carnet d'adresses externe (ex. iCloud via un mot de passe d'application). Les Kins peuvent alors consulter les contacts en lecture seule — par exemple retrouver un numéro avant d'envoyer un SMS. Ces contacts ne sont jamais copiés dans les contacts de KinBot."
+      }
+    },
     "emailAccounts": {
       "title": "Comptes email",
       "description": "Connectez des comptes email pour que vos Kins puissent lire et envoyer des mails. Stockés comme comptes provider chiffrés.",
