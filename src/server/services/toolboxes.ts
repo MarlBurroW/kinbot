@@ -147,6 +147,17 @@ export const BUILTIN_TOOLBOXES: readonly BuiltinToolboxDef[] = [
       'download_email_attachment',
     ],
   },
+  {
+    name: 'address-book',
+    description:
+      "Read-only EXTERNAL address books (iCloud, …): list and search contacts (names, phones, emails). Separate from KinBot's own contacts.",
+    toolNames: [
+      'list_address_books',
+      'list_address_book_contacts',
+      'get_address_book_contact',
+      'search_address_book',
+    ],
+  },
 ]
 
 const BUILTIN_NAMES = new Set<string>(BUILTIN_TOOLBOXES.map((b) => b.name))
