@@ -126,13 +126,6 @@ export function CronCard({
         </div>
       )}
 
-      {/* Task description — extra context, hidden on small screens to stay lean */}
-      {cron.taskDescription && (
-        <p className="hidden line-clamp-2 text-[11px] leading-relaxed text-muted-foreground sm:block">
-          {cron.taskDescription}
-        </p>
-      )}
-
       {/* Schedule */}
       <div className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-2">
         <Clock className="size-3.5 shrink-0 text-primary" />
