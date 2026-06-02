@@ -185,7 +185,7 @@ function AuthenticatedShell() {
     <TooltipProvider delayDuration={0}>
     <SidePanelProvider>
     <TicketMentionShell>
-      <div className="flex h-screen w-screen flex-col overflow-hidden">
+      <div className="flex h-dvh w-screen flex-col overflow-hidden">
         <AppTopBar
           onOpenSettings={handleOpenSettings}
           onOpenAccount={handleOpenAccount}

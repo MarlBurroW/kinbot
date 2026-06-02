@@ -206,6 +206,19 @@ html {
   overscroll-behavior: none;
 }
 
+/* Lock the document to the *visual* viewport height. The app shell is a fixed
+   full-height flex column (App.tsx uses h-dvh); without pinning html/body/#root
+   the document can grow taller than the visual viewport on mobile (where the URL
+   bar makes 100vh > the visible area), letting the user pan the whole layout to
+   reach the composer or the navbar. Pinning height + hiding overflow keeps every
+   scroll inside the chat's own ScrollArea, not on the page. */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: var(--font-sans);
   color: var(--color-foreground);

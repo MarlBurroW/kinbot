@@ -31,7 +31,7 @@ export function ActivityBar() {
 
   return (
     <nav
-      className="surface-base flex h-screen w-12 shrink-0 flex-col items-center gap-1 border-r border-border py-3"
+      className="surface-base hidden h-full w-12 shrink-0 flex-col items-center gap-1 border-r border-border py-3 md:flex"
       aria-label="Application sections"
     >
       {ITEMS.map((item) => {
