@@ -293,7 +293,14 @@
     "queueIndicator": {
       "idle": "File de tâches au repos",
       "freeSlot": "Emplacement libre",
-      "aria": "File de tâches : {{running}} emplacements occupés sur {{slots}}, {{queued}} en file"
+      "aria": "File de tâches : {{running}} emplacements occupés sur {{slots}}, {{queued}} en file",
+      "capacity": {
+        "label": "Capacité",
+        "running": "{{count}} en cours",
+        "queued": "{{count}} en file",
+        "suspended": "{{count}} suspendues",
+        "free": "{{count}} libres"
+      }
     },
     "crons": {
       "title": "Tâches planifiées",

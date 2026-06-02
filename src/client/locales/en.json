@@ -293,7 +293,14 @@
     "queueIndicator": {
       "idle": "Task queue idle",
       "freeSlot": "Free slot",
-      "aria": "Task queue: {{running}} of {{slots}} slots busy, {{queued}} queued"
+      "aria": "Task queue: {{running}} of {{slots}} slots busy, {{queued}} queued",
+      "capacity": {
+        "label": "Capacity",
+        "running": "{{count}} running",
+        "queued": "{{count}} queued",
+        "suspended": "{{count}} suspended",
+        "free": "{{count}} free"
+      }
     },
     "crons": {
       "title": "Scheduled Jobs",

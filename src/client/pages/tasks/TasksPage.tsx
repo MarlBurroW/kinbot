@@ -8,6 +8,7 @@ import { Loader2, Search, ListTodo, ChevronDown } from 'lucide-react'
 import { EmptyState } from '@/client/components/common/EmptyState'
 import { PageHeader } from '@/client/components/layout/PageHeader'
 import { TimelineTaskCard, groupByDay } from '@/client/components/tasks/TimelineTaskCard'
+import { TaskCapacityBar } from '@/client/components/tasks/TaskCapacityBar'
 import { useTasksContext } from '@/client/contexts/TasksContext'
 import { useSidePanel } from '@/client/contexts/SidePanelContext'
 import type { TaskSummary } from '@/shared/types'
@@ -152,7 +153,9 @@ export function TasksPage() {
               />
             </div>
           }
-        />
+        >
+          <TaskCapacityBar />
+        </PageHeader>
 
         {/* Body */}
         {isEmpty ? (
