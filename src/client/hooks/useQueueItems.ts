@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/client/lib/api'
-import { useSSE } from '@/client/hooks/useSSE'
+import { useSSE, useSSEResync } from '@/client/hooks/useSSE'
 
 export interface QueueItem {
   id: string
@@ -47,6 +47,10 @@ export function useQueueItems(kinId: string | null) {
       fetchItems()
     },
   })
+
+  // Catch up on resume (locked phone / backgrounded tab) — queue:update events
+  // missed while asleep are not replayed.
+  useSSEResync(fetchItems)
 
   const removeItem = useCallback(async (itemId: string) => {
     if (!kinId) return

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '@/client/lib/api'
 import { mergeIncomingMessage } from '@/client/lib/reconcile-messages'
-import { useSSE } from '@/client/hooks/useSSE'
+import { useSSE, useSSEResync } from '@/client/hooks/useSSE'
 import { useChatStreaming } from '@/client/hooks/useChatStreaming'
 import type { ToolCallEntry, TaskStatus, MessageFile, MessageTokenUsage } from '@/shared/types'
 import type { PluginCard } from '@/shared/types/plugin-cards'
@@ -337,6 +337,16 @@ export function useChat(kinId: string | null) {
       }
     }).catch(() => {})
   }, [fetchMessages, fetchActiveTasks])
+
+  // Catch up after the tab/app returns to the foreground or the SSE connection
+  // recovers. SSE doesn't replay events missed while a phone was locked, so
+  // without this the conversation stays frozen on stale data until a manual
+  // refresh. Re-pulls messages (which also rehydrates/clears the streaming
+  // bubble from the server snapshot) and active task cards.
+  useSSEResync(() => {
+    fetchMessages()
+    fetchActiveTasks()
+  })
 
   // Fetch older messages (pagination — prepend to existing)
   // Uses messagesRef to avoid recreating this callback on every message change,

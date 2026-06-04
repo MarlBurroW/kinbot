@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { api } from '@/client/lib/api'
-import { useSSE, useSSEStatus } from '@/client/hooks/useSSE'
+import { useSSE, useSSEStatus, useSSEResync } from '@/client/hooks/useSSE'
 import { useModels, type ProviderModel } from '@/client/hooks/useModels'
 import type { KinCompactingConfig, KinThinkingConfig, KinThinkingEffort, ContextTokenBreakdown, ContextPipelineStatus } from '@/shared/types'
 
@@ -137,6 +137,12 @@ export function useKins() {
       fetchKins()
     }
   }, [sseStatus, fetchKins])
+
+  // Also catch up on resume even if the connection never dropped — a locked
+  // phone often keeps the EventSource "open" but silently drops events, so the
+  // status transition above never fires. Refreshes the list + per-kin queue
+  // state (which drives the processing indicator and context bar).
+  useSSEResync(fetchKins)
 
   // Track which kins are currently processing (queue state from SSE)
   const [kinQueueState, setKinQueueState] = useState<Map<string, { isProcessing: boolean; queueSize: number; processingStartedAt?: number; contextTokens?: number; contextWindow?: number; apiContextTokens?: number;contextBreakdown?: ContextTokenBreakdown; pipelineStatus?: ContextPipelineStatus; compactingPercent?: number; compactingThresholdPercent?: number; summaryCount?: number; maxSummaries?: number; summaryTokens?: number; summaryBudgetTokens?: number; keepPercent?: number }>>(new Map())

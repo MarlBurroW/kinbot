@@ -51,12 +51,23 @@ const MAX_CONSECUTIVE_FAILURES = 2
 const BASE_RECONNECT_MS = 3000
 const MAX_RECONNECT_MS = 60000
 
+type ResyncListener = () => void
+
 interface SSEState {
   eventSource: EventSource | null
   reconnectTimer: ReturnType<typeof setTimeout> | null
   teardownTimer: ReturnType<typeof setTimeout> | null
   subscribers: Set<React.MutableRefObject<HandlersMap>>
   consecutiveFailures: number
+  // Resync: SSE never replays events missed while the tab/app was backgrounded
+  // or the connection was down, so reconnecting is not enough — consumers must
+  // refetch their state. These listeners fire on resume / reconnect.
+  resyncListeners: Set<ResyncListener>
+  lastResyncAt: number
+  // True once we've had at least one successful connection — lets us tell a
+  // reconnect (resync needed) apart from the very first connect (consumers do
+  // their own initial load).
+  hasEverConnected: boolean
 }
 
 function getState(): SSEState {
@@ -69,6 +80,9 @@ function getState(): SSEState {
     teardownTimer: null,
     subscribers: new Set(),
     consecutiveFailures: 0,
+    resyncListeners: new Set(),
+    lastResyncAt: 0,
+    hasEverConnected: false,
   }
   if (import.meta.hot) {
     import.meta.hot.data.sseState = state
@@ -88,6 +102,24 @@ function dispatch(data: Record<string, unknown>) {
       } catch {
         // Ignore handler errors
       }
+    }
+  }
+}
+
+// Throttle so a burst of resume signals (e.g. mobile unlock fires
+// visibilitychange AND the reconnect's `connected` shortly after) only triggers
+// one round of refetches.
+const RESYNC_THROTTLE_MS = 2000
+
+function notifyResync() {
+  const now = Date.now()
+  if (now - state.lastResyncAt < RESYNC_THROTTLE_MS) return
+  state.lastResyncAt = now
+  for (const listener of state.resyncListeners) {
+    try {
+      listener()
+    } catch {
+      // Ignore listener errors
     }
   }
 }
@@ -112,7 +144,13 @@ function connect() {
 
   es.addEventListener('connected', () => {
     state.consecutiveFailures = 0
+    // A reconnect (we were connected before) means we likely missed events
+    // while the stream was down — tell consumers to refetch. The very first
+    // connect is skipped: consumers load their own initial state on mount.
+    const wasReconnect = state.hasEverConnected
+    state.hasEverConnected = true
     setStatus('connected')
+    if (wasReconnect) notifyResync()
   })
 
   es.onerror = () => {
@@ -205,6 +243,27 @@ export function useSSEStatus(): SSEConnectionStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Resync hook — register a callback that runs when the client should re-pull
+// its state because it may have missed SSE events (tab/app returned to the
+// foreground, or the connection dropped and recovered). SSE does not replay
+// missed events, so a view that only listens to live events would otherwise
+// stay frozen on stale data until a manual refresh.
+// ---------------------------------------------------------------------------
+
+export function useSSEResync(callback: () => void) {
+  const callbackRef = useRef(callback)
+  callbackRef.current = callback
+
+  useEffect(() => {
+    const listener: ResyncListener = () => callbackRef.current()
+    state.resyncListeners.add(listener)
+    return () => {
+      state.resyncListeners.delete(listener)
+    }
+  }, [])
+}
+
+// ---------------------------------------------------------------------------
 // Reset — call after login to restart SSE after auth-related failures
 // ---------------------------------------------------------------------------
 
@@ -260,13 +319,31 @@ function attachRecoveryListeners() {
     reconnectNow()
   }
 
-  window.addEventListener('online', tryRecover)
+  // The page/app came back to the foreground (or the network returned). Beyond
+  // reconnecting a dead stream, we MUST refetch: while backgrounded — a locked
+  // phone is the textbook case — the conversation may have advanced elsewhere
+  // and those events are gone (SSE has no replay). The throttle in notifyResync
+  // collapses this with the reconnect's own resync.
+  const onResume = () => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+    reconnectNow()
+    notifyResync()
+  }
+
+  window.addEventListener('online', onResume)
   window.addEventListener('focus', tryRecover)
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') tryRecover()
+      if (document.visibilityState === 'visible') onResume()
     })
   }
+  // iOS Safari freezes a backgrounded page and restores it from the bfcache;
+  // visibilitychange is unreliable there, but pageshow with persisted=true
+  // fires on every restore.
+  window.addEventListener('pageshow', (e) => {
+    if ((e as PageTransitionEvent).persisted) onResume()
+  })
 }
 
 // ---------------------------------------------------------------------------
