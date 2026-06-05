@@ -188,6 +188,7 @@ import {
   getGlobalPromptTool,
   setGlobalPromptTool,
 } from '@/server/tools/config-tools'
+import { requestProviderSetupTool, promptSecretTool } from '@/server/tools/secure-input-tools'
 import { runShellTool } from '@/server/tools/shell-tools'
 import {
   addMcpServerTool,
@@ -519,6 +520,11 @@ export function registerAllTools(): void {
   toolRegistry.register('set_default_provider', setDefaultProviderTool, 'system')
   toolRegistry.register('get_global_prompt', getGlobalPromptTool, 'system')
   toolRegistry.register('set_global_prompt', setGlobalPromptTool, 'system')
+
+  // Secure-input tools (configurator Kin) — request a secret via UI popup; the
+  // value goes straight to the vault / encrypted provider config, never to the LLM.
+  toolRegistry.register('request_provider_setup', requestProviderSetupTool, 'system')
+  toolRegistry.register('prompt_secret', promptSecretTool, 'system')
 
   // Phase 18: MCP management tools (main only)
   toolRegistry.register('add_mcp_server', addMcpServerTool, 'mcp')

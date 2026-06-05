@@ -12,6 +12,7 @@ import { ToolCallsViewer } from '@/client/components/chat/ToolCallsViewer'
 import { TaskResultCard } from '@/client/components/chat/TaskResultCard'
 import { CompactingCard } from '@/client/components/chat/CompactingCard'
 import { HumanPromptCard } from '@/client/components/chat/HumanPromptCard'
+import { SecretPromptModal } from '@/client/components/chat/SecretPromptModal'
 import { Sheet, SheetContent, SheetTitle } from '@/client/components/ui/sheet'
 import { SidebarTrigger } from '@/client/components/ui/sidebar'
 const QuickChatPanel = lazy(() => import('@/client/components/chat/QuickChatPanel').then(m => ({ default: m.QuickChatPanel })))
@@ -1055,6 +1056,7 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                     isResponding={isResponding}
                   />
                 ))}
+                <SecretPromptModal kinId={kin.id} />
                 {queueState?.isProcessing && !(streamingMessage && streamingMessage.content.length > 0 && !tokenStalled) && (
                   <TypingIndicator
                     kinName={kin.name}

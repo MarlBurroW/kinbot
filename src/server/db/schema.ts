@@ -593,6 +593,26 @@ export const humanPrompts = sqliteTable('human_prompts', {
   index('idx_human_prompts_status').on(table.status),
 ])
 
+// ─── Secret prompts (secure input) ───────────────────────────────────────────
+// Pending requests for the user to type a secret (API key, token) into a UI
+// popup. The raw value NEVER lands here — on response it goes straight to the
+// vault and the side effect (create+test provider, store secret) runs; only a
+// non-sensitive reference (providerId / vault key) is recorded. See sherpa.md §7.
+export const secretPrompts = sqliteTable('secret_prompts', {
+  id: text('id').primaryKey(),
+  kinId: text('kin_id').notNull().references(() => kins.id, { onDelete: 'cascade' }),
+  taskId: text('task_id').references(() => tasks.id),
+  purpose: text('purpose').notNull(), // 'provider' | 'channel' | 'vault'
+  spec: text('spec').notNull(), // JSON: { fields:[{key,label,secret,...}], + purpose-specific (type/name/families/config | key) }
+  status: text('status').notNull().default('pending'), // 'pending' | 'answered' | 'cancelled' | 'expired'
+  resultRef: text('result_ref'), // JSON: { providerId? | channelId? | vaultKeys? } — never a secret value
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  respondedAt: integer('responded_at', { mode: 'timestamp_ms' }),
+}, (table) => [
+  index('idx_secret_prompts_kin').on(table.kinId),
+  index('idx_secret_prompts_status').on(table.status),
+])
+
 // ─── Channels ────────────────────────────────────────────────────────────────
 
 export const channels = sqliteTable('channels', {

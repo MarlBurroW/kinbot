@@ -472,6 +472,32 @@ export interface HumanPromptSummary {
   respondedAt: number | null
 }
 
+// ─── Secret prompts (secure input) ───────────────────────────────────────────
+
+export type SecretPromptPurpose = 'provider' | 'channel' | 'vault'
+
+/** One field the user must fill in the secure-input popup. `secret: true`
+ *  fields render as masked password inputs and go straight to the vault. */
+export interface SecretPromptField {
+  key: string
+  label: string
+  secret: boolean
+  placeholder?: string
+  description?: string
+  /** Optional URL where the user can generate the credential (provider key page). */
+  keyUrl?: string
+}
+
+/** Payload of the `prompt:secret-request` SSE event — drives the secure-input modal. */
+export interface SecretPromptRequest {
+  promptId: string
+  kinId: string
+  purpose: SecretPromptPurpose
+  title: string
+  description?: string
+  fields: SecretPromptField[]
+}
+
 /** Serialized file as returned by the API and displayed in chat */
 export interface MessageFile {
   id: string

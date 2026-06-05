@@ -1,4 +1,11 @@
 {
+  "secretPrompt": {
+    "getKey": "Générer ta clé ici",
+    "privacyNote": "Ça va directement dans ton coffre chiffré — l'IA ne le voit jamais.",
+    "later": "Plus tard",
+    "saving": "Enregistrement…",
+    "submit": "Enregistrer en sécurité"
+  },
   "setup": {
     "button": {
       "aria": "Checklist de configuration",
@@ -2384,6 +2391,8 @@
       "set_default_provider": "Définir le fournisseur par défaut",
       "get_global_prompt": "Lire le prompt global",
       "set_global_prompt": "Définir le prompt global",
+      "request_provider_setup": "Connecter un fournisseur (sécurisé)",
+      "prompt_secret": "Demander un secret (sécurisé)",
       "edit_mini_app_file": "Modifier un fichier Mini-App",
       "multi_edit_mini_app_file": "Modifications multiples (Mini-App)",
       "get_mini_app_storage": "Lire le stockage Mini-App",

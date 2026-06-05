@@ -26,6 +26,8 @@ export type SSEEventType =
   | 'prompt:pending'
   | 'prompt:answered'
   | 'prompt:expired'
+  | 'prompt:secret-request'
+  | 'prompt:secret-resolved'
   | 'webhook:created'
   | 'webhook:updated'
   | 'webhook:deleted'

@@ -33,6 +33,7 @@ import { mcpServerRoutes } from '@/server/routes/mcp-servers'
 import { fileRoutes } from '@/server/routes/files'
 import { fileStorageRoutes } from '@/server/routes/file-storage'
 import { promptRoutes } from '@/server/routes/prompts'
+import { secretPromptRoutes } from '@/server/routes/secret-prompts'
 import { memoryRoutes } from '@/server/routes/memories'
 import { sharedRoutes } from '@/server/routes/shared'
 import { webhookRoutes } from '@/server/routes/webhooks'
@@ -191,6 +192,7 @@ app.route('/api/mcp-servers', mcpServerRoutes)
 app.route('/api/files', fileRoutes)
 app.route('/api/file-storage', fileStorageRoutes)
 app.route('/api/prompts', promptRoutes)
+app.route('/api/secret-prompts', secretPromptRoutes)
 app.route('/api/memories', memoryRoutes)
 app.route('/api/webhooks/incoming', webhookIncomingRoutes)
 app.route('/api/webhooks', webhookRoutes)
