@@ -179,6 +179,15 @@ import {
 } from '@/server/tools/ticket-attachment-tools'
 import { generateImageTool, listImageModelsTool, describeImageModelTool } from '@/server/tools/image-tools'
 import { listProvidersTool, listModelsTool } from '@/server/tools/provider-tools'
+import {
+  describeProviderConfigTool,
+  listProviderTypesTool,
+  testProviderTool,
+  enableProviderCapabilityTool,
+  setDefaultProviderTool,
+  getGlobalPromptTool,
+  setGlobalPromptTool,
+} from '@/server/tools/config-tools'
 import { runShellTool } from '@/server/tools/shell-tools'
 import {
   addMcpServerTool,
@@ -499,6 +508,17 @@ export function registerAllTools(): void {
   // Provider & model discovery tools (main + sub-kin)
   toolRegistry.register('list_providers', listProvidersTool, 'system')
   toolRegistry.register('list_models', listModelsTool, 'system')
+
+  // Platform configuration tools (configurator Kin / admin) — provider config
+  // discovery + capability/default management + global prompt. Mutations are
+  // admin-only (enforced inside each tool).
+  toolRegistry.register('describe_provider_config', describeProviderConfigTool, 'system')
+  toolRegistry.register('list_provider_types', listProviderTypesTool, 'system')
+  toolRegistry.register('test_provider', testProviderTool, 'system')
+  toolRegistry.register('enable_provider_capability', enableProviderCapabilityTool, 'system')
+  toolRegistry.register('set_default_provider', setDefaultProviderTool, 'system')
+  toolRegistry.register('get_global_prompt', getGlobalPromptTool, 'system')
+  toolRegistry.register('set_global_prompt', setGlobalPromptTool, 'system')
 
   // Phase 18: MCP management tools (main only)
   toolRegistry.register('add_mcp_server', addMcpServerTool, 'mcp')
