@@ -934,7 +934,11 @@ export function ChatPanel({ kin, llmModels, modelUnavailable = false, queueState
                   </div>
                 ))}
               </div>
-            ) : messages.length === 0 && liveTasks.length === 0 ? (
+            ) : messages.length === 0 && liveTasks.length === 0 && !queueState?.isProcessing && !streamingMessage && !compact ? (
+              /* Empty conversation: prompt-suggestion cards — but NOT while the
+                 Kin is already inferring/streaming the first message (show the
+                 typing indicator instead), and never in the distraction-less
+                 onboarding modal (compact). */
               <ChatEmptyState
                 kinName={kin.name}
                 kinRole={kin.role}
