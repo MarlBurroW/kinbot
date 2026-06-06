@@ -1,0 +1,371 @@
+---
+import Base from '../layouts/Base.astro';
+import Avatar from '../components/Avatar.astro';
+import Providers from '../components/Providers.astro';
+import { Icon } from 'astro-icon/components';
+import kins from '../data/kins.json';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const HUES = [305, 40, 20, 330, 265, 210, 150, 55, 15, 235, 290, 30, 170, 95, 260, 50, 200, 120];
+const panelKins = kins.slice(0, 5);
+const channels = [
+  ['telegram', 'Telegram'], ['whatsapp', 'WhatsApp'], ['slack', 'Slack'],
+  ['discord', 'Discord'], ['signal', 'Signal'], ['matrix', 'Matrix'],
+];
+
+// Honest comparison against the closest self-hosted peers. Marks are best-effort
+// from public docs (Jun 2026). Peers genuinely win/tie on several rows.
+const cmpCols = ['KinBot', 'OpenClaw', 'Hermes'];
+const cmpRows = [
+  ['Self-hosted, your data',                'yes', 'yes', 'yes'],
+  ['Persistent memory',                     'yes', 'yes', 'yes'],
+  ['Native omnichannel',                    'yes', 'yes', 'yes'],
+  ['Connected accounts (mail, calendar)',   'yes', 'no',  'par'],
+  ['Agents build their own tools / skills', 'yes', 'par', 'yes'],
+  ['Scheduled tasks (cron)',                'yes', 'yes', 'yes'],
+  ['A team of agents that collaborate',     'yes', 'no',  'no'],
+  ['Polished web app (PWA)',                'yes', 'par', 'par'],
+  ['Rendered tool calls (UI, not JSON)',    'yes', 'no',  'no'],
+  ['Mini-apps & projects (Kanban)',         'yes', 'no',  'no'],
+  ['Conversational setup (no CLI)',         'yes', 'no',  'no'],
+  ['Secrets never sent to the LLM',         'yes', 'par', 'par'],
+  ['Token & context transparency',          'yes', 'no',  'no'],
+];
+const cmpIcon = { yes: 'lucide:check', par: 'lucide:minus', no: 'lucide:x' };
+---
+<Base>
+  <!-- ===== top bar ===== -->
+  <header class="topbar"><div class="wrap in">
+    <div class="brand"><img class="brand-logo" src={`${base}/logo.svg`} width="28" height="28" alt="" /> KinBot</div>
+    <nav>
+      <a href="#memory">Features</a><a href="#household">The household</a>
+      <a href="#why">Why KinBot</a><a href="#docs">Docs</a>
+      <a href="https://github.com/MarlBurroW/kinbot">GitHub ↗</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="#start">Get started</a>
+  </div></header>
+
+  <!-- ===== hero ===== -->
+  <section class="hero"><div class="glow a"></div><div class="glow b"></div>
+    <div class="wrap">
+      <span class="meta">KinBot v1.0 · self-hosted · MIT</span>
+      <div class="hero-grid">
+        <div>
+          <span class="kicker">Autonomous AI agents</span>
+          <h1 class="display">Your AI team.<br><span class="warm">At home.</span></h1>
+          <p class="sub">A team of agents that <b>remember</b>, <b>collaborate</b>, and <b>build their own tools</b>, running entirely on your server. Not a chatbot. A household of specialists.</p>
+          <dl class="colophon">
+            <div class="row"><span class="k">Runs on</span><span class="v">one container</span></div>
+            <div class="row"><span class="k">External infra</span><span class="v"><span class="amb">none</span></span></div>
+            <div class="row"><span class="k">Set up by</span><span class="v">a conversation</span></div>
+            <div class="row"><span class="k">Channels</span><span class="v">6 built-in</span></div>
+          </dl>
+          <div class="cta">
+            <a class="btn btn-primary" href="#start"><Icon name="lucide:terminal" /> Start in 2 minutes</a>
+            <a class="link-mono" href="#demo">Watch the demo <Icon name="lucide:play" /></a>
+          </div>
+        </div>
+
+        <!-- product-like Kins panel -->
+        <div class="panel glass">
+          <div class="ph-head"><span class="t">// your kins</span><span class="c">{kins.length} active</span></div>
+          <div>
+            {panelKins.map((k, i) => {
+              const st = k.status === 'working' ? 'work' : k.status === 'idle' ? 'idle' : '';
+              const label = k.status === 'working' ? 'working' : k.status === 'idle' ? 'idle' : 'online';
+              return (
+                <div class="krow" style={`animation-delay:${i * 0.18}s`}>
+                  <span class="av"><Avatar name={k.name} avatar={k.avatar} size={34} hue={HUES[i]} /></span>
+                  <span class="meta2"><div class="nm">{k.name}</div><div class="dm">{k.domain}</div></span>
+                  <span class={`st ${st}`}><span class="pip"></span>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="strip"><div class="wrap strip-in">
+      <span>everywhere:</span>
+      {channels.map(([slug, label]) => (
+        <span class="chan"><Icon name={`simple-icons:${slug}`} /> {label}</span>
+      ))}
+    </div></div>
+  </section>
+
+  <!-- ===== install video ===== -->
+  <section class="videoblock" id="demo"><div class="wrap">
+    <div class="sec-head" style="text-align:center;max-width:60ch;margin:0 auto 30px">
+      <span class="kicker" style="justify-content:center">Watch it install</span>
+      <h2 class="display">From zero to your own team in one command.</h2>
+      <p style="margin:0 auto">One container. Then Sherpa takes over: no config files, no terminal gymnastics.</p>
+    </div>
+    <div class="videoframe">
+      <!-- Replace with the real install video:
+           <video src={`${import.meta.env.BASE_URL}/videos/install.mp4`} poster={`${import.meta.env.BASE_URL}/screens/install-poster.jpg`} controls playsinline></video> -->
+      <div class="ph">
+        <div>
+          <div class="play"><Icon name="lucide:play" /></div>
+          <div class="lbl">Install walkthrough</div>
+          <span class="pt">video to add</span>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- ===== 01 memory ===== -->
+  <div class="wrap" id="memory"><section class="section">
+    <div class="num display">01<small>Persistent</small></div>
+    <div class="body">
+      <h2 class="display">They never forget you.</h2>
+      <div class="split2">
+        <div>
+          <p>No "new conversation". One continuous session, and a hybrid memory that builds context over months. Nothing is deleted: old turns are summarized, never thrown away.</p>
+          <p>A Kin hands work to another, or spawns sub-agents to move faster. The team shares one history and one address book.</p>
+          <div class="taglist"><span class="t"><Icon name="lucide:infinity" /> continuous session</span><span class="t"><Icon name="lucide:users" /> inter-agent handoff</span></div>
+        </div>
+        <div class="figure glass">
+          <div class="cap"><span>Fig. 1 · recall("grocery budget")</span><span class="amb">memory</span></div>
+          <div class="figbody">
+            <div class="mcard">
+              <div class="mic"><Icon name="lucide:brain" /></div>
+              <div class="mbody">
+                <div class="mbadges">
+                  <span class="mbadge cat">decision</span>
+                  <span class="mbadge">budget</span>
+                  <span class="mbadge star"><Icon name="lucide:star" /> 0.8</span>
+                  <span class="mbadge ret"><Icon name="lucide:arrow-up-from-line" /> 4</span>
+                </div>
+                <div class="mtext">Monthly grocery budget set to $600, with a goal to cut unnecessary spending.</div>
+              </div>
+            </div>
+            <div class="mcard">
+              <div class="mic"><Icon name="lucide:brain" /></div>
+              <div class="mbody">
+                <div class="mbadges">
+                  <span class="mbadge cat">preference</span>
+                  <span class="mbadge">shopping</span>
+                  <span class="mbadge star"><Icon name="lucide:star" /> 0.6</span>
+                </div>
+                <div class="mtext">Prefers buying store-brand staples and batch-cooking on weekends.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== 02 sovereign ===== -->
+  <div class="wrap" id="self-host"><section class="section">
+    <div class="num display">02<small>Sovereign</small></div>
+    <div class="body">
+      <h2 class="display">One container. Nothing leaves your server.</h2>
+      <div class="split2">
+        <div>
+          <p>No Postgres, Redis, Mongo, or message broker. Bun and SQLite in a single binary. Your data, your keys, your machine.</p>
+          <p>Secrets live in an encrypted vault. Kins reference a vault key to reach a service; they <b>never read the value</b>, so it <b>never reaches the LLM</b>.</p>
+          <div class="term mono"><span class="c">$</span> docker run -d -p 3000:3000 kinbot<br /><span class="cmt"># then open your browser. Sherpa does the rest.</span></div>
+        </div>
+        <dl class="specs">
+          <div class="r"><dt>Footprint</dt><dd>1 process · 1 SQLite file</dd></div>
+          <div class="r"><dt>External infra</dt><dd>none</dd></div>
+          <div class="r"><dt>Secrets</dt><dd>AES-256-GCM vault, by reference only</dd></div>
+          <div class="r"><dt>Data &amp; keys</dt><dd>yours, on your hardware</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== 03 self-improving ===== -->
+  <div class="wrap" id="extensible"><section class="section">
+    <div class="num display">03<small>Self-improving</small></div>
+    <div class="body">
+      <h2 class="display">Your agents extend the platform themselves.</h2>
+      <div class="split2">
+        <div class="shot">
+          <span class="cap">Fig. 2 · a tool renders as UI</span>
+          <div class="shot-inner">
+            <!-- Drop the real screenshot at public/screens/tool-weather.png and replace this block with:
+                 <img src={`${import.meta.env.BASE_URL}/screens/tool-weather.png`} alt="Weather tool rendered in-thread" /> -->
+            <div class="ph"><div><Icon name="lucide:image" /><div class="lbl">Weather widget, rendered in-thread</div><span class="pt">screenshot to add</span></div></div>
+          </div>
+        </div>
+        <div>
+          <p>Kins write tools in the language they want, with their own dependencies, plus a renderer that shows the result as a <b>themed card, not raw JSON</b>. They build full mini-apps (dashboards, control panels) right inside KinBot, and can ship NPM plugins.</p>
+          <p>Scope each Kin with <b>toolboxes</b> so a focused agent only sees the tools it needs, which keeps it sharp and lets lighter models do the job.</p>
+          <div class="taglist">
+            <span class="t"><Icon name="lucide:wrench" /> custom tools</span>
+            <span class="t"><Icon name="lucide:layout-dashboard" /> mini-apps</span>
+            <span class="t"><Icon name="lucide:package" /> NPM plugins</span>
+            <span class="t"><Icon name="lucide:plug" /> MCP</span>
+            <span class="t"><Icon name="lucide:toy-brick" /> toolboxes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== 04 everywhere ===== -->
+  <div class="wrap" id="channels"><section class="section">
+    <div class="num display">04<small>Everywhere</small></div>
+    <div class="body">
+      <h2 class="display">One inbox for your whole team.</h2>
+      <div class="split2">
+        <div>
+          <p>Talk to every Kin from the messaging apps you already use. Ask for a specialist by name and the Kin on the line <b>hands the channel over</b> in real time. No commands, no switching apps.</p>
+          <div class="taglist">
+            {channels.map(([slug, label]) => (
+              <span class="t"><Icon name={`simple-icons:${slug}`} /> {label}</span>
+            ))}
+          </div>
+        </div>
+        <div class="shot">
+          <span class="cap">Fig. 3 · channel handoff (Telegram)</span>
+          <div class="shot-inner">
+            <!-- Drop the real capture at public/screens/channel-transfer.png -->
+            <div class="ph"><div><Icon name="lucide:arrow-left-right" /><div class="lbl">"Pass me the crypto specialist" → live handoff</div><span class="pt">screenshot to add</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== 05 transparent ===== -->
+  <div class="wrap" id="transparency"><section class="section">
+    <div class="num display">05<small>Transparent</small></div>
+    <div class="body">
+      <h2 class="display">No black box. No cost surprises.</h2>
+      <div class="split2">
+        <div>
+          <p>See exactly what goes to the model: the system prompt broken down block by block, token cost <b>per Kin and per model</b>, and the prompt-cache read / write / fresh split with its hit rate. KinBot is unusually honest about what it sends and what it spends, across any provider.</p>
+          <div class="taglist"><span class="t"><Icon name="lucide:gauge" /> per-Kin token cost</span><span class="t"><Icon name="lucide:layers" /> context preview</span></div>
+        </div>
+        <div class="figure glass">
+          <div class="cap"><span>Fig. 4 · context viewer</span><span class="amb">tokens</span></div>
+          <div class="figbody">
+            <div class="bd">
+              <div class="row"><span class="lab">Tools</span><span class="bar"><i style="width:100%"></i></span><span class="val">8.4k</span></div>
+              <div class="row"><span class="lab">Memory</span><span class="bar"><i style="width:34%"></i></span><span class="val">2.8k</span></div>
+              <div class="row"><span class="lab">Identity</span><span class="bar"><i style="width:16%"></i></span><span class="val">1.3k</span></div>
+              <div class="row"><span class="lab">Channels</span><span class="bar"><i style="width:8%"></i></span><span class="val">0.6k</span></div>
+            </div>
+            <div class="cachep">
+              <div class="ch"><span class="ttl">prompt cache · warm · 4:12 left</span><span class="hit">72% hit</span></div>
+              <div class="cbar">
+                <i style="width:72%;background:oklch(0.72 0.22 342 / .7)"></i>
+                <i style="width:9%;background:oklch(0.78 0.15 150 / .7)"></i>
+                <i style="width:19%;background:oklch(0.64 0.23 305 / .7)"></i>
+              </div>
+              <div class="leg">
+                <span><span class="sw" style="background:oklch(0.72 0.22 342)"></span>read 9.1k</span>
+                <span><span class="sw" style="background:oklch(0.78 0.15 150)"></span>write 1.2k</span>
+                <span><span class="sw" style="background:oklch(0.64 0.23 305)"></span>fresh 2.4k</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== 06 setup / sherpa ===== -->
+  <div class="wrap" id="setup"><section class="section">
+    <div class="num display">06<small>Setup</small></div>
+    <div class="body">
+      <h2 class="display">Setup is a conversation, not a YAML file.</h2>
+      <div class="split2">
+        <div>
+          <p>Sherpa, your setup agent, connects your providers, secures your secrets, and creates your first Kins by chatting with you. It stays around for good, ready to add a Kin or wire up a new provider any time.</p>
+          <div class="taglist"><span class="t"><Icon name="lucide:shield-check" /> secure input → vault</span><span class="t"><Icon name="lucide:wand-sparkles" /> generates Kins for you</span></div>
+        </div>
+        <div class="shot">
+          <span class="cap">Fig. 5 · Sherpa onboarding</span>
+          <div class="shot-inner">
+            <!-- Drop the real capture at public/screens/sherpa-onboarding.png -->
+            <div class="ph"><div><Icon name="lucide:messages-square" /><div class="lbl">Sherpa connects a provider via secure input</div><span class="pt">screenshot to add</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== 07 the household ===== -->
+  <div class="wrap" id="household"><section class="section">
+    <div class="num display">07<small>Examples</small></div>
+    <div class="body">
+      <h2 class="display">Build a household for your life.</h2>
+      <p>KinBot ships with one Kin: <b>Sherpa</b>, your setup guide. You create the rest, or just ask Sherpa to build them for you. Each one gets its own name, domain, memory, tools, and an auto-generated avatar.</p>
+      <p class="examples-note mono">A few examples of what people build →</p>
+      <div class="directory">
+        {kins.map((k, i) => {
+          const builtin = k.name === 'Sherpa';
+          return (
+            <div class="dir">
+              <div class="frame"><Avatar name={k.name} avatar={k.avatar} size={52} hue={HUES[i % HUES.length]} /></div>
+              <div class="top"><span class="nm">{k.name}</span>{builtin ? <span class="bi">built-in</span> : <span class="no">e.g.</span>}</div>
+              <div class="dm">{k.domain}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== providers & plugins ===== -->
+  <Providers />
+  <hr class="rule" />
+
+  <!-- ===== why kinbot (comparison) ===== -->
+  <div class="wrap" id="why"><section class="section" style="grid-template-columns:1fr;">
+    <div class="body">
+      <span class="kicker">Why KinBot</span>
+      <h2 class="display" style="margin-top:12px">Next to the closest projects.</h2>
+      <p>Self-hosted AI assistants like <b>OpenClaw</b> and <b>Hermes</b> are excellent: they win on memory, omnichannel reach and self-hosting too. Where KinBot pulls ahead is the <b>team</b>, the <b>polished product UI</b>, and <b>transparency</b>.</p>
+      <div class="cmp-wrap"><table class="cmp">
+        <thead><tr><th></th>{cmpCols.map((c, i) => <th class={'c' + (i === 0 ? ' kb' : '')}>{c}</th>)}</tr></thead>
+        <tbody>
+          {cmpRows.map((r) => (
+            <tr>
+              <td class="k">{r[0]}</td>
+              {[1, 2, 3].map((j) => (
+                <td class={'c ' + (j === 1 ? 'kbcell ' : '') + r[j]}><Icon name={cmpIcon[r[j]]} /></td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table></div>
+      <p class="examples-note">✓ native · ✕ not really · the rest is partial or unclear. Marks are best-effort from public docs.</p>
+    </div>
+  </section></div>
+  <hr class="rule" />
+
+  <!-- ===== get started ===== -->
+  <section class="getstarted" id="start">
+    <div class="glow a" style="left:50%;transform:translateX(-50%);right:auto;top:-170px;"></div>
+    <div class="wrap" style="position:relative;z-index:1">
+      <span class="kicker" style="justify-content:center">Get started</span>
+      <h2 class="display">Run your team in two minutes.</h2>
+      <p>One command. No external services to provision. Open your browser and Sherpa walks you through the rest.</p>
+      <div class="cmd"><span><span class="c">$</span> docker run -d -p 3000:3000 -v kinbot-data:/app/data ghcr.io/marlburrow/kinbot</span><span class="cp"><Icon name="lucide:copy" /></span></div>
+      <div class="btns">
+        <a class="btn btn-primary" href="https://github.com/MarlBurroW/kinbot"><Icon name="lucide:github" /> Star on GitHub</a>
+        <a class="btn btn-ghost" href="#docs"><Icon name="lucide:book-open" /> Read the docs</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== footer ===== -->
+  <footer class="footer" id="docs"><div class="wrap in">
+    <div class="brand"><img class="brand-logo" src={`${base}/logo.svg`} width="26" height="26" alt="" /> KinBot</div>
+    <span class="m">Open-source · MIT · Built with Bun · © 2026</span>
+  </div></footer>
+</Base>

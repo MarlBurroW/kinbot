@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="KinBot">
+  <defs>
+    <linearGradient id="a5" x1="8" y1="10" x2="56" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#AE5AF9"/><stop offset="0.52" stop-color="#FB5FCA"/><stop offset="1" stop-color="#FFB470"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="32" cy="32" rx="25" ry="11.5" transform="rotate(-24 32 32)" stroke="url(#a5)" stroke-width="3" fill="none"/>
+  <circle cx="32" cy="32" r="8" fill="url(#a5)"/>
+  <circle cx="53.5" cy="20.5" r="4.2" fill="url(#a5)"/>
+</svg>

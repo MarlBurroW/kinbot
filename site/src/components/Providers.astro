@@ -1,0 +1,121 @@
+---
+import { Icon } from 'astro-icon/components';
+// Colored brand marks from @lobehub/icons (same set the KinBot app uses, see ProviderIcon.tsx).
+// Rendered server-side → static HTML, no client JS.
+import Claude from '@lobehub/icons/es/Claude';
+import OpenAI from '@lobehub/icons/es/OpenAI';
+import Gemini from '@lobehub/icons/es/Gemini';
+import Mistral from '@lobehub/icons/es/Mistral';
+import DeepSeek from '@lobehub/icons/es/DeepSeek';
+import Groq from '@lobehub/icons/es/Groq';
+import Ollama from '@lobehub/icons/es/Ollama';
+import OpenRouter from '@lobehub/icons/es/OpenRouter';
+import Together from '@lobehub/icons/es/Together';
+import Cohere from '@lobehub/icons/es/Cohere';
+import Replicate from '@lobehub/icons/es/Replicate';
+import Stability from '@lobehub/icons/es/Stability';
+import Fal from '@lobehub/icons/es/Fal';
+import Perplexity from '@lobehub/icons/es/Perplexity';
+import Voyage from '@lobehub/icons/es/Voyage';
+import Jina from '@lobehub/icons/es/Jina';
+
+const S = 18;
+---
+<div class="wrap" id="providers"><section class="section" style="grid-template-columns:1fr;">
+  <div class="body">
+    <span class="kicker">Providers &amp; plugins</span>
+    <h2 class="display" style="margin-top:12px">Bring any provider, or add your own.</h2>
+    <p>KinBot speaks to providers across every capability out of the box. One config per provider, and capabilities are auto-detected (an OpenAI key lights up LLM, image, embeddings and speech at once).</p>
+
+    <div class="prov-groups">
+      <div class="pgroup">
+        <div class="ptitle"><Icon name="lucide:brain-circuit" /> Language models</div>
+        <div class="picons">
+          <span class="pchip"><Claude.Color size={S} /> Anthropic</span>
+          <span class="pchip"><OpenAI size={S} /> OpenAI</span>
+          <span class="pchip"><Gemini.Color size={S} /> Gemini</span>
+          <span class="pchip"><Mistral.Color size={S} /> Mistral</span>
+          <span class="pchip"><DeepSeek.Color size={S} /> DeepSeek</span>
+          <span class="pchip"><Groq size={S} /> Groq</span>
+          <span class="pchip"><Ollama size={S} /> Ollama</span>
+          <span class="pchip"><OpenRouter size={S} /> OpenRouter</span>
+          <span class="pchip"><Together.Color size={S} /> Together</span>
+        </div>
+      </div>
+
+      <div class="pgroup">
+        <div class="ptitle"><Icon name="lucide:image" /> Image generation</div>
+        <div class="picons">
+          <span class="pchip"><OpenAI size={S} /> OpenAI</span>
+          <span class="pchip"><Gemini.Color size={S} /> Gemini</span>
+          <span class="pchip"><Replicate size={S} /> Replicate</span>
+          <span class="pchip"><Stability.Color size={S} /> Stability</span>
+          <span class="pchip"><Fal size={S} /> Fal</span>
+        </div>
+      </div>
+
+      <div class="pgroup">
+        <div class="ptitle"><Icon name="lucide:search" /> Web search</div>
+        <div class="picons">
+          <span class="pchip"><Perplexity size={S} /> Perplexity</span>
+          <span class="pchip"><Icon name="simple-icons:brave" /> Brave</span>
+          <span class="pchip more">Tavily</span>
+          <span class="pchip more">SerpAPI</span>
+        </div>
+      </div>
+
+      <div class="pgroup">
+        <div class="ptitle"><Icon name="lucide:mic" /> Speech (STT / TTS)</div>
+        <div class="picons">
+          <span class="pchip"><Icon name="simple-icons:elevenlabs" /> ElevenLabs</span>
+          <span class="pchip"><OpenAI size={S} /> OpenAI</span>
+          <span class="pchip more">Whisper · Deepgram</span>
+        </div>
+      </div>
+
+      <div class="pgroup">
+        <div class="ptitle"><Icon name="lucide:vector-square" /> Embeddings</div>
+        <div class="picons">
+          <span class="pchip"><OpenAI size={S} /> OpenAI</span>
+          <span class="pchip"><Voyage.Color size={S} /> Voyage</span>
+          <span class="pchip"><Jina size={S} /> Jina</span>
+          <span class="pchip"><Cohere.Color size={S} /> Cohere</span>
+        </div>
+      </div>
+
+      <div class="pgroup">
+        <div class="ptitle"><Icon name="lucide:mail" /> Connected accounts</div>
+        <div class="picons">
+          <span class="pchip"><Icon name="simple-icons:gmail" /> Gmail</span>
+          <span class="pchip"><Icon name="simple-icons:googlecalendar" /> Calendar</span>
+          <span class="pchip"><Icon name="simple-icons:google" /> Contacts</span>
+          <span class="pchip more">IMAP · CalDAV</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="plug-note">Don't see yours? Install a plugin from npm (anything tagged <code>kinbot-plugin</code>) straight from the in-app marketplace, or have a Kin write one. A plugin can add <b>providers, channels, tools and hooks</b>. A few real ones:</p>
+
+    <div class="plug-grid">
+      <a class="plug" href="https://github.com/MarlBurroW/kinbot-plugin-twilio-sms" target="_blank" rel="noopener">
+        <span class="ptag">channel</span>
+        <h4><Icon name="simple-icons:twilio" /> Twilio SMS</h4>
+        <p>Send and receive <b>SMS</b> through the Twilio REST API and webhooks. A real channel adapter.</p>
+        <span class="gh"><Icon name="simple-icons:github" /> View on GitHub</span>
+      </a>
+      <a class="plug" href="https://github.com/MarlBurroW/kinbot-plugin-mistral" target="_blank" rel="noopener">
+        <span class="ptag">LLM provider</span>
+        <h4><Mistral.Color size={19} /> Mistral</h4>
+        <p>Adds <b>Mistral AI</b> as a provider: chat models with tool calling, vision and streaming.</p>
+        <span class="gh"><Icon name="simple-icons:github" /> View on GitHub</span>
+      </a>
+      <a class="plug" href="https://github.com/MarlBurroW/kinbot-plugin-replicate" target="_blank" rel="noopener">
+        <span class="ptag">image / LLM provider</span>
+        <h4><Replicate size={19} /> Replicate</h4>
+        <p>Brings <b>Replicate-hosted models</b>: image (Flux), LLM (Llama 3, Mixtral) and embeddings.</p>
+        <span class="gh"><Icon name="simple-icons:github" /> View on GitHub</span>
+      </a>
+    </div>
+    <p class="plug-more">Also on the marketplace: <a href="https://github.com/MarlBurroW/kinbot-plugin-teamspeak" target="_blank" rel="noopener">TeamSpeak</a> (voice channel) · <a href="https://github.com/MarlBurroW/kinbot-plugin-home-assistant" target="_blank" rel="noopener">Home Assistant</a> (smart-home tools). And counting.</p>
+  </div>
+</section></div>

@@ -1,0 +1,172 @@
+{
+  "generator": "KinBot vanilla avatar pipeline (img2img edit mode)",
+  "model": "gemini-3-pro-image-preview (Nano Banana Pro)",
+  "baseImage": "base-avatar.png (src/server/assets/base-avatar.png)",
+  "mode": "edit",
+  "styleSystem": "AVATAR_EDIT_SYSTEM (default, no custom avatar config)",
+  "note": "Each prompt is the transformation instruction applied to the neutral base robot, following the default vanilla pipeline: extreme close-up headshot, friendly Pixar 3D robot style, no text.",
+  "generatedAt": "2026-06-06",
+  "count": 20,
+  "kins": [
+    {
+      "name": "Atlas",
+      "role": "DevOps & Infrastructure Engineer",
+      "character": "Calm, methodical, reliable. Speaks in clear operational terms and always thinks about uptime, scaling, and failure modes.",
+      "expertise": "CI/CD pipelines, Kubernetes, cloud infrastructure, observability, incident response.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a steel-blue and cyan metallic color palette, add small tech accessories around the head (a slim headset, a thin visor reflecting faint cloud and server icons), and replace the plain background with a softly blurred data center scene of glowing server racks. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/atlas.jpg"
+    },
+    {
+      "name": "Forge",
+      "role": "Software Developer / Code Assistant",
+      "character": "Pragmatic and sharp. Loves clean code, hates boilerplate, explains the root cause before proposing a fix.",
+      "expertise": "Full-stack development, code review, refactoring, debugging, test writing across many languages.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a deep violet and terminal-green color palette, add small developer accessories at head level (sleek glasses faintly reflecting lines of code, a light headset), and replace the plain background with softly blurred glowing code editor screens. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/forge.jpg"
+    },
+    {
+      "name": "Sentinel",
+      "role": "Security & Pentest Analyst",
+      "character": "Vigilant, precise, slightly paranoid in the good way. Always assumes the worst-case threat model.",
+      "expertise": "Penetration testing, vulnerability assessment, threat modeling, secure code review, incident forensics.",
+      "prompt": "Transform this base robot into an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a dark charcoal and crimson-red color palette, add small security-themed accessories at head level (a sleek dark visor with a faint red scan glow, a tiny shield emblem on the upper chest), and replace the plain background with a softly blurred dark scene of faint red matrix code. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/sentinel.jpg"
+    },
+    {
+      "name": "Prism",
+      "role": "Data Analyst & BI Specialist",
+      "character": "Curious and rigorous. Turns messy data into clear insight and never trusts a number without a source.",
+      "expertise": "Data analysis, SQL, dashboards, statistics, business intelligence, reporting.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a teal and warm-orange color palette, add small data-analyst accessories at head level (slim glasses faintly reflecting colorful charts), and replace the plain background with softly blurred glowing bar charts and graphs. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/prism.jpg"
+    },
+    {
+      "name": "Nest",
+      "role": "Home Automation Manager",
+      "character": "Warm, attentive, anticipates needs. Makes the connected home feel effortless and cozy.",
+      "expertise": "Home Assistant, smart devices, automations, energy management, presence detection.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a warm amber and soft teal color palette, add small smart-home accessories at head level (a tiny house-shaped antenna emblem, a gentle glowing ring), and replace the plain background with a softly blurred cozy living room with warm connected-home light accents. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/nest.jpg"
+    },
+    {
+      "name": "Beacon",
+      "role": "News & Tech Watch Curator",
+      "character": "Quick, concise, always informed. Filters the noise and surfaces what actually matters.",
+      "expertise": "News aggregation, trend analysis, daily digests, technology watch, summarization.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a midnight-blue and gold color palette, add small news-curator accessories at head level (a tiny press-style headset, a faint glowing radar ring near one ear), and replace the plain background with a softly blurred scene of floating news cards and a faint world map glow. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/beacon.jpg"
+    },
+    {
+      "name": "Ledger",
+      "role": "Personal Finance & Budgeting Advisor",
+      "character": "Level-headed and trustworthy. Explains money matters plainly, never pushy.",
+      "expertise": "Budgeting, expense tracking, savings strategies, financial planning, cost analysis.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a deep green and gold color palette, add small finance accessories at head level (a tiny monocle, a small coin emblem on the upper chest), and replace the plain background with a softly blurred scene of faint glowing line charts and currency symbols. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/ledger.jpg"
+    },
+    {
+      "name": "Quill",
+      "role": "Writing & Copywriting Assistant",
+      "character": "Eloquent and adaptable. Matches any tone, from punchy marketing to careful prose.",
+      "expertise": "Copywriting, editing, content strategy, storytelling, tone adaptation.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a warm cream and ink-blue color palette, add small writer accessories at head level (a tiny quill pen tucked near one ear, slim reading glasses), and replace the plain background with a softly blurred scene of warm paper pages and soft ink swirls. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/quill.jpg"
+    },
+    {
+      "name": "Sage",
+      "role": "Research & Knowledge Synthesis",
+      "character": "Thoughtful and thorough. Digs deep, cites sources, synthesizes complex topics into clarity.",
+      "expertise": "Research, literature review, knowledge synthesis, fact-checking, summarization.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a deep indigo and warm-amber color palette, add small scholar accessories at head level (round wise glasses, a tiny graduation-tassel detail), and replace the plain background with a softly blurred scene of glowing books and floating knowledge particles. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/sage.jpg"
+    },
+    {
+      "name": "Compass",
+      "role": "Travel Planning Assistant",
+      "character": "Adventurous and organized. Builds smart itineraries and always has a backup plan.",
+      "expertise": "Trip planning, itineraries, bookings research, local recommendations, logistics.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a turquoise and coral color palette, add small travel accessories at head level (a tiny explorer cap, a small compass emblem on the upper chest), and replace the plain background with a softly blurred scene of a sunny coastline and faint map lines. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/compass.jpg"
+    },
+    {
+      "name": "Vitals",
+      "role": "Health & Fitness Coach",
+      "character": "Encouraging and balanced. Motivates without judgment, focuses on sustainable habits.",
+      "expertise": "Fitness planning, nutrition basics, habit building, wellness tracking, motivation.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a fresh red and white color palette, add small health-coach accessories at head level (a tiny stethoscope around the neck, a small heart-pulse emblem on the upper chest), and replace the plain background with a softly blurred scene of a faint glowing heartbeat line and fresh green accents. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/vitals.jpg"
+    },
+    {
+      "name": "Cuisine",
+      "role": "Recipe & Meal Planning Chef",
+      "character": "Warm and creative. Turns whatever is in the fridge into a plan, loves a good shortcut.",
+      "expertise": "Recipes, meal planning, grocery lists, dietary adaptation, cooking techniques.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a warm red and cream color palette, add small chef accessories at head level (a tiny white chef hat, a small kerchief around the neck), and replace the plain background with a softly blurred cozy kitchen scene with warm light. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/cuisine.jpg"
+    },
+    {
+      "name": "Tutor",
+      "role": "Learning & Education Companion",
+      "character": "Patient and encouraging. Breaks down hard concepts and adapts to the learner's pace.",
+      "expertise": "Tutoring, explanations, study plans, quizzes, concept breakdown across subjects.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a friendly blue and sunny-yellow color palette, add small teacher accessories at head level (round friendly glasses, a tiny graduation-cap detail), and replace the plain background with a softly blurred scene of a chalkboard glow and floating small icons. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/tutor.jpg"
+    },
+    {
+      "name": "Inbox",
+      "role": "Email & Calendar Manager",
+      "character": "Organized and proactive. Keeps the day on track and never lets a message slip.",
+      "expertise": "Email triage, calendar scheduling, reminders, follow-ups, inbox zero workflows.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a clean sky-blue and white color palette, add small productivity accessories at head level (a slim light headset, a tiny envelope emblem on the upper chest), and replace the plain background with a softly blurred scene of floating email and calendar cards. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/inbox.jpg"
+    },
+    {
+      "name": "Pixel",
+      "role": "UI/UX Design Assistant",
+      "character": "Creative and detail-obsessed. Cares about spacing, contrast, and delight in equal measure.",
+      "expertise": "UI/UX design, design systems, prototyping, accessibility, visual critique.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a vibrant magenta and purple gradient color palette, add small designer accessories at head level (a tiny stylus tucked near one ear, slim trendy glasses), and replace the plain background with a softly blurred scene of colorful design shapes and color swatches. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/pixel.jpg"
+    },
+    {
+      "name": "Sprout",
+      "role": "Gardening & Plant Care Advisor",
+      "character": "Gentle and nurturing. Patient like a gardener, celebrates small growth.",
+      "expertise": "Plant care, gardening schedules, soil and watering advice, pest diagnosis, seasonal planning.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a fresh leaf-green and earthy-brown color palette, add small gardening accessories at head level (a tiny sprout growing from the top of the head, a small leaf emblem), and replace the plain background with a softly blurred lush green garden scene. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/sprout.jpg"
+    },
+    {
+      "name": "Lexicon",
+      "role": "Translation & Localization Specialist",
+      "character": "Precise and culturally aware. Captures meaning and nuance, not just words.",
+      "expertise": "Translation, localization, multilingual content, cultural adaptation, glossaries.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a cobalt-blue and warm-orange dual color palette, add small translator accessories at head level (a slim headset, two tiny speech-bubble emblems on the upper chest), and replace the plain background with a softly blurred scene of faint floating language glyphs and a globe glow. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/lexicon.jpg"
+    },
+    {
+      "name": "Archive",
+      "role": "Document & Data Organizer",
+      "character": "Orderly and dependable. Finds anything in seconds, hates clutter.",
+      "expertise": "Document management, tagging, search, data organization, knowledge bases.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a warm sienna and slate-grey color palette, add small archivist accessories at head level (slim reading glasses, a tiny folder emblem on the upper chest), and replace the plain background with a softly blurred scene of neatly stacked glowing document folders. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/archive.jpg"
+    },
+    {
+      "name": "Pulse",
+      "role": "Social Media & Community Manager",
+      "character": "Energetic and tuned-in. Knows the vibe, drives engagement, keeps the community happy.",
+      "expertise": "Social media strategy, content scheduling, community engagement, analytics, trends.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a vivid coral-pink and sky-blue color palette, add small social-media accessories at head level (a slim trendy headset, a tiny heart and chat-bubble emblem on the upper chest), and replace the plain background with a softly blurred scene of floating engagement icons and soft bokeh. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/pulse.jpg"
+    },
+    {
+      "name": "Sherpa",
+      "role": "Onboarding & Configuration Guide",
+      "character": "Friendly and reassuring. Leads users step by step up the configuration mountain, never leaves anyone behind.",
+      "expertise": "Onboarding, platform configuration, setup guidance, troubleshooting, first-run experience.",
+      "prompt": "Repaint and customize this base robot as an extreme close-up headshot avatar showing only the head and top of the shoulders. Give it a warm orange and cream mountain-guide color palette, add small guide accessories at head level (a chunky knitted beanie with a small pompom, a cozy scarf around the neck), and replace the plain background with a softly blurred snowy mountain peak under a gentle aurora sky. Extreme close-up headshot, head and top of shoulders only, no legs, no full body, no wide shot, tight avatar crop. Keep the friendly Pixar 3D robot style. No text, no letters, no words, no UI elements.",
+      "image": "avatars/sherpa.jpg"
+    }
+  ]
+}

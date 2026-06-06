@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="KinBot">
+  <defs>
+    <linearGradient id="a6" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#AE5AF9"/><stop offset="0.52" stop-color="#FB5FCA"/><stop offset="1" stop-color="#FFB470"/>
+    </linearGradient>
+  </defs>
+  <path d="M6 30.5 L32 7 L58 30.5 Z" fill="url(#a6)"/>
+  <rect x="12" y="27" width="40" height="27" rx="9" fill="url(#a6)"/>
+  <rect x="21" y="33" width="22" height="15.5" rx="7" fill="#160E2B"/>
+  <circle cx="28" cy="40.5" r="2.7" fill="#FDFCFF"/><circle cx="36" cy="40.5" r="2.7" fill="#FDFCFF"/>
+</svg>

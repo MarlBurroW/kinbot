@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KinBot — Synthesis (app skin + editorial bones)</title>
+<!--
+  SYNTHESIS — keeps KinBot's app identity (aurora violet, glow, glass, Plus Jakarta, lucide)
+  but borrows the EDITORIAL STRUCTURE that makes it feel crafted, not AI-default:
+   • numbered sections (01–04) with aurora numerals + hairline rules
+   • mono metadata / colophon / "Fig." captions / spec tables  (engineered feel)
+   • right hero = an app-like "Kins panel" (looks like the real product, Sherpa fills first)
+   • avatars as a directory/roster, not floating decorative cards
+   • restraint: 2 soft glows max, no gratuitous blobs, varied radii, no icon-triplet spam
+  Skin stays on-brand so the site and the app are obviously the same family.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --bg: oklch(0.145 0.03 312);
+  --bg-alt: oklch(0.175 0.034 316);
+  --glass: oklch(0.225 0.042 312 / 0.5);
+  --surface: oklch(0.205 0.04 312);
+  --ink: oklch(0.95 0.015 320);
+  --ink-soft: oklch(0.75 0.03 315);
+  --line: oklch(1 0 0 / 0.10);
+  --line-strong: oklch(1 0 0 / 0.16);
+  --primary: oklch(0.72 0.19 305);
+  --peach: oklch(0.84 0.13 60);
+  --green: oklch(0.78 0.15 150);
+  --grad: linear-gradient(100deg, oklch(0.64 0.23 305), oklch(0.72 0.22 342), oklch(0.85 0.14 55));
+  --grad-warm: linear-gradient(96deg, oklch(0.86 0.13 62), oklch(0.74 0.17 26));
+  --r-sharp: 6px; --r-card: 1.1rem; --r-pill: 999px;
+  --shadow: 0 2px 8px oklch(0 0 0/.35), 0 26px 64px oklch(0 0 0/.42);
+  --feather-y: linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent);
+  --feather-x: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+.display{font-weight:800;letter-spacing:-.03em;}
+.mono{font-family:"JetBrains Mono",monospace;}
+.wrap{max-width:1120px;margin:0 auto;padding:0 30px;}
+a{color:inherit;text-decoration:none;}
+[data-lucide]{width:1em;height:1em;stroke-width:2.1;}
+.muted{color:var(--ink-soft);}
+hr.rule{border:0;border-top:1px solid var(--line);margin:0;}
+.kicker{font-family:"JetBrains Mono",monospace;font-size:.72rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);display:inline-flex;align-items:center;gap:10px;}
+.kicker::before{content:"";width:16px;height:2px;border-radius:2px;background:var(--grad);}
+.glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.2);border:1px solid var(--line-strong);}
+
+/* ---- top bar ---- */
+.topbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);background:oklch(0.145 0.03 312 /.72);border-bottom:1px solid var(--line);}
+.topbar .in{display:flex;align-items:center;justify-content:space-between;height:62px;}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.12rem;}
+.brand .dot{width:28px;height:28px;border-radius:8px;background:var(--grad);display:grid;place-items:center;color:#fff;}
+.brand .dot [data-lucide]{width:16px;height:16px;}
+.topbar nav{display:flex;gap:26px;}
+.topbar nav a{font-family:"JetBrains Mono",monospace;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
+.topbar nav a:hover{color:var(--ink);}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.92rem;padding:.62rem 1.1rem;border:0;cursor:pointer;transition:transform .15s ease;}
+.btn:hover{transform:translateY(-2px);}
+.btn [data-lucide]{width:1.05em;height:1.05em;}
+.btn-primary{background:var(--grad);color:#fff;border-radius:var(--r-pill);box-shadow:0 6px 20px oklch(0.62 0.24 322/.4);position:relative;overflow:hidden;}
+.btn-primary::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,oklch(1 0 0/.4) 50%,transparent 70%);transform:translateX(-120%);transition:transform .6s ease;}
+.btn-primary:hover::after{transform:translateX(120%);}
+.btn-ghost{background:oklch(1 0 0/.04);color:var(--ink);border:1px solid var(--line-strong);border-radius:var(--r-pill);}
+.btn-sm{padding:.45rem .9rem;font-size:.85rem;}
+.link-mono{font-family:"JetBrains Mono",monospace;font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--primary);padding-bottom:3px;display:inline-flex;gap:8px;align-items:center;}
+.link-mono [data-lucide]{width:1em;height:1em;color:var(--peach);}
+
+/* ---- hero ---- */
+.hero{position:relative;padding:64px 0 30px;}
+.glow{position:absolute;border-radius:50%;filter:blur(95px);pointer-events:none;z-index:0;}
+.glow.a{width:520px;height:520px;background:oklch(0.84 0.14 55/.18);top:-160px;right:-90px;}
+.glow.b{width:420px;height:420px;background:oklch(0.58 0.22 305/.16);top:120px;left:-160px;}
+.hero .meta{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center;margin-top:18px;}
+.hero h1{font-size:clamp(2.8rem,5.6vw,4.7rem);line-height:1.0;margin:14px 0 18px;}
+.hero h1 .warm{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.hero .sub{font-size:1.16rem;color:var(--ink-soft);max-width:40ch;margin:0 0 22px;}
+.hero .sub b{color:var(--ink);font-weight:600;}
+.colophon{border-top:1px solid var(--line);max-width:430px;}
+.colophon .row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:.76rem;}
+.colophon .row .k{color:var(--ink-soft);letter-spacing:.06em;text-transform:uppercase;font-size:.68rem;align-self:center;}
+.colophon .row .v{color:var(--ink);}
+.colophon .row .v .amb{color:var(--peach);}
+.cta{display:flex;align-items:center;gap:20px;margin-top:24px;flex-wrap:wrap;}
+
+/* right hero: app-like Kins panel */
+.panel{border-radius:var(--r-card);box-shadow:var(--shadow);overflow:hidden;position:relative;}
+.panel::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad);z-index:2;}
+.panel .ph-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line);}
+.panel .ph-head .t{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
+.panel .ph-head .c{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--ink-soft);}
+.krow{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);opacity:0;animation:rowin .5s ease forwards;}
+.krow:last-child{border-bottom:0;}
+.krow .av{width:38px;height:38px;border-radius:10px;flex:0 0 auto;overflow:hidden;display:grid;place-items:center;}
+.krow .meta2{flex:1;min-width:0;}
+.krow .nm{font-weight:700;font-size:.92rem;line-height:1.15;}
+.krow .dm{font-family:"JetBrains Mono",monospace;font-size:.66rem;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);}
+.krow .st{font-family:"JetBrains Mono",monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);display:flex;align-items:center;gap:6px;}
+.krow .st .pip{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
+.krow .st.work{color:var(--peach);} .krow .st.work .pip{background:var(--peach);box-shadow:0 0 8px var(--peach);}
+@keyframes rowin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* trust strip */
+.strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:oklch(0.125 0.026 312);margin-top:42px;}
+.strip-in{display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;padding:16px 0;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;}
+.strip-in .chan{display:flex;align-items:center;gap:7px;}
+.strip-in .chan img{width:16px;height:16px;opacity:.78;}
+
+/* ---- numbered sections ---- */
+.section{display:grid;grid-template-columns:108px 1fr;gap:32px;padding:72px 0;}
+.section .num{font-weight:800;font-size:2.9rem;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.02em;}
+.section .num small{display:block;font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-top:9px;-webkit-text-fill-color:var(--ink-soft);}
+.section h2{font-size:clamp(1.9rem,3.4vw,2.7rem);line-height:1.04;letter-spacing:-.025em;margin:0 0 14px;max-width:20ch;}
+.section .body>p{font-size:1.06rem;color:var(--ink-soft);margin:0 0 16px;max-width:56ch;}
+.section .body>p b{color:var(--ink);font-weight:600;}
+.split2{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;margin-top:24px;}
+.taglist{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px;}
+.taglist .t{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.03em;text-transform:uppercase;color:var(--ink);background:oklch(1 0 0/.05);border:1px solid var(--line-strong);border-radius:var(--r-sharp);padding:.38rem .7rem;display:inline-flex;align-items:center;gap:7px;}
+.taglist .t [data-lucide]{width:1em;height:1em;color:var(--primary);}
+
+/* figure (glass, captioned) */
+.figure{border-radius:var(--r-card);overflow:hidden;position:relative;box-shadow:var(--shadow);}
+.figure::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad);z-index:2;}
+.figure .cap{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
+.figure .cap .amb{color:var(--peach);}
+.figbody{padding:18px;}
+.line{display:flex;gap:9px;align-items:flex-start;font-size:.88rem;margin:8px 0;color:var(--ink-soft);}
+.line b{color:var(--ink);font-weight:600;}
+.tagm{font-family:"JetBrains Mono",monospace;font-size:.6rem;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line-strong);padding:.1rem .38rem;border-radius:4px;color:var(--ink-soft);}
+.tagm.dec{border-color:var(--primary);color:oklch(0.82 0.14 305);}
+.tagm.pref{border-color:oklch(0.84 0.14 50/.6);color:var(--peach);}
+.q{font-style:italic;}
+.querline{font-family:"JetBrains Mono",monospace;font-size:.74rem;color:var(--ink-soft);margin-bottom:8px;}
+.querline .fn{color:var(--primary);}
+
+/* spec table */
+.specs{border-top:1px solid var(--line);}
+.specs .r{display:grid;grid-template-columns:170px 1fr;gap:14px;padding:11px 0;border-bottom:1px solid var(--line);}
+.specs .r dt{font-family:"JetBrains Mono",monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+.specs .r dd{margin:0;color:var(--ink);font-size:.95rem;}
+.term{font-family:"JetBrains Mono",monospace;font-size:.82rem;background:oklch(0.10 0.018 312);border:1px solid var(--line);border-radius:8px;padding:13px 15px;margin-top:14px;}
+.term .c{color:var(--green);} .term .cmt{color:var(--ink-soft);}
+
+/* shot (feathered real-product slot) */
+.shot{position:relative;border-radius:var(--r-card);overflow:hidden;box-shadow:var(--shadow);}
+.shot::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad);z-index:3;}
+.shot .cap{position:absolute;top:0;left:0;z-index:2;font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface);border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 11px;}
+.shot-inner{-webkit-mask-image:var(--feather-y),var(--feather-x);mask-image:var(--feather-y),var(--feather-x);-webkit-mask-composite:source-in;mask-composite:intersect;}
+.shot .ph{aspect-ratio:4/3;display:grid;place-items:center;text-align:center;padding:28px;color:var(--ink-soft);background:
+  radial-gradient(circle at 78% 22%, oklch(0.80 0.13 52/.14), transparent 52%),
+  radial-gradient(circle at 20% 84%, oklch(0.60 0.2 320/.12), transparent 52%), var(--surface);}
+.shot .ph .lbl{color:var(--ink);font-weight:700;margin-top:8px;}
+.shot .ph .pt{font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.07em;text-transform:uppercase;color:var(--peach);border:1px dashed oklch(0.84 0.14 52/.5);border-radius:var(--r-sharp);padding:.2rem .5rem;margin-top:12px;display:inline-block;}
+.shot .ph [data-lucide]{width:30px;height:30px;}
+
+/* directory (the household) */
+.directory{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border-top:1px solid var(--line);border-left:1px solid var(--line);margin-top:26px;}
+.dir{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:15px;display:flex;flex-direction:column;gap:9px;transition:background .15s ease;}
+.dir:hover{background:oklch(1 0 0/.03);}
+.dir .frame{width:100%;aspect-ratio:1;border:1px solid var(--line-strong);border-radius:10px;display:grid;place-items:center;overflow:hidden;background:var(--surface);}
+.dir .frame .ph{width:100%;height:100%;display:grid;place-items:center;}
+.dir .top{display:flex;justify-content:space-between;align-items:baseline;}
+.dir .nm{font-weight:700;font-size:.96rem;}
+.dir .no{font-family:"JetBrains Mono",monospace;font-size:.62rem;color:var(--ink-soft);}
+.dir .dm{font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);}
+
+/* footer */
+.footer{padding:40px 0 60px;}
+.footer .in{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:14px;}
+.footer .brand{font-size:1rem;}
+.footer .m{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+@media(max-width:860px){
+  .hero-grid{grid-template-columns:1fr;gap:30px;}
+  .section{grid-template-columns:1fr;gap:14px;} .section .num{font-size:2.1rem;}
+  .split2{grid-template-columns:1fr;} .directory{grid-template-columns:repeat(3,1fr);}
+  .topbar nav{display:none;}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bot" viewBox="0 0 64 76">
+    <line x1="32" y1="6" x2="32" y2="15" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="32" cy="5" r="4" fill="currentColor"/>
+    <rect x="9" y="14" width="46" height="34" rx="13" fill="currentColor"/>
+    <rect x="14" y="19" width="36" height="24" rx="9" fill="oklch(0.14 0.03 300)"/>
+    <circle cx="25" cy="31" r="4.2" fill="#fff"/><circle cx="39" cy="31" r="4.2" fill="#fff"/>
+    <circle cx="25.8" cy="31.6" r="1.7" fill="oklch(0.14 0.03 300)"/><circle cx="39.8" cy="31.6" r="1.7" fill="oklch(0.14 0.03 300)"/>
+    <path d="M27 38 q5 4 10 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <rect x="16" y="50" width="32" height="22" rx="10" fill="currentColor"/>
+    <circle cx="32" cy="61" r="4" fill="oklch(0.99 0.02 90/.9)"/>
+  </symbol>
+</svg>
+
+<div class="topbar"><div class="wrap in">
+  <div class="brand"><span class="dot"><i data-lucide="bot"></i></span>KinBot</div>
+  <nav><a href="#">Features</a><a href="#">The household</a><a href="#">Why self-host</a><a href="#">Docs</a><a href="#">GitHub ↗</a></nav>
+  <a class="btn btn-primary btn-sm" href="#">Get started</a>
+</div></div>
+
+<!-- HERO -->
+<header class="hero"><div class="glow a"></div><div class="glow b"></div>
+  <div class="wrap">
+    <span class="meta">KinBot v1.0 · self-hosted · MIT</span>
+    <div class="hero-grid">
+      <div>
+        <span class="kicker">Autonomous AI agents</span>
+        <h1 class="display">Your AI team.<br><span class="warm">At home.</span></h1>
+        <p class="sub">A team of agents that <b>remember</b>, <b>collaborate</b>, and <b>build their own tools</b> — running entirely on your server. Not a chatbot. A household of specialists.</p>
+        <dl class="colophon">
+          <div class="row"><span class="k">Runs on</span><span class="v">one container</span></div>
+          <div class="row"><span class="k">External infra</span><span class="v"><span class="amb">none</span></span></div>
+          <div class="row"><span class="k">Set up by</span><span class="v">a conversation</span></div>
+          <div class="row"><span class="k">Channels</span><span class="v">6 built-in</span></div>
+        </dl>
+        <div class="cta">
+          <a class="btn btn-primary" href="#"><i data-lucide="terminal"></i> Start in 2 minutes</a>
+          <a class="link-mono" href="#">Watch the demo <i data-lucide="play"></i></a>
+        </div>
+      </div>
+      <!-- app-like Kins panel (looks like the real product; rows fill in, Sherpa first) -->
+      <div class="panel glass" id="panel">
+        <div class="ph-head"><span class="t">// your kins</span><span class="c" id="kcount">—</span></div>
+        <div id="krows"></div>
+      </div>
+    </div>
+  </div>
+  <div class="strip"><div class="wrap strip-in">
+    <span>everywhere:</span>
+    <span class="chan"><img src="https://cdn.simpleicons.org/telegram/b9b3c8" alt=""/>Telegram</span>
+    <span class="chan"><img src="https://cdn.simpleicons.org/whatsapp/b9b3c8" alt=""/>WhatsApp</span>
+    <span class="chan"><img src="https://cdn.simpleicons.org/slack/b9b3c8" alt=""/>Slack</span>
+    <span class="chan"><img src="https://cdn.simpleicons.org/discord/b9b3c8" alt=""/>Discord</span>
+    <span class="chan"><img src="https://cdn.simpleicons.org/signal/b9b3c8" alt=""/>Signal</span>
+    <span class="chan"><img src="https://cdn.simpleicons.org/matrix/b9b3c8" alt=""/>Matrix</span>
+  </div></div>
+</header>
+
+<!-- 01 MEMORY -->
+<!-- SRC: src/server/tools/memory-tools.ts -->
+<div class="wrap"><section class="section">
+  <div class="num display">01<small>Persistent</small></div>
+  <div class="body">
+    <h2 class="display">They never forget you.</h2>
+    <div class="split2">
+      <div>
+        <p>No "new conversation". One continuous session, and a hybrid memory that builds context over months. Nothing is deleted: old turns are summarized, never thrown away.</p>
+        <p>A Kin hands work to another, or spawns sub-agents to move faster. The team shares one history and one address book.</p>
+        <div class="taglist"><span class="t"><i data-lucide="infinity"></i> continuous session</span><span class="t"><i data-lucide="users"></i> inter-agent handoff</span></div>
+      </div>
+      <div class="figure glass">
+        <div class="cap"><span>Fig. 1 — recall over months</span><span class="amb">memory</span></div>
+        <div class="figbody">
+          <div class="querline"><span class="fn">recall</span>("grocery budget")</div>
+          <div class="line"><span class="tagm dec">decision</span><span><b>$600 / month</b> · groceries · Mar 12 <span class="mono" style="font-size:.68rem;color:var(--ink-soft)">exact · FTS5</span></span></div>
+          <div class="line"><span class="tagm pref">preference</span><span><span class="q">"cut unnecessary spending"</span> <span class="mono" style="font-size:.68rem;color:var(--ink-soft)">close · vec</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section></div>
+<hr class="rule">
+
+<!-- 02 SELF-HOST -->
+<!-- SRC: context-preview.ts -->
+<div class="wrap"><section class="section">
+  <div class="num display">02<small>Sovereign</small></div>
+  <div class="body">
+    <h2 class="display">One container. It improves itself.</h2>
+    <div class="split2">
+      <div>
+        <p>No Postgres, Redis, Mongo, or message broker. Bun and SQLite in a single binary. Your data, your keys, your machine.</p>
+        <p>The platform <b>extends itself</b>: your Kins write tools, build mini-apps, and ship plugins. Secrets live in an encrypted vault and <b>never reach the LLM</b>.</p>
+        <div class="term mono"><span class="c">$</span> docker run -d -p 3000:3000 kinbot<br><span class="cmt"># then open your browser. Sherpa does the rest.</span></div>
+      </div>
+      <dl class="specs">
+        <div class="r"><dt>Footprint</dt><dd>1 process · 1 SQLite file</dd></div>
+        <div class="r"><dt>Extends via</dt><dd>custom tools · mini-apps · NPM plugins · MCP</dd></div>
+        <div class="r"><dt>Secrets</dt><dd>AES-256-GCM vault, by reference only</dd></div>
+        <div class="r"><dt>Token cost</dt><dd>per Kin &amp; model · 72% cache hit</dd></div>
+      </dl>
+    </div>
+  </div>
+</section></div>
+<hr class="rule">
+
+<!-- 03 SHERPA + product shot -->
+<!-- SRC: configurator.ts + custom-tool-renderer.ts -->
+<div class="wrap"><section class="section">
+  <div class="num display">03<small>Setup</small></div>
+  <div class="body">
+    <h2 class="display">Setup is a conversation, not a YAML file.</h2>
+    <div class="split2">
+      <div>
+        <p>Sherpa, your setup agent, connects your providers, secures your secrets, and creates your first Kins by chatting with you. It stays around for good.</p>
+        <p>Tools render as real, themed UI in the thread — a weather card, not raw JSON. Mini-apps become dashboards inside KinBot.</p>
+        <div class="taglist"><span class="t"><i data-lucide="shield-check"></i> secrets → vault, never to LLM</span><span class="t"><i data-lucide="palette"></i> themed renderers</span></div>
+      </div>
+      <div class="shot">
+        <span class="cap">Fig. 2 — a tool renders as UI</span>
+        <div class="shot-inner">
+          <!-- REPLACE with real screenshot; feather + frame stay -->
+          <div class="ph"><div><i data-lucide="image"></i><div class="lbl">Weather widget, rendered in-thread</div><span class="pt">screenshot to add</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section></div>
+<hr class="rule">
+
+<!-- 04 THE HOUSEHOLD -->
+<div class="wrap"><section class="section">
+  <div class="num display">04<small>Roster</small></div>
+  <div class="body">
+    <h2 class="display">The household.</h2>
+    <p>Eighteen specialists, and counting. Each with its own name, domain, memory, and auto-generated avatar. Add as many as you like.</p>
+    <div class="directory" id="directory"></div>
+  </div>
+</section></div>
+<hr class="rule">
+
+<footer class="footer"><div class="wrap in">
+  <div class="brand"><span class="dot" style="display:inline-grid;width:26px;height:26px;border-radius:7px;background:var(--grad);place-items:center;color:#fff"><i data-lucide="bot"></i></span> <b>KinBot</b></div>
+  <span class="m">Open-source · MIT · Built with Bun · © 2026</span>
+</div></footer>
+
+<script>
+const KINS=[
+  {name:"Sherpa",domain:"Setup & config",st:"online"},{name:"Atlas",domain:"Research",st:"working"},
+  {name:"Quill",domain:"Writing",st:"online"},{name:"Ledger",domain:"Finance",st:"online"},
+  {name:"Pixel",domain:"Design"},{name:"Forge",domain:"Dev & DevOps"},{name:"Sol",domain:"Home automation"},
+  {name:"Cumulus",domain:"Weather"},{name:"Sentry",domain:"Security"},{name:"Tempo",domain:"Calendar"},
+  {name:"Lyra",domain:"Music"},{name:"Chef",domain:"Cooking"},{name:"Coach",domain:"Health"},
+  {name:"Babel",domain:"Translation"},{name:"Curio",domain:"Learning"},{name:"Mercato",domain:"Market watch"},
+  {name:"Nimbus",domain:"Cloud & servers"},{name:"Scribe",domain:"Notes"}
+];
+const HUES=[305,40,20,330,265,210,150,55,15,235,290,30,170,95,260,50,200,120];
+function bot(px,hue){return '<span style="color:oklch(0.74 0.16 '+hue+');display:inline-flex"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span>';}
+// hero panel: Sherpa first, rows fill in
+const krows=document.getElementById('krows');
+const panelKins=KINS.slice(0,5);
+panelKins.forEach((k,i)=>{
+  const st = k.st==='working' ? '<span class="st work"><span class="pip"></span>working</span>'
+           : k.st==='online' ? '<span class="st"><span class="pip"></span>online</span>'
+           : '<span class="st" style="color:var(--ink-soft)"><span class="pip" style="background:var(--ink-soft);box-shadow:none"></span>idle</span>';
+  krows.insertAdjacentHTML('beforeend',
+    '<div class="krow" style="animation-delay:'+(i*0.18)+'s"><span class="av">'+bot(34,HUES[i])+'</span>'
+    +'<span class="meta2"><div class="nm">'+k.name+'</div><div class="dm">'+k.domain+'</div></span>'+st+'</div>');
+});
+document.getElementById('kcount').textContent=KINS.length+' active';
+// directory
+const dir=document.getElementById('directory');
+KINS.forEach((k,i)=>{const n=String(i+1).padStart(2,'0');
+  dir.insertAdjacentHTML('beforeend','<div class="dir"><div class="frame"><div class="ph">'+bot(52,HUES[i%HUES.length])+'</div></div><div class="top"><span class="nm">'+k.name+'</span><span class="no">'+n+'</span></div><div class="dm">'+k.domain+'</div></div>');});
+if(window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

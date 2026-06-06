@@ -1,0 +1,21 @@
+{
+  "title": "KinBot install / demo voiceover",
+  "lang": "en",
+  "voiceId": "zIg9jXuiKoQ2eqokLUZ8",
+  "voiceName": "MarlburroW Pro",
+  "lines": [
+    { "id": "scene-01", "vo": "Hey, I'm marlburrow, the creator of KinBot. Let me show you the thing I've been building: your own team of AI agents, living entirely on your own server." },
+    { "id": "scene-02", "vo": "Most AI tools are a single chatbot that forgets you the moment you close the tab. KinBot is a whole household of specialized agents that keep their memory, work together, and grow with you over time." },
+    { "id": "scene-03", "vo": "Getting started is one command. No Postgres, no Redis, no message broker. Just Bun and SQLite in a single container, so everything stays on your machine. While Docker pulls the image, that is honestly all the infrastructure you will ever need." },
+    { "id": "scene-04", "vo": "Open your browser and KinBot walks you through a quick setup. You create your account with your name, a pseudonym and a password, pick your language, and choose a color theme. The whole interface recolors instantly to match." },
+    { "id": "scene-05", "vo": "Then there's the one step you can't skip: connecting an AI provider. Sherpa, your built-in assistant, needs a model to think with. You pick a provider, drop your key into a secure field, and it's stored in an encrypted vault, never in a plain config file." },
+    { "id": "scene-06", "vo": "The moment that provider is connected, Sherpa comes to life. From here on, you mostly just talk to it. It can wire up more providers, including plugins for ones that aren't built in, and it helps you create the rest of your team." },
+    { "id": "scene-07", "vo": "Tell Sherpa what you need, and it spins up a new Kin: its own name, role, personality, and an avatar generated to match its character. Give it a moment while it paints one." },
+    { "id": "scene-08", "vo": "You can have as many as you like: a researcher, a writer, a finance helper, a home assistant, a security analyst. They each own their domain, and they hand work off to one another when a task needs more than one of them." },
+    { "id": "scene-09", "vo": "And they genuinely remember you. Months later, a Kin still knows the budget you set or the preference you mentioned, because nothing is ever deleted, only summarized." },
+    { "id": "scene-10", "vo": "When a Kin runs a tool, you don't get a wall of JSON. You get a real, themed interface: a weather card, a chart, a live dashboard. The Kins write these tools themselves, and they can build full mini-apps right inside KinBot." },
+    { "id": "scene-11", "vo": "Your team isn't trapped in one app either. Reach them from Telegram, WhatsApp, Slack, Discord, Signal, or Matrix. Ask for a specialist by name, and the conversation is handed straight to the right Kin." },
+    { "id": "scene-12", "vo": "And since it all runs on your hardware, KinBot stays honest about it. You can see exactly what goes to the model, and what every turn costs, broken down by Kin and by model." },
+    { "id": "scene-13", "vo": "It's self-hosted, open source under the MIT license, and yours to shape. That's KinBot. Spin up your own team in a couple of minutes, and show me what you build." }
+  ]
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html><head><meta charset="utf-8"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;background:#0e0a18;color:#eee;}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+  .cell{border:1px solid rgba(255,255,255,.08);padding:26px 20px;}
+  .lbl{font-family:monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#9a93ad;margin-bottom:18px;}
+  .row{display:flex;align-items:center;gap:22px;margin-bottom:16px;}
+  .dark{background:#16101f;border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:16px;}
+  .light{background:#f5f1ee;border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:16px;}
+  .light .wm{color:#181020;}
+  .wm{font-weight:800;font-size:20px;letter-spacing:-.02em;}
+  .tiny-note{font-family:monospace;font-size:11px;color:#7a7388;}
+  h1{font-weight:800;letter-spacing:-.02em;padding:24px 20px 0;}
+  .sub{padding:0 20px 14px;color:#9a93ad;font-size:14px;}
+</style></head>
+<body>
+  <h1>KinBot — logo proposals</h1>
+  <div class="sub">Aurora gradient #AE5AF9 → #FB5FCA → #FFB470. Each shown 56px &amp; 26px, on dark and on light, with a wordmark.</div>
+  <div class="grid" id="grid"></div>
+<script>
+const logos = [
+  ['c1','Kin head','friendly mascot, matches the avatars'],
+  ['c2','Monogram K','app-icon style, abstract & brandable'],
+  ['c3','Bubble + face','a conversational agent'],
+  ['c4','Constellation','a team / household of agents'],
+  ['c5','Orbit / hub','a hub orchestrating agents'],
+  ['c6','Home + face','AI "at home"'],
+];
+const files = {c1:'c1-kin-head.svg',c2:'c2-monogram-k.svg',c3:'c3-bubble-face.svg',c4:'c4-constellation.svg',c5:'c5-orbit.svg',c6:'c6-home-face.svg'};
+const grid = document.getElementById('grid');
+for (const [id,name,desc] of logos){
+  const src = 'logos/'+files[id];
+  grid.insertAdjacentHTML('beforeend', `
+   <div class="cell">
+     <div class="lbl">${id} · ${name}</div>
+     <div class="row dark">
+       <img src="${src}" width="56" height="56"/>
+       <img src="${src}" width="26" height="26"/>
+       <span class="wm" style="color:#fff">Kin<span style="color:#FFB470">Bot</span></span>
+     </div>
+     <div class="row light">
+       <img src="${src}" width="56" height="56"/>
+       <img src="${src}" width="26" height="26"/>
+       <span class="wm">Kin<span style="color:#C24CC8">Bot</span></span>
+     </div>
+     <div class="tiny-note">${desc}</div>
+   </div>`);
+}
+</script>
+</body></html>

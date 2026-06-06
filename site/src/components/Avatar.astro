@@ -1,0 +1,30 @@
+---
+/**
+ * Avatar: renders a generated avatar image when `avatar` is set (path under /avatars/),
+ * otherwise a themed placeholder robot. Drop real images into public/avatars/ and point
+ * each kins.json entry's `avatar` at them; the placeholder disappears automatically.
+ */
+interface Props { name?: string; avatar?: string | null; size?: number; hue?: number; }
+const { name = '', avatar = null, size = 46, hue = 305 } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const src = avatar ? (avatar.startsWith('http') || avatar.startsWith(base) ? avatar : base + avatar) : null;
+---
+{src ? (
+  <img class="av-img" src={src} width={size} height={size} alt={name} loading="lazy" />
+) : (
+  <span class="av-bot" style={`color:oklch(0.74 0.16 ${hue})`} aria-label={name} role="img">
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+      <g transform="translate(0,6)">
+        <line x1="32" y1="0" x2="32" y2="9" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        <circle cx="32" cy="-1" r="4" fill="currentColor" />
+        <rect x="9" y="8" width="46" height="34" rx="13" fill="currentColor" />
+        <rect x="14" y="13" width="36" height="24" rx="9" fill="oklch(0.14 0.03 300)" />
+        <circle cx="25" cy="25" r="4.2" fill="#fff" /><circle cx="39" cy="25" r="4.2" fill="#fff" />
+        <circle cx="25.8" cy="25.6" r="1.7" fill="oklch(0.14 0.03 300)" /><circle cx="39.8" cy="25.6" r="1.7" fill="oklch(0.14 0.03 300)" />
+        <path d="M27 32 q5 4 10 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" />
+        <rect x="16" y="44" width="32" height="22" rx="10" fill="currentColor" />
+        <circle cx="32" cy="55" r="4" fill="oklch(0.99 0.02 90/.9)" />
+      </g>
+    </svg>
+  </span>
+)}

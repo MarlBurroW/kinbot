@@ -1,0 +1,21 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="KinBot">
+  <defs>
+    <linearGradient id="kinbot-aurora" x1="7" y1="6" x2="41" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C4DFF"/>
+      <stop offset="0.52" stop-color="#E158C8"/>
+      <stop offset="1" stop-color="#FF9E6D"/>
+    </linearGradient>
+  </defs>
+  <!-- antenna -->
+  <circle cx="24" cy="4.4" r="2.7" fill="url(#kinbot-aurora)"/>
+  <rect x="22.6" y="6.4" width="2.8" height="5.4" rx="1.4" fill="url(#kinbot-aurora)"/>
+  <!-- head -->
+  <rect x="5" y="10" width="38" height="33" rx="12" fill="url(#kinbot-aurora)"/>
+  <!-- face screen -->
+  <rect x="11" y="16.5" width="26" height="20" rx="8" fill="#160E2B"/>
+  <!-- eyes -->
+  <circle cx="19.4" cy="26.4" r="3.2" fill="#FDFCFF"/>
+  <circle cx="28.6" cy="26.4" r="3.2" fill="#FDFCFF"/>
+  <circle cx="20.3" cy="27.1" r="1.25" fill="#160E2B"/>
+  <circle cx="29.5" cy="27.1" r="1.25" fill="#160E2B"/>
+</svg>

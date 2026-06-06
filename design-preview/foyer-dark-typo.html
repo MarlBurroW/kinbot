@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KinBot — Comparaison typo (dark, sans-serif)</title>
+<!-- Comparaison de 2 voies typographiques sur le dark, SANS serif. Icônes = lucide (comme l'app). Logos channels = simple-icons (= react-icons/si de l'app). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --bg: oklch(0.135 0.03 300);
+  --surface: oklch(0.20 0.04 300 / 0.55);
+  --surface-solid: oklch(0.19 0.04 300);
+  --ink: oklch(0.95 0.015 320);
+  --ink-soft: oklch(0.74 0.03 310);
+  --line: oklch(1 0 0 / 0.10);
+  --line-strong: oklch(1 0 0 / 0.16);
+  --primary: oklch(0.70 0.20 300);
+  --peach: oklch(0.82 0.12 55);
+  --grad: linear-gradient(100deg, oklch(0.60 0.24 300), oklch(0.68 0.25 340), oklch(0.82 0.14 45));
+  --radius: 1rem;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1140px;margin:0 auto;padding:0 28px;}
+a{color:inherit;text-decoration:none}
+.svglucide{width:1em;height:1em;stroke-width:2.2;vertical-align:-.12em;}
+[data-lucide]{width:1em;height:1em}
+
+/* variant label band */
+.vlabel{background:oklch(0.10 0.02 300);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.vlabel .in{display:flex;align-items:center;gap:14px;padding:14px 0;}
+.vlabel .pill{font-family:"JetBrains Mono",monospace;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--peach);border:1px solid oklch(0.82 0.14 45/.4);border-radius:999px;padding:.25rem .7rem;}
+.vlabel .desc{color:var(--ink-soft);font-size:.92rem;}
+
+/* shared hero scaffold */
+.hero{position:relative;padding:78px 0;overflow:hidden;}
+.glow{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:var(--radius);font-weight:700;font-size:.95rem;padding:.7rem 1.2rem;cursor:pointer;border:0;}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 8px 26px oklch(0.60 0.24 320/.45);}
+.btn-ghost{background:oklch(1 0 0/.04);color:var(--ink);border:1px solid var(--line-strong);}
+.reassure{display:flex;align-items:center;gap:14px;font-size:.9rem;font-weight:600;color:var(--ink-soft);margin-top:22px;flex-wrap:wrap}
+.reassure .it{display:inline-flex;align-items:center;gap:6px}
+.reassure .it svg{color:oklch(0.72 0.18 155)}
+.hero-cta{display:flex;gap:13px;flex-wrap:wrap;margin-top:26px}
+
+/* kins cluster (shared) */
+.kins{position:relative;height:380px;}
+.kin{position:absolute;}
+.kin .card{background:var(--surface);backdrop-filter:blur(10px);border:1px solid var(--line-strong);border-radius:20px;padding:12px 15px;box-shadow:0 24px 60px oklch(0 0 0/.45);display:flex;align-items:center;gap:11px;}
+.kin .name{font-weight:700;font-size:.9rem}.kin .role{font-size:.72rem;color:var(--ink-soft)}
+.kin .av{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto}
+.kin.k1{top:6px;left:30px}.kin.k2{top:104px;right:0}.kin.k3{top:212px;left:6px}.kin.k4{top:296px;right:46px}
+.badge{position:absolute;top:168px;left:130px;background:var(--grad);color:#fff;font-size:.7rem;font-weight:700;padding:.3rem .6rem;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+
+/* channel strip with real brand logos */
+.strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:oklch(0.115 0.025 300)}
+.strip .in{display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;padding:16px 0;color:var(--ink-soft);font-weight:600;font-size:.92rem}
+.strip .chan{display:inline-flex;align-items:center;gap:8px}
+.strip .chan img{width:18px;height:18px;opacity:.85}
+
+/* eyebrow + features icons */
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.76rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.eyebrow svg{color:var(--peach)}
+.feat-ic{display:inline-flex;width:34px;height:34px;border-radius:10px;align-items:center;justify-content:center;background:oklch(0.70 0.20 300/.16);color:var(--primary);margin-right:10px}
+
+/* ============ VARIANT A — TECHY (Space Grotesk) ============ */
+.A .glow.g1{width:440px;height:440px;background:oklch(0.60 0.24 300/.34);top:-130px;right:-60px}
+.A .glow.g2{width:360px;height:360px;background:oklch(0.66 0.22 340/.24);top:120px;right:180px}
+.A .eyebrow{font-family:"JetBrains Mono",monospace;color:var(--ink-soft);letter-spacing:.02em;text-transform:none}
+.A h1{font-family:"Space Grotesk",sans-serif;font-size:clamp(2.7rem,5.2vw,4.3rem);line-height:1.02;letter-spacing:-.03em;font-weight:600;margin:.5rem 0 1.1rem}
+.A h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.A .sub{font-size:1.12rem;max-width:36ch;color:var(--ink-soft);margin:0}
+.A .mono-hint{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--ink-soft);margin-top:18px;background:oklch(0.09 0.02 300);border:1px solid var(--line);border-radius:10px;padding:9px 13px;display:inline-block}
+.A .mono-hint .d{color:oklch(0.72 0.18 155)}
+
+/* ============ VARIANT B — CHALEUREUX SANS-SERIF (Plus Jakarta) ============ */
+.B{background:oklch(0.145 0.032 320)}
+.B .glow.g1{width:520px;height:520px;background:oklch(0.80 0.15 50/.30);top:-120px;right:-40px}
+.B .glow.g2{width:460px;height:460px;background:oklch(0.66 0.22 340/.28);top:140px;right:160px}
+.B .glow.g3{width:380px;height:380px;background:oklch(0.58 0.22 300/.22);top:40px;left:-130px}
+.B .eyebrow{color:transparent;background:var(--grad);-webkit-background-clip:text;background-clip:text}
+.B .eyebrow svg{color:var(--peach)}
+.B h1{font-family:"Plus Jakarta Sans",sans-serif;font-size:clamp(2.9rem,5.6vw,4.7rem);line-height:1.04;letter-spacing:-.03em;font-weight:800;margin:.5rem 0 1.2rem}
+.B h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.B .sub{font-size:1.2rem;max-width:33ch;color:var(--ink-soft);margin:0}
+.B .sub b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bot" viewBox="0 0 64 76">
+    <line x1="32" y1="6" x2="32" y2="15" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="32" cy="5" r="4" fill="currentColor"/>
+    <rect x="9" y="14" width="46" height="34" rx="13" fill="currentColor"/>
+    <rect x="14" y="19" width="36" height="24" rx="9" fill="oklch(0.13 0.03 295)"/>
+    <circle cx="25" cy="31" r="4.2" fill="#fff"/><circle cx="39" cy="31" r="4.2" fill="#fff"/>
+    <circle cx="25.8" cy="31.6" r="1.7" fill="oklch(0.13 0.03 295)"/><circle cx="39.8" cy="31.6" r="1.7" fill="oklch(0.13 0.03 295)"/>
+    <path d="M27 38 q5 4 10 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <rect x="16" y="50" width="32" height="22" rx="10" fill="currentColor"/>
+    <circle cx="32" cy="61" r="4" fill="oklch(0.99 0.02 90/.9)"/>
+  </symbol>
+</svg>
+
+<!-- ============================ VARIANT A ============================ -->
+<div class="vlabel"><div class="wrap in"><span class="pill">Variante A</span><span class="desc"><b style="color:var(--ink)">Techy</b> — sans-serif géométrique (Space Grotesk), eyebrow mono, accent docker. Cohérent avec le dark/glow, esprit Linear/Vercel réchauffé.</span></div></div>
+<section class="hero A">
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><i data-lucide="terminal"></i> plateforme d'agents IA autonomes · self-hosted</span>
+      <h1>Votre équipe d'IA,<br><em>chez vous.</em></h1>
+      <p class="sub">Des agents qui se souviennent, collaborent et grandissent avec vous. Un seul conteneur, zéro infra externe.</p>
+      <div class="mono-hint"><span class="d">$</span> docker run kinbot <span style="color:var(--ink-soft)"># Sherpa fait le reste</span></div>
+      <div class="hero-cta"><a class="btn btn-primary"><i data-lucide="rocket" class="svglucide"></i> Démarrer en 2 min</a><a class="btn btn-ghost"><i data-lucide="play" class="svglucide"></i> Voir la démo</a></div>
+      <div class="reassure"><span class="it"><i data-lucide="check" class="svglucide"></i> open-source MIT</span><span class="it"><i data-lucide="server" class="svglucide"></i> self-hosted</span><span class="it"><i data-lucide="box" class="svglucide"></i> zéro infra externe</span></div>
+    </div>
+    <div class="kins">
+      <div class="kin k1"><div class="card"><span class="av" style="background:oklch(0.66 0.20 300/.18);color:oklch(0.70 0.18 300)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Atlas</div><div class="role">Recherche</div></div></div></div>
+      <div class="kin k2"><div class="card"><span class="av" style="background:oklch(0.72 0.16 350/.18);color:oklch(0.74 0.16 350)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Plume</div><div class="role">Rédaction</div></div></div></div>
+      <div class="kin k3"><div class="card"><span class="av" style="background:oklch(0.80 0.13 50/.18);color:oklch(0.80 0.13 50)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Sherpa</div><div class="role">Configurateur</div></div></div></div>
+      <div class="kin k4"><div class="card"><span class="av" style="background:oklch(0.68 0.15 250/.18);color:oklch(0.70 0.15 250)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Ledger</div><div class="role">Finance</div></div></div></div>
+      <span class="badge"><i data-lucide="brain" class="svglucide"></i> se souvient de vous</span>
+    </div>
+  </div>
+</section>
+<div class="strip A"><div class="wrap in">
+  <span>Vos agents, partout :</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/telegram/b9b3c8"/>Telegram</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/whatsapp/b9b3c8"/>WhatsApp</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/slack/b9b3c8"/>Slack</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/discord/b9b3c8"/>Discord</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/signal/b9b3c8"/>Signal</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/matrix/b9b3c8"/>Matrix</span>
+</div></div>
+
+<!-- ============================ VARIANT B ============================ -->
+<div class="vlabel"><div class="wrap in"><span class="pill">Variante B</span><span class="desc"><b style="color:var(--ink)">Chaleureux sans-serif</b> — Plus Jakarta Sans (police de l'app), titres ronds &amp; généreux, glows pêche dominants. Chaleur sans serif, cohérent dark.</span></div></div>
+<section class="hero B">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><i data-lucide="sparkles"></i> Plateforme d'agents IA autonomes · auto-hébergée</span>
+      <h1>Votre équipe d'IA,<br><em>chez vous.</em></h1>
+      <p class="sub">La simplicité d'un assistant grand public, la souveraineté de votre serveur. Des agents qui <b>se souviennent</b>, <b>collaborent</b> et <b>grandissent avec vous</b>.</p>
+      <div class="hero-cta"><a class="btn btn-primary"><i data-lucide="rocket" class="svglucide"></i> Démarrer en 2 min</a><a class="btn btn-ghost"><i data-lucide="play" class="svglucide"></i> Voir la démo</a></div>
+      <div class="reassure"><span class="it"><i data-lucide="check" class="svglucide"></i> open-source MIT</span><span class="it"><i data-lucide="server" class="svglucide"></i> self-hosted</span><span class="it"><i data-lucide="box" class="svglucide"></i> zéro infra externe</span></div>
+    </div>
+    <div class="kins">
+      <div class="kin k1"><div class="card"><span class="av" style="background:oklch(0.66 0.20 300/.18);color:oklch(0.70 0.18 300)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Atlas</div><div class="role">Recherche</div></div></div></div>
+      <div class="kin k2"><div class="card"><span class="av" style="background:oklch(0.80 0.13 50/.18);color:oklch(0.80 0.13 50)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Plume</div><div class="role">Rédaction</div></div></div></div>
+      <div class="kin k3"><div class="card"><span class="av" style="background:oklch(0.72 0.16 350/.18);color:oklch(0.74 0.16 350)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Sherpa</div><div class="role">Configurateur</div></div></div></div>
+      <div class="kin k4"><div class="card"><span class="av" style="background:oklch(0.68 0.15 250/.18);color:oklch(0.70 0.15 250)"><svg width="30" height="30" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span><div><div class="name">Ledger</div><div class="role">Finance</div></div></div></div>
+      <span class="badge"><i data-lucide="brain" class="svglucide"></i> se souvient de vous</span>
+    </div>
+  </div>
+</section>
+<div class="strip B"><div class="wrap in">
+  <span>Vos agents, partout :</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/telegram/b9b3c8"/>Telegram</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/whatsapp/b9b3c8"/>WhatsApp</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/slack/b9b3c8"/>Slack</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/discord/b9b3c8"/>Discord</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/signal/b9b3c8"/>Signal</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/matrix/b9b3c8"/>Matrix</span>
+</div></div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

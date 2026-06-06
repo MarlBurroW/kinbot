@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KinBot — Design reference (dark)</title>
+<!--
+  ════════════════════════════════════════════════════════════════════════
+  DEV REFERENCE — "Foyer" dark, warm sans-serif. SITE LANGUAGE: ENGLISH.
+  Anti-AI-slop applied (see kinbot-1.0-anti-ai-slop.md):
+   • No ✨ sparkle accents. Kickers are mono with a small peach tick, not generic eyebrows.
+   • Glows reduced & warmed (peach-led) to break the "purple-gradient" cliché. Accent word is warm (peach→coral).
+   • Layouts varied — NOT 3× the same icon-in-rounded-square triplet. Mixed radii & shadows.
+   • Human, varied copy. Real product shown via feathered screenshot placeholders.
+  Design rules (kinbot-1.0-site-dev-guidance):
+   • TYPO: all sans-serif. Headings = Plus Jakarta Sans 800 (app font). Labels = JetBrains Mono.
+   • ICONS: lucide (= lucide-react). Channel/brand logos = simple-icons (= react-icons/si).
+     Provider logos in prod = @lobehub/icons (color), see ProviderIcon.tsx.
+   • Sims faithful to real code (SRC: tags). Screenshots = labelled placeholders + feather (.shot).
+   • Avatars: header picks at random from kins.json (name+domain shown in header AND marquee);
+     Sherpa appears first, others pop around it (onboarding flow). Marquee = raw images, no card/gap.
+  NB preview: lucide via CDN, logos via cdn.simpleicons.org; in prod = React components.
+  ════════════════════════════════════════════════════════════════════════
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --bg: oklch(0.145 0.03 312);
+  --bg-alt: oklch(0.175 0.034 316);
+  --surface: oklch(0.21 0.04 312 / 0.55);
+  --surface-solid: oklch(0.205 0.04 312);
+  --ink: oklch(0.95 0.015 320);
+  --ink-soft: oklch(0.75 0.03 315);
+  --line: oklch(1 0 0 / 0.10);
+  --line-strong: oklch(1 0 0 / 0.16);
+  --primary: oklch(0.72 0.19 305);
+  --primary-fg: oklch(0.12 0.03 300);
+  --peach: oklch(0.84 0.13 60);
+  --coral: oklch(0.74 0.16 28);
+  --grad: linear-gradient(100deg, oklch(0.64 0.23 305), oklch(0.72 0.22 342), oklch(0.85 0.14 55));
+  --grad-warm: linear-gradient(96deg, oklch(0.86 0.13 62), oklch(0.74 0.17 26));
+  --r-sharp: 6px;
+  --r-card: 1.25rem;
+  --r-pill: 999px;
+  --shadow-card: 0 2px 8px oklch(0 0 0 / 0.35), 0 28px 70px oklch(0 0 0 / 0.45);
+  --feather-y: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
+  --feather-x: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+.display{font-family:"Plus Jakarta Sans",sans-serif;font-weight:800;letter-spacing:-.03em;}
+.mono{font-family:"JetBrains Mono",monospace;}
+.wrap{max-width:1140px;margin:0 auto;padding:0 28px;}
+a{color:inherit;text-decoration:none;}
+[data-lucide]{width:1em;height:1em;stroke-width:2.1;}
+.muted{color:var(--ink-soft);}
+/* mono kicker with a small peach tick — crafted, not a generic sparkle eyebrow */
+.kicker{font-family:"JetBrains Mono",monospace;font-size:.73rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);display:inline-flex;align-items:center;gap:11px;}
+.kicker::before{content:"";width:16px;height:2px;border-radius:2px;background:var(--grad-warm);}
+
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(16px) saturate(1.3);background:oklch(0.145 0.03 312 / 0.72);border-bottom:1px solid var(--line);}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:68px;}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:1.18rem;letter-spacing:-.01em;}
+.brand .dot{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:0 4px 16px oklch(0.62 0.24 322/.5);}
+.brand .dot [data-lucide]{width:17px;height:17px;}
+.nav-links{display:flex;gap:30px;font-weight:600;font-size:.95rem;color:var(--ink-soft);}
+.nav-links a:hover{color:var(--ink);}
+.nav-cta{display:flex;align-items:center;gap:14px;}
+.gh{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:.92rem;color:var(--ink-soft);}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;padding:.7rem 1.25rem;cursor:pointer;border:0;transition:transform .15s ease, box-shadow .2s ease;}
+.btn [data-lucide]{width:1.05em;height:1.05em;}
+.btn:hover{transform:translateY(-2px);}
+.btn-primary{background:var(--grad);color:#fff;border-radius:var(--r-pill);box-shadow:0 8px 26px oklch(0.62 0.24 322/.4);position:relative;overflow:hidden;}
+.btn-primary::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,oklch(1 0 0/.4) 50%,transparent 70%);transform:translateX(-120%);transition:transform .6s ease;}
+.btn-primary:hover::after{transform:translateX(120%);}
+.btn-ghost{background:oklch(1 0 0/.04);color:var(--ink);border:1px solid var(--line-strong);border-radius:var(--r-pill);}
+.btn-ghost:hover{border-color:var(--primary);}
+.btn-sm{padding:.5rem 1rem;font-size:.9rem;}
+
+.hero{position:relative;padding:96px 0 80px;}
+.glow{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;}
+/* fewer, warmer glows */
+.glow.peach{width:540px;height:540px;background:oklch(0.84 0.14 55/.22);top:-150px;right:-90px;}
+.glow.violet{width:420px;height:420px;background:oklch(0.58 0.22 305/.16);top:170px;left:-160px;}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.08fr .92fr;gap:44px;align-items:center;}
+.hero h1{font-size:clamp(2.9rem,5.7vw,4.8rem);line-height:1.02;margin:1rem 0 1.2rem;}
+.hero h1 .warm{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.hero .sub{font-size:1.2rem;max-width:36ch;color:var(--ink-soft);margin:0 0 2rem;}
+.hero .sub b{color:var(--ink);font-weight:600;}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:1.6rem;}
+.reassure{display:flex;align-items:center;gap:18px;font-size:.9rem;font-weight:600;color:var(--ink-soft);flex-wrap:wrap;}
+.reassure .it{display:inline-flex;align-items:center;gap:6px;}
+.reassure .it [data-lucide]{color:oklch(0.78 0.15 150);width:1.05em;height:1.05em;}
+
+.kins{position:relative;height:440px;}
+.kin{position:absolute;opacity:0;animation:popIn .55s cubic-bezier(.2,.85,.25,1) both;}
+.kin-inner{animation:float 6s ease-in-out infinite;}
+@keyframes popIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.kin .card{background:var(--surface);backdrop-filter:blur(10px);border:1px solid var(--line-strong);border-radius:18px;padding:12px 15px;box-shadow:var(--shadow-card);display:flex;align-items:center;gap:11px;}
+.kin .name{font-weight:700;font-size:.9rem;line-height:1.1;}
+.kin .role{font-size:.73rem;color:var(--ink-soft);font-weight:500;}
+.kin-av{flex:0 0 auto;display:inline-flex;border-radius:11px;overflow:hidden;}
+.kin-av img{width:100%;height:100%;object-fit:cover;display:block;}
+.s-center{top:152px;left:96px;z-index:3;}
+.s-center .card{border-color:oklch(0.74 0.16 45/.45);box-shadow:0 0 26px oklch(0.80 0.14 50/.28),var(--shadow-card);}
+.s-tr{top:46px;right:0;}
+.s-tl{top:6px;left:6px;}
+.s-br{top:332px;right:20px;}
+.s-bl{top:300px;left:6px;}
+.thread{position:absolute;inset:0;z-index:-1;}
+.badge-mem{position:absolute;top:150px;left:96px;transform:translateY(-130%);background:var(--surface-solid);border:1px solid var(--line-strong);color:var(--ink);font-size:.72rem;font-weight:700;padding:.34rem .62rem;border-radius:var(--r-pill);box-shadow:var(--shadow-card);display:inline-flex;align-items:center;gap:6px;}
+.badge-mem [data-lucide]{width:.95em;height:.95em;color:var(--peach);}
+
+.av-img{object-fit:cover;}
+
+.strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:oklch(0.125 0.026 312);}
+.strip-in{display:flex;align-items:center;justify-content:center;gap:34px;flex-wrap:wrap;padding:18px 0;font-weight:600;color:var(--ink-soft);font-size:.95rem;}
+.strip-in .chan{display:flex;align-items:center;gap:8px;}
+.strip-in .chan img{width:18px;height:18px;opacity:.82;}
+
+section.block{padding:100px 0;}
+section.alt{background:var(--bg-alt);}
+.sec-head{max-width:60ch;}
+.sec-head h2{font-size:clamp(2rem,3.7vw,3.05rem);line-height:1.07;margin:.7rem 0 1rem;}
+.sec-head p{font-size:1.12rem;color:var(--ink-soft);margin:0;}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-top:8px;}
+.split.wide-left{grid-template-columns:1.15fr .85fr;}
+.split.wide-right{grid-template-columns:.85fr 1.15fr;}
+
+.chatcard{background:var(--surface-solid);border:1px solid var(--line-strong);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:22px;}
+.bub{display:flex;gap:11px;margin-bottom:14px;align-items:flex-start;}
+.bub .av{flex:0 0 auto;}
+.bub .txt{background:oklch(1 0 0/.05);border:1px solid var(--line);border-radius:14px;padding:9px 13px;font-size:.93rem;}
+.bub.me{flex-direction:row-reverse;}
+.bub.me .txt{background:var(--primary);color:var(--primary-fg);border-color:transparent;font-weight:500;}
+.recall{margin-top:6px;border-top:1px dashed var(--line-strong);padding-top:14px;}
+.recall .tag{display:inline-flex;align-items:center;gap:6px;font-family:"JetBrains Mono",monospace;font-size:.72rem;font-weight:600;color:var(--ink);background:oklch(0.72 0.19 305/.16);padding:.3rem .55rem;border-radius:var(--r-sharp);margin-bottom:8px;}
+.recall .tag [data-lucide]{width:.95em;height:.95em;color:var(--primary);}
+.recall .hit{font-size:.86rem;display:flex;gap:8px;align-items:flex-start;margin:7px 0;color:var(--ink-soft);}
+.recall .hit [data-lucide]{flex:0 0 auto;margin-top:2px;width:1em;height:1em;}
+.recall .hit b{color:var(--ink);font-weight:600;}
+.cat{font-family:"JetBrains Mono",monospace;font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:.12rem .4rem;border-radius:4px;background:oklch(0.84 0.14 50/.18);color:var(--peach);margin-right:6px;}
+.cat.dec{background:oklch(0.72 0.19 305/.2);color:oklch(0.82 0.14 305);}
+.kw{color:var(--ink-soft);font-style:italic;}
+
+/* feature rows — used ONCE (flagship). Other sections use prose+chips to avoid the triplet cliché. */
+.feats{display:flex;flex-direction:column;gap:18px;margin-top:20px;}
+.feat{display:flex;gap:14px;}
+.feat .ic{width:40px;height:40px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;background:oklch(0.72 0.19 305/.15);color:var(--primary);}
+.feat .ic [data-lucide]{width:19px;height:19px;}
+.feat h4{margin:.1rem 0 .25rem;font-size:1.05rem;font-weight:700;}
+.feat p{margin:0;font-size:.96rem;color:var(--ink-soft);}
+
+/* tag chips (replace repeated icon triplets) */
+.taglist{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;}
+.taglist .t{font-size:.88rem;font-weight:600;color:var(--ink);background:oklch(1 0 0/.05);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:.45rem .9rem;display:inline-flex;align-items:center;gap:8px;}
+.taglist .t [data-lucide]{width:1em;height:1em;color:var(--primary);}
+
+.shot{position:relative;width:100%;overflow:hidden;
+  -webkit-mask-image:var(--feather-y),var(--feather-x);mask-image:var(--feather-y),var(--feather-x);
+  -webkit-mask-composite:source-in;mask-composite:intersect;}
+.shot img{width:100%;display:block;}
+.shot-ph{aspect-ratio:16/10;background:
+  radial-gradient(circle at 78% 26%, oklch(0.80 0.13 52/.16), transparent 52%),
+  radial-gradient(circle at 22% 82%, oklch(0.60 0.2 320/.14), transparent 52%),
+  var(--surface-solid);display:grid;place-items:center;text-align:center;padding:30px;}
+.shot-ph .pic{color:var(--ink-soft);opacity:.85;}
+.shot-ph .pic [data-lucide]{width:38px;height:38px;}
+.shot-ph .lbl{font-weight:700;color:var(--ink);margin-top:10px;}
+.shot-ph .sub2{font-size:.85rem;color:var(--ink-soft);margin-top:3px;max-width:34ch;}
+.ph-tag{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-family:"JetBrains Mono",monospace;font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--peach);border:1px dashed oklch(0.84 0.14 52/.5);border-radius:var(--r-sharp);padding:.24rem .62rem;}
+.ph-tag [data-lucide]{width:.95em;height:.95em;}
+
+.proof{position:relative;overflow:hidden;}
+.proof .mesh{position:absolute;width:680px;height:680px;border-radius:50%;filter:blur(110px);opacity:.26;top:-220px;right:-120px;background:radial-gradient(circle, oklch(0.80 0.13 52/.6), transparent 64%);}
+.bento{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:18px;margin-top:42px;position:relative;z-index:1;}
+.bcard{background:var(--surface-solid);border:1px solid var(--line-strong);border-radius:var(--r-card);padding:24px;position:relative;overflow:hidden;}
+.bcard.span2{grid-column:span 2;}
+.bcard h3{margin:.2rem 0 .5rem;font-size:1.22rem;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;}
+.bcard h3 [data-lucide]{width:1.05em;height:1.05em;color:var(--primary);}
+.bcard p{margin:0;color:var(--ink-soft);font-size:.95rem;}
+.gradline{position:absolute;left:0;right:0;top:0;height:3px;background:var(--grad);}
+.gradline.warm{background:var(--grad-warm);}
+.term{margin-top:16px;background:oklch(0.085 0.02 312);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:.85rem;}
+.term .c{color:oklch(0.78 0.15 150);}
+.term .p2{color:oklch(0.82 0.14 350);}
+.term .cmt{color:var(--ink-soft);}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.chip{font-size:.78rem;font-weight:600;padding:.32rem .65rem;border-radius:var(--r-sharp);border:1px solid var(--line-strong);color:var(--ink-soft);}
+.chip.on{background:var(--grad);color:#fff;border-color:transparent;}
+.tokbar{display:flex;height:13px;border-radius:var(--r-pill);overflow:hidden;margin-top:18px;border:1px solid var(--line);}
+.tokbar i{display:block;height:100%;}
+.tlegend{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:14px;font-size:.79rem;color:var(--ink-soft);}
+.tlegend span{display:flex;align-items:center;gap:7px;}
+.tlegend .sw{width:10px;height:10px;border-radius:3px;}
+.cacheline{margin-top:10px;font-size:.79rem;color:var(--ink-soft);}
+.cacheline b{color:oklch(0.78 0.15 150);}
+
+.providers{display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap;}
+.providers .lbl{font-size:.82rem;color:var(--ink-soft);font-weight:600;}
+.providers img{width:23px;height:23px;opacity:.8;}
+
+.marquee-sec{padding:44px 0 0;position:relative;}
+.marquee{overflow:hidden;width:100%;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 14%,#000 86%,transparent),linear-gradient(to right,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(to bottom,transparent,#000 14%,#000 86%,transparent),linear-gradient(to right,transparent,#000 5%,#000 95%,transparent);
+  -webkit-mask-composite:source-in;mask-composite:intersect;}
+.track{display:flex;gap:0;width:max-content;animation:scrollx 60s linear infinite;}
+.track .tile{position:relative;width:118px;height:118px;flex:0 0 auto;overflow:hidden;}
+.track .tile img{width:100%;height:100%;object-fit:cover;display:block;}
+.track .tile .ph{width:100%;height:100%;display:grid;place-items:center;}
+.track .tile .nm{position:absolute;left:0;right:0;bottom:0;padding:18px 6px 7px;font-size:.7rem;font-weight:700;text-align:center;color:#fff;background:linear-gradient(to top,oklch(0 0 0/.66),transparent);}
+@keyframes scrollx{to{transform:translateX(-50%)}}
+
+.cta-foot{padding:112px 0;text-align:center;position:relative;overflow:hidden;}
+.cta-foot h2{font-size:clamp(2.4rem,4.7vw,3.7rem);line-height:1.04;margin:0 0 1.4rem;}
+.cta-foot .btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.cta-foot .fine{margin-top:1.3rem;font-size:.9rem;color:var(--ink-soft);font-weight:600;}
+footer{border-top:1px solid var(--line);background:oklch(0.125 0.026 312);}
+.foot-in{display:flex;justify-content:space-between;align-items:center;padding:28px 0;color:var(--ink-soft);font-size:.9rem;flex-wrap:wrap;gap:14px;}
+
+@media(max-width:860px){
+  .hero-grid{grid-template-columns:1fr;} .kins{height:340px;margin-top:10px;}
+  .split,.split.wide-left,.split.wide-right{grid-template-columns:1fr;gap:30px;} .bento{grid-template-columns:1fr;} .bcard.span2{grid-column:auto;}
+  .nav-links{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- fallback robot (avatar placeholder until AVATAR_POOL/avatar urls exist) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bot" viewBox="0 0 64 76">
+    <line x1="32" y1="6" x2="32" y2="15" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="32" cy="5" r="4" fill="currentColor"/>
+    <rect x="9" y="14" width="46" height="34" rx="13" fill="currentColor"/>
+    <rect x="14" y="19" width="36" height="24" rx="9" fill="oklch(0.13 0.03 295)"/>
+    <circle cx="25" cy="31" r="4.2" fill="#fff"/><circle cx="39" cy="31" r="4.2" fill="#fff"/>
+    <circle cx="25.8" cy="31.6" r="1.7" fill="oklch(0.13 0.03 295)"/><circle cx="39.8" cy="31.6" r="1.7" fill="oklch(0.13 0.03 295)"/>
+    <path d="M27 38 q5 4 10 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="18" cy="37" rx="3" ry="2" fill="oklch(0.82 0.13 35/.75)"/><ellipse cx="46" cy="37" rx="3" ry="2" fill="oklch(0.82 0.13 35/.75)"/>
+    <rect x="16" y="50" width="32" height="22" rx="10" fill="currentColor"/>
+    <circle cx="32" cy="61" r="4" fill="oklch(0.99 0.02 90/.9)"/>
+  </symbol>
+</svg>
+
+<nav>
+  <div class="wrap nav-in">
+    <div class="brand"><span class="dot"><i data-lucide="bot"></i></span>KinBot</div>
+    <div class="nav-links"><a href="#">Features</a><a href="#">Why KinBot</a><a href="#">Docs</a><a href="#">Community</a></div>
+    <div class="nav-cta"><a class="gh" href="#"><i data-lucide="star"></i> 1.2k</a><a class="btn btn-primary btn-sm" href="#">Get started</a></div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="glow peach"></div><div class="glow violet"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="kicker">Self-hosted · autonomous AI agents</span>
+      <h1 class="display">Your AI team.<br><span class="warm">At home.</span></h1>
+      <p class="sub">The simplicity of a consumer assistant with the sovereignty of your own server. Agents that <b>remember</b>, <b>collaborate</b>, and <b>grow with you</b>. One container. No external infrastructure.</p>
+      <div class="hero-cta"><a class="btn btn-primary" href="#"><i data-lucide="rocket"></i> Start in 2 minutes</a><a class="btn btn-ghost" href="#"><i data-lucide="play"></i> Watch the demo</a></div>
+      <div class="reassure"><span class="it"><i data-lucide="check"></i> Open-source (MIT)</span><span class="it"><i data-lucide="server"></i> Self-hosted</span><span class="it"><i data-lucide="box"></i> Zero external infra</span></div>
+    </div>
+    <!-- Sherpa appears first, then the others pop in around it (onboarding flow). Names from kins.json. -->
+    <div class="kins" id="hero-kins"></div>
+  </div>
+</header>
+
+<!-- ===================== TRUST STRIP (simple-icons logos) ===================== -->
+<div class="strip"><div class="wrap strip-in">
+  <span>Your agents, everywhere:</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/telegram/b9b3c8" alt="Telegram"/>Telegram</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/whatsapp/b9b3c8" alt="WhatsApp"/>WhatsApp</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/slack/b9b3c8" alt="Slack"/>Slack</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/discord/b9b3c8" alt="Discord"/>Discord</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/signal/b9b3c8" alt="Signal"/>Signal</span>
+  <span class="chan"><img src="https://cdn.simpleicons.org/matrix/b9b3c8" alt="Matrix"/>Matrix</span>
+</div></div>
+
+<!-- ===================== PILLAR 1 — MEMORY (flagship: keeps the icon list) ===================== -->
+<!-- SRC: recall sim faithful → src/server/tools/memory-tools.ts (content + category fact/preference/decision/knowledge + subject; semantic vec + FTS5) -->
+<section class="block">
+  <div class="wrap"><div class="split wide-left">
+    <div class="sec-head">
+      <span class="kicker">Persistent agents</span>
+      <h2 class="display">They never forget you.</h2>
+      <p>Not a chatbot that starts over every time. One continuous session and a hybrid memory that builds context over months, with a team that hands work off to each other.</p>
+      <div class="feats">
+        <div class="feat"><div class="ic"><i data-lucide="infinity"></i></div><div><h4>One continuous session</h4><p>No "new conversation". Your Kin always knows where you left off.</p></div></div>
+        <div class="feat"><div class="ic"><i data-lucide="search"></i></div><div><h4>Hybrid memory</h4><p>Semantic and keyword search, fused. Nothing is ever deleted.</p></div></div>
+        <div class="feat"><div class="ic"><i data-lucide="users"></i></div><div><h4>Agents that collaborate</h4><p>A Kin delegates to another, or spawns sub-agents to move faster.</p></div></div>
+      </div>
+    </div>
+    <div class="chatcard">
+      <div class="bub me"><div class="txt">What's our grocery budget this month?</div></div>
+      <div class="bub"><span class="av kin-av" data-av style="width:34px;height:34px;border-radius:10px"></span><div class="txt">Back in March you set <b>$600 / month</b> and wanted to cut the extras. Keep that as the baseline?</div></div>
+      <div class="recall">
+        <span class="tag"><i data-lucide="brain"></i> recall("grocery budget")</span>
+        <div class="hit"><i data-lucide="target" style="color:oklch(0.78 0.15 150)"></i> <span><span class="cat dec">decision</span><b>$600 / month</b> — groceries · Mar 12 <span class="kw">exact match (FTS5)</span></span></div>
+        <div class="hit"><i data-lucide="git-compare" style="color:var(--peach)"></i> <span><span class="cat">preference</span>"cut unnecessary spending" <span class="kw">semantically close (vec)</span></span></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ===================== TOOLS / MINI-APPS (feathered screenshot; chips, NOT another icon triplet) ===================== -->
+<!-- SRC: faithful render → src/server/services/custom-tool-renderer.ts + client tool-result rendering. PLACEHOLDER: real screenshot to add. -->
+<section class="block alt">
+  <div class="wrap"><div class="split wide-right">
+    <div class="shot">
+      <!-- REPLACE with the real capture: <img src="docs/assets/tool-weather.png" alt="..."> (feather applies automatically) -->
+      <div class="shot-ph">
+        <div>
+          <div class="pic"><i data-lucide="image"></i></div>
+          <div class="lbl">Weather widget rendered by a custom tool</div>
+          <div class="sub2">A themed card (icon, city, temperature) instead of raw JSON, right in the thread.</div>
+          <span class="ph-tag"><i data-lucide="camera"></i> placeholder — screenshot to add</span>
+        </div>
+      </div>
+    </div>
+    <div class="sec-head">
+      <span class="kicker">Tools &amp; mini-apps</span>
+      <h2 class="display">Your tools get a real UI.</h2>
+      <p>Kins write tools in the language they want, with their own dependencies, plus a renderer that shows the result as a themed card instead of raw JSON. The same goes for fully integrated mini-apps: dashboards and control panels built by your agents.</p>
+      <div class="taglist">
+        <span class="t"><i data-lucide="palette"></i> Themed React renderers</span>
+        <span class="t"><i data-lucide="layout-dashboard"></i> Mini-apps &amp; dashboards</span>
+        <span class="t"><i data-lucide="package-plus"></i> Any language, any deps</span>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ===================== PILLAR 2 — SELF-HOSTED & SELF-IMPROVING ===================== -->
+<!-- SRC: token breakdown faithful → src/server/services/context-preview.ts (system-prompt sections by "## ", + Memories/Messages/Tools; cache hit = cacheReadTokens/inputTokens) -->
+<section class="block proof">
+  <div class="mesh"></div>
+  <div class="wrap">
+    <div class="sec-head" style="margin:0 auto;text-align:center;">
+      <span class="kicker" style="justify-content:center">Self-hosted &amp; self-improving</span>
+      <h2 class="display">A platform that grows with you.</h2>
+      <p style="margin:0 auto;">One container, zero external infra, and agents that extend the platform themselves.</p>
+    </div>
+    <div class="bento">
+      <div class="bcard span2"><span class="gradline"></span>
+        <h3><i data-lucide="package"></i> A single <span class="mono">docker run</span></h3>
+        <p>No Postgres, Redis, Mongo, or message broker. Bun + SQLite, one binary, your data stays home.</p>
+        <div class="term mono"><div><span class="c">$</span> docker run -d -p 3000:3000 \</div><div>&nbsp;&nbsp;-v kinbot-data:/app/data <span class="p2">ghcr.io/.../kinbot</span></div><div class="cmt"># then open your browser — Sherpa takes it from there</div></div>
+      </div>
+      <div class="bcard"><span class="gradline warm"></span>
+        <h3><i data-lucide="wrench"></i> Self-improving</h3>
+        <p>Your Kins write their own tools, build mini-apps, and ship plugins.</p>
+        <div class="chips"><span class="chip on">custom tools</span><span class="chip">mini-apps</span><span class="chip">NPM plugins</span><span class="chip">MCP</span></div>
+      </div>
+      <div class="bcard span2"><span class="gradline"></span>
+        <h3><i data-lucide="lock"></i> Your secrets never reach the LLM</h3>
+        <p>AES-256-GCM encrypted vault. Kins reference a vault key, never read its value.</p>
+      </div>
+      <div class="bcard"><span class="gradline warm"></span>
+        <h3><i data-lucide="gauge"></i> No cost surprises</h3>
+        <p>Every token accounted for, per Kin and per model.</p>
+        <div class="tokbar"><i style="width:38%;background:oklch(0.64 0.23 305)"></i><i style="width:18%;background:oklch(0.72 0.22 342)"></i><i style="width:30%;background:oklch(0.83 0.14 52)"></i><i style="width:14%;background:oklch(0.78 0.15 150)"></i></div>
+        <div class="tlegend"><span><span class="sw" style="background:oklch(0.64 0.23 305)"></span>System</span><span><span class="sw" style="background:oklch(0.72 0.22 342)"></span>Memories</span><span><span class="sw" style="background:oklch(0.83 0.14 52)"></span>Messages</span><span><span class="sw" style="background:oklch(0.78 0.15 150)"></span>Tools</span></div>
+        <div class="cacheline">Anthropic cache · <b>72% hit</b> on the last turn</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SHERPA (chips + provider logos, no icon triplet) ===================== -->
+<!-- SRC: onboarding sim faithful → src/server/services/configurator.ts + secure-input-tools.ts (secret → vault, never to LLM); providers via @lobehub/icons (ProviderIcon.tsx) -->
+<section class="block alt sherpa">
+  <div class="wrap"><div class="split wide-left">
+    <div class="sec-head">
+      <span class="kicker">Conversational onboarding</span>
+      <h2 class="display">No YAML. Just a conversation.</h2>
+      <p>Sherpa, your setup agent, connects your providers, secures your secrets, and creates your first Kins by chatting with you. And it stays around for good, ready to help whenever you add a Kin or a provider.</p>
+      <!-- PROD: these provider logos = @lobehub/icons (color), see ProviderIcon.tsx. Here simple-icons (mono) placeholder. -->
+      <div class="providers"><span class="lbl">Works with</span>
+        <img src="https://cdn.simpleicons.org/openai/b9b3c8" alt="OpenAI"/>
+        <img src="https://cdn.simpleicons.org/anthropic/b9b3c8" alt="Anthropic"/>
+        <img src="https://cdn.simpleicons.org/googlegemini/b9b3c8" alt="Gemini"/>
+        <img src="https://cdn.simpleicons.org/mistralai/b9b3c8" alt="Mistral"/>
+        <img src="https://cdn.simpleicons.org/ollama/b9b3c8" alt="Ollama"/>
+        <span class="lbl">and more</span>
+      </div>
+    </div>
+    <div class="chatcard">
+      <div class="bub"><span class="av kin-av" data-av style="width:34px;height:34px;border-radius:10px"></span><div class="txt">Welcome! Let's set up your platform together. Do you have an OpenAI key?</div></div>
+      <div class="bub me"><div class="txt">Yes, should I paste it?</div></div>
+      <div class="bub"><span class="av kin-av" data-av style="width:34px;height:34px;border-radius:10px"></span><div class="txt">Drop it in the secure field. It goes straight to the vault, <b>never into the chat</b>.</div></div>
+      <div class="recall"><span class="tag"><i data-lucide="shield-check"></i> secure input → vault</span><div class="hit"><i data-lucide="check" style="color:oklch(0.78 0.15 150)"></i> <span>Provider <b>verified</b> · 4 capabilities detected (llm, embedding, image, tts)</span></div></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ===================== AVATARS (marquee = raw images, names from kins.json) ===================== -->
+<section class="block" style="padding-bottom:84px">
+  <div class="wrap" style="text-align:center;max-width:58ch;margin:0 auto">
+    <span class="kicker" style="justify-content:center">Avatars that fit them</span>
+    <h2 class="display" style="font-size:clamp(2rem,3.7vw,3.05rem);line-height:1.07;margin:.7rem 0 1rem">A team you recognize at a glance.</h2>
+    <p class="muted" style="font-size:1.12rem;margin:0">Every Kin gets an auto-generated avatar in the style you choose, matched to its personality and domain.</p>
+  </div>
+</section>
+<div class="marquee-sec"><div class="marquee"><div class="track" id="avatar-track"></div></div></div>
+
+<!-- ===================== FOOTER CTA ===================== -->
+<section class="cta-foot alt" style="margin-top:44px">
+  <div class="glow peach" style="top:-140px;left:50%;transform:translateX(-50%);right:auto;"></div>
+  <div class="wrap" style="position:relative;z-index:1">
+    <span class="kicker" style="justify-content:center">Ready in two minutes</span>
+    <h2 class="display">Your team is waiting.</h2>
+    <div class="btns"><a class="btn btn-primary" href="#"><i data-lucide="rocket"></i> Start in 2 minutes</a><a class="btn btn-ghost" href="#"><i data-lucide="book-open"></i> Read the docs</a></div>
+    <div class="fine">Open-source (MIT) · Self-hosted · Zero external infra</div>
+  </div>
+</section>
+
+<footer><div class="wrap foot-in"><div class="brand" style="font-size:1rem"><span class="dot"><i data-lucide="bot"></i></span>KinBot</div><div>© 2026 KinBot · MIT · Built with Bun</div></div></footer>
+
+<script>
+/* Avatars. In prod: const KINS = await (await fetch('kins.json')).json();
+   Mirror of kins.json below so the static preview works offline. */
+const KINS = [
+  {name:"Sherpa",domain:"Setup & config",avatar:null},
+  {name:"Atlas",domain:"Research & monitoring",avatar:null},
+  {name:"Quill",domain:"Writing",avatar:null},
+  {name:"Ledger",domain:"Finance & crypto",avatar:null},
+  {name:"Pixel",domain:"Design & UI",avatar:null},
+  {name:"Forge",domain:"Dev & DevOps",avatar:null},
+  {name:"Sol",domain:"Home automation",avatar:null},
+  {name:"Cumulus",domain:"Weather",avatar:null},
+  {name:"Sentry",domain:"Security",avatar:null},
+  {name:"Tempo",domain:"Calendar & reminders",avatar:null},
+  {name:"Lyra",domain:"Music",avatar:null},
+  {name:"Chef",domain:"Cooking & recipes",avatar:null},
+  {name:"Coach",domain:"Health & fitness",avatar:null},
+  {name:"Babel",domain:"Translation",avatar:null},
+  {name:"Curio",domain:"Learning",avatar:null},
+  {name:"Mercato",domain:"Market watch",avatar:null},
+  {name:"Nimbus",domain:"Cloud & servers",avatar:null},
+  {name:"Scribe",domain:"Notes & memory",avatar:null}
+];
+const HUES = [305,350,40,250,170,20,322,265,130,55,210,290,15,235,95];
+function rnd(n){return Math.floor(Math.random()*n);}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function avatarInner(entry,i,px){
+  if(entry && entry.avatar) return '<img class="av-img" src="'+entry.avatar+'" width="'+px+'" height="'+px+'" alt="'+entry.name+'">';
+  const hue=HUES[i%HUES.length];
+  return '<span style="color:oklch(0.72 0.18 '+hue+');display:inline-flex"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span>';
+}
+function makeAvatar(px){ const hue=HUES[rnd(HUES.length)];
+  return '<span style="color:oklch(0.72 0.18 '+hue+');display:inline-flex"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span>'; }
+
+/* chat bubble avatars (no name) */
+document.querySelectorAll('[data-av]').forEach(el=>{const px=parseInt(getComputedStyle(el).width)||34;el.innerHTML=makeAvatar(px);});
+
+/* HERO: Sherpa first, others pop around it. Variable sizes. Names from KINS. */
+(function buildHero(){
+  const wrap=document.getElementById('hero-kins'); if(!wrap)return;
+  const sherpa=KINS.find(k=>k.name==='Sherpa')||KINS[0];
+  const rest=shuffle(KINS.filter(k=>k!==sherpa)).slice(0,4);
+  const chosen=[sherpa,...rest];
+  const slots=[
+    {cls:'s-center',av:56,pop:0,fl:0},
+    {cls:'s-tr',av:48,pop:.7,fl:-.6},
+    {cls:'s-tl',av:42,pop:1.0,fl:-1.5},
+    {cls:'s-br',av:46,pop:1.3,fl:-.9},
+    {cls:'s-bl',av:40,pop:1.6,fl:-2.1}
+  ];
+  wrap.insertAdjacentHTML('beforeend','<svg class="thread" viewBox="0 0 400 440" fill="none" aria-hidden="true">'
+    +'<path d="M150 182 C 240 150, 320 120, 352 92" stroke="oklch(0.72 0.22 342/.4)" stroke-width="2" stroke-dasharray="5 6"/>'
+    +'<path d="M150 182 C 100 120, 70 60, 52 40" stroke="oklch(0.67 0.22 305/.4)" stroke-width="2" stroke-dasharray="5 6"/>'
+    +'<path d="M150 182 C 210 280, 300 330, 332 360" stroke="oklch(0.84 0.14 52/.42)" stroke-width="2" stroke-dasharray="5 6"/>'
+    +'<path d="M150 182 C 100 250, 70 300, 56 326" stroke="oklch(0.70 0.20 305/.36)" stroke-width="2" stroke-dasharray="5 6"/>'
+    +'</svg>');
+  slots.forEach((s,i)=>{const k=chosen[i];if(!k)return;
+    const av='<span class="kin-av" style="width:'+s.av+'px;height:'+s.av+'px">'+avatarInner(k,i,s.av)+'</span>';
+    wrap.insertAdjacentHTML('beforeend','<div class="kin '+s.cls+'" style="animation-delay:'+s.pop+'s">'
+      +'<div class="kin-inner" style="animation-delay:'+s.fl+'s">'
+      +'<div class="card">'+av+'<div><div class="name">'+k.name+'</div><div class="role">'+k.domain+'</div></div></div>'
+      +'</div></div>');
+  });
+  wrap.insertAdjacentHTML('beforeend','<span class="badge-mem"><i data-lucide="brain"></i> remembers you</span>');
+})();
+
+/* MARQUEE: raw images back-to-back (no card, no gap), name overlay from KINS */
+(function buildMarquee(){
+  const track=document.getElementById('avatar-track'); if(!track)return;
+  function tile(k,i){
+    const hue=HUES[i%HUES.length];
+    const inner = (k.avatar)
+      ? '<img src="'+k.avatar+'" alt="'+k.name+'">'
+      : '<div class="ph" style="background:radial-gradient(circle at 50% 38%, oklch(0.34 0.09 '+hue+'), oklch(0.165 0.045 '+hue+'))"><span style="color:oklch(0.80 0.16 '+hue+');display:inline-flex"><svg width="74" height="74" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span></div>';
+    return '<div class="tile">'+inner+'<div class="nm">'+k.name+'</div></div>';
+  }
+  const seq=KINS.map((k,i)=>tile(k,i)).join('');
+  track.innerHTML=seq+seq;
+})();
+
+if(window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

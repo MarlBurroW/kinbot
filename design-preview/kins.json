@@ -1,0 +1,20 @@
+[
+  { "name": "Sherpa",  "domain": "Setup & config",      "avatar": null },
+  { "name": "Atlas",   "domain": "Research & monitoring","avatar": null },
+  { "name": "Quill",   "domain": "Writing",             "avatar": null },
+  { "name": "Ledger",  "domain": "Finance & crypto",    "avatar": null },
+  { "name": "Pixel",   "domain": "Design & UI",         "avatar": null },
+  { "name": "Forge",   "domain": "Dev & DevOps",        "avatar": null },
+  { "name": "Sol",     "domain": "Home automation",     "avatar": null },
+  { "name": "Cumulus", "domain": "Weather",             "avatar": null },
+  { "name": "Sentry",  "domain": "Security",            "avatar": null },
+  { "name": "Tempo",   "domain": "Calendar & reminders","avatar": null },
+  { "name": "Lyra",    "domain": "Music",               "avatar": null },
+  { "name": "Chef",    "domain": "Cooking & recipes",   "avatar": null },
+  { "name": "Coach",   "domain": "Health & fitness",    "avatar": null },
+  { "name": "Babel",   "domain": "Translation",         "avatar": null },
+  { "name": "Curio",   "domain": "Learning",            "avatar": null },
+  { "name": "Mercato", "domain": "Market watch",        "avatar": null },
+  { "name": "Nimbus",  "domain": "Cloud & servers",     "avatar": null },
+  { "name": "Scribe",  "domain": "Notes & memory",      "avatar": null }
+]

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="KinBot">
+  <defs>
+    <linearGradient id="a4" x1="10" y1="14" x2="52" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#AE5AF9"/><stop offset="0.52" stop-color="#FB5FCA"/><stop offset="1" stop-color="#FFB470"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#FB5FCA" stroke-width="2" opacity="0.55" stroke-linecap="round">
+    <path d="M26 30 L45 18"/><path d="M26 30 L48 44"/><path d="M26 30 L16 46"/>
+  </g>
+  <circle cx="26" cy="30" r="7.5" fill="url(#a4)"/>
+  <circle cx="45" cy="18" r="5" fill="url(#a4)"/>
+  <circle cx="48" cy="44" r="5.5" fill="url(#a4)"/>
+  <circle cx="16" cy="46" r="4.5" fill="url(#a4)"/>
+</svg>

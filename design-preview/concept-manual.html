@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KinBot — Concept: Operator's Handbook</title>
+<!--
+  ORIGINAL DIRECTION — "Operator's Handbook" (editorial).
+  Deliberately rejects the AI-default kit: NO gradient hero, NO glow blobs, NO glassmorphism,
+  NO bento, NO floating cards. Instead: hairline grid, big mono section numbers, serif display,
+  ONE warm amber ink-accent (drops the cliché purple), avatars as a printed cast/directory.
+  Fonts: Fraunces (display) · JetBrains Mono (metadata) · Plus Jakarta Sans (body).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --ink: oklch(0.165 0.012 72);       /* warm near-black "paper at night" */
+  --ink-2: oklch(0.205 0.014 74);
+  --paper: oklch(0.945 0.012 85);
+  --paper-soft: oklch(0.70 0.02 82);
+  --rule: oklch(1 0 0 / 0.16);
+  --rule-soft: oklch(1 0 0 / 0.09);
+  --accent: oklch(0.82 0.13 66);       /* amber — the single ink accent */
+  --accent-deep: oklch(0.72 0.15 48);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--paper);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+.serif{font-family:"Fraunces",Georgia,serif;}
+.mono{font-family:"JetBrains Mono",monospace;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 32px;}
+a{color:inherit;}
+hr.rule{border:0;border-top:1px solid var(--rule);margin:0;}
+.meta{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--paper-soft);}
+.mark{position:relative;white-space:nowrap;}
+.mark::after{content:"";position:absolute;left:-2px;right:-2px;bottom:.08em;height:.34em;background:var(--accent);opacity:.85;z-index:-1;}
+
+/* ---------- masthead ---------- */
+.masthead{display:flex;justify-content:space-between;align-items:baseline;padding:22px 0 16px;gap:18px;flex-wrap:wrap;}
+.masthead .logo{font-family:"Fraunces",serif;font-weight:600;font-size:1.3rem;letter-spacing:-.01em;color:var(--paper);}
+.masthead .logo b{color:var(--accent);}
+.masthead nav{display:flex;gap:26px;}
+.masthead nav a{font-family:"JetBrains Mono",monospace;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--paper-soft);text-decoration:none;}
+.masthead nav a:hover{color:var(--paper);}
+
+/* ---------- title page ---------- */
+.titlepage{padding:54px 0 40px;}
+.titlepage h1{font-family:"Fraunces",serif;font-weight:400;font-size:clamp(2.9rem,6.6vw,5.6rem);line-height:.99;letter-spacing:-.022em;margin:0;max-width:18ch;}
+.titlepage h1 em{font-style:italic;}
+.title-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:48px;align-items:end;margin-top:40px;}
+.lede{font-size:1.12rem;color:var(--paper-soft);margin:0 0 26px;max-width:42ch;}
+.lede b{color:var(--paper);font-weight:600;}
+.colophon{border-top:1px solid var(--rule);}
+.colophon .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule-soft);font-family:"JetBrains Mono",monospace;font-size:.78rem;}
+.colophon .row .k{color:var(--paper-soft);letter-spacing:.06em;text-transform:uppercase;font-size:.7rem;align-self:center;}
+.colophon .row .v{text-align:right;color:var(--paper);}
+.colophon .row .v .amb{color:var(--accent);}
+.cta{display:flex;align-items:center;gap:22px;margin-top:30px;flex-wrap:wrap;}
+.btn{font-family:"JetBrains Mono",monospace;font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:.72rem 1.2rem;border-radius:3px;background:var(--accent);color:oklch(0.18 0.02 60);text-decoration:none;display:inline-flex;align-items:center;gap:9px;border:0;transition:background .15s ease;}
+.btn:hover{background:var(--accent-deep);}
+.btn [data-lucide]{width:1em;height:1em;}
+.link{font-family:"JetBrains Mono",monospace;font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;color:var(--paper);text-decoration:none;border-bottom:1px solid var(--accent);padding-bottom:3px;display:inline-flex;align-items:center;gap:8px;}
+.link [data-lucide]{width:1em;height:1em;color:var(--accent);}
+
+/* cast teaser strip — raw framed avatars, edge to edge */
+.cast{display:flex;margin-top:44px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+.cast .cell{flex:1 1 0;aspect-ratio:1;border-right:1px solid var(--rule-soft);position:relative;display:grid;place-items:center;}
+.cast .cell:last-child{border-right:0;}
+.cast .cell .ph{width:100%;height:100%;display:grid;place-items:center;}
+.cast .cell .nm{position:absolute;left:0;right:0;bottom:0;font-family:"JetBrains Mono",monospace;font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;text-align:center;color:var(--paper);padding:10px 2px 5px;background:linear-gradient(to top,oklch(0 0 0/.6),transparent);}
+
+/* ---------- numbered sections ---------- */
+.section{display:grid;grid-template-columns:120px 1fr;gap:36px;padding:74px 0;}
+.section .num{font-family:"Fraunces",serif;font-weight:400;font-size:3.2rem;line-height:1;color:var(--accent);font-feature-settings:"tnum";}
+.section .num small{display:block;font-family:"JetBrains Mono",monospace;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--paper-soft);margin-top:10px;}
+.section h2{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(1.9rem,3.4vw,2.8rem);line-height:1.05;letter-spacing:-.02em;margin:0 0 14px;max-width:20ch;}
+.section .body p{font-size:1.08rem;color:var(--paper-soft);margin:0 0 18px;max-width:54ch;}
+.section .body p b{color:var(--paper);font-weight:600;}
+.split2{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start;margin-top:26px;}
+
+/* figure */
+.figure{border:1px solid var(--rule);background:var(--ink-2);}
+.figure .cap{font-family:"JetBrains Mono",monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--paper-soft);padding:9px 14px;border-bottom:1px solid var(--rule-soft);display:flex;justify-content:space-between;}
+.figure .cap .amb{color:var(--accent);}
+.figbody{padding:18px;}
+
+/* recall figure content (faithful: content+category+vec/FTS) */
+.line{display:flex;gap:10px;align-items:flex-start;font-size:.9rem;margin:8px 0;color:var(--paper-soft);}
+.line b{color:var(--paper);font-weight:600;}
+.tagm{font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--rule);padding:.1rem .4rem;color:var(--paper-soft);}
+.tagm.dec{border-color:var(--accent);color:var(--accent);}
+.q{color:var(--paper-soft);font-style:italic;font-family:"Fraunces",serif;}
+
+/* spec list (key facts as a manual table) */
+.specs{border-top:1px solid var(--rule);}
+.specs .r{display:grid;grid-template-columns:200px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--rule-soft);}
+.specs .r dt{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--paper-soft);}
+.specs .r dd{margin:0;color:var(--paper);font-size:.98rem;}
+.term{font-family:"JetBrains Mono",monospace;font-size:.84rem;background:oklch(0.12 0.01 70);border:1px solid var(--rule);padding:14px 16px;color:var(--paper);}
+.term .c{color:var(--accent);}
+.term .cmt{color:var(--paper-soft);}
+
+/* shot placeholder, feathered (kept as a real-product slot) */
+.shot{position:relative;overflow:hidden;border:1px solid var(--rule);}
+.shot .cap{position:absolute;top:0;left:0;font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--paper-soft);padding:7px 11px;background:var(--ink-2);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);z-index:2;}
+.shot .ph{aspect-ratio:4/3;display:grid;place-items:center;text-align:center;padding:28px;color:var(--paper-soft);}
+.shot .ph .lbl{color:var(--paper);font-family:"Fraunces",serif;font-size:1.05rem;margin-top:8px;}
+.shot .ph .pt{font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-top:12px;border:1px dashed var(--accent);display:inline-block;padding:.2rem .5rem;}
+.shot .ph [data-lucide]{width:30px;height:30px;}
+
+/* ---------- the household: directory ---------- */
+.directory{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--rule);border-left:1px solid var(--rule);margin-top:30px;}
+.dir{border-right:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);padding:16px;display:flex;flex-direction:column;gap:10px;}
+.dir .top{display:flex;justify-content:space-between;align-items:center;}
+.dir .no{font-family:"JetBrains Mono",monospace;font-size:.64rem;color:var(--paper-soft);}
+.dir .frame{width:100%;aspect-ratio:1;border:1px solid var(--rule);display:grid;place-items:center;overflow:hidden;}
+.dir .frame .ph{width:100%;height:100%;display:grid;place-items:center;}
+.dir .nm{font-family:"Fraunces",serif;font-size:1.02rem;font-weight:500;line-height:1.1;}
+.dir .dm{font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.04em;text-transform:uppercase;color:var(--paper-soft);}
+
+/* footer */
+.footer{padding:40px 0 60px;}
+.footer .top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:16px;}
+.footer .logo{font-family:"Fraunces",serif;font-size:1.1rem;}
+.footer .logo b{color:var(--accent);}
+
+@media(max-width:820px){
+  .title-grid{grid-template-columns:1fr;gap:28px;}
+  .section{grid-template-columns:1fr;gap:14px;} .section .num{font-size:2.2rem;}
+  .split2{grid-template-columns:1fr;} .directory{grid-template-columns:repeat(3,1fr);}
+  .cast{flex-wrap:wrap;} .cast .cell{flex:1 0 25%;}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bot" viewBox="0 0 64 76">
+    <line x1="32" y1="6" x2="32" y2="15" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="32" cy="5" r="4" fill="currentColor"/>
+    <rect x="9" y="14" width="46" height="34" rx="13" fill="currentColor"/>
+    <rect x="14" y="19" width="36" height="24" rx="9" fill="oklch(0.15 0.012 70)"/>
+    <circle cx="25" cy="31" r="4.2" fill="oklch(0.95 0.01 85)"/><circle cx="39" cy="31" r="4.2" fill="oklch(0.95 0.01 85)"/>
+    <circle cx="25.8" cy="31.6" r="1.7" fill="oklch(0.15 0.012 70)"/><circle cx="39.8" cy="31.6" r="1.7" fill="oklch(0.15 0.012 70)"/>
+    <path d="M27 38 q5 4 10 0" stroke="oklch(0.95 0.01 85)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <rect x="16" y="50" width="32" height="22" rx="10" fill="currentColor"/>
+    <circle cx="32" cy="61" r="4" fill="oklch(0.97 0.02 85/.9)"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="logo">Kin<b>Bot</b></div>
+    <nav><a href="#">Manual</a><a href="#">The household</a><a href="#">Why self-host</a><a href="#">Docs</a><a href="#">GitHub ↗</a></nav>
+  </div>
+  <hr class="rule">
+
+  <!-- TITLE PAGE -->
+  <section class="titlepage">
+    <span class="meta">KinBot — Operator's Handbook · Edition 1.0</span>
+    <div class="title-grid">
+      <h1 class="serif">A self-hosted team of AI agents that <em>remember</em>, <span class="mark">collaborate</span>, and grow with you.</h1>
+      <div>
+        <p class="lede">Your Kins live on <b>your</b> server. They keep their memory, build their own tools, and reach you on any channel. Not a chatbot — a household of specialists.</p>
+        <dl class="colophon">
+          <div class="row"><span class="k">Runs on</span><span class="v">one container</span></div>
+          <div class="row"><span class="k">External infra</span><span class="v"><span class="amb">none</span></span></div>
+          <div class="row"><span class="k">Set up by</span><span class="v">a conversation</span></div>
+          <div class="row"><span class="k">Channels</span><span class="v">6 built-in</span></div>
+          <div class="row"><span class="k">License</span><span class="v">MIT</span></div>
+        </dl>
+        <div class="cta">
+          <a class="btn" href="#"><i data-lucide="terminal"></i> Start in 2 minutes</a>
+          <a class="link" href="#">Read the manual <i data-lucide="arrow-down"></i></a>
+        </div>
+      </div>
+    </div>
+    <!-- cast teaser: raw framed avatars edge to edge -->
+    <div class="cast" id="cast"></div>
+  </section>
+  <hr class="rule">
+
+  <!-- 01 — MEMORY -->
+  <!-- SRC: src/server/tools/memory-tools.ts (content + category + subject; vec + FTS5) -->
+  <section class="section">
+    <div class="num serif">01<small>Persistent</small></div>
+    <div class="body">
+      <h2 class="serif">They never forget you.</h2>
+      <div class="split2">
+        <div>
+          <p>No "new conversation". One continuous session, and a hybrid memory that builds context over months. Nothing is ever deleted — old turns are summarized, never thrown away.</p>
+          <p>A Kin can hand work to another, or spawn sub-agents to move faster. The team shares one address book and one history.</p>
+        </div>
+        <div class="figure">
+          <div class="cap"><span>Fig. 1 — recall over months</span><span class="amb">memory</span></div>
+          <div class="figbody">
+            <div class="mono" style="font-size:.78rem;color:var(--paper-soft);margin-bottom:10px">recall("grocery budget")</div>
+            <div class="line"><span class="tagm dec">decision</span><span><b>$600 / month</b> · groceries · Mar 12 <span class="mono" style="font-size:.7rem;color:var(--paper-soft)">exact · FTS5</span></span></div>
+            <div class="line"><span class="tagm">preference</span><span><span class="q">"cut unnecessary spending"</span> <span class="mono" style="font-size:.7rem;color:var(--paper-soft)">close · vec</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- 02 — SELF-HOSTED & SELF-IMPROVING -->
+  <!-- SRC: context-preview.ts (system/memories/messages/tools; cache hit = cacheRead/input) -->
+  <section class="section">
+    <div class="num serif">02<small>Sovereign</small></div>
+    <div class="body">
+      <h2 class="serif">One container. It improves itself.</h2>
+      <div class="split2">
+        <div>
+          <p>No Postgres, Redis, Mongo, or message broker. Bun and SQLite in a single binary. Your data, your keys, your machine.</p>
+          <p>And the platform <b>extends itself</b>: your Kins write their own tools, build mini-apps, and ship plugins. Secrets go to an encrypted vault and <b>never reach the LLM</b>.</p>
+          <div class="term mono"><span class="c">$</span> docker run -d -p 3000:3000 kinbot<br><span class="cmt"># then open your browser. Sherpa does the rest.</span></div>
+        </div>
+        <dl class="specs">
+          <div class="r"><dt>Footprint</dt><dd>1 process · 1 SQLite file</dd></div>
+          <div class="r"><dt>Extends via</dt><dd>custom tools · mini-apps · NPM plugins · MCP</dd></div>
+          <div class="r"><dt>Secrets</dt><dd>AES-256-GCM vault, by reference only</dd></div>
+          <div class="r"><dt>Token cost</dt><dd>accounted per Kin &amp; model · 72% cache hit</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- 03 — SHERPA + real screenshot slot -->
+  <!-- SRC: configurator.ts + secure-input-tools.ts -->
+  <section class="section">
+    <div class="num serif">03<small>Setup</small></div>
+    <div class="body">
+      <h2 class="serif">Setup is a conversation, not a YAML file.</h2>
+      <div class="split2">
+        <div>
+          <p>Sherpa, your setup agent, connects your providers, secures your secrets, and creates your first Kins — by chatting with you. It stays around for good.</p>
+          <p>Tools render as real, themed UI in the thread — a weather card, not raw JSON. Mini-apps become dashboards inside KinBot.</p>
+        </div>
+        <div class="shot">
+          <span class="cap">Fig. 2 — a tool renders as UI</span>
+          <!-- REPLACE with real screenshot; the frame stays editorial -->
+          <div class="ph">
+            <div>
+              <i data-lucide="image"></i>
+              <div class="lbl">Weather widget, rendered in-thread</div>
+              <span class="pt">screenshot to add</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- 04 — THE HOUSEHOLD directory -->
+  <section class="section">
+    <div class="num serif">04<small>Roster</small></div>
+    <div class="body">
+      <h2 class="serif">The household.</h2>
+      <p>Eighteen specialists, and counting — each with its own name, domain, memory, and avatar. Add as many as you like.</p>
+      <div class="directory" id="directory"></div>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <footer class="footer">
+    <div class="top">
+      <div class="logo serif">Kin<b>Bot</b></div>
+      <span class="meta">Open-source · MIT · Built with Bun · © 2026</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+const KINS = [
+  {name:"Sherpa",domain:"Setup & config"},{name:"Atlas",domain:"Research"},{name:"Quill",domain:"Writing"},
+  {name:"Ledger",domain:"Finance"},{name:"Pixel",domain:"Design"},{name:"Forge",domain:"Dev & DevOps"},
+  {name:"Sol",domain:"Home automation"},{name:"Cumulus",domain:"Weather"},{name:"Sentry",domain:"Security"},
+  {name:"Tempo",domain:"Calendar"},{name:"Lyra",domain:"Music"},{name:"Chef",domain:"Cooking"},
+  {name:"Coach",domain:"Health"},{name:"Babel",domain:"Translation"},{name:"Curio",domain:"Learning"},
+  {name:"Mercato",domain:"Market watch"},{name:"Nimbus",domain:"Cloud & servers"},{name:"Scribe",domain:"Notes"}
+];
+const HUES=[66,40,20,305,265,210,150,55,15,235,290,30,170,95,330,50,200,120];
+function bot(px,hue){return '<span style="color:oklch(0.78 0.12 '+hue+');display:inline-flex"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64"><use href="#bot" y="6"/></svg></span>';}
+// cast teaser: first 8
+const cast=document.getElementById('cast');
+KINS.slice(0,8).forEach((k,i)=>{cast.insertAdjacentHTML('beforeend','<div class="cell"><div class="ph">'+bot(46,HUES[i%HUES.length])+'</div><div class="nm">'+k.name+'</div></div>');});
+// directory: all
+const dir=document.getElementById('directory');
+KINS.forEach((k,i)=>{const n=String(i+1).padStart(2,'0');
+  dir.insertAdjacentHTML('beforeend','<div class="dir"><div class="frame"><div class="ph">'+bot(58,HUES[i%HUES.length])+'</div></div><div class="top"><span class="nm">'+k.name+'</span><span class="no">'+n+'</span></div><div class="dm">'+k.domain+'</div></div>');});
+if(window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>
