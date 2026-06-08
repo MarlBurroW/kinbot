@@ -23,7 +23,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "puppeteer": "^24.37.5",
-    "satori": "^0.25.0",
+    "satori": "^0.26.0",
     "satori-html": "^0.3.2",
     "tailwindcss": "^4.2.0",
     "vite": "^8.0.0"
